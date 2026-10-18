@@ -321,6 +321,13 @@ public final class SessionDriver {
             case SessionEffects.ShowAssistantProfilesEffect ignored -> "showAssistantProfiles";
             case SessionEffects.ApplyAssistantProfileEffect ignored -> "applyAssistantProfile";
             case SessionEffects.ConfirmFullProfileEffect ignored -> "confirmFullProfile";
+            case SessionEffects.ShowAiSetupEffect ignored -> "showAiSetup";
+            case SessionEffects.ObserveAiClientsEffect ignored -> "observeAiClients";
+            case SessionEffects.ProbeClaudeEffect ignored -> "probeClaude";
+            case SessionEffects.ProbeClaudeAuthEffect ignored -> "probeClaudeAuth";
+            case SessionEffects.PersistSetupDismissedEffect ignored -> "persistSetupDismissed";
+            case SessionEffects.PersistSetupClientEffect ignored -> "persistSetupClient";
+            case SessionEffects.OpenClientSetupEffect ignored -> "openClientSetup";
             case SessionEffects.StartLocalAgentEffect ignored -> "startLocalAgent";
             case SessionEffects.PollLocalAgentStatusEffect ignored -> "pollLocalAgentStatus";
             case SessionEffects.SendLocalAgentTurnEffect ignored -> "sendLocalAgentTurn";

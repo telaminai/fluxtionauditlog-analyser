@@ -8583,6 +8583,14 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e -> applyAssistantProfile(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmFullProfileEffect e -> confirmFullProfile(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ChooseAssistantModeEffect e -> chooseAssistantMode(e);
+            // M77: Set up AI — aiSetup decided; the frame shows the window, runs the two read-only checks, writes two keys
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAiSetupEffect e -> showAiSetup(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ObserveAiClientsEffect e -> observeAiClients(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ProbeClaudeEffect e -> probeClaude(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ProbeClaudeAuthEffect e -> probeClaudeAuth(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PersistSetupDismissedEffect e -> persistSetupDismissed(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PersistSetupClientEffect e -> persistSetupClient(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenClientSetupEffect e -> openClientSetup(e);
             // M74: the local agent's effects have ONE performer, the adapter (OneDispatchModelTest pins it)
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartLocalAgentEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PollLocalAgentStatusEffect e -> performLocalAgent(e);
@@ -11597,7 +11605,8 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result applyAssistantProfile(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e) {
         var before = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.snapshot(config);
-        telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.apply(e.profile(), assistantPanel.profileDetails(),
+        // the details are those of the surface that asked: the wizard's (M77-2) or the cards'
+        telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.apply(e.profile(), profileDetailsFor(e.origin()),
                 config);
         // review P3+UX S4: the result reports the REAL save — a failed write puts the previous settings back and says so;
         // the mode change is assistantProfile's to ask for, after this fact
@@ -11606,11 +11615,17 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.restore(before, config);
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied(e.opId(),
                     e.request(), e.profile(), false, "the settings could not be saved, so nothing changed ("
-                    + telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(failure) + ")");
+                    + telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(failure) + ")", e.origin());
         }
         reportAssistantSettings();
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied(e.opId(),
-                e.request(), e.profile(), true, "");
+                e.request(), e.profile(), true, "", e.origin());
+    }
+
+    /** The details of the surface whose Apply this is (M77-1: only the cards hold any). */
+    telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.Details profileDetailsFor(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOrigin origin) {
+        return assistantPanel.profileDetails();
     }
 
     /** Review PR151 F4: modal in the application; a frame test shows it modeless so its thread stays free. */
@@ -11652,6 +11667,140 @@ public final class MainFrame extends JFrame {
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown(e.opId());
     }
 
+    // ---- M77: Set up AI — aiSetup decides; the frame performs and reports facts (rule 9) ---------------------------
+
+    /** For the frame tests: the environment the two checks resolve and run claude with (null: this process's). */
+    java.util.Map<String, String> setupEnvironmentForTest;
+    /** For the frame tests: the checks' runner (null: real processes). */
+    telamin.fluxtion.audit.analyser.analyser.assistant.setup.ClaudeProbes.Runner setupRunnerForTest;
+    /** Where claude was found, by reference: the view renders it shortened, the snapshot never carries it. */
+    private final java.util.Map<Long, Path> setupPaths = new java.util.LinkedHashMap<>();
+    private long setupPathNext = 1;
+    private Path setupProbeRoot;
+
+    /** The window is the wizard's view (M77-2); this only makes it visible. Its contents render AiSetupState. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result showAiSetup(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAiSetupEffect e) {
+        SwingUtilities.invokeLater(this::frontAiSetupWindow);
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(), "show");
+    }
+
+    /** M77-1: no window yet (the first use still opens the cards); M77-2 builds it. */
+    void frontAiSetupWindow() {
+    }
+
+    /** The path a check found claude at, by its reference (for the view only). */
+    Path setupPath(long ref) {
+        return setupPaths.get(ref);
+    }
+
+    private java.util.Map<String, String> setupEnvironment() {
+        return setupEnvironmentForTest != null ? setupEnvironmentForTest : System.getenv();
+    }
+
+    /** Screen 1's badges: the one resolver for Claude Code and for Codex — files only, nothing is run (S2). */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result observeAiClients(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ObserveAiClientsEffect e) {
+        postStartAvailability();
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved(
+                telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeResolver.resolveCodex(
+                        setupEnvironment(), Path.of(System.getProperty("user.home"))).found()));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "observeClients");
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.assistant.setup.ClaudeProbes setupProbes() {
+        java.util.function.Supplier<Path> root = () -> {
+            if (setupProbeRoot == null) {
+                try {
+                    setupProbeRoot = java.nio.file.Files.createTempDirectory("analyser-setup-",
+                            java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                                    java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
+                } catch (UnsupportedOperationException | java.io.IOException notPosix) {
+                    try {
+                        setupProbeRoot = java.nio.file.Files.createTempDirectory("analyser-setup-");
+                    } catch (java.io.IOException ex) {
+                        throw new java.io.UncheckedIOException(ex);
+                    }
+                }
+            }
+            return setupProbeRoot;
+        };
+        return setupRunnerForTest != null
+                ? new telamin.fluxtion.audit.analyser.analyser.assistant.setup.ClaudeProbes(setupRunnerForTest, root)
+                : telamin.fluxtion.audit.analyser.analyser.assistant.setup.ClaudeProbes.system(root);
+    }
+
+    /** claude --version, off the event thread, reported as ClaudeObserved for the node's probe id. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result probeClaude(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ProbeClaudeEffect e) {
+        var probes = setupProbes();
+        var env = java.util.Map.copyOf(setupEnvironment());
+        Path home = Path.of(System.getProperty("user.home"));
+        Background.run(() -> probes.version(env, home, e.full()), v -> {
+            long ref = 0;
+            if (v.executable() != null) {
+                ref = setupPathNext++;
+                setupPaths.put(ref, v.executable());
+                while (setupPaths.size() > 16) setupPaths.remove(setupPaths.keySet().iterator().next());
+            }
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeObserved(e.probe(),
+                    v.outcome(), v.version(), ref));
+        }, err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeObserved(
+                e.probe(), telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProbeOutcome.DID_NOT_RUN, "", 0)));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "probeClaude");
+    }
+
+    /** claude auth status --json, off the event thread, parsed at the boundary, reported as ClaudeAuthObserved. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result probeClaudeAuth(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ProbeClaudeAuthEffect e) {
+        var probes = setupProbes();
+        var env = java.util.Map.copyOf(setupEnvironment());
+        Path home = Path.of(System.getProperty("user.home"));
+        Background.run(() -> probes.auth(env, home, e.full()), a -> session().post(
+                new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeAuthObserved(e.probe(),
+                        a.outcome(), a.loggedIn(), a.method(), a.plan(), a.keySource())),
+                err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeAuthObserved(
+                        e.probe(), telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AuthOutcome.DID_NOT_RUN,
+                        false, null, null, null)));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "probeClaudeAuth");
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result persistSetupDismissed(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PersistSetupDismissedEffect e) {
+        config.assistantSetupDismissed = true;
+        saveConfigQuietly();
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "persistDismissed");
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result persistSetupClient(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PersistSetupClientEffect e) {
+        config.assistantSetupClient = e.client() == null ? null : e.client().stored();
+        saveConfigQuietly();
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "persistClient");
+    }
+
+    /** M77-2's interim client path (review R1-11): today's dialog, at the chosen client, outside the dispatch. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openClientSetup(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenClientSetupEffect e) {
+        McpSetupDialog.Target target = switch (e.client() == null
+                ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.CLAUDE_CODE : e.client()) {
+            case CODEX -> McpSetupDialog.Target.CODEX;
+            case GENERIC -> McpSetupDialog.Target.GENERIC;
+            case CLAUDE_CODE, NONE -> McpSetupDialog.Target.CLAUDE_CODE;
+        };
+        SwingUtilities.invokeLater(() -> McpSetupDialog.show(this, config, () -> {
+            onConfigChanged();
+            refreshMcpIndicator();
+        }, target, false));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "openClientSetup");
+    }
+
     /** What the machine now says about the assistants — the facts a Settings save reports, and the profile in force. */
     private void reportAssistantSettings() {
         if (session == null) return;
@@ -11667,10 +11816,17 @@ public final class MainFrame extends JFrame {
     /** The facts a new session needs about this machine: the remembered mode, what can answer, the consent's posture. */
     private void postStartupFacts() {
         reportRestSwitch();   // review B5: actionListener decides whether to listen
-        if ("LOCAL_AGENT".equals(config.claudeCodeLastMode)) {
-            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(
-                    telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, "remembered on this machine"));
-        }
+        // M77 §8.5 (review R1-3, ★ T21): the mode is derived from the profile in force, for EVERY profile — so the
+        // remembered mode can never contradict it, and a key stored before profiles keeps the in-app assistant answering
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(
+                telamin.fluxtion.audit.analyser.analyser.session.AiSetupDerived.startupMode(
+                        telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inForce(config)),
+                "derived from the profile in force"));
+        // M77: the two machine-tier keys, and whether an agent started this process (--rest: nobody at the screen)
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved(
+                config.assistantSetupDismissed,
+                telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.parse(config.assistantSetupClient),
+                Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY)));
         postStartAvailability();
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(localAgentConsent()));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved(

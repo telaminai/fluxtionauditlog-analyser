@@ -2,7 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.session;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -123,7 +123,7 @@ class AssistantProfileTest {
         assertTrue(profiles(d).open(), "a question with nothing chosen opens the cards");
         assertTrue(a.profileShows.get(0).popOut(), "with no workspace the assistant pops out, as a start-page draft does");
         assertEquals(0, a.startFallbacks.size(), "and no no-AI fallback beside them");
-        assertEquals(AssistantProfileChoice.FIRST_USE_NOTE, d.snapshot().startPage().note());
+        assertEquals(AiSetup.FIRST_USE_NOTE, d.snapshot().startPage().note());
         d.post(StartPagePromptTest.press(3, "S6", 0, false, false, false, false));
         assertEquals(1, a.startFallbacks.size(), "the next question gets the fallback as before");
     }
@@ -145,7 +145,7 @@ class AssistantProfileTest {
         d.post(new SessionEvents.AssistantProfilesRequested("assistant header"));
         d.post(new SessionEvents.AssistantProfileChosen(1, AssistantProfile.IN_APP));
         assertEquals(0, a.profileApplies.size(), "nothing is written while Claude is answering");
-        assertEquals(AssistantProfileChoice.BUSY_LOCAL_AGENT_TEXT, profiles(d).refusal());
+        assertEquals(AiSetup.BUSY_LOCAL_AGENT_TEXT, profiles(d).refusal());
         assertTrue(profiles(d).open(), "the cards stay open, saying why");
         d.post(new SessionEvents.LocalAgentTurnEnded(start.generation(), t.ticket(), SessionEvents.TurnOutcome.COMPLETED));
         d.post(new SessionEvents.AssistantProfileChosen(2, AssistantProfile.IN_APP));
@@ -162,7 +162,7 @@ class AssistantProfileTest {
         assertTrue(e.snapshot().assistant().busy(), "control: the in-app turn is in progress");
         e.post(new SessionEvents.AssistantProfileChosen(1, AssistantProfile.SAFE));
         assertEquals(0, b.profileApplies.size());
-        assertEquals(AssistantProfileChoice.BUSY_IN_APP_TEXT, e.snapshot().profiles().refusal());
+        assertEquals(AiSetup.BUSY_IN_APP_TEXT, e.snapshot().profiles().refusal());
     }
 
     @Test
@@ -273,12 +273,12 @@ class AssistantProfileTest {
         SessionDriver d = new SessionDriver(a);
         assertEquals("", profiles(d).status(), "nothing reported yet: no claim");
         d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.NONE));
-        assertEquals(AssistantProfileChoice.NO_ASSISTANT, profiles(d).status());
+        assertEquals(AiSetup.NO_ASSISTANT, profiles(d).status());
         d.post(new SessionEvents.AssistantProfilesRequested("assistant header"));
-        assertEquals(AssistantProfileChoice.NO_ASSISTANT_CHOOSING, profiles(d).status());
+        assertEquals(AiSetup.NO_ASSISTANT_CHOOSING, profiles(d).status());
         d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.IN_APP));
         d.post(new SessionEvents.StartPageAvailability(false, false, false, false));
-        assertEquals(AssistantProfileChoice.IN_APP_NO_KEY, profiles(d).status());
+        assertEquals(AiSetup.IN_APP_NO_KEY, profiles(d).status());
         d.post(new SessionEvents.StartPageAvailability(false, false, true, false));
         assertEquals("", profiles(d).status(), "the in-app assistant can answer: the panel's own lines");
         d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.SAFE));

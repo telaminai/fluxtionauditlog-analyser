@@ -327,8 +327,9 @@ class OneDispatchModelTest {
         }
         // review S8: the ProcessBuilder rule covers the whole main tree, not only the localagent package — every process the
         // analyser can build is in a named home, so a second agent launcher anywhere fails here
+        // M77 (★ T16): ClaudeProbes is the one home of Set up AI's two read-only checks (claude --version, auth status)
         java.util.Set<String> processHomes = java.util.Set.of("OsAgentLauncher.java", "S3Source.java", "CodexMcpClient.java",
-                "McpConnectionProbe.java", "ClaudeMcpClient.java");
+                "McpConnectionProbe.java", "ClaudeMcpClient.java", "ClaudeProbes.java");
         Pattern newProcess = Pattern.compile("new\\s+ProcessBuilder\\s*\\(|Runtime\\.getRuntime\\(\\)\\s*\\.\\s*exec\\s*\\(");
         try (var files = Files.walk(Path.of("src/main/java"))) {
             for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
@@ -653,6 +654,58 @@ class OneDispatchModelTest {
         // tools/verify-m46-agent-api.py on the built jar, 2026-10-17)
         assertTrue(frame.replaceAll("\\s+", " ").contains("SwingUtilities.invokeLater(() -> { session(); reportRestSwitch(); });"),
                 "the switch is reported at start-up, building the session");
+    }
+
+    /**
+     * ★ M77 (spec-ai-setup-wizard.md T16, node side): Set up AI's decisions are aiSetup's. Every sentence it publishes is
+     * composed in {@code AiSetupLines}; the two checks have one home ({@code ClaudeProbes}), built in one place in the
+     * frame and parsed at one boundary; the two machine-tier keys are written only by their effects' performers.
+     * Witnesses: spell the AI line in {@code StartPanel}; call {@code ClaudeAuthParse.auth} from the frame; write
+     * {@code config.assistantSetupDismissed} in a menu action — each fails its assertion.
+     */
+    @Test
+    @DisplayName("★ M77 T16: Set up AI's lines, checks and keys each have one home; the frame performs and reports")
+    void setUpAiHasOneHomeForEach() throws Exception {
+        List<String> offenders = new ArrayList<>();
+        Path lines = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/session/AiSetupLines.java");
+        try (var files = Files.walk(Path.of("src/main/java"))) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                if (f.equals(lines)) continue;
+                String src = Files.readString(f);
+                for (String words : List.of("\"AI: not set up", "\"AI: off", "\"AI: Claude inside",
+                        "\"No AI set up yet", "Your question is below")) {
+                    if (src.contains(words)) offenders.add(f.getFileName() + " composes a Set up AI line: " + words);
+                }
+                String name = f.getFileName().toString();
+                if (!name.equals("ClaudeProbes.java") && !name.equals("ClaudeAuthParse.java")
+                        && Pattern.compile("ClaudeAuthParse\\s*\\.\\s*auth\\(").matcher(src).find()) {
+                    offenders.add(name + " parses auth status outside the probe");
+                }
+                if (!name.equals("ClaudeProbes.java") && src.contains("\"auth\", \"status\"")) {
+                    offenders.add(name + " builds the auth status command outside the probe");
+                }
+            }
+        }
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        Pattern build = Pattern.compile("ClaudeProbes\\s*(\\.\\s*system\\(|\\()");
+        String builder = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.assistant.setup.ClaudeProbes setupProbes(");
+        assertFalse(builder.isEmpty(), "setupProbes must exist");
+        assertEquals(count(build, builder), count(build, frame), "the checks' runner is built only in setupProbes");
+        for (String key : List.of("config.assistantSetupDismissed =", "config.assistantSetupClient =")) {
+            Pattern write = Pattern.compile(Pattern.quote(key));
+            String performer = bodyOf(frame, key.contains("Dismissed")
+                    ? "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result persistSetupDismissed("
+                    : "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result persistSetupClient(");
+            assertEquals(1, count(write, performer), key + " in its performer");
+            assertEquals(1, count(write, frame), key + " nowhere else");
+        }
+        for (String performer : List.of("probeClaude(", "probeClaudeAuth(")) {
+            String body = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result "
+                    + performer);
+            assertTrue(body.contains("Background.run("), performer + " runs off the event thread");
+            assertFalse(body.contains("AiSetupLines"), performer + " composes no line: the node does");
+        }
+        assertEquals(List.of(), offenders, "Set up AI: one home for each");
     }
 
     private static int count(Pattern p, String s) {

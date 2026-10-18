@@ -792,8 +792,24 @@ public final class SessionEvents {
     public record AssistantProfilesClosed(String origin) {
     }
 
+    /**
+     * M77 (spec-ai-setup-wizard.md §8.3, review R1-14): which surface asked for a profile — the Set up AI wizard, the
+     * Assistant ▾ quick switch, Settings, or the profile cards (kept until M77-4 retires them). The Full guard reads the
+     * surface that asked: the wizard's {@code open} for {@link #SETUP}, the cards' for {@link #CARDS}, nothing for
+     * {@link #MENU}, whose confirmation is the whole interaction.
+     */
+    public enum ProfileOrigin { SETUP, MENU, SETTINGS, CARDS }
+
     /** The person pressed Apply on a card: the node decides whether it may be applied now. */
-    public record AssistantProfileChosen(long request, AssistantProfile profile) {
+    public record AssistantProfileChosen(long request, AssistantProfile profile, ProfileOrigin origin) {
+        public AssistantProfileChosen {
+            origin = origin == null ? ProfileOrigin.CARDS : origin;
+        }
+
+        /** The cards' Apply (the shape before M77). */
+        public AssistantProfileChosen(long request, AssistantProfile profile) {
+            this(request, profile, ProfileOrigin.CARDS);
+        }
     }
 
     /**
@@ -805,12 +821,103 @@ public final class SessionEvents {
     }
 
     /** Answers {@code ApplyAssistantProfileEffect}: the settings were written ({@code ok}) and the consent re-reported. */
-    public record AssistantProfileApplied(long opId, long request, AssistantProfile profile, boolean ok, String reason)
-            implements Result {
+    public record AssistantProfileApplied(long opId, long request, AssistantProfile profile, boolean ok, String reason,
+                                          ProfileOrigin origin) implements Result {
+        public AssistantProfileApplied {
+            origin = origin == null ? ProfileOrigin.CARDS : origin;
+        }
+
+        /** The shape before M77: an Apply from the cards. */
+        public AssistantProfileApplied(long opId, long request, AssistantProfile profile, boolean ok, String reason) {
+            this(opId, request, profile, ok, reason, ProfileOrigin.CARDS);
+        }
     }
 
     /** Answers {@code ShowAssistantProfilesEffect}: the assistant was made visible for the choices. */
     public record AssistantProfilesShown(long opId) implements Result {
+    }
+
+    // ---- M77 (spec-ai-setup-wizard.md §8.3): Set up AI, decided by the aiSetup node ---------------------------------
+    //
+    // Enums, ids and times only: never a path, a key, raw CLI output, an e-mail or an organisation (S7).
+
+    /** The person asked for Set up AI (a menu item, the start page's link, Settings' button). */
+    public record AiSetupRequested(AiSetupState.Origin origin) {
+    }
+
+    /**
+     * Reported once at start-up with the other start-up facts: the two machine-tier keys of M77 and whether this process
+     * was started with {@code --rest} (an agent drives it; nobody at the screen — review R1-16 a, b).
+     */
+    public record AiSetupStartupObserved(boolean dismissed, AiSetupState.Client client, boolean restLaunch) {
+    }
+
+    /** Screen 1 (or the first-run block): the person picked a choice. Picking applies nothing. */
+    public record AiSetupChoiceMade(AiSetupState.Choice choice) {
+    }
+
+    /** Screen 2a: the Safe / Full sub-choice, and Full's mode. */
+    public record AiSetupPostureChosen(AiSetupState.Posture posture, String fullMode) {
+    }
+
+    /** Screen 2b: which external client (M77-3). */
+    public record AiSetupClientChosen(AiSetupState.Client client) {
+    }
+
+    /** Back, pressed on {@code step}; a press on a screen that is no longer current is stale. */
+    public record AiSetupBack(AiSetupState.Step step) {
+    }
+
+    /**
+     * Continue (or Finish) pressed on {@code step}. {@code keyEntered}: on Other options, whether the key field holds
+     * text — never the text; the details reach the settings through the Apply performer, as the cards' do.
+     */
+    public record AiSetupContinue(AiSetupState.Step step, boolean keyEntered) {
+        public AiSetupContinue(AiSetupState.Step step) {
+            this(step, false);
+        }
+    }
+
+    /** Cancel, Escape or the window's close, on any screen before the Summary (or Done on it). */
+    public record AiSetupCancelled(String origin) {
+    }
+
+    /** The first-run block's <i>Not now</i>. */
+    public record AiSetupFirstRunDismissed() {
+    }
+
+    /** <i>Check again</i> on one check. */
+    public record AiSetupCheckAgain(AiSetupState.CheckKind check) {
+    }
+
+    /** What the resolver says about Codex (file existence only; nothing run). Claude's is in StartPageAvailability. */
+    public record AiClientsObserved(boolean codexFound) {
+    }
+
+    /** How {@code claude --version} went. */
+    public enum ProbeOutcome { FOUND, NOT_FOUND, DID_NOT_RUN, TIMED_OUT }
+
+    /**
+     * {@code claude --version} for probe {@code probe}: the outcome, the version's digits, and where {@code claude} is,
+     * by reference into the frame's store (never the path).
+     */
+    public record ClaudeObserved(long probe, ProbeOutcome outcome, String version, long pathRef) {
+    }
+
+    /** How {@code claude auth status --json} went: the JSON was read, or it could not be told. */
+    public enum AuthOutcome { READ, UNREADABLE, TIMED_OUT, DID_NOT_RUN }
+
+    /**
+     * {@code claude auth status --json} for probe {@code probe}, parsed at the boundary (§8.6): ONLY {@code loggedIn},
+     * {@code authMethod}, {@code subscriptionType} and {@code apiKeySource}, each as an enum. The rest — an e-mail, an
+     * organisation — never leaves the parser.
+     */
+    public record ClaudeAuthObserved(long probe, AuthOutcome outcome, boolean loggedIn, AiSetupState.Method method,
+                                     AiSetupState.Plan plan, AiSetupState.KeySource keySource) {
+    }
+
+    /** Answered at once by each of aiSetup's effects whose outcome arrives later (or is the window itself). */
+    public record AiSetupEffectStarted(long opId, String what) implements Result {
     }
 
     /**

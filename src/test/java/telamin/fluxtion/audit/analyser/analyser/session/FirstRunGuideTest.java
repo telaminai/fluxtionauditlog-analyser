@@ -2,7 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.session;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession;
 
 import java.util.List;
@@ -38,7 +38,7 @@ class FirstRunGuideTest {
         d.post(new SessionEvents.AssistantDraftPending(7, "Q1", "ask Q1 from records"));
         assertTrue(d.snapshot().profiles().open(), "the choices open");
         assertTrue(d.snapshot().profiles().questionWaits());
-        assertEquals(AssistantProfileChoice.QUESTION_WAITS, d.snapshot().profiles().status(), "the one line says it waits");
+        assertEquals(AiSetup.QUESTION_WAITS, d.snapshot().profiles().status(), "the one line says it waits");
         assertTrue(a.pendingPlaced.isEmpty(), "nothing is placed for the mode's default");
         assertTrue(a.assistantPrimes.isEmpty() && a.agentPrimes.isEmpty(), "nor bound to anyone");
         // a second question replaces the first

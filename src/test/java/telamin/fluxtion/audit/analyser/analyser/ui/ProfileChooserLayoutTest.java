@@ -6,7 +6,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile;
 import telamin.fluxtion.audit.analyser.analyser.session.ProfileState;
-import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup;
 
 import javax.swing.AbstractButton;
 import javax.swing.JComponent;
@@ -77,7 +77,7 @@ class ProfileChooserLayoutTest {
         JPanel host = new JPanel(new BorderLayout());
         host.add(a, BorderLayout.CENTER);
         a.renderProfiles(new ProfileState(AssistantProfile.NONE, true, ProfileState.FIRST_USE, 0, "", true,
-                AssistantProfileChoice.NO_ASSISTANT_CHOOSING, false));
+                AiSetup.NO_ASSISTANT_CHOOSING, false));
         a.render(telamin.fluxtion.audit.analyser.analyser.session.AssistantState.IDLE, null);   // as the frame does
         a.profileOverlay().choose(chosen);
         layOut(host, width);
@@ -102,7 +102,7 @@ class ProfileChooserLayoutTest {
                 // the composer and Send are hidden; the header says one line
                 assertFalse(visibleTo(a.composerRow(), a), "the composer is hidden while choosing");
                 assertFalse(visibleTo(a.sendButton(), a), "and Send with it");
-                assertEquals(AssistantProfileChoice.NO_ASSISTANT_CHOOSING, a.limitsLine().getText(), "the one status line");
+                assertEquals(AiSetup.NO_ASSISTANT_CHOOSING, a.limitsLine().getText(), "the one status line");
                 List<String> saying = all(a).stream().filter(c -> visibleTo(c, a) && !o.isAncestorOf(c))
                         .map(ProfileChooserLayoutTest::textOf).filter(t -> t != null)
                         .filter(t -> t.toLowerCase().contains("provider") || t.contains("nothing is sent")
@@ -163,14 +163,14 @@ class ProfileChooserLayoutTest {
             host.add(a, BorderLayout.CENTER);
             a.setRoute("no provider configured");
             a.renderProfiles(new ProfileState(AssistantProfile.NONE, false, "", 0, "", false,
-                    AssistantProfileChoice.NO_ASSISTANT, false));
+                    AiSetup.NO_ASSISTANT, false));
             a.render(telamin.fluxtion.audit.analyser.analyser.session.AssistantState.IDLE, null);
             layOut(host, 520);
             List<String> lines = all(a).stream().filter(c -> visibleTo(c, a) && !(c instanceof AbstractButton))  // actions stay
                     .map(ProfileChooserLayoutTest::textOf)
                     .filter(t -> t != null).filter(t -> t.toLowerCase().contains("provider")
                             || t.toLowerCase().contains("nothing is sent") || t.contains("No assistant")).toList();
-            assertEquals(List.of(AssistantProfileChoice.NO_ASSISTANT), lines, "said once");
+            assertEquals(List.of(AiSetup.NO_ASSISTANT), lines, "said once");
             assertTrue(visibleTo(a.composerRow(), a), "the cards are shut: the composer is back");
             return null;
         });

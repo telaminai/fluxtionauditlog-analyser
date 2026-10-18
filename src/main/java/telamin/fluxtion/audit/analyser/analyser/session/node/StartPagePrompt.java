@@ -57,18 +57,19 @@ public class StartPagePrompt implements EventLogSource {
     private StartPageState published = StartPageState.IDLE;
     private boolean dirty = true;
     /**
-     * M74 UX: the assistant profile, a JavaBean parent so the generator wires it without changing the constructor — a
-     * first-use question it answered by opening the profile choices gets no no-AI fallback here. Null only in a processor
+     * M74 UX, M77: {@code aiSetup} (the profile and Set up AI), a JavaBean parent so the generator wires it without
+     * changing the constructor — a first-use question it answered by opening the choices gets no no-AI fallback here,
+     * and a carried question is placed only once the wizard's Finish was pressed (§12). Null only in a processor
      * generated before the profile existed.
      */
-    private AssistantProfileChoice assistantProfile;
+    private AiSetup aiSetup;
 
-    public AssistantProfileChoice getAssistantProfile() {
-        return assistantProfile;
+    public AiSetup getAiSetup() {
+        return aiSetup;
     }
 
-    public void setAssistantProfile(AssistantProfileChoice assistantProfile) {
-        this.assistantProfile = assistantProfile;
+    public void setAiSetup(AiSetup aiSetup) {
+        this.aiSetup = aiSetup;
     }
 
     /** A press waiting for its flow: what to compose once the flow is done. */
@@ -85,6 +86,8 @@ public class StartPagePrompt implements EventLogSource {
     private telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile carriedProfile;
     /** Apply succeeded; the machine's new facts (consent, what can answer, the profile) follow as their own operations. */
     private boolean carriedAwaitingObservation;
+    /** M77: the question waits behind the Set up AI wizard (not the cards): placed only after its Finish (§12). */
+    private boolean carriedBySetup;
 
     /** The start page's note while its question waits behind the cards. */
     public static final String CARRIED_NOTE = "Choose how the assistant works — your question waits, and is placed for "
@@ -199,14 +202,16 @@ public class StartPagePrompt implements EventLogSource {
             effects.request(new SessionEffects.PlayDemoJourneyEffect(0L, e.request()));
             return changed();
         }
-        if (assistantProfile != null && assistantProfile.interceptedStartPage(e.request())) {
+        if (aiSetup != null && aiSetup.interceptedStartPage(e.request())) {
             // M74 UX: the first question with no profile chosen opened the choices; nothing else is asked for.
             // Review M74 usability #3: the question is CARRIED — placed for the chosen assistant after Apply
             carried = new Pending(id, route, e.textRef(), popOut);
             carriedRequest = e.request();
             carriedProfile = null;
             carriedAwaitingObservation = false;
-            note = CARRIED_NOTE;
+            carriedBySetup = AiSetup.wizardForFirstUse();
+            note = carriedBySetup ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.QUESTION_WAITS
+                    : CARRIED_NOTE;
             auditLog.info("startPageRoute", "PROFILE_CHOICES").info("carried", true);
             return changed();
         }
@@ -302,6 +307,13 @@ public class StartPagePrompt implements EventLogSource {
     @OnEventHandler
     public boolean onProfileApplied(SessionEvents.AssistantProfileApplied e) {
         if (carried == null || !e.ok()) return false;              // a refused Apply leaves the cards open, still carried
+        if (carriedBySetup && (e.origin() != telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOrigin.SETUP
+                || aiSetup == null || aiSetup.finished() != e.request())) {
+            // M77 §12 (review R1-2): placement waits for the wizard's Finish, its Apply, the observation and the mode —
+            // an Apply from elsewhere, or one the wizard has not finished on (Both's first half), places nothing yet
+            auditLog.info("startPageCarried", "WAITING_FOR_FINISH").info("request", e.request());
+            return false;
+        }
         carriedProfile = e.profile();
         carriedAwaitingObservation = true;
         auditLog.info("startPageCarried", "APPLIED").info("profile", String.valueOf(e.profile()));
@@ -324,7 +336,8 @@ public class StartPagePrompt implements EventLogSource {
         carriedProfile = null;
         if (profile == null || profile == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.NONE
                 || profile == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.OFF) {
-            note = "The assistant is off, so your question was not placed — it is still in the box";
+            note = carriedBySetup ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CANNOT_ANSWER_BOX
+                    : "The assistant is off, so your question was not placed — it is still in the box";
             auditLog.info("startPageCarried", "OFF");
             return changed();
         }
@@ -351,6 +364,17 @@ public class StartPagePrompt implements EventLogSource {
         carried = null;
         note = CARRY_DROPPED_NOTE;
         auditLog.info("startPageCarried", "DROPPED");
+        return changed();
+    }
+
+    /** M77 §7.4: the wizard was cancelled before its Apply: the question stays in the box, and the page says so. */
+    @OnEventHandler
+    public boolean onSetupCancelled(SessionEvents.AiSetupCancelled e) {
+        if (carried == null || !carriedBySetup || carriedAwaitingObservation) return false;
+        carried = null;
+        carriedBySetup = false;
+        note = telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CANCELLED_BOX;
+        auditLog.info("startPageCarried", "CANCELLED");
         return changed();
     }
 

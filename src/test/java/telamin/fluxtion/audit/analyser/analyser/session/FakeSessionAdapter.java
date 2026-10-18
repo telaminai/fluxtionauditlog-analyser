@@ -46,6 +46,14 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     /** Review P3+UX S4: the mode changes assistantProfile asked for; and what a profile's apply reports (null = ok). */
     final List<SessionEffects.ChooseAssistantModeEffect> modeChoices = new ArrayList<>();
     String profileSaveFailure;
+    /** M77: what aiSetup asked for — the window, the badges, the two checks, the two keys, the interim client dialog. */
+    final List<SessionEffects.ShowAiSetupEffect> setupShows = new ArrayList<>();
+    final List<SessionEffects.ObserveAiClientsEffect> clientObservations = new ArrayList<>();
+    final List<SessionEffects.ProbeClaudeEffect> claudeProbes = new ArrayList<>();
+    final List<SessionEffects.ProbeClaudeAuthEffect> authProbes = new ArrayList<>();
+    final List<SessionEffects.PersistSetupDismissedEffect> dismissedWrites = new ArrayList<>();
+    final List<SessionEffects.PersistSetupClientEffect> clientWrites = new ArrayList<>();
+    final List<SessionEffects.OpenClientSetupEffect> clientSetups = new ArrayList<>();
     /** The verb each action entry names, as the real adapter would read it from the block. */
     final java.util.Map<Long, String> assistantVerbs = new java.util.HashMap<>();
     /** M74: what localAgentSession asked the adapter to do, in order. */
@@ -208,11 +216,41 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.ApplyAssistantProfileEffect e -> {
                 profileApplies.add(e);
                 yield new SessionEvents.AssistantProfileApplied(e.opId(), e.request(), e.profile(), profileSaveFailure == null,
-                        profileSaveFailure == null ? "" : profileSaveFailure);
+                        profileSaveFailure == null ? "" : profileSaveFailure, e.origin());
             }
             case SessionEffects.ConfirmFullProfileEffect e -> {
                 fullConfirms.add(e);                  // the test posts the person's answer
                 yield new SessionEvents.AssistantProfilesShown(e.opId());
+            }
+            case SessionEffects.ShowAiSetupEffect e -> {
+                setupShows.add(e);
+                yield new SessionEvents.AiSetupEffectStarted(e.opId(), "show");
+            }
+            case SessionEffects.ObserveAiClientsEffect e -> {
+                clientObservations.add(e);
+                yield new SessionEvents.AiSetupEffectStarted(e.opId(), "observeClients");
+            }
+            case SessionEffects.ProbeClaudeEffect e -> {
+                claudeProbes.add(e);                  // the test posts the probe's result
+                agentOrder.add("probeClaude");
+                yield new SessionEvents.AiSetupEffectStarted(e.opId(), "probeClaude");
+            }
+            case SessionEffects.ProbeClaudeAuthEffect e -> {
+                authProbes.add(e);
+                agentOrder.add("probeClaudeAuth");
+                yield new SessionEvents.AiSetupEffectStarted(e.opId(), "probeClaudeAuth");
+            }
+            case SessionEffects.PersistSetupDismissedEffect e -> {
+                dismissedWrites.add(e);
+                yield new SessionEvents.AiSetupEffectStarted(e.opId(), "persistDismissed");
+            }
+            case SessionEffects.PersistSetupClientEffect e -> {
+                clientWrites.add(e);
+                yield new SessionEvents.AiSetupEffectStarted(e.opId(), "persistClient");
+            }
+            case SessionEffects.OpenClientSetupEffect e -> {
+                clientSetups.add(e);
+                yield new SessionEvents.AiSetupEffectStarted(e.opId(), "openClientSetup");
             }
             case SessionEffects.ChooseAssistantModeEffect e -> {
                 modeChoices.add(e);

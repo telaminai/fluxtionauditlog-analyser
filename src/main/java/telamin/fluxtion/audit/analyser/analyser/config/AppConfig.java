@@ -168,6 +168,20 @@ public final class AppConfig {
     public String assistantProfile = null;
 
     /**
+     * M77 (spec-ai-setup-wizard.md §14.1): the start page's first-run <i>Set up AI</i> block was dismissed (<i>Not now</i>,
+     * or a choice continued from it). Machine tier ({@code assistant.setup.dismissed}): never in a profile, a share or a
+     * bundle.
+     */
+    public boolean assistantSetupDismissed = false;
+
+    /**
+     * M77 (§14.1, review R1-5): the external client the person set up in the wizard ({@code CLAUDE_CODE}, {@code CODEX},
+     * {@code GENERIC}), or null — external access alone is not a client choice. Machine tier
+     * ({@code assistant.setup.client}): never in a profile, a share or a bundle.
+     */
+    public String assistantSetupClient = null;
+
+    /**
      * Where THIS PROJECT would like the exchange directory to be — project-relative, no {@code ..}
      * (#21). Project-tier, and it says WHERE, never WHETHER: {@link #assistantExports} stays machine
      * tier, so opening a project can widen no permission. See {@link ExchangeDir}.

@@ -254,7 +254,62 @@ public sealed interface SessionEffects {
      * with the details the overlay holds — then report the consent and availability as every settings change does.
      * Answered by {@link SessionEvents.AssistantProfileApplied}.
      */
-    record ApplyAssistantProfileEffect(long opId, long request, AssistantProfile profile) implements SessionEffects {
+    record ApplyAssistantProfileEffect(long opId, long request, AssistantProfile profile,
+                                       SessionEvents.ProfileOrigin origin) implements SessionEffects {
+        public ApplyAssistantProfileEffect {
+            origin = origin == null ? SessionEvents.ProfileOrigin.CARDS : origin;
+        }
+
+        /** The cards' Apply (the shape before M77). */
+        public ApplyAssistantProfileEffect(long opId, long request, AssistantProfile profile) {
+            this(opId, request, profile, SessionEvents.ProfileOrigin.CARDS);
+        }
+    }
+
+    // ---- M77 (spec-ai-setup-wizard.md §8.4): Set up AI, decided by aiSetup, performed by the frame ------------------
+
+    /**
+     * Create the Set up AI window, or bring the one that is open to the front. What it shows is rendered from
+     * {@link AiSetupState}; this only makes it visible. Answered at once by {@link SessionEvents.AiSetupEffectStarted}.
+     */
+    record ShowAiSetupEffect(long opId, AiSetupState.Step step) implements SessionEffects {
+    }
+
+    /**
+     * Ask the one resolver whether {@code claude} and {@code codex} are on this machine — file existence only, NO process
+     * (S2) — and report {@link SessionEvents.StartPageAvailability} and {@link SessionEvents.AiClientsObserved}.
+     */
+    record ObserveAiClientsEffect(long opId) implements SessionEffects {
+    }
+
+    /**
+     * Resolve {@code claude}, then run {@code claude --version} (5 s) with the child environment of the posture
+     * ({@code full}: the PATH extended as for Full), in a fresh EMPTY scratch folder (S10), and report
+     * {@link SessionEvents.ClaudeObserved} for {@code probe}. Answered at once by {@link SessionEvents.AiSetupEffectStarted}.
+     */
+    record ProbeClaudeEffect(long opId, long probe, boolean full) implements SessionEffects {
+    }
+
+    /**
+     * Run {@code claude auth status --json} (10 s), the same environment and the same kind of empty folder, and report
+     * {@link SessionEvents.ClaudeAuthObserved} parsed at the boundary (§8.6): nothing personal leaves the parser (S7).
+     */
+    record ProbeClaudeAuthEffect(long opId, long probe, boolean full) implements SessionEffects {
+    }
+
+    /** Write {@code assistant.setup.dismissed=true} (machine tier). */
+    record PersistSetupDismissedEffect(long opId) implements SessionEffects {
+    }
+
+    /** Write {@code assistant.setup.client} (machine tier); {@link AiSetupState.Client#NONE} clears it. */
+    record PersistSetupClientEffect(long opId, AiSetupState.Client client) implements SessionEffects {
+    }
+
+    /**
+     * M77-2's interim client path (review R1-11), until M77-3 builds Screen 2b: open today's {@code McpSetupDialog} at
+     * {@code client}. Answered at once by {@link SessionEvents.AiSetupEffectStarted}.
+     */
+    record OpenClientSetupEffect(long opId, AiSetupState.Client client) implements SessionEffects {
     }
 
     /**

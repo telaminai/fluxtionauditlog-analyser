@@ -293,7 +293,7 @@ class ProfileOverlayFrameTest {
                 Thread.sleep(30);
             }
             assertTrue(popped.get(), "the assistant's own window shows the cards");
-            onEdt(() -> assertEquals(telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice.FIRST_USE_NOTE,
+            onEdt(() -> assertEquals(telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.FIRST_USE_NOTE,
                     ((SessionDriver) field(frame.get(), "session")).snapshot().startPage().note(),
                     "the start page says why, and shows no fallback"));
         } finally {

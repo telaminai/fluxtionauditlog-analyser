@@ -59,9 +59,25 @@ public final class ClaudeResolver {
         return resolve(env == null ? null : env.get(ChildPath.pathKey(env)), java.io.File.pathSeparator, windows, home, env);
     }
 
+    /**
+     * M77 (spec-ai-setup-wizard.md §6.1, review R1-9): Codex, found the same way — PATH, then the same standard install
+     * places (npm's global prefix among them) — so Screen 1's badge and a later registration agree. A file check only.
+     */
+    public static Resolution resolveCodex(Map<String, String> env, Path home) {
+        boolean windows = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("win");
+        return resolve(env == null ? null : env.get(ChildPath.pathKey(env)), java.io.File.pathSeparator, windows, home, env,
+                "codex");
+    }
+
     static Resolution resolve(String pathValue, String separator, boolean windows, Path home, Map<String, String> env) {
+        return resolve(pathValue, separator, windows, home, env, "claude");
+    }
+
+    static Resolution resolve(String pathValue, String separator, boolean windows, Path home, Map<String, String> env,
+                              String program) {
         Set<String> searched = new LinkedHashSet<>();
-        List<String> names = windows ? List.of("claude.exe", "claude.cmd", "claude.bat", "claude") : List.of("claude");
+        List<String> names = windows ? List.of(program + ".exe", program + ".cmd", program + ".bat", program)
+                : List.of(program);
         List<Path> dirs = new ArrayList<>();
         if (pathValue != null && !pathValue.isBlank() && separator != null && !separator.isEmpty()) {
             for (String entry : pathValue.split(Pattern.quote(separator))) {

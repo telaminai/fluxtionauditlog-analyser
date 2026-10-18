@@ -71,7 +71,11 @@ class FactFieldsTest {
                 // owner, 2026-10-18: the restart chip's origin, the analyser's own words
                 "LocalAgentRestartOfferRequested.origin",
                 // robot walkthrough #1: a question asked before any assistant was chosen — its catalogue id and origin
-                "AssistantDraftPending.questionId", "AssistantDraftPending.origin")) {
+                "AssistantDraftPending.questionId", "AssistantDraftPending.origin",
+                // M77: Set up AI — an effect's own word, the version's digits (parsed, never the CLI's text), Full's
+                // mode (one of four words), and who cancelled
+                "AiSetupEffectStarted.what", "ClaudeObserved.version", "AiSetupPostureChosen.fullMode",
+                "AiSetupCancelled.origin")) {
             M74.put(c, Holds.VOCABULARY);
         }
         for (String c : List.of("LocalAgentConsent.postureRef", "LocalAgentConsent.folderRef", "LocalAgentStatusObserved.hostedNonceDigest",

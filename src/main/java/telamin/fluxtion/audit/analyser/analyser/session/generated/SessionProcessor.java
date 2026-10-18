@@ -43,6 +43,16 @@ import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadComplete
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ActionListenerConfigured;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCancelled;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCheckAgain;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupFirstRunDismissed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupPostureChosen;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed;
@@ -74,6 +84,8 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleRoot
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeAuthObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed;
@@ -180,9 +192,9 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewAp
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewChanged;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantModeChoice;
-import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
 import telamin.fluxtion.audit.analyser.analyser.session.node.BundleAnchor;
 import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
@@ -235,6 +247,16 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ActionListenerConfigured
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCancelled
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCheckAgain
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupFirstRunDismissed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupPostureChosen
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed
@@ -266,6 +288,8 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeAuthObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed
@@ -443,8 +467,8 @@ public class SessionProcessor
   public final transient LocalAgentSession localAgentSession =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(
           assistantMode, effectQueue);;
-  public final transient AssistantProfileChoice assistantProfile =
-      new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice(
+  public final transient AiSetup aiSetup =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup(
           localAgentSession, assistantLoop, effectQueue);;
   public final transient LocalAgentPermission localAgentPermission =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission(
@@ -490,9 +514,9 @@ public class SessionProcessor
 
   private boolean isDirty_actionListener = false;
   private boolean isDirty_activeProject = false;
+  private boolean isDirty_aiSetup = false;
   private boolean isDirty_assistantLoop = false;
   private boolean isDirty_assistantMode = false;
-  private boolean isDirty_assistantProfile = false;
   private boolean isDirty_auditInstallation = false;
   private boolean isDirty_localAgentPermission = false;
   private boolean isDirty_localAgentSession = false;
@@ -520,6 +544,46 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "Activated",
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Activated",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiClientsObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupBack",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupCancelled",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCancelled",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupCheckAgain",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCheckAgain",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupChoiceMade",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupContinue",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupFirstRunDismissed",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupFirstRunDismissed",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupPostureChosen",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupPostureChosen",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupStartupObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved",
                 false),
             new ProcessorDescriptor.Input(
                 "AssistantActionFinished",
@@ -648,6 +712,14 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "Checked",
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Checked",
+                false),
+            new ProcessorDescriptor.Input(
+                "ClaudeAuthObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeAuthObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "ClaudeObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeObserved",
                 false),
             new ProcessorDescriptor.Input(
                 "Cleared",
@@ -1099,7 +1171,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "689f8af1831dc50d3c618183f53bde3a3d677648e1b5c9b8624a96646a8fc409",
+              "f5fd5c7eb44b884a0e0806a5bfb58d72ebdc98cd89c2474361dd89ad01c5208d",
               null));
 
   @Override
@@ -1124,13 +1196,15 @@ public class SessionProcessor
     eventLogger.recordEndTime = true;
     context.setClock(clock);
     serviceRegistry.setDataFlowContext(context);
+    aiSetup.setActionListener(actionListener);
+    aiSetup.setOpenLog(openLog);
     assistantLoop.setAssistantMode(assistantMode);
     effectQueue.setDataFlowContext(context);
     localAgentSession.setActionListener(actionListener);
     localAgentSession.setOpenLog(openLog);
     sessionBoundary.setLocalAgentSession(localAgentSession);
     sessionBoundary.setOnboardingProposal(onboardingProposal);
-    startPagePrompt.setAssistantProfile(assistantProfile);
+    startPagePrompt.setAiSetup(aiSetup);
     //node auditors
     initialiseAuditor(clock);
     initialiseAuditor(eventLogger);
@@ -1278,6 +1352,36 @@ public class SessionProcessor
     } else if (event instanceof ActionListenerConfigured) {
       ActionListenerConfigured typedEvent = (ActionListenerConfigured) event;
       handleEvent(typedEvent);
+    } else if (event instanceof AiClientsObserved) {
+      AiClientsObserved typedEvent = (AiClientsObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupBack) {
+      AiSetupBack typedEvent = (AiSetupBack) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupCancelled) {
+      AiSetupCancelled typedEvent = (AiSetupCancelled) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupCheckAgain) {
+      AiSetupCheckAgain typedEvent = (AiSetupCheckAgain) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupChoiceMade) {
+      AiSetupChoiceMade typedEvent = (AiSetupChoiceMade) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupContinue) {
+      AiSetupContinue typedEvent = (AiSetupContinue) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupFirstRunDismissed) {
+      AiSetupFirstRunDismissed typedEvent = (AiSetupFirstRunDismissed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupPostureChosen) {
+      AiSetupPostureChosen typedEvent = (AiSetupPostureChosen) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupRequested) {
+      AiSetupRequested typedEvent = (AiSetupRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupStartupObserved) {
+      AiSetupStartupObserved typedEvent = (AiSetupStartupObserved) event;
+      handleEvent(typedEvent);
     } else if (event instanceof AssistantActionFinished) {
       AssistantActionFinished typedEvent = (AssistantActionFinished) event;
       handleEvent(typedEvent);
@@ -1370,6 +1474,12 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof CaptureStarted) {
       CaptureStarted typedEvent = (CaptureStarted) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ClaudeAuthObserved) {
+      ClaudeAuthObserved typedEvent = (ClaudeAuthObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ClaudeObserved) {
+      ClaudeObserved typedEvent = (ClaudeObserved) event;
       handleEvent(typedEvent);
     } else if (event instanceof CloseRequested) {
       CloseRequested typedEvent = (CloseRequested) event;
@@ -1739,6 +1849,56 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiClientsObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupBack event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupCancelled event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupCheckAgain event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupChoiceMade event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupContinue event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupFirstRunDismissed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupPostureChosen event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupStartupObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AssistantActionFinished event) {
     processEvent(event);
   }
@@ -1890,6 +2050,16 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(CaptureStarted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ClaudeAuthObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ClaudeObserved event) {
     processEvent(event);
   }
 
@@ -2498,6 +2668,88 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(AiClientsObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onClientsObserved", typedEvent);
+    isDirty_aiSetup = aiSetup.onClientsObserved(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupBack typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onBack", typedEvent);
+    isDirty_aiSetup = aiSetup.onBack(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupCancelled typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onCancelled", typedEvent);
+    isDirty_aiSetup = aiSetup.onCancelled(typedEvent);
+    auditInvocation(startPagePrompt, "startPagePrompt", "onSetupCancelled", typedEvent);
+    startPagePrompt.onSetupCancelled(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupCheckAgain typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onCheckAgain", typedEvent);
+    isDirty_aiSetup = aiSetup.onCheckAgain(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupChoiceMade typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onChoiceMade", typedEvent);
+    isDirty_aiSetup = aiSetup.onChoiceMade(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupContinue typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onContinue", typedEvent);
+    isDirty_aiSetup = aiSetup.onContinue(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupFirstRunDismissed typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onFirstRunDismissed", typedEvent);
+    isDirty_aiSetup = aiSetup.onFirstRunDismissed(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupPostureChosen typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onPostureChosen", typedEvent);
+    isDirty_aiSetup = aiSetup.onPostureChosen(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onSetupRequested", typedEvent);
+    isDirty_aiSetup = aiSetup.onSetupRequested(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupStartupObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onStartupObserved", typedEvent);
+    isDirty_aiSetup = aiSetup.onStartupObserved(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(AssistantActionFinished typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -2585,8 +2837,8 @@ public class SessionProcessor
   public void handleEvent(AssistantDraftPending typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onDraftPending", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onDraftPending(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onDraftPending", typedEvent);
+    isDirty_aiSetup = aiSetup.onDraftPending(typedEvent);
     afterEvent();
   }
 
@@ -2609,8 +2861,8 @@ public class SessionProcessor
   public void handleEvent(AssistantFullProfileAnswered typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onFullProfileAnswered", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onFullProfileAnswered(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onFullProfileAnswered", typedEvent);
+    isDirty_aiSetup = aiSetup.onFullProfileAnswered(typedEvent);
     afterEvent();
   }
 
@@ -2709,8 +2961,8 @@ public class SessionProcessor
   public void handleEvent(AssistantProfileApplied typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onProfileApplied", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onProfileApplied(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onProfileApplied", typedEvent);
+    isDirty_aiSetup = aiSetup.onProfileApplied(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onProfileApplied", typedEvent);
     startPagePrompt.onProfileApplied(typedEvent);
     afterEvent();
@@ -2719,16 +2971,16 @@ public class SessionProcessor
   public void handleEvent(AssistantProfileChosen typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onProfileChosen", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onProfileChosen(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onProfileChosen", typedEvent);
+    isDirty_aiSetup = aiSetup.onProfileChosen(typedEvent);
     afterEvent();
   }
 
   public void handleEvent(AssistantProfileObserved typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onProfileObserved", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onProfileObserved(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onProfileObserved", typedEvent);
+    isDirty_aiSetup = aiSetup.onProfileObserved(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onProfileObserved", typedEvent);
     startPagePrompt.onProfileObserved(typedEvent);
     afterEvent();
@@ -2737,8 +2989,8 @@ public class SessionProcessor
   public void handleEvent(AssistantProfilesClosed typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onProfilesClosed", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onProfilesClosed(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onProfilesClosed", typedEvent);
+    isDirty_aiSetup = aiSetup.onProfilesClosed(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onProfilesClosed", typedEvent);
     startPagePrompt.onProfilesClosed(typedEvent);
     afterEvent();
@@ -2747,16 +2999,16 @@ public class SessionProcessor
   public void handleEvent(AssistantProfilesRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onProfilesRequested", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onProfilesRequested(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onProfilesRequested", typedEvent);
+    isDirty_aiSetup = aiSetup.onProfilesRequested(typedEvent);
     afterEvent();
   }
 
   public void handleEvent(AssistantProfilesShown typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onProfilesShown", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onProfilesShown(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onProfilesShown", typedEvent);
+    isDirty_aiSetup = aiSetup.onProfilesShown(typedEvent);
     afterEvent();
   }
 
@@ -2765,8 +3017,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(assistantLoop, "assistantLoop", "onSendRequested", typedEvent);
     isDirty_assistantLoop = assistantLoop.onSendRequested(typedEvent);
-    auditInvocation(assistantProfile, "assistantProfile", "onAssistantSend", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onAssistantSend(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onAssistantSend", typedEvent);
+    isDirty_aiSetup = aiSetup.onAssistantSend(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -2821,6 +3073,22 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(evidenceCapture, "evidenceCapture", "onCaptureStarted", typedEvent);
     evidenceCapture.onCaptureStarted(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ClaudeAuthObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onClaudeAuthObserved", typedEvent);
+    isDirty_aiSetup = aiSetup.onClaudeAuthObserved(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ClaudeObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onClaudeObserved", typedEvent);
+    isDirty_aiSetup = aiSetup.onClaudeObserved(typedEvent);
     afterEvent();
   }
 
@@ -3380,8 +3648,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onSendRequested", typedEvent);
     isDirty_localAgentSession = localAgentSession.onSendRequested(typedEvent);
-    auditInvocation(assistantProfile, "assistantProfile", "onLocalAgentSend", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onLocalAgentSend(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onLocalAgentSend", typedEvent);
+    isDirty_aiSetup = aiSetup.onLocalAgentSend(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -3430,8 +3698,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onStartRequested", typedEvent);
     isDirty_localAgentSession = localAgentSession.onStartRequested(typedEvent);
-    auditInvocation(assistantProfile, "assistantProfile", "onStartRequested", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onStartRequested(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onStartRequested", typedEvent);
+    isDirty_aiSetup = aiSetup.onStartRequested(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -4002,6 +4270,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(actionListener, "actionListener", "onRestSwitch", typedEvent);
     isDirty_actionListener = actionListener.onRestSwitch(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onRestSwitch", typedEvent);
+    isDirty_aiSetup = aiSetup.onRestSwitch(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -4063,8 +4333,8 @@ public class SessionProcessor
   public void handleEvent(StartPageAvailability typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onAvailability", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onAvailability(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onAvailability", typedEvent);
+    isDirty_aiSetup = aiSetup.onAvailability(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onAvailability", typedEvent);
     startPagePrompt.onAvailability(typedEvent);
     afterEvent();
@@ -4089,8 +4359,8 @@ public class SessionProcessor
   public void handleEvent(StartPagePromptSent typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(assistantProfile, "assistantProfile", "onStartPageSent", typedEvent);
-    isDirty_assistantProfile = assistantProfile.onStartPageSent(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onStartPageSent", typedEvent);
+    isDirty_aiSetup = aiSetup.onStartPageSent(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onSent", typedEvent);
     startPagePrompt.onSent(typedEvent);
     afterEvent();
@@ -4342,6 +4612,58 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(actionListener, "actionListener", "onConfigured", typedEvent);
       isDirty_actionListener = actionListener.onConfigured(typedEvent);
+    } else if (event instanceof AiClientsObserved) {
+      AiClientsObserved typedEvent = (AiClientsObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onClientsObserved", typedEvent);
+      isDirty_aiSetup = aiSetup.onClientsObserved(typedEvent);
+    } else if (event instanceof AiSetupBack) {
+      AiSetupBack typedEvent = (AiSetupBack) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onBack", typedEvent);
+      isDirty_aiSetup = aiSetup.onBack(typedEvent);
+    } else if (event instanceof AiSetupCancelled) {
+      AiSetupCancelled typedEvent = (AiSetupCancelled) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onCancelled", typedEvent);
+      isDirty_aiSetup = aiSetup.onCancelled(typedEvent);
+      auditInvocation(startPagePrompt, "startPagePrompt", "onSetupCancelled", typedEvent);
+      startPagePrompt.onSetupCancelled(typedEvent);
+    } else if (event instanceof AiSetupCheckAgain) {
+      AiSetupCheckAgain typedEvent = (AiSetupCheckAgain) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onCheckAgain", typedEvent);
+      isDirty_aiSetup = aiSetup.onCheckAgain(typedEvent);
+    } else if (event instanceof AiSetupChoiceMade) {
+      AiSetupChoiceMade typedEvent = (AiSetupChoiceMade) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onChoiceMade", typedEvent);
+      isDirty_aiSetup = aiSetup.onChoiceMade(typedEvent);
+    } else if (event instanceof AiSetupContinue) {
+      AiSetupContinue typedEvent = (AiSetupContinue) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onContinue", typedEvent);
+      isDirty_aiSetup = aiSetup.onContinue(typedEvent);
+    } else if (event instanceof AiSetupFirstRunDismissed) {
+      AiSetupFirstRunDismissed typedEvent = (AiSetupFirstRunDismissed) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onFirstRunDismissed", typedEvent);
+      isDirty_aiSetup = aiSetup.onFirstRunDismissed(typedEvent);
+    } else if (event instanceof AiSetupPostureChosen) {
+      AiSetupPostureChosen typedEvent = (AiSetupPostureChosen) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onPostureChosen", typedEvent);
+      isDirty_aiSetup = aiSetup.onPostureChosen(typedEvent);
+    } else if (event instanceof AiSetupRequested) {
+      AiSetupRequested typedEvent = (AiSetupRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onSetupRequested", typedEvent);
+      isDirty_aiSetup = aiSetup.onSetupRequested(typedEvent);
+    } else if (event instanceof AiSetupStartupObserved) {
+      AiSetupStartupObserved typedEvent = (AiSetupStartupObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onStartupObserved", typedEvent);
+      isDirty_aiSetup = aiSetup.onStartupObserved(typedEvent);
     } else if (event instanceof AssistantActionFinished) {
       AssistantActionFinished typedEvent = (AssistantActionFinished) event;
       auditEvent(typedEvent);
@@ -4380,8 +4702,8 @@ public class SessionProcessor
     } else if (event instanceof AssistantDraftPending) {
       AssistantDraftPending typedEvent = (AssistantDraftPending) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onDraftPending", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onDraftPending(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onDraftPending", typedEvent);
+      isDirty_aiSetup = aiSetup.onDraftPending(typedEvent);
     } else if (event instanceof AssistantEffectStarted) {
       AssistantEffectStarted typedEvent = (AssistantEffectStarted) event;
       auditEvent(typedEvent);
@@ -4395,8 +4717,8 @@ public class SessionProcessor
     } else if (event instanceof AssistantFullProfileAnswered) {
       AssistantFullProfileAnswered typedEvent = (AssistantFullProfileAnswered) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onFullProfileAnswered", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onFullProfileAnswered(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onFullProfileAnswered", typedEvent);
+      isDirty_aiSetup = aiSetup.onFullProfileAnswered(typedEvent);
     } else if (event instanceof AssistantHandoffRequested) {
       AssistantHandoffRequested typedEvent = (AssistantHandoffRequested) event;
       auditEvent(typedEvent);
@@ -4443,46 +4765,46 @@ public class SessionProcessor
     } else if (event instanceof AssistantProfileApplied) {
       AssistantProfileApplied typedEvent = (AssistantProfileApplied) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onProfileApplied", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onProfileApplied(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onProfileApplied", typedEvent);
+      isDirty_aiSetup = aiSetup.onProfileApplied(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onProfileApplied", typedEvent);
       startPagePrompt.onProfileApplied(typedEvent);
     } else if (event instanceof AssistantProfileChosen) {
       AssistantProfileChosen typedEvent = (AssistantProfileChosen) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onProfileChosen", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onProfileChosen(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onProfileChosen", typedEvent);
+      isDirty_aiSetup = aiSetup.onProfileChosen(typedEvent);
     } else if (event instanceof AssistantProfileObserved) {
       AssistantProfileObserved typedEvent = (AssistantProfileObserved) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onProfileObserved", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onProfileObserved(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onProfileObserved", typedEvent);
+      isDirty_aiSetup = aiSetup.onProfileObserved(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onProfileObserved", typedEvent);
       startPagePrompt.onProfileObserved(typedEvent);
     } else if (event instanceof AssistantProfilesClosed) {
       AssistantProfilesClosed typedEvent = (AssistantProfilesClosed) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onProfilesClosed", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onProfilesClosed(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onProfilesClosed", typedEvent);
+      isDirty_aiSetup = aiSetup.onProfilesClosed(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onProfilesClosed", typedEvent);
       startPagePrompt.onProfilesClosed(typedEvent);
     } else if (event instanceof AssistantProfilesRequested) {
       AssistantProfilesRequested typedEvent = (AssistantProfilesRequested) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onProfilesRequested", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onProfilesRequested(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onProfilesRequested", typedEvent);
+      isDirty_aiSetup = aiSetup.onProfilesRequested(typedEvent);
     } else if (event instanceof AssistantProfilesShown) {
       AssistantProfilesShown typedEvent = (AssistantProfilesShown) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onProfilesShown", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onProfilesShown(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onProfilesShown", typedEvent);
+      isDirty_aiSetup = aiSetup.onProfilesShown(typedEvent);
     } else if (event instanceof AssistantSendRequested) {
       AssistantSendRequested typedEvent = (AssistantSendRequested) event;
       auditEvent(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onSendRequested", typedEvent);
       isDirty_assistantLoop = assistantLoop.onSendRequested(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onAssistantSend", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onAssistantSend(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onAssistantSend", typedEvent);
+      isDirty_aiSetup = aiSetup.onAssistantSend(typedEvent);
       auditInvocation(walkPlayback, "walkPlayback", "onAssistantSendRequested", typedEvent);
       walkPlayback.onAssistantSendRequested(typedEvent);
     } else if (event instanceof BundleCaptureRequested) {
@@ -4515,6 +4837,16 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(evidenceCapture, "evidenceCapture", "onCaptureStarted", typedEvent);
       evidenceCapture.onCaptureStarted(typedEvent);
+    } else if (event instanceof ClaudeAuthObserved) {
+      ClaudeAuthObserved typedEvent = (ClaudeAuthObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onClaudeAuthObserved", typedEvent);
+      isDirty_aiSetup = aiSetup.onClaudeAuthObserved(typedEvent);
+    } else if (event instanceof ClaudeObserved) {
+      ClaudeObserved typedEvent = (ClaudeObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onClaudeObserved", typedEvent);
+      isDirty_aiSetup = aiSetup.onClaudeObserved(typedEvent);
     } else if (event instanceof CloseRequested) {
       CloseRequested typedEvent = (CloseRequested) event;
       auditEvent(typedEvent);
@@ -4772,8 +5104,8 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onSendRequested", typedEvent);
       isDirty_localAgentSession = localAgentSession.onSendRequested(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onLocalAgentSend", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onLocalAgentSend(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onLocalAgentSend", typedEvent);
+      isDirty_aiSetup = aiSetup.onLocalAgentSend(typedEvent);
     } else if (event instanceof LocalAgentSetupDirectoryChosen) {
       LocalAgentSetupDirectoryChosen typedEvent = (LocalAgentSetupDirectoryChosen) event;
       auditEvent(typedEvent);
@@ -4794,8 +5126,8 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onStartRequested", typedEvent);
       isDirty_localAgentSession = localAgentSession.onStartRequested(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onStartRequested", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onStartRequested(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onStartRequested", typedEvent);
+      isDirty_aiSetup = aiSetup.onStartRequested(typedEvent);
     } else if (event instanceof LocalAgentStatusObserved) {
       LocalAgentStatusObserved typedEvent = (LocalAgentStatusObserved) event;
       auditEvent(typedEvent);
@@ -5056,6 +5388,8 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(actionListener, "actionListener", "onRestSwitch", typedEvent);
       isDirty_actionListener = actionListener.onRestSwitch(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onRestSwitch", typedEvent);
+      isDirty_aiSetup = aiSetup.onRestSwitch(typedEvent);
     } else if (event instanceof ReturnToMainOptions) {
       ReturnToMainOptions typedEvent = (ReturnToMainOptions) event;
       auditEvent(typedEvent);
@@ -5089,8 +5423,8 @@ public class SessionProcessor
     } else if (event instanceof StartPageAvailability) {
       StartPageAvailability typedEvent = (StartPageAvailability) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onAvailability", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onAvailability(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onAvailability", typedEvent);
+      isDirty_aiSetup = aiSetup.onAvailability(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onAvailability", typedEvent);
       startPagePrompt.onAvailability(typedEvent);
     } else if (event instanceof StartPageEffectStarted) {
@@ -5106,8 +5440,8 @@ public class SessionProcessor
     } else if (event instanceof StartPagePromptSent) {
       StartPagePromptSent typedEvent = (StartPagePromptSent) event;
       auditEvent(typedEvent);
-      auditInvocation(assistantProfile, "assistantProfile", "onStartPageSent", typedEvent);
-      isDirty_assistantProfile = assistantProfile.onStartPageSent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onStartPageSent", typedEvent);
+      isDirty_aiSetup = aiSetup.onStartPageSent(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onSent", typedEvent);
       startPagePrompt.onSent(typedEvent);
     } else if (event instanceof StartPromptPackDropped) {
@@ -5246,9 +5580,9 @@ public class SessionProcessor
     auditor.nodeRegistered(context, "context");
     auditor.nodeRegistered(actionListener, "actionListener");
     auditor.nodeRegistered(activeProject, "activeProject");
+    auditor.nodeRegistered(aiSetup, "aiSetup");
     auditor.nodeRegistered(assistantLoop, "assistantLoop");
     auditor.nodeRegistered(assistantMode, "assistantMode");
-    auditor.nodeRegistered(assistantProfile, "assistantProfile");
     auditor.nodeRegistered(auditInstallation, "auditInstallation");
     auditor.nodeRegistered(bundleAnchor, "bundleAnchor");
     auditor.nodeRegistered(coverageClaim, "coverageClaim");
@@ -5342,9 +5676,9 @@ public class SessionProcessor
     eventLogger.processingComplete();
     isDirty_actionListener = false;
     isDirty_activeProject = false;
+    isDirty_aiSetup = false;
     isDirty_assistantLoop = false;
     isDirty_assistantMode = false;
-    isDirty_assistantProfile = false;
     isDirty_auditInstallation = false;
     isDirty_localAgentPermission = false;
     isDirty_localAgentSession = false;
@@ -5386,9 +5720,9 @@ public class SessionProcessor
     if (dirtyFlagSupplierMap.isEmpty()) {
       dirtyFlagSupplierMap.put(actionListener, () -> isDirty_actionListener);
       dirtyFlagSupplierMap.put(activeProject, () -> isDirty_activeProject);
+      dirtyFlagSupplierMap.put(aiSetup, () -> isDirty_aiSetup);
       dirtyFlagSupplierMap.put(assistantLoop, () -> isDirty_assistantLoop);
       dirtyFlagSupplierMap.put(assistantMode, () -> isDirty_assistantMode);
-      dirtyFlagSupplierMap.put(assistantProfile, () -> isDirty_assistantProfile);
       dirtyFlagSupplierMap.put(auditInstallation, () -> isDirty_auditInstallation);
       dirtyFlagSupplierMap.put(localAgentPermission, () -> isDirty_localAgentPermission);
       dirtyFlagSupplierMap.put(localAgentSession, () -> isDirty_localAgentSession);
@@ -5407,9 +5741,9 @@ public class SessionProcessor
     if (dirtyFlagUpdateMap.isEmpty()) {
       dirtyFlagUpdateMap.put(actionListener, (b) -> isDirty_actionListener = b);
       dirtyFlagUpdateMap.put(activeProject, (b) -> isDirty_activeProject = b);
+      dirtyFlagUpdateMap.put(aiSetup, (b) -> isDirty_aiSetup = b);
       dirtyFlagUpdateMap.put(assistantLoop, (b) -> isDirty_assistantLoop = b);
       dirtyFlagUpdateMap.put(assistantMode, (b) -> isDirty_assistantMode = b);
-      dirtyFlagUpdateMap.put(assistantProfile, (b) -> isDirty_assistantProfile = b);
       dirtyFlagUpdateMap.put(auditInstallation, (b) -> isDirty_auditInstallation = b);
       dirtyFlagUpdateMap.put(localAgentPermission, (b) -> isDirty_localAgentPermission = b);
       dirtyFlagUpdateMap.put(localAgentSession, (b) -> isDirty_localAgentSession = b);
@@ -5427,6 +5761,13 @@ public class SessionProcessor
     return isDirty_operationGate;
   }
 
+  private boolean guardCheck_aiSetup() {
+    return isDirty_actionListener
+        | isDirty_assistantLoop
+        | isDirty_localAgentSession
+        | isDirty_openLog;
+  }
+
   private boolean guardCheck_assistantLoop() {
     return isDirty_activeProject
         | isDirty_assistantMode
@@ -5437,10 +5778,6 @@ public class SessionProcessor
 
   private boolean guardCheck_assistantMode() {
     return isDirty_localAgentSession;
-  }
-
-  private boolean guardCheck_assistantProfile() {
-    return isDirty_assistantLoop | isDirty_localAgentSession;
   }
 
   private boolean guardCheck_auditInstallation() {
@@ -5525,10 +5862,7 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_startPagePrompt() {
-    return isDirty_assistantMode
-        | isDirty_assistantProfile
-        | isDirty_localAgentSession
-        | isDirty_openLog;
+    return isDirty_aiSetup | isDirty_assistantMode | isDirty_localAgentSession | isDirty_openLog;
   }
 
   private boolean guardCheck_walkPlayback() {
@@ -5561,12 +5895,12 @@ public class SessionProcessor
         return (T) actionListener;
       case "activeProject":
         return (T) activeProject;
+      case "aiSetup":
+        return (T) aiSetup;
       case "assistantLoop":
         return (T) assistantLoop;
       case "assistantMode":
         return (T) assistantMode;
-      case "assistantProfile":
-        return (T) assistantProfile;
       case "auditInstallation":
         return (T) auditInstallation;
       case "bundleAnchor":
@@ -5654,14 +5988,14 @@ public class SessionProcessor
     if (node == activeProject) {
       return "activeProject";
     }
+    if (node == aiSetup) {
+      return "aiSetup";
+    }
     if (node == assistantLoop) {
       return "assistantLoop";
     }
     if (node == assistantMode) {
       return "assistantMode";
-    }
-    if (node == assistantProfile) {
-      return "assistantProfile";
     }
     if (node == auditInstallation) {
       return "auditInstallation";

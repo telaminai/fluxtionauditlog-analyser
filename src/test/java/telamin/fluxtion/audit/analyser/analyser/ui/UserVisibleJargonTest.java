@@ -32,7 +32,7 @@ class UserVisibleJargonTest {
     /** The M74 sources outside {@code ui/} whose strings the assistant panel or a dialog shows the person. */
     static final List<String> SHOWN_ELSEWHERE = List.of(
             "session/node/LocalAgentSession.java", "session/node/LocalAgentPermission.java",
-            "session/node/AssistantProfileChoice.java", "session/node/StartPagePrompt.java",
+            "session/node/AiSetup.java", "session/node/StartPagePrompt.java",
             "session/node/ActionListener.java", "session/LocalAgentPosture.java",
             "assistant/localagent/LocalAgentAdapter.java", "assistant/localagent/StreamJson.java");
 

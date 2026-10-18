@@ -129,6 +129,10 @@ public final class ConfigStore {
         c.claudeCodeLastMode = "LOCAL_AGENT".equals(p.getProperty("assistant.claudeCode.lastMode")) ? "LOCAL_AGENT" : "IN_APP";
         c.assistantProfile = telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.parse(
                 p.getProperty("assistant.claudeCode.profile")).stored();
+        // M77 (§14.1): machine tier only — this file is the one place either is read
+        c.assistantSetupDismissed = parseBool(p.getProperty("assistant.setup.dismissed"), c.assistantSetupDismissed);
+        c.assistantSetupClient = telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.parse(
+                p.getProperty("assistant.setup.client")).stored();
         c.claudeCodeBudgetUsd = budget(p.getProperty("assistant.claudeCode.budgetUsd"),
                 p.getProperty("assistant.claudeCode.budgetFormat"));
         readList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
@@ -237,6 +241,9 @@ public final class ConfigStore {
         put(p, "assistant.claudeCode.lastMode", "LOCAL_AGENT".equals(c.claudeCodeLastMode) ? "LOCAL_AGENT" : "IN_APP");
         put(p, "assistant.claudeCode.profile", telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.parse(
                 c.assistantProfile).stored());
+        put(p, "assistant.setup.dismissed", Boolean.toString(c.assistantSetupDismissed));
+        put(p, "assistant.setup.client", telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.parse(
+                c.assistantSetupClient).stored());
         put(p, "assistant.claudeCode.budgetUsd", c.claudeCodeBudgetUsd == null || !(c.claudeCodeBudgetUsd > 0) ? ""
                 : Double.toString(c.claudeCodeBudgetUsd));
         put(p, "assistant.claudeCode.budgetFormat", BUDGET_FORMAT);
