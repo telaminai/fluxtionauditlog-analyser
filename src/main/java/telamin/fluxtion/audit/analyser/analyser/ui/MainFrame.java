@@ -6031,13 +6031,18 @@ public final class MainFrame extends JFrame {
     }
 
     private void chooseFile() {
+        chooseLogFile();
+    }
+
+    /** The open-log chooser; whether a file was chosen (and its open asked for). */
+    private boolean chooseLogFile() {
         JFileChooser fc = new JFileChooser();
         if (config.logFile != null && !S3Source.isS3(config.logFile)) {
             fc.setCurrentDirectory(new File(config.logFile).getParentFile());
         }
-        if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            openFile(fc.getSelectedFile().toPath());
-        }
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return false;
+        openFile(fc.getSelectedFile().toPath());
+        return true;
     }
 
     private void chooseDesignFile(boolean diagnostics) {
@@ -11905,6 +11910,12 @@ public final class MainFrame extends JFrame {
                 inAppCanAnswer(), config.assistantActionsInProcess, workspaceOpen(), aboutEvidence, false));
     }
 
+    /** The "No log is open" line's open ended without a log (a cancelled chooser): reported as a fact, nothing more. */
+    private void noLogOpenEnded(long request) {
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
+                telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.CANCELLED, 0, 0, 0));
+    }
+
     /** Robot re-walk #3: the person's act on the start page's "No log is open" line, reported. */
     private void answerStartNoLog(long request,
                                   telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.NoLogChoice choice) {
@@ -12387,10 +12398,15 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt.TEACH_TOUR_FLOW ->
                     SwingUtilities.invokeLater(() -> openSampleProject(true));
             // robot re-walk #3: the "No log is open" line's opens — the question continues once a log has opened
+            // an open that ends without a log is reported, so the line offers its actions again (the node decides)
             case telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint.SAMPLE_FLOW ->
-                    SwingUtilities.invokeLater(() -> openSampleProject(false));
+                    SwingUtilities.invokeLater(() -> {
+                        if (!openSampleProject(false, false)) noLogOpenEnded(request);
+                    });
             case telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint.LOG_FLOW ->
-                    SwingUtilities.invokeLater(this::chooseFile);
+                    SwingUtilities.invokeLater(() -> {
+                        if (!chooseLogFile()) noLogOpenEnded(request);
+                    });
             default -> { }
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(), request,

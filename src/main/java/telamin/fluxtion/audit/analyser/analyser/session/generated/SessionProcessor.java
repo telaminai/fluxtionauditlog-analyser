@@ -1122,7 +1122,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "475cba7798e3b227f5f3e9ebfb49d62690b7b482c0f2d9bf4682d92eabd3286c",
+              "ec5831431a7a69624cd40009a197131970c88badae933f554b0b1b94d10bc5a8",
               null));
 
   @Override
@@ -4156,6 +4156,8 @@ public class SessionProcessor
   public void handleEvent(StartPageFlowDone typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onFlowDone", typedEvent);
+    isDirty_startPageNoLogHint = startPageNoLogHint.onFlowDone(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onFlowDone", typedEvent);
     startPagePrompt.onFlowDone(typedEvent);
     afterEvent();
@@ -5198,6 +5200,8 @@ public class SessionProcessor
     } else if (event instanceof StartPageFlowDone) {
       StartPageFlowDone typedEvent = (StartPageFlowDone) event;
       auditEvent(typedEvent);
+      auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onFlowDone", typedEvent);
+      isDirty_startPageNoLogHint = startPageNoLogHint.onFlowDone(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onFlowDone", typedEvent);
       startPagePrompt.onFlowDone(typedEvent);
     } else if (event instanceof StartPageNoLogAnswered) {
