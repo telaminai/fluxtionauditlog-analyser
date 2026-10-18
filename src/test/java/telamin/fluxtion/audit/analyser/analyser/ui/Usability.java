@@ -418,6 +418,17 @@ final class Usability {
         return null;
     }
 
+    /** The first of several labels that a showing button carries: one task, the routes different builds offer. */
+    static Finder anyButton(String... texts) {
+        return () -> {
+            for (String t : texts) {
+                Located l = button(t).find();
+                if (l != null) return l;
+            }
+            return null;
+        };
+    }
+
     /** A given component (an editable box, a drop zone), labelled by what the person reads on or beside it. */
     static Finder component(Supplier<? extends Component> c, Supplier<String> label) {
         return () -> {
@@ -536,8 +547,8 @@ final class Usability {
                     Point centre = new Point(area.x + area.width / 2, area.y + area.height / 2);
                     Rectangle vis = c instanceof JComponent j ? j.getVisibleRect() : new Rectangle(c.getSize());
                     if (!vis.contains(centre)) {
-                        if (scrollsTo(c)) { reasons.add(Reason.BELOW_FOLD); scroll[0] = true; }
-                        else reasons.add(Reason.NOT_VISIBLE);
+                        if (scrollsTo(c, area)) { reasons.add(Reason.BELOW_FOLD); scroll[0] = true; }
+                        else reasons.add(Reason.NOT_VISIBLE);           // no scrolling can show it
                     } else if (!hitBy(c, centre)) {
                         reasons.add(Reason.NOT_VISIBLE);                       // covered by something else
                     }
@@ -652,6 +663,34 @@ final class Usability {
             settle();
         }
 
+        /**
+         * A drag of a split pane's divider by {@code dy} pixels: press, drag and release dispatched to the divider. Its
+         * label is the divider's (none: a grip with no words).
+         */
+        void dragDivider(String what, java.util.function.Supplier<javax.swing.JSplitPane> split, int dy) throws Exception {
+            Finder f = () -> {
+                javax.swing.JSplitPane sp = split.get();
+                if (sp == null || !(sp.getUI() instanceof javax.swing.plaf.basic.BasicSplitPaneUI ui)) return null;
+                return new Located(ui.getDivider(), "");
+            };
+            Located l = approach(what, f, false);
+            record(ActKind.DRAG);
+            Component d = l.component();
+            int x = d.getWidth() / 2;
+            int y = d.getHeight() / 2;
+            SwingUtilities.invokeLater(() -> {
+                long now = System.currentTimeMillis();
+                int b1 = java.awt.event.InputEvent.BUTTON1_DOWN_MASK;
+                d.dispatchEvent(new MouseEvent(d, MouseEvent.MOUSE_PRESSED, now, b1, x, y, 1, false, MouseEvent.BUTTON1));
+                for (int step = 1; step <= 4; step++) {
+                    d.dispatchEvent(new MouseEvent(d, MouseEvent.MOUSE_DRAGGED, now, b1, x, y + dy * step / 4, 1, false,
+                            MouseEvent.NOBUTTON));
+                }
+                d.dispatchEvent(new MouseEvent(d, MouseEvent.MOUSE_RELEASED, now, 0, x, y + dy, 1, false, MouseEvent.BUTTON1));
+            });
+            settle();
+        }
+
         /** A file dropped on a component: one drag act, delivered as a drop delivers it (its TransferHandler). */
         void drop(String what, Finder finder, java.nio.file.Path file) throws Exception {
             Located l = approach(what, finder, false);
@@ -748,9 +787,15 @@ final class Usability {
 
     // ---- small helpers -------------------------------------------------------------------------------------------------
 
-    private static boolean scrollsTo(Component c) {
+    /**
+     * Whether scrolling can bring {@code area} of {@code c} into view: it sits in a scroll pane whose viewport is at least
+     * as tall as the area's centre needs (a viewport squeezed to no rows has nothing to scroll into).
+     */
+    private static boolean scrollsTo(Component c, Rectangle area) {
         for (Container p = c.getParent(); p != null; p = p.getParent()) {
-            if (p instanceof JViewport v && v.getParent() instanceof JScrollPane) return true;
+            if (p instanceof JViewport v && v.getParent() instanceof JScrollPane) {
+                return v.getExtentSize().height >= Math.max(6, area.height / 2) && v.getExtentSize().width >= 4;
+            }
         }
         return false;
     }

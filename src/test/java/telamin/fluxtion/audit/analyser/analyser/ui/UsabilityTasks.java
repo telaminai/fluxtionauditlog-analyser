@@ -341,9 +341,9 @@ final class UsabilityTasks {
             Finder box = Usability.component(prompt::box, () -> StartPromptView.PLACEHOLDER);
             run.type("type a question in the start page's box", box, "What happened in this log?");
             run.key("press Enter", Usability.component(prompt::box, () -> prompt.keyHintLabel().getText()), KeyEvent.VK_ENTER);
-            run.click("open the sample the page offers", button("Open the sample"));
-            Usability.await("the sample is open and the cards ask", () -> s.rows() > 0
-                    && ProfileOverlayFrameTest.profiles(s.frame).open());
+            // a build that holds a no-log question offers the sample first; an older one goes straight to the cards
+            run.clickIfShowing("open the sample the page offers", button("Open the sample"), 1_500);
+            Usability.await("the cards ask", () -> ProfileOverlayFrameTest.profiles(s.frame).open());
             run.click("apply the default assistant", button("Apply"));
             UnifiedAssistantFrameTest.awaitMode(s.frame, AssistantMode.LOCAL_AGENT);
             run.click("send the placed question", button("Send"));
@@ -424,14 +424,20 @@ final class UsabilityTasks {
             Usability.settle();
             run.begin();
             run.click("show the event-type checklist", button("Event types"));
-            run.look("find the unticked type", () -> {
+            Finder unticked = () -> {
                 for (JCheckBox c : all(s.frame.getRootPane(), JCheckBox.class)) {
                     if (c.isShowing() && !c.isSelected() && c.getText() != null && c.getText().startsWith("RiskBreachEvent")) {
                         return new Located(c, Usability.label(c));
                     }
                 }
                 return null;
-            });
+            };
+            run.look("find the unticked type", unticked);
+            if (!onScreen(unticked)) {
+                // a build whose checklist can open with no rows: the person drags the divider below it down
+                run.dragDivider("drag the checklist's divider down", () -> checklistSplit(s), 120);
+                run.look("find the unticked type", unticked);
+            }
             boolean[] cause = new boolean[1];
             onEdt(() -> cause[0] = all(s.frame.getRootPane(), JCheckBox.class).stream().anyMatch(c -> c.isShowing()
                     && Usability.onScreen(c) && !c.isSelected() && c.getText() != null && c.getText().startsWith("RiskBreachEvent")));
@@ -449,7 +455,7 @@ final class UsabilityTasks {
             run.click("open the assistant chooser", button("Safe analysis ▾"));
             ProfileOverlayFrameTest.await(s.frame, x -> x.open(), "the cards are open");
             run.click("choose the Full Claude Code card", button("Full Claude Code"));
-            run.click("turn Full on", button("Turn on Full"));
+            run.click("turn Full on", Usability.anyButton("Turn on Full", "Turn on full Claude Code"));
             run.click("accept the Full consent", buttonInWindow(ConfigPanel.FULL_POSTURE_TITLE, "Turn on full Claude Code"));
             ProfileOverlayFrameTest.await(s.frame, x -> !x.open() && x.profile() == AssistantProfile.FULL, "Full applied");
             run.click("open the assistant chooser", button("Full Claude Code ▾"));
@@ -474,6 +480,28 @@ final class UsabilityTasks {
             Usability.await("the bridge check reports", () -> !bridgeLine().contains("checking"));
             return run.endScreen(bridgeLine().startsWith("Bridge works now"));
         }
+    }
+
+    /** Whether a finder's control is on screen now (its centre visible). */
+    static boolean onScreen(Finder f) throws Exception {
+        boolean[] on = new boolean[1];
+        onEdt(() -> {
+            Located l = f.find();
+            if (l == null || !(l.component() instanceof JComponent j)) return;
+            java.awt.Rectangle a = l.area();
+            on[0] = j.isShowing() && j.getVisibleRect().contains(a.x + a.width / 2, a.y + a.height / 2);
+        });
+        return on[0];
+    }
+
+    /** The split pane whose top holds the event-type checklist. */
+    static javax.swing.JSplitPane checklistSplit(Session s) {
+        Component filter = (Component) field(s.frame, "eventFilterPanel");
+        for (Container c = filter.getParent(); c != null; c = c.getParent()) {
+            if (c instanceof javax.swing.JSplitPane sp && sp.getTopComponent() != null
+                    && SwingUtilities.isDescendingFrom(filter, sp.getTopComponent())) return sp;
+        }
+        return null;
     }
 
     /** The McpSetupDialog's bridge status, as shown. */

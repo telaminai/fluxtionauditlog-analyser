@@ -115,7 +115,8 @@ All of these are mechanical, so a re-run gives the same numbers.
 - **Hesitation.** It is judged before each act on the control that act needs. The act counts as one hesitation if
   any of these holds:
   - **not visible**: the control is not showing, or a press at its centre would land on something else;
-  - **below the fold**: its centre is scrolled out of view;
+  - **below the fold**: its centre is scrolled out of view, in a scroll pane with room to show it (a viewport
+    squeezed to no rows makes it *not visible* instead, and no scroll act is counted);
   - **behind menu**: it is reached through a context menu, which has no visible cue, or it is an overflow glyph
     with no letters (`…`, `ⓘ`);
   - **label lacks key word**: its visible label holds none of the task's key words. The visible label is the
@@ -184,6 +185,68 @@ The robot walks are `robot-journey` and `robot-rewalk`, scratch reports from 202
   which the robot did silently with `scrollRectToVisible`. That gives the same 5.
 - The robot's first walk needed 16 acts, including four *Send*s that did nothing. The difference is
   `fix/assistant-ux-followups` and `fix/first-run-polish`, which are both in this baseline.
+
+## Before → after: `b1c22704` → `a875fcba`
+
+`a875fcba` already contains the first-run polish and the Event types fixes, so this section records a true before
+point. The before point is `b1c22704` (P3 plus the docs restructure), the build the owner tested before those
+fixes. Its record is [`baseline-b1c22704.md`](baseline-b1c22704.md) / [`.json`](baseline-b1c22704.json).
+
+**How it was run.** `b1c22704` was checked out in a scratch worktree and built from source with
+`mvn -o package -DskipTests`. The scorecard's six test files (the harness and `TextFit`) and `tools/usability/run.py`
+were copied in unchanged, and the battery ran against that jar with the same command. The owner's own jar of that
+build was not used.
+
+The *budget* and *target* columns in the before record are today's budgets, shown for reference. The before build
+breaks four of them: T4, T5, S2's words and S2's clipped strings.
+
+| Task | Success | Acts | Hesitations | Dead ends | Words before first act | Clipped |
+|---|---|---|---|---|---|---|
+| T1 Fresh start to the first answer | yes → yes | 4 → 5 (+1) | 1 → 2 (+1) | 0 → 0 | 225 → 225 | 0 → 1 (+1) |
+| T2 Right-click Ask about a record | yes → yes | 4 → 5 (+1) | 2 → 2 | 0 → 0 | 265 → 273 (+8) | 6 → 4 (−2) |
+| T3 Approve a report write | yes → yes | 1 → 1 | 0 → 0 | 0 → 0 | 317 → 325 (+8) | 3 → 3 |
+| T4 Why records are missing | yes → yes | 3 → 2 (−1) | 4 → 2 (−2) | 0 → 0 | 259 → 259 | 3 → 3 |
+| T5 Safe → Full → Safe | yes → yes | 9 → 8 (−1) | 2 → 2 | 0 → 0 | 246 → 254 (+8) | 5 → 2 (−3) |
+| T6 Set up an external client | yes → yes | 4 → 4 | 1 → 1 | 0 → 0 | 225 → 225 | 0 → 0 |
+| T7 Open the sample | yes → yes | 1 → 1 | 0 → 0 | 0 → 0 | 225 → 225 | 1 → 1 |
+| T8 Load a prompt pack | yes → yes | 1 → 1 | 0 → 0 | 0 → 0 | 225 → 225 | 0 → 0 |
+
+| State | Chrome words | Controls | Clipped | Whole-window words |
+|---|---|---|---|---|
+| S1 Start page | 225 → 225 | 15 → 15 | 0 → 0 | 225 → 225 |
+| S2 Assistant Ready (Safe, docked) | 32 → 31 (−1) | 6 → 6 | 2 → 0 (−2) | 224 → 229 (+5) |
+| S3 Records with the list shown | 17 → 25 (+8) | 5 → 8 (+3) | 0 → 0 | 265 → 273 (+8) |
+
+**What changed:**
+
+- **T4 is the real gain: 3 → 2 acts, 4 → 2 hesitations.**
+  - Before, the shown checklist could open with **no rows**. The unticked type was not visible at all, and no amount
+    of scrolling could show it. The person had to drag an unlabelled divider (a grip with no words), then scroll.
+  - Now three rows always show, and one scroll finds it. S3's +8 words and +3 controls are those three rows, now
+    visible.
+- **T5 and S2: fewer clipped strings and one act less.**
+  - Before, S2 cut the model chip and the plan chip at the side. Now neither is cut.
+  - In T5, the *Safe analysis* card was below the fold on the way back. It no longer is.
+- **T1 and T2 each cost one act more, for a better answer.**
+  - **T1:** before, a start-page question with no log open went straight to the cards and was answered generically.
+    Now the page says *"No log is open — the answer will be general"* and offers *Open the sample* first, and that
+    offer is the extra act. Its label holds none of the task's key words, which is the extra hesitation.
+  - **T2:** before, the breach record was visible, because the collapsed checklist left the table more rows. With
+    three checklist rows it is below the fold: one scroll. This is a trade-off between the two layout fixes.
+- **No dead end, before or after.** The robot walks' dead ends were the four *Send*s that did nothing and the
+  hidden Send at 1200×800. They predate `b1c22704`: the assistant-UX follow-ups, already in this build, fixed them.
+
+**Script changes for the old UI (case a).** Each selector now uses whatever the build offers, so both builds run the
+same scripts. The baseline at `a875fcba` was re-run after these changes and is byte-identical.
+
+- **T1:** *Open the sample* is an optional step, clicked when the page offers it. The old build had no such offer;
+  its route was straight to the cards.
+- **T5:** the Full card's button is *"Turn on Full"* or, on the old build, *"Turn on full Claude Code"*.
+- **T4:** when the checklist shows no rows, the person drags its divider down (one drag act).
+  - The hesitation rule was sharpened for this: a control counts as **below the fold** only when its scroll pane
+    has room to show it. A viewport squeezed to no rows is **not visible**, and it costs no scroll act.
+
+**Real failures on the old UI (case b):** none. Every task completed on `b1c22704` by the route that build offered.
 
 ## Budgets enforced in CI
 
