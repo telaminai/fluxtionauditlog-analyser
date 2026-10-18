@@ -306,6 +306,13 @@ public sealed interface SessionEffects {
     }
 
     /**
+     * The Summary's suggested first action (§6.4): open the demo sample, or start the guided tour, with the frame's
+     * existing actions. Nothing is sent. Answered at once by {@link SessionEvents.AiSetupEffectStarted}.
+     */
+    record RunSuggestedActionEffect(long opId, AiSetupState.Suggested suggested) implements SessionEffects {
+    }
+
+    /**
      * M77-2's interim client path (review R1-11), until M77-3 builds Screen 2b: open today's {@code McpSetupDialog} at
      * {@code client}. Answered at once by {@link SessionEvents.AiSetupEffectStarted}.
      */

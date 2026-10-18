@@ -83,6 +83,10 @@ public final class AssistantPanel extends JPanel {
         /** M74 UX: Apply on a card; the details stay in the overlay ({@link #profileDetails()}). */
         default void applyProfile(long request, AssistantProfile profile) {
         }
+
+        /** M77-2: Set up AI… — the person asked for the wizard. */
+        default void openSetUpAi() {
+        }
     }
 
     /**
@@ -114,6 +118,10 @@ public final class AssistantPanel extends JPanel {
     private LocalAgentPanel localAgent;
 
     private final JButton profileButton = UiText.button(assistantControlText(AssistantProfile.NONE));
+    /** M77-2 (spec-ai-setup-wizard.md §6.6): the empty state's one button, beside the Assistant control. */
+    private final JButton setUpAi = UiText.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_LINK);
+    /** M77-2: nothing is set up — the chips say so instead of "In-app assistant · no API key" (robot #8). */
+    private boolean nothingSetUp;
 
     // SF-2: the route names a configured model, the basis a walk or record, the status a provider's error
     private final JLabel mode = UiText.plain(new JLabel("Live assistant"));
@@ -207,6 +215,13 @@ public final class AssistantPanel extends JPanel {
         // a narrow column instead of being clipped off its right edge
         JPanel bar = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 2));
         bar.add(profileButton);
+        setUpAi.getAccessibleContext().setAccessibleName("Set up AI");
+        setUpAi.setToolTipText(UiText.tooltip("Choose how AI works with "
+                + telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.PRODUCT + ": no AI, your own client, Claude "
+                + "inside, or both"));
+        setUpAi.addActionListener(e -> { if (intents != null) intents.openSetUpAi(); });
+        setUpAi.setVisible(false);
+        bar.add(setUpAi);
         bar.add(mode);
         bar.add(surface.newChat);
         bar.add(showAnalyser);
@@ -301,6 +316,7 @@ public final class AssistantPanel extends JPanel {
             @Override public void apply(long request, AssistantProfile p) { if (intents != null) intents.applyProfile(request, p); }
             @Override public void close() { if (intents != null) intents.closeProfiles(); }
             @Override public void openSettings() { if (intents != null) intents.configureProvider(); }
+            @Override public void openSetUpAi() { if (intents != null) intents.openSetUpAi(); }
         });
         renderMode(AssistantMode.IN_APP, false);
     }
@@ -406,6 +422,21 @@ public final class AssistantPanel extends JPanel {
 
     WrapLine limitsLine() {
         return limits;
+    }
+
+    /** M77-2: Set up AI, as aiSetup decided it — the chips' "No assistant set up" while nothing is. */
+    public void renderSetup(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState s) {
+        boolean next = s != null && s.wizardEntry() && s.nothingSetUp();
+        // §6.6: the panel's empty state is one line and one button; once something is set up, the door is Assistant ▾
+        // ▸ Set up AI… (the header keeps its row: the transcript's floor at 1200×800, P-3)
+        setUpAi.setVisible(next);
+        if (next == nothingSetUp) return;
+        nothingSetUp = next;
+        rendered = null;                          // the chips follow on the next render
+    }
+
+    JButton setUpAiButton() {
+        return setUpAi;
     }
 
     /** M74 UX: the profile in force and its overlay, as assistantProfile decided them. */
@@ -577,6 +608,7 @@ public final class AssistantPanel extends JPanel {
         composer.setVisible(!inDemo);
         demoBar.setVisible(inDemo);
         profileButton.setEnabled(!inDemo);
+        setUpAi.setEnabled(!inDemo);            // §5.1: never during the scripted demo
         boolean claude = claudeCodeShown();
         noProvider.setVisible(!inDemo && !claude && !configured && profile != AssistantProfile.OFF);
         noProviderLine.setVisible(profileStatus.isBlank());   // its buttons stay; the one status line says it (2026-10-18)
@@ -745,6 +777,9 @@ public final class AssistantPanel extends JPanel {
         if (inDemo) {
             chips.add(chip("Demonstration", true));
             chips.add(chip("nothing is sent", false));
+        } else if (nothingSetUp) {
+            chips.add(chip(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CHIP_NOTHING_SET_UP, true));
+            if (state.busy()) chips.add(chip("answering", false));
         } else {
             chips.add(chip("In-app assistant", true));
             String r = route.getText();

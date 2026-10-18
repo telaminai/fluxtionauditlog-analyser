@@ -67,9 +67,9 @@ public class AiSetup implements EventLogSource {
     /**
      * The switch between M77-1 and M77-2 (spec §18): whether the first use — a Send, a Start, a start-page question or a
      * record's Ask with nothing set up — opens the Set up AI wizard ({@code true}) or the profile cards ({@code false}).
-     * Read once per decision; tested both ways.
+     * Read once per decision; tested both ways. M77-2: on.
      */
-    private static volatile boolean wizardEntry = false;
+    private static volatile boolean wizardEntry = true;
 
     /** For the tests, and the one line M77-2 changes: whether the first use opens the wizard. */
     public static void useWizardForFirstUse(boolean on) {
@@ -192,6 +192,8 @@ public class AiSetup implements EventLogSource {
         availabilityObserved = true;
         inAppCanAnswer = e.inAppCanAnswer();
         claudeFound = e.claudeCodeFound();
+        // §6.0: the first-run block preselects Claude inside when claude was found (a file check; Continue only checks)
+        if (!wizardOpen && choice == Choice.NONE && claudeFound) choice = Choice.INSIDE;
         return changed();
     }
 
@@ -715,6 +717,33 @@ public class AiSetup implements EventLogSource {
         applying = false;
     }
 
+    /** §6.4: the Summary's suggested action — performed by the frame's existing actions; the window closes. */
+    @OnEventHandler
+    public boolean onSuggestedTaken(SessionEvents.AiSetupSuggestedTaken e) {
+        AiSetupState.Suggested want = suggested();
+        if (!wizardOpen || step != Step.SUMMARY || e.suggested() != want || want == AiSetupState.Suggested.NONE
+                || want == AiSetupState.Suggested.RIGHT_CLICK) {
+            auditLog.info("staleFact", "AiSetupSuggestedTaken").info("suggested", String.valueOf(e.suggested()));
+            return false;
+        }
+        auditLog.info("aiSetupSuggested", want.name());
+        effects.request(new SessionEffects.RunSuggestedActionEffect(0L, want));
+        closeWizard();
+        line = "";
+        return changed();
+    }
+
+    /** §7.3: the suggested first action, from the choice in force and whether a log is open. */
+    private AiSetupState.Suggested suggested() {
+        if (!wizardOpen || step != Step.SUMMARY) return AiSetupState.Suggested.NONE;
+        return switch (inForce()) {
+            case INSIDE, BOTH, IN_APP -> openLog != null && openLog.isOpen() ? AiSetupState.Suggested.RIGHT_CLICK
+                    : AiSetupState.Suggested.OPEN_SAMPLE;
+            case NO_AI -> AiSetupState.Suggested.TOUR;
+            case CLIENT, NONE -> AiSetupState.Suggested.NONE;
+        };
+    }
+
     @OnEventHandler
     public boolean onFirstRunDismissed(SessionEvents.AiSetupFirstRunDismissed e) {
         if (firstRunDismissed) return false;
@@ -904,6 +933,6 @@ public class AiSetup implements EventLogSource {
                 pending, finished, line,
                 observed ? AiSetupLines.aiLine(inForce, p, claudeFound, inAppCanAnswer, external) : "",
                 observed ? AiSetupLines.aiLineLink(inForce) : "",
-                wizardEntry ? status() : "", claudeFound, codexFound, wizardEntry, applying);
+                wizardEntry ? status() : "", claudeFound, codexFound, wizardEntry, applying, suggested());
     }
 }

@@ -31,12 +31,19 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  * @param codexFound  the resolver found {@code codex} (a file check; nothing was run)
  * @param wizardEntry the first use opens this wizard (M77-2) rather than the profile cards (M77-1)
  * @param applying    an Apply asked for by this wizard is in flight (its result has not arrived)
+ * @param suggested   the Summary's one suggested first action (§6.4, §7.3), chosen by the node
  */
 public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step step, Choice choice, Choice inForce,
                            Posture posture, String fullMode, Check installed, Auth signedIn, Confirming confirming,
                            Pending pending, long finished, String line, String aiLine, String aiLineLink,
                            String panelLine, boolean claudeFound, boolean codexFound, boolean wizardEntry,
-                           boolean applying) {
+                           boolean applying, Suggested suggested) {
+
+    /**
+     * The Summary's one suggested first action (§6.4). Nothing it does sends anything: it opens the sample, starts the
+     * guided tour, or only says where to ask.
+     */
+    public enum Suggested { NONE, OPEN_SAMPLE, RIGHT_CLICK, TOUR }
 
     /** Why the wizard opened (§8.2). */
     public enum Origin { NONE, FIRST_RUN, MENU, START_LINE, SEND, ASK, SETTINGS }
@@ -157,11 +164,12 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
         aiLine = aiLine == null ? "" : aiLine;
         aiLineLink = aiLineLink == null ? "" : aiLineLink;
         panelLine = panelLine == null ? "" : panelLine;
+        suggested = suggested == null ? Suggested.NONE : suggested;
     }
 
     public static final AiSetupState IDLE = new AiSetupState(false, false, Origin.NONE, Step.CHOICE, Choice.NONE,
             Choice.NONE, Posture.SAFE, "default", Check.UNCHECKED, Auth.UNCHECKED, Confirming.NONE, Pending.NONE, 0, "",
-            "", "", "", false, false, false, false);
+            "", "", "", false, false, false, false, Suggested.NONE);
 
     /** Whether the primary button of Screen 2a may be pressed: <i>Installed</i> passed (§6.2). */
     public boolean insideMayProceed() {

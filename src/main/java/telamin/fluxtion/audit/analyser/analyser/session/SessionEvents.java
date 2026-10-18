@@ -886,6 +886,10 @@ public final class SessionEvents {
     public record AiSetupFirstRunDismissed() {
     }
 
+    /** The Summary's suggested first action was pressed (§6.4). */
+    public record AiSetupSuggestedTaken(AiSetupState.Suggested suggested) {
+    }
+
     /** <i>Check again</i> on one check. */
     public record AiSetupCheckAgain(AiSetupState.CheckKind check) {
     }

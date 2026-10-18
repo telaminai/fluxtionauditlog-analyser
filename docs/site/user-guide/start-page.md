@@ -54,7 +54,13 @@ answer** when *Allow the analyser to start Claude Code* is on and `claude` is in
 **the in-app assistant can answer** with a provider and key. If the one in force cannot and the other can, the button
 reads **Ask with Claude Code** (or **Ask the in-app assistant**) and pressing it chooses that one.
 
-**The first question with nothing set up** — no assistant chosen on this machine and none able to answer — opens the
+**Set up AI on the start page.** Under the box, the start page has one line about AI. On a first run this line is
+the question *How do you want AI to work with the analyser?* — No AI, your own client, Claude inside or both — with
+**Continue** and **Not now**. After that it is one line, such as *AI: not set up · Claude Code found — Set up AI…* or
+*AI: Claude inside the analyser (Safe analysis) — Change…*. See [Set up AI](assistant.md#set-up-ai).
+
+**The first question with nothing set up** now opens [Set up AI](assistant.md#set-up-ai); the question waits there
+and is placed for the assistant you set up when you press Finish. The rest of this paragraph is how it worked before Set up AI, when the same question opened the
 [four cards](assistant.md#choose-how-the-assistant-works) (*Safe analysis*, *Full Claude Code*, *In-app assistant*,
 *Off*) in the assistant's own window instead of an answer, and the start page says *Choose how the assistant works —
 your question waits, and is placed for the assistant you choose when you press Apply.* After **Apply** your question

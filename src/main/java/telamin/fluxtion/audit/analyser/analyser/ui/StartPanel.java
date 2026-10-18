@@ -107,6 +107,20 @@ public final class StartPanel extends JPanel {
         /** P2b: a prompt pack example entry's own Download button. */
         default void downloadExample(int entryIndex) { }
 
+        // ---- M77-2 (spec-ai-setup-wizard.md §6.0): the AI block and line — the person's acts; aiSetup decides ----
+
+        /** The first-run block: a choice picked (nothing is applied). */
+        default void setUpAiChoose(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice choice) { }
+
+        /** The first-run block's Continue. */
+        default void setUpAiContinue() { }
+
+        /** The first-run block's Not now. */
+        default void setUpAiNotNow() { }
+
+        /** The AI line's Set up AI… / Change…. */
+        default void openSetUpAi() { }
+
     }
 
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
@@ -130,6 +144,8 @@ public final class StartPanel extends JPanel {
     private final Consumer<String> status;
     /** M74 P2: "What would you like to do?" — the prompt, rendering the session's start-page state. */
     private final StartPromptView prompt;
+    /** M77-2: the AI block (first run) or the one AI line, under the start box. */
+    private final AiSetupBlock aiSetup;
     private final StartPromptView.Host promptHost;
 
     /** Components whose colour is theme-derived, re-resolved on a theme switch. */
@@ -162,6 +178,14 @@ public final class StartPanel extends JPanel {
             @Override public void seePackFormat() { actions.openUserGuide("user-guide/start-page/#prompt-packs"); }
         };
         this.prompt = new StartPromptView(promptHost);
+        this.aiSetup = new AiSetupBlock(new AiSetupBlock.Host() {
+            @Override public void choose(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice c) {
+                actions.setUpAiChoose(c);
+            }
+            @Override public void proceed() { actions.setUpAiContinue(); }
+            @Override public void notNow() { actions.setUpAiNotNow(); }
+            @Override public void open() { actions.openSetUpAi(); }
+        });
         setOpaque(true);
 
         Box col = Box.createVerticalBox();
@@ -262,6 +286,16 @@ public final class StartPanel extends JPanel {
     public void renderPrompt(telamin.fluxtion.audit.analyser.analyser.session.StartPageState state,
                              telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState agent) {
         prompt.render(state, agent);
+    }
+
+    /** M77-2: the AI block or line, as aiSetup decided it. */
+    public void renderAiSetup(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState state) {
+        aiSetup.render(state);
+        prompt.setAiLineSaysIt(aiSetup.isVisible());
+    }
+
+    AiSetupBlock aiSetupBlock() {
+        return aiSetup;
     }
 
     /** M74 P2b: an example download's state, as exampleDownload decided it. */
@@ -543,6 +577,9 @@ public final class StartPanel extends JPanel {
         inner.add(Box.createVerticalStrut(8));
         prompt.setAlignmentX(LEFT_ALIGNMENT);
         inner.add(prompt);
+        inner.add(Box.createVerticalStrut(8));
+        aiSetup.setAlignmentX(LEFT_ALIGNMENT);
+        inner.add(aiSetup);
         inner.add(Box.createVerticalStrut(8));
         inner.add(body("Open evidence, return to a project, or learn with DEMO. An assistant can drive the same views through the local bridge."));
         inner.add(Box.createVerticalStrut(6));

@@ -588,15 +588,56 @@ class AiSetupTest {
         assertEquals("AI: off", setup(f).aiLine());
 
         // Claude inside + Continue from the block: the window at Screen 2a, the check started
+        FakeSessionAdapter n = new FakeSessionAdapter();
+        SessionDriver o = fresh(n, false);
+        assertEquals(Choice.NONE, setup(o).choice(), "claude not found: nothing preselected");
+        o.post(new SessionEvents.AiSetupContinue(Step.CHOICE));
+        assertEquals(0, n.profileApplies.size() + n.claudeProbes.size(), "nothing chosen in the block: Continue does nothing");
+        assertFalse(setup(o).open());
+
         FakeSessionAdapter g = new FakeSessionAdapter();
         SessionDriver h = fresh(g, true);
-        h.post(new SessionEvents.AiSetupContinue(Step.CHOICE));
-        assertEquals(0, g.profileApplies.size(), "control: nothing chosen in the block — Continue does nothing");
+        assertEquals(Choice.INSIDE, setup(h).choice(), "★ claude found: Claude inside preselected in the block");
         h.post(new SessionEvents.AiSetupChoiceMade(Choice.INSIDE));
         h.post(new SessionEvents.AiSetupContinue(Step.CHOICE));
         assertTrue(setup(h).open());
         assertEquals(Origin.FIRST_RUN, setup(h).origin());
         assertEquals(Step.INSIDE, setup(h).step());
         assertEquals(1, g.claudeProbes.size());
+    }
+
+    // ---- §6.4: the Summary's one suggested action ---------------------------------------------------------------------
+
+    /**
+     * ★ M77-2: the Summary offers one first action, chosen by the node — the sample (Claude inside, no log), the tour (No
+     * AI) — and pressing it asks for the frame's existing action and closes. Nothing is sent. Witness: drop the
+     * {@code RunSuggestedActionEffect} request in {@code onSuggestedTaken}.
+     */
+    @Test
+    @DisplayName("★ the Summary's suggested action: the sample for Claude inside, the tour for No AI; nothing is sent")
+    void theSuggestedAction() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        toInside(d, a, Choice.INSIDE);
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
+        assertEquals(Step.SUMMARY, setup(d).step());
+        assertEquals(AiSetupState.Suggested.OPEN_SAMPLE, setup(d).suggested());
+        d.post(new SessionEvents.AiSetupSuggestedTaken(AiSetupState.Suggested.TOUR));
+        assertEquals(0, a.suggestedRuns.size(), "a press for another suggestion is stale");
+        d.post(new SessionEvents.AiSetupSuggestedTaken(AiSetupState.Suggested.OPEN_SAMPLE));
+        assertEquals(1, a.suggestedRuns.size(), "★ the frame's existing action is asked for");
+        assertEquals(AiSetupState.Suggested.OPEN_SAMPLE, a.suggestedRuns.get(0).suggested());
+        assertFalse(setup(d).open(), "and the window closes");
+        assertEquals(0, a.agentSends.size() + a.agentStarts.size() + a.assistantRequests.size(), "nothing is sent");
+
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = fresh(b, false);
+        e.post(new SessionEvents.AiSetupRequested(Origin.MENU));
+        e.post(new SessionEvents.AiSetupChoiceMade(Choice.NO_AI));
+        e.post(new SessionEvents.AiSetupContinue(Step.CHOICE));
+        assertEquals(AiSetupState.Suggested.TOUR, setup(e).suggested());
+        e.post(new SessionEvents.AiSetupContinue(Step.SUMMARY));
+        assertFalse(setup(e).open(), "Done closes");
+        assertEquals(AiSetupState.Suggested.NONE, setup(e).suggested());
     }
 }

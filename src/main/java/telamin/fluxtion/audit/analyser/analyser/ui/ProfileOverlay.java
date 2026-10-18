@@ -39,6 +39,10 @@ public final class ProfileOverlay extends JPanel {
         void close();
 
         void openSettings();
+
+        /** M77-2: Assistant ▾ ▸ Set up AI… — the step-by-step set-up, the one door (spec §5 entry 2). */
+        default void openSetUpAi() {
+        }
     }
 
     /** What the cards start from when they open: the profile in force and this machine's current details. */
@@ -139,6 +143,7 @@ public final class ProfileOverlay extends JPanel {
     private final JButton apply = UiText.button("Apply");
     private final JButton close = UiText.button("Close");
     private final JButton settings = UiText.button("All options: Settings ▸ Assistant…");
+    private final JButton setUpAi = UiText.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_LINK);
 
     // the details' own fields
     private final JTextField safeModel = new JTextField(12);
@@ -146,10 +151,8 @@ public final class ProfileOverlay extends JPanel {
     private final JComboBox<String> fullMode = UiText.plainCells(new JComboBox<>(
             telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.FULL_MODES.toArray(new String[0])));
     private final WrapLine fullModeNote = new WrapLine(" ");
-    private final JComboBox<String> provider = UiText.plainCells(new JComboBox<>(new String[]{"anthropic", "openai"}));
-    private final JTextField model = new JTextField(16);
-    private final JPasswordField apiKey = new JPasswordField(24);
-    private final WrapLine keyNote = new WrapLine(" ");
+    /** M77-2: the in-app details, one component shared with Set up AI ▸ Other options (review R1-25). */
+    private final InAppDetails inApp = new InAppDetails();
 
     private AssistantProfile selected = AssistantProfile.SAFE;
     private boolean shown;
@@ -220,6 +223,8 @@ public final class ProfileOverlay extends JPanel {
         settings.setContentAreaFilled(false);
         settings.setMargin(new Insets(0, 0, 0, 0));
         left.add(settings);
+        setUpAi.getAccessibleContext().setAccessibleName("Set up AI");
+        left.add(setUpAi);
         for (JComponent c : new JComponent[]{refusal, buttons, left}) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             foot.add(c);
@@ -231,14 +236,12 @@ public final class ProfileOverlay extends JPanel {
         });
         close.addActionListener(e -> { if (host != null) host.close(); });
         settings.addActionListener(e -> { if (host != null) host.openSettings(); });
+        setUpAi.addActionListener(e -> { if (host != null) host.openSetUpAi(); });
         fullMode.addActionListener(e -> fullModeNote.setText(ConfigPanel.modeNote(String.valueOf(fullMode.getSelectedItem()))));
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "profiles-close");
         getActionMap().put("profiles-close", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) { if (host != null) host.close(); }
         });
-        provider.getAccessibleContext().setAccessibleName("In-app provider");
-        model.getAccessibleContext().setAccessibleName("In-app model");
-        apiKey.getAccessibleContext().setAccessibleName("In-app API key");
         fullMode.getAccessibleContext().setAccessibleName("Full Claude Code mode");
         safeModel.getAccessibleContext().setAccessibleName("Claude Code model");
         fullModel.getAccessibleContext().setAccessibleName("Claude Code model");
@@ -278,11 +281,7 @@ public final class ProfileOverlay extends JPanel {
         fullModel.setText(d.claudeModel() == null ? "" : d.claudeModel());
         fullMode.setSelectedItem(d.fullMode() == null ? "default" : d.fullMode());
         fullModeNote.setText(ConfigPanel.modeNote(String.valueOf(fullMode.getSelectedItem())));
-        provider.setSelectedItem(d.provider() == null || d.provider().isBlank() ? "anthropic" : d.provider());
-        model.setText(d.model() == null ? "" : d.model());
-        apiKey.setText("");
-        keyNote.setText(d.keyStored() ? "A key is stored on this machine; leave this blank to keep it."
-                : "No key is stored yet.");
+        inApp.load(d.provider(), d.model(), d.keyStored());
         external.setText(externalLine(d.externalAccess()));
         choose(p);
     }
@@ -305,8 +304,7 @@ public final class ProfileOverlay extends JPanel {
             case SAFE -> new AssistantProfiles.Details(null, safeModel.getText().trim(), null, null, null);
             case FULL -> new AssistantProfiles.Details(String.valueOf(fullMode.getSelectedItem()),
                     fullModel.getText().trim(), null, null, null);
-            case IN_APP -> new AssistantProfiles.Details(null, null, String.valueOf(provider.getSelectedItem()),
-                    model.getText().trim(), new String(apiKey.getPassword()).trim());
+            case IN_APP -> inApp.details();
             default -> AssistantProfiles.Details.NONE;
         };
     }
@@ -323,6 +321,10 @@ public final class ProfileOverlay extends JPanel {
         return apply;
     }
 
+    JButton setUpAiButton() {
+        return setUpAi;
+    }
+
     JButton closeButton() {
         return close;
     }
@@ -336,15 +338,15 @@ public final class ProfileOverlay extends JPanel {
     }
 
     JPasswordField apiKeyField() {
-        return apiKey;
+        return inApp.apiKey;
     }
 
     JTextField inAppModelField() {
-        return model;
+        return inApp.model;
     }
 
     JComboBox<String> providerCombo() {
-        return provider;
+        return inApp.provider;
     }
 
     // ---- the details ----------------------------------------------------------------------------------------------
@@ -370,12 +372,7 @@ public final class ProfileOverlay extends JPanel {
                 box.add(fullModeNote);
                 box.add(field("Claude Code model:", fullModel));
             }
-            case IN_APP -> {
-                box.add(field("Provider:", provider));
-                box.add(field("Model:", model));
-                box.add(field("API key:", apiKey));
-                box.add(keyNote);
-            }
+            case IN_APP -> box.add(inApp.rows());
             default -> { }
         }
         for (Component c : box.getComponents()) ((JComponent) c).setAlignmentX(LEFT_ALIGNMENT);

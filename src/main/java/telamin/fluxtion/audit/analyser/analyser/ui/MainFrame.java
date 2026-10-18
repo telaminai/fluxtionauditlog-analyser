@@ -2861,6 +2861,13 @@ public final class MainFrame extends JFrame {
     private JMenu buildAiMenu() {
         JMenu ai = new JMenu("AI");
 
+        // M77-2 (spec-ai-setup-wizard.md §5 entry 3): the one door, first
+        JMenuItem setUpAi = new JMenuItem(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_LINK);
+        setUpAi.setToolTipText("Choose how AI works here: no AI, your own client, Claude inside, or both");
+        setUpAi.addActionListener(e -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                .AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.MENU)));
+        ai.add(setUpAi);
+
         JMenuItem connect = new JMenuItem("Connect an AI client…");
         connect.setToolTipText("Register this analyser with Claude Code, Codex or any MCP client");
         connect.addActionListener(e -> openMcpSetup());
@@ -4654,6 +4661,19 @@ public final class MainFrame extends JFrame {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ReturnToMainOptions("start page"));
             }
             @Override public void downloadExample(int entryIndex) { MainFrame.this.downloadExample(entryIndex); }
+            // M77-2: the AI block and line — the person's acts, reported; aiSetup decides
+            @Override public void setUpAiChoose(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice c) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade(c));
+            }
+            @Override public void setUpAiContinue() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step.CHOICE));
+            }
+            @Override public void setUpAiNotNow() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupFirstRunDismissed());
+            }
+            @Override public void openSetUpAi() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.START_LINE));
+            }
             @Override public boolean fluxtionKeyPresent() { return fluxtionKeyStore.keyPresent(); }
             @Override public void backToRecords() { syncRecordsCard(); }
             @Override public void openProjectDesign() { chooseDesignFile(false); }
@@ -4974,6 +4994,10 @@ public final class MainFrame extends JFrame {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesClosed(
                         "assistant panel"));
             }
+            @Override public void openSetUpAi() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(
+                        telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.MENU));
+            }
             @Override public void applyProfile(long request,
                                                telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile profile) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileChosen(
@@ -4986,6 +5010,9 @@ public final class MainFrame extends JFrame {
                 config.claudeCodeFullMode, config.llmProvider, config.llmModel,
                 config.apiKey != null && !config.apiKey.isBlank(), config.assistantActionsRest));
         installLocalAgent();
+        // M77-2: Settings ▸ Assistant ▸ Set up AI… is the person's act, reported like every other door
+        ConfigPanel.setUpAi = () -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                .AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.SETTINGS));
     }
 
     // ---- M74: Claude Code as the local agent — the adapter performs, the panel reports and renders; localAgentSession
@@ -5469,6 +5496,7 @@ public final class MainFrame extends JFrame {
         // M74 UX: the mode first — it says which assistant draws the one panel's transcript and composer
         var agent = next.localAgent();
         assistantPanel.renderMode(agent.mode(), demo != null);
+        assistantPanel.renderSetup(next.aiSetup());        // M77-2: before the chips are drawn
         assistantPanel.renderProfiles(next.profiles());
         assistantPanel.renderOpenLog(next.logOpen(), next.logGeneration(), next.logOpenedAt());   // final review #12
         assistantPanel.render(state, demo);
@@ -5485,6 +5513,7 @@ public final class MainFrame extends JFrame {
         if (open != null) open.setWaiting(next.permission().queued());     // review #10c: rendered, never decided
         renderFullPostureMarkers(agent);
         renderStartPrompt(next);
+        renderAiSetup(next);
     }
 
     /**
@@ -8591,6 +8620,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PersistSetupDismissedEffect e -> persistSetupDismissed(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PersistSetupClientEffect e -> persistSetupClient(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenClientSetupEffect e -> openClientSetup(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunSuggestedActionEffect e -> runSuggestedAction(e);
             // M74: the local agent's effects have ONE performer, the adapter (OneDispatchModelTest pins it)
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartLocalAgentEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PollLocalAgentStatusEffect e -> performLocalAgent(e);
@@ -11291,12 +11321,20 @@ public final class MainFrame extends JFrame {
         return b;
     }
 
+    /** M77-2: " (set up AI first)" while nothing is set up and the wizard is the entry — the node's words; else "". */
+    private String askCue() {
+        if (session == null) return "";
+        var s = sessionSnapshot().aiSetup();
+        return s.wizardEntry() && s.nothingSetUp() ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ASK_CUE : "";
+    }
+
     /** The registry's items for {@code surface}: the label in the mode in force, disabled with the reason. */
     private java.util.List<JMenuItem> askItems(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface surface,
                                                telamin.fluxtion.audit.analyser.analyser.assistant.AskContext ctx) {
         java.util.List<JMenuItem> out = new java.util.ArrayList<>();
         for (var item : telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.items(surface, ctx)) {
-            JMenuItem m = UiText.menuItem(item.label());
+            // M77-2 (review R1-23): while nothing is set up, the Ask items keep their question and add the cue
+            JMenuItem m = UiText.menuItem(item.label() + askCue());
             m.setEnabled(item.enabled());
             m.setToolTipText(UiText.tooltip(item.enabled()
                     ? "Drafts a question naming where to look; nothing is sent until you press Send"
@@ -11392,7 +11430,7 @@ public final class MainFrame extends JFrame {
                 telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.DETAIL_BUTTON, ctx);
         detailPanel.setAskEntrance(detail == null
                 ? telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface.DETAIL_BUTTON.none")
-                : detail.enabled() ? detail.label() : detail.label() + " — " + detail.disabledReason(),
+                : detail.enabled() ? detail.label() + askCue() : detail.label() + " — " + detail.disabledReason(),
                 detail != null && detail.enabled());
     }
 
@@ -11625,6 +11663,10 @@ public final class MainFrame extends JFrame {
     /** The details of the surface whose Apply this is (M77-1: only the cards hold any). */
     telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.Details profileDetailsFor(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOrigin origin) {
+        if (origin == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOrigin.SETUP
+                && aiSetupWindow != null) {
+            return aiSetupWindow.details();      // Other options: the in-app details the person typed in the wizard
+        }
         return assistantPanel.profileDetails();
     }
 
@@ -11641,7 +11683,9 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmFullProfile(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmFullProfileEffect e) {
         SwingUtilities.invokeLater(() -> {
-            Window owner = SwingUtilities.getWindowAncestor(assistantPanel);
+            // the surface that asked owns the confirmation: the wizard while it is open, else the assistant's window
+            Window owner = aiSetupWindow != null && aiSetupWindow.isVisible() ? aiSetupWindow
+                    : SwingUtilities.getWindowAncestor(assistantPanel);
             SafeChoice.Asked asked = ConfigPanel.fullPostureDialog(owner == null ? this : owner, fullProfileConfirmModal);
             fullProfileAsked = asked;
             asked.dialog().addWindowListener(new java.awt.event.WindowAdapter() {
@@ -11685,8 +11729,81 @@ public final class MainFrame extends JFrame {
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(), "show");
     }
 
-    /** M77-1: no window yet (the first use still opens the cards); M77-2 builds it. */
+    /** M77-2: the one Set up AI window, created on the node's first ShowAiSetupEffect. */
+    AiSetupWindow aiSetupWindow;
+
+    /** Create the one window, or bring it to the front; what it shows is rendered from AiSetupState. */
     void frontAiSetupWindow() {
+        if (aiSetupWindow == null) {
+            aiSetupWindow = new AiSetupWindow(this, new AiSetupWindow.Host() {
+                @Override public void choose(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice c) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade(c));
+                }
+                @Override public void posture(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Posture p, String mode) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupPostureChosen(p, mode));
+                }
+                @Override public void proceed(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step step, boolean keyEntered) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue(step, keyEntered));
+                }
+                @Override public void back(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step step) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack(step));
+                }
+                @Override public void cancel() {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCancelled("set up window"));
+                }
+                @Override public void checkAgain(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.CheckKind k) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCheckAgain(k));
+                }
+                @Override public void copy(String text) {
+                    java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                            new java.awt.datatransfer.StringSelection(text), null);
+                }
+                @Override public void installHelp() {
+                    openDocsUrl("https://docs.claude.com/en/docs/claude-code/setup");
+                }
+                @Override public void suggested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Suggested sg) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupSuggestedTaken(sg));
+                }
+                @Override public String shownPath(long ref) {
+                    return AiSetupWindow.shorten(setupPath(ref), Path.of(System.getProperty("user.home")));
+                }
+            });
+            renderAiSetupWindow(sessionSnapshot().aiSetup());
+        }
+        if (!aiSetupWindow.isVisible()) {
+            aiSetupWindow.setLocationRelativeTo(this);
+            aiSetupWindow.setVisible(true);
+        }
+        aiSetupWindow.toFront();
+    }
+
+    /** Render Set up AI from the snapshot on every surface that shows it: the window, the start page, the panel. */
+    private void renderAiSetup(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        var s = next.aiSetup();
+        if (startPanel != null) startPanel.renderAiSetup(s);
+        renderAiSetupWindow(s);
+        // §7.4: the closing line names what is in force — the node's words, shown once when they change
+        if (!s.open() && !s.line().isBlank() && !s.line().equals(aiSetupLineShown)) status.setText(s.line());
+        aiSetupLineShown = s.line();
+    }
+
+    private String aiSetupLineShown = "";
+
+    private void renderAiSetupWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState s) {
+        if (aiSetupWindow == null) return;
+        aiSetupWindow.render(s, config.claudeCodeModel, config.llmProvider, config.llmModel,
+                config.apiKey != null && !config.apiKey.isBlank());
+        if (!s.open() && aiSetupWindow.isVisible()) aiSetupWindow.setVisible(false);
+    }
+
+    /** §6.4: the Summary's suggested action, with the frame's existing actions. Nothing is sent. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result runSuggestedAction(telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunSuggestedActionEffect e) {
+        switch (e.suggested()) {
+            case OPEN_SAMPLE -> SwingUtilities.invokeLater(() -> openSampleProject());
+            case TOUR -> SwingUtilities.invokeLater(() -> openSampleProject(true));
+            default -> { }
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(), "suggested");
     }
 
     /** The path a check found claude at, by its reference (for the view only). */

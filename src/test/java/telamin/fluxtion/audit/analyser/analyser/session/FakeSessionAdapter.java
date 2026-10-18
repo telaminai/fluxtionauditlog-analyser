@@ -54,6 +54,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.PersistSetupDismissedEffect> dismissedWrites = new ArrayList<>();
     final List<SessionEffects.PersistSetupClientEffect> clientWrites = new ArrayList<>();
     final List<SessionEffects.OpenClientSetupEffect> clientSetups = new ArrayList<>();
+    final List<SessionEffects.RunSuggestedActionEffect> suggestedRuns = new ArrayList<>();
     /** The verb each action entry names, as the real adapter would read it from the block. */
     final java.util.Map<Long, String> assistantVerbs = new java.util.HashMap<>();
     /** M74: what localAgentSession asked the adapter to do, in order. */
@@ -247,6 +248,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.PersistSetupClientEffect e -> {
                 clientWrites.add(e);
                 yield new SessionEvents.AiSetupEffectStarted(e.opId(), "persistClient");
+            }
+            case SessionEffects.RunSuggestedActionEffect e -> {
+                suggestedRuns.add(e);
+                yield new SessionEvents.AiSetupEffectStarted(e.opId(), "suggested");
             }
             case SessionEffects.OpenClientSetupEffect e -> {
                 clientSetups.add(e);

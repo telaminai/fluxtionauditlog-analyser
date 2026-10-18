@@ -328,6 +328,7 @@ public final class SessionDriver {
             case SessionEffects.PersistSetupDismissedEffect ignored -> "persistSetupDismissed";
             case SessionEffects.PersistSetupClientEffect ignored -> "persistSetupClient";
             case SessionEffects.OpenClientSetupEffect ignored -> "openClientSetup";
+            case SessionEffects.RunSuggestedActionEffect ignored -> "runSuggestedAction";
             case SessionEffects.StartLocalAgentEffect ignored -> "startLocalAgent";
             case SessionEffects.PollLocalAgentStatusEffect ignored -> "pollLocalAgentStatus";
             case SessionEffects.SendLocalAgentTurnEffect ignored -> "sendLocalAgentTurn";

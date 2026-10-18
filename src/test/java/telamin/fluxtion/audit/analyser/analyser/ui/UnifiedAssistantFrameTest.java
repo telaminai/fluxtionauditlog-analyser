@@ -144,7 +144,8 @@ class UnifiedAssistantFrameTest {
                 AssistantPanel a = AssistantLiveFrameTest.panel(f.frame);
                 line.set(a.limitsLine());
                 // owner, 2026-10-18: nothing chosen on a fresh machine — the node's one line, not three
-                assertEquals(telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.NO_ASSISTANT,
+                // M77-2 (§6.6, review R1-17): one owner, one line — Set up AI's, not the cards'
+                assertEquals(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.PANEL_NOTHING_SET_UP,
                         a.limitsLine().getText());
                 a.chooseModeForTest(AssistantMode.LOCAL_AGENT);
             });

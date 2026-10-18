@@ -69,6 +69,31 @@ and one analyser_report call marked approved by you](../assets/assistant-claude-
 Each keeps its own rules: the in-app assistant's actions, its per-reply cap and round limit; Claude Code's profile,
 permissions and approvals. Changing how the assistant works is refused while an answer is in progress.
 
+## Set up AI
+
+**Set up AI…** is the one place to choose how AI works with the analyser. It is in the assistant's header, first in
+the **AI** menu, at the top of *Settings ▸ Assistant*, and on the start page's AI line. On a first run the start page
+asks the same question inline, as part of the page: **How do you want AI to work with the analyser?**
+
+- **No AI**: everything works without AI — records, topology, charts, reports, walks and the tour.
+- **Your own AI client connects**: Claude Code, Codex or another MCP client in your terminal drives the analyser. For
+  now this opens [Connect an AI client](#setup); step-by-step set-up comes in the next update.
+- **Claude inside the analyser**: the same Claude Code, run by the analyser in this panel.
+- **Both**: Claude in the panel, and your terminal client too.
+
+For **Claude inside**, the window first checks this machine by running `claude --version` and
+`claude auth status --json`. No question and no evidence is sent; the checks run in an empty private folder, and no
+e-mail or organisation from the answer is kept. Each check says what failed and has **Check again**. An API key is
+reported as *uses an API key* and never as *signed in*: Claude Code checks a key only when it starts. You then choose
+**Safe analysis** (recommended) or **Full Claude Code**. Full asks for the same confirmation as the Settings switch,
+with *Cancel* as the default. **Other options** sets up the in-app assistant with your own API key.
+
+Nothing is sent from the window. If a question is waiting — you asked from a record, the start page or the panel
+before anything was set up — **Finish** closes the window and puts the question in the composer of the assistant you
+chose, so pressing **Send** is the only step left. Otherwise a short summary suggests one first step. **Cancel**
+applies nothing further; a question waiting in the start box stays there. *Not now* on the start page's block hides it
+and leaves one line, *AI: not set up — Set up AI…*. Both the block and the line are remembered on this machine only.
+
 ## Choose how the assistant works
 
 **Assistant: … ▾** in the assistant's header (it names the profile in force, e.g. *Assistant: Safe analysis ▾*) shows four cards in the panel — not a chain of dialogs:
@@ -91,8 +116,10 @@ external loop. Each card's line is shown in full — the card grows to fit it.
 - **Choosing a card shows only its two or three details; nothing changes until Apply.** Apply writes the same settings
   *Settings ▸ Assistant* holds — on this machine only, never in a project, a shared settings file or a bundle — and puts
   the tab in that card's mode. *Settings ▸ Assistant* still has every option, grouped the same way.
-- **The cards open by themselves once**: the first time you press **Start** or ask a question — in the panel or on the
-  [start page](start-page.md#which-assistant-answers) — while nothing is set up on this machine. A question asked on the
+- **With nothing set up, a Send, a Start or an Ask opens [Set up AI](#set-up-ai)** rather than the cards, every
+  time, and the question waits for it. The cards stay available from **Assistant: … ▾**. (Before Set up AI, the cards
+  opened by themselves once: the first time you pressed **Start** or asked a question — in the panel or on the
+  [start page](start-page.md#which-assistant-answers) — while nothing was set up on this machine.) A question asked on the
   start page — or from a record, a chart or the topology with *Ask the assistant* — **waits for you**: after **Apply**
   it is placed in the composer of the assistant you chose, ready for **Send** — you do not ask again, and nothing is sent
   until you press Send. Close the start page's cards instead and its question stays in the box. After a card is chosen (or if you close them), they open only from

@@ -53,6 +53,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupFir
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupPostureChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupSuggestedTaken;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed;
@@ -257,6 +258,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupPostureChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupSuggestedTaken
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed
@@ -584,6 +586,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "AiSetupStartupObserved",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupSuggestedTaken",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupSuggestedTaken",
                 false),
             new ProcessorDescriptor.Input(
                 "AssistantActionFinished",
@@ -1171,7 +1177,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "f5fd5c7eb44b884a0e0806a5bfb58d72ebdc98cd89c2474361dd89ad01c5208d",
+              "b4069f3b553ab8d1adfba8e86b3b612d4f75fff172c57e0ec9cb0a97c11e1f15",
               null));
 
   @Override
@@ -1381,6 +1387,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof AiSetupStartupObserved) {
       AiSetupStartupObserved typedEvent = (AiSetupStartupObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupSuggestedTaken) {
+      AiSetupSuggestedTaken typedEvent = (AiSetupSuggestedTaken) event;
       handleEvent(typedEvent);
     } else if (event instanceof AssistantActionFinished) {
       AssistantActionFinished typedEvent = (AssistantActionFinished) event;
@@ -1895,6 +1904,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AiSetupStartupObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupSuggestedTaken event) {
     processEvent(event);
   }
 
@@ -2747,6 +2761,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(aiSetup, "aiSetup", "onStartupObserved", typedEvent);
     isDirty_aiSetup = aiSetup.onStartupObserved(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupSuggestedTaken typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onSuggestedTaken", typedEvent);
+    isDirty_aiSetup = aiSetup.onSuggestedTaken(typedEvent);
     afterEvent();
   }
 
@@ -4664,6 +4686,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(aiSetup, "aiSetup", "onStartupObserved", typedEvent);
       isDirty_aiSetup = aiSetup.onStartupObserved(typedEvent);
+    } else if (event instanceof AiSetupSuggestedTaken) {
+      AiSetupSuggestedTaken typedEvent = (AiSetupSuggestedTaken) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onSuggestedTaken", typedEvent);
+      isDirty_aiSetup = aiSetup.onSuggestedTaken(typedEvent);
     } else if (event instanceof AssistantActionFinished) {
       AssistantActionFinished typedEvent = (AssistantActionFinished) event;
       auditEvent(typedEvent);

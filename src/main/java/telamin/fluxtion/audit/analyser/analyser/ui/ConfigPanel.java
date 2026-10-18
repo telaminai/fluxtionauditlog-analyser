@@ -728,6 +728,13 @@ public final class ConfigPanel extends JDialog {
      * the full switch, the model and the spend limit need <i>Allow the analyser to start Claude Code</i>, the mode needs
      * the full switch, the amount needs its box.
      */
+    /**
+     * M77-2 (spec-ai-setup-wizard.md §5 entry 6): what <i>Set up AI…</i> at the top of this page does — set by the frame,
+     * which reports it as the person's act. Settings closes first, unsaved: it is modal (the wizard could not be used
+     * behind it), and a later Save of its stale switches would undo what the wizard applied.
+     */
+    static volatile Runnable setUpAi;
+
     private JPanel buildAssistantTab() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
@@ -735,6 +742,19 @@ public final class ConfigPanel extends JDialog {
         c.gridx = 0; c.gridwidth = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START;
         c.fill = GridBagConstraints.HORIZONTAL; c.insets = new Insets(0, 0, 10, 0);
         c.gridy = 0;
+        JButton setUp = UiText.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_LINK);
+        setUp.getAccessibleContext().setAccessibleName("Set up AI");
+        setUp.setToolTipText(UiText.tooltip("Closes Settings without saving and opens the step-by-step set-up; this page "
+                + "keeps every option"));
+        setUp.addActionListener(e -> {
+            Runnable r = setUpAi;
+            dispose();
+            if (r != null) SwingUtilities.invokeLater(r);
+        });
+        JPanel setUpRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
+        setUpRow.add(setUp);
+        p.add(setUpRow, c);
+        c.gridy++;
         // final review #15: the header control's label as it reads (AssistantVocabularyTest holds it to
         // AssistantPanel.assistantControlText, so the two never drift); a literal, as every HTML door's text is
         p.add(mutedNote("Choose how the assistant works in one step from the control at the top of the assistant's "

@@ -544,6 +544,18 @@ public final class StartPromptView extends JPanel {
         };
     }
 
+    /**
+     * M77-2 (spec-ai-setup-wizard.md §6.0, T15): the start page's AI block or line says what can answer, so the
+     * fallbacks' "No AI assistant can answer here yet" label is not said a second time beside it.
+     */
+    private boolean aiLineSaysIt;
+
+    void setAiLineSaysIt(boolean on) {
+        if (on == aiLineSaysIt) return;
+        aiLineSaysIt = on;
+        renderFallbacks();
+    }
+
     /** Which fallback buttons show: in the no-AI column, the chosen entry's (or the last pressed one's); S4 and S7 always offer the template dialog. */
     private void renderFallbacks() {
         String entry = chosen != null ? chosen.id() : state.fallbackEntry() != null ? state.fallbackEntry() : "S6";
@@ -554,7 +566,7 @@ public final class StartPromptView extends JPanel {
         } else if (("S4".equals(entry) || "S7".equals(entry)) && chosen != null) {
             shown.add(AskCatalogue.Fallback.TEMPLATE);            // beside the draft: the existing dialog (§5.8 S4)
         }
-        String fkey = entry + shown + state.route() + state.claudeCodeNotFound();
+        String fkey = entry + shown + state.route() + state.claudeCodeNotFound() + aiLineSaysIt;
         notFound.setText(AskCatalogue.text("start.claudeNotFound", java.util.Map.of("searched",
                 host.claudeSearched() == null ? "" : host.claudeSearched())));
         notFound.setVisible(state.claudeCodeNotFound() && !state.route().canAnswer());
@@ -563,7 +575,7 @@ public final class StartPromptView extends JPanel {
         fallbacks.removeAll();
         boolean offerInstall = state.claudeCodeNotFound() && !state.route().canAnswer();
         // review M74 usability S6: the label says what the buttons after it are — so with none, there is no label
-        if (!state.route().canAnswer() && (!shown.isEmpty() || offerInstall)) {
+        if (!state.route().canAnswer() && (!shown.isEmpty() || offerInstall) && !aiLineSaysIt) {
             JLabel why = UiText.label(AskCatalogue.text("start.noAi"));
             why.setForeground(UiTheme.mutedForeground());
             fallbacks.add(why);

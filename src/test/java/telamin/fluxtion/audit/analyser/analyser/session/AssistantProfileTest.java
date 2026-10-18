@@ -15,6 +15,20 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class AssistantProfileTest {
 
+    /** M77-2: these are the profile cards' first-use tests — the cards stay reachable until M77-4; pinned to them. */
+    private boolean wizardBefore;
+
+    @org.junit.jupiter.api.BeforeEach
+    void cardsForFirstUse() {
+        wizardBefore = telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.wizardForFirstUse();
+        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(false);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void restoreFirstUse() {
+        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(wizardBefore);
+    }
+
     static ProfileState profiles(SessionDriver d) {
         return d.snapshot().profiles();
     }

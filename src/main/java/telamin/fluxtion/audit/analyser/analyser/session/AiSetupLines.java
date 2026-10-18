@@ -166,6 +166,10 @@ public final class AiSetupLines {
     public static final String SUMMARY_CHANGE = "Change any of this: Assistant ▾ ▸ Set up AI…. Settings ▸ Assistant "
             + "keeps every option.";
     public static final String DONE = "Done";
+    /** §6.4's suggested first actions. Nothing they do sends anything. */
+    public static final String SUGGEST_SAMPLE = "Open the sample project";
+    public static final String SUGGEST_TOUR = "Take the guided tour";
+    public static final String RIGHT_CLICK_TO_ASK = "Right-click any record and choose Ask… to ask about it.";
     public static final String NEW_CONVERSATION = "Your next question starts a new conversation.";
 
     /** The Summary's line for what is in force. */
