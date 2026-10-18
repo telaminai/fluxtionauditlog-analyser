@@ -123,6 +123,9 @@ public class AiSetup implements EventLogSource {
     private long probeInstalled;
     private long probeAuth;
     private long nextProbe;
+    /** Owner decision 2026-10-18: the open Build-mode offer (0 for none), and the last id minted. */
+    private long buildModeOffer;
+    private long nextBuildModeOffer;
     /** The Apply request this wizard asked for (negative ids: never one a card or the menu minted); 0 for none. */
     private long wizardRequest;
     private long nextWizardRequest;
@@ -575,7 +578,17 @@ public class AiSetup implements EventLogSource {
                         .orElse(true));
         if (!question) return false;
         boolean canAnswer = e.inAppCanAnswer() || (e.consent() != null && e.consent().allowed() && e.claudeCodeFound());
-        if (canAnswer) return false;                  // an assistant can answer it: the question goes there
+        if (canAnswer) {
+            // an assistant can answer it: the question goes there. Owner decision 2026-10-18: Build with Full Claude Code
+            // ALREADY in force in default (the whole hands-on session ran so) is offered acceptEdits too — the person's
+            // choice, never switched for them; Full is already confirmed, so the offer asks no second consent
+            if (build && offersBuildMode(e.consent())) {
+                buildModeOffer = ++nextBuildModeOffer;
+                auditLog.info("aiSetupBuildMode", "OFFERED").info("offer", buildModeOffer);
+                return changed();
+            }
+            return false;
+        }
         boolean wasOpen = wizardOpen;
         if (!wasOpen) authoringWaiting = build;
         if (!firstUse("start page")) {
@@ -585,6 +598,50 @@ public class AiSetup implements EventLogSource {
         interceptedStartPage = e.request();
         startBoxWaiting = true;
         return true;
+    }
+
+    /** Full Claude Code is in force (the profile, and the consent the press carried) in {@code default}. */
+    private boolean offersBuildMode(SessionEvents.LocalAgentConsent c) {
+        return observed && AssistantProfile.FULL.name().equals(profile) && c != null && c.allowed() && c.full()
+                && c.fullMode() == telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.FullMode.DEFAULT;
+    }
+
+    /**
+     * Owner decision 2026-10-18: the person answered the Build-mode offer. Keep asking changes nothing. Switch applies
+     * Full Claude Code with {@code acceptEdits} through the one Apply performer as a quick switch does (origin MENU), so
+     * {@code localAgentSession} restarts a running session at once — in a new chat, because the mode is part of the
+     * posture. Never mid-turn (refused by name, the offer kept); never when Full is no longer in force (that would skip
+     * Full's confirmation); never {@code bypassPermissions}.
+     */
+    @OnEventHandler
+    public boolean onBuildModeAnswered(SessionEvents.AiSetupBuildModeAnswered e) {
+        if (buildModeOffer == 0 || e.offer() != buildModeOffer) {
+            auditLog.info("staleFact", "AiSetupBuildModeAnswered").info("offer", e.offer()).info("open", buildModeOffer);
+            return false;
+        }
+        if (!e.switchMode()) {
+            buildModeOffer = 0;
+            auditLog.info("aiSetupBuildMode", "KEPT").info("offer", e.offer());
+            return changed();
+        }
+        if (!AssistantProfile.FULL.name().equals(profile)) {
+            buildModeOffer = 0;
+            auditLog.info("aiSetupBuildMode", "STALE_PROFILE").info("profile", profile);
+            return changed();
+        }
+        String busy = busy();
+        line = busy;
+        if (!busy.isEmpty()) {
+            auditLog.info("aiSetupBuildMode", "BUSY").info("offer", e.offer());
+            return changed();                         // the offer stays: it can be answered when the turn ends
+        }
+        buildModeOffer = 0;
+        long req = -(++nextWizardRequest);
+        request = req;
+        auditLog.info("aiSetupBuildMode", "SWITCH").info("offer", e.offer()).info("request", req);
+        effects.request(new SessionEffects.ApplyAssistantProfileEffect(0L, req, AssistantProfile.FULL, ProfileOrigin.MENU,
+                AiSetupLines.BUILD_FULL_MODE));
+        return changed();
     }
 
     /**
@@ -1423,7 +1480,8 @@ public class AiSetup implements EventLogSource {
     public ProfileState state() {
         if (dirty) {
             published = new ProfileState(AssistantProfile.valueOf(profile), status(),
-                    confirmingFull != 0 && confirmingOrigin != ProfileOrigin.SETUP, observed, pendingDraft != 0);
+                    confirmingFull != 0 && confirmingOrigin != ProfileOrigin.SETUP, observed, pendingDraft != 0,
+                    buildModeOffer);
             dirty = false;
         }
         return published;

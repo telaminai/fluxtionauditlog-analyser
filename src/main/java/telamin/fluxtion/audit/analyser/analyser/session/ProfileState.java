@@ -15,9 +15,22 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  *                      applied until it is confirmed
  * @param observed      the frame has reported the profile at least once, so {@code profile} NONE is a fact, not a default
  * @param questionWaits robot walkthrough #1: a question asked before any assistant was chosen waits for the choice
+ * @param buildModeOffer owner decision 2026-10-18: the open Build-mode offer's id (Full Claude Code in force in
+ *                       {@code default}, Start building pressed): Switch to {@code acceptEdits} or Keep asking; 0 for none
  */
 public record ProfileState(AssistantProfile profile, String status, boolean confirming, boolean observed,
-                           boolean questionWaits) {
+                           boolean questionWaits, long buildModeOffer) {
+
+    /** No Build-mode offer open. */
+    public ProfileState(AssistantProfile profile, String status, boolean confirming, boolean observed,
+                        boolean questionWaits) {
+        this(profile, status, confirming, observed, questionWaits, 0L);
+    }
+
+    /** Owner decision 2026-10-18: a Build-mode offer is open — the panel shows its one line and two buttons. */
+    public boolean buildModeOffered() {
+        return buildModeOffer != 0;
+    }
 
     public static final ProfileState NONE = new ProfileState(AssistantProfile.NONE, "", false, false, false);
 

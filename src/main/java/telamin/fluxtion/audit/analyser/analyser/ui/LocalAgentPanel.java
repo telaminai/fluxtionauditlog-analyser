@@ -70,6 +70,9 @@ public final class LocalAgentPanel extends JPanel {
         /** Owner, 2026-10-18: the "settings changed — restart to apply" chip was clicked. */
         default void reopenRestartOffer() { }
 
+        /** Owner decision 2026-10-18: the Build-mode offer {@code offer} answered — Switch ({@code switchMode}) or Keep asking. */
+        default void answerBuildMode(long offer, boolean switchMode) { }
+
         /** Robot walkthrough #1: "Ask again for Claude Code" — the composer's drafts, by binding. */
         default void askAgain(java.util.List<Long> draftBindings) { }
     }
@@ -141,6 +144,18 @@ public final class LocalAgentPanel extends JPanel {
     /** The chip shown after Later: clicking it shows the offer again. */
     private final JButton restartChip = UiText.button(RESTART_CHIP);
     private LocalAgentState.Restart restart = LocalAgentState.Restart.NONE;
+    /**
+     * Owner decision 2026-10-18: Full Claude Code in {@code default} and Start building pressed — the one-line offer of
+     * {@code acceptEdits}, rendered from {@link telamin.fluxtion.audit.analyser.analyser.session.ProfileState}, which
+     * {@code aiSetup} decides; Switch and Keep asking are reported as facts.
+     */
+    private final JPanel buildModeBanner = new JPanel(new BorderLayout(6, 2));
+    private final WrapLine buildModeText = new WrapLine(" ");
+    private final JButton buildModeSwitch = UiText.button(
+            telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.BUILD_MODE_SWITCH);
+    private final JButton buildModeKeep = UiText.button(
+            telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.BUILD_MODE_KEEP);
+    private long buildModeOffer;
     static final String RESTART_YES = "Restart";
     static final String RESTART_LATER = "Later";
     static final String RESTART_CHIP = "settings changed — restart to apply";
@@ -245,6 +260,22 @@ public final class LocalAgentPanel extends JPanel {
         proposalBanner.getAccessibleContext().setAccessibleName("Claude Code's set-up proposal");
         review.addActionListener(e -> { if (intents != null && proposal.exists()) intents.reviewProposal(proposal.id()); });
         notNow.addActionListener(e -> { if (intents != null && proposal.exists()) intents.dismissProposal(proposal.id()); });
+        buildModeBanner.setOpaque(true);
+        buildModeBanner.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        buildModeBanner.add(buildModeText, BorderLayout.CENTER);
+        JPanel buildModeButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        buildModeButtons.setOpaque(false);
+        buildModeButtons.add(buildModeSwitch);
+        buildModeButtons.add(buildModeKeep);
+        buildModeBanner.add(buildModeButtons, BorderLayout.SOUTH);
+        buildModeBanner.setVisible(false);
+        buildModeBanner.getAccessibleContext().setAccessibleName("Switch Full Claude Code to edit files without asking");
+        buildModeSwitch.addActionListener(e -> {
+            if (intents != null && buildModeOffer != 0) intents.answerBuildMode(buildModeOffer, true);
+        });
+        buildModeKeep.addActionListener(e -> {
+            if (intents != null && buildModeOffer != 0) intents.answerBuildMode(buildModeOffer, false);
+        });
         restartBanner.setOpaque(true);
         restartBanner.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
         restartBanner.add(restartText, BorderLayout.CENTER);
@@ -310,7 +341,7 @@ public final class LocalAgentPanel extends JPanel {
         java.util.List<JComponent> lines = new java.util.ArrayList<>();
         if (standalone) lines.add(chips);
         lines.addAll(java.util.List.of(header, posture, lockWarning, actions, closeExternal, restartBanner,
-                proposalBanner, status, askAgain, bannerRow, detailsBody));
+                buildModeBanner, proposalBanner, status, askAgain, bannerRow, detailsBody));
         for (JComponent c : lines) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
@@ -661,6 +692,30 @@ public final class LocalAgentPanel extends JPanel {
     static String statusText(LocalAgentState s) {
         LocalAgentState.Guide g = s.extra().guide();
         return g.banner().isEmpty() ? g.instruction() : g.banner();
+    }
+
+    /** Owner decision 2026-10-18: the Build-mode offer as {@code aiSetup} decided it — its one line, or nothing. */
+    public void renderBuildModeOffer(telamin.fluxtion.audit.analyser.analyser.session.ProfileState p) {
+        buildModeOffer = p == null ? 0 : p.buildModeOffer();
+        boolean show = buildModeOffer != 0;
+        buildModeText.setText(show ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.BUILD_MODE_OFFER : " ");
+        buildModeBanner.setBackground(UiTheme.accentWash(0.14f));
+        buildModeBanner.setVisible(show);
+        revalidate();
+        repaint();
+    }
+
+    /** For the frame test: the Build-mode offer's banner and buttons. */
+    JPanel buildModeBanner() {
+        return buildModeBanner;
+    }
+
+    JButton buildModeSwitchButton() {
+        return buildModeSwitch;
+    }
+
+    JButton buildModeKeepButton() {
+        return buildModeKeep;
     }
 
     public void renderProposal(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {

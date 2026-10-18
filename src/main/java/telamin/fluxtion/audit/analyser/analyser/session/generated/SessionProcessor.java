@@ -46,6 +46,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ActionList
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupAlsoTurnOffChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBuildModeAnswered;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCancelled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCheckAgain;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade;
@@ -271,6 +272,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupAlsoTurnOffChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBuildModeAnswered
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCancelled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCheckAgain
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade
@@ -603,6 +605,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "AiSetupBack",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupBuildModeAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBuildModeAnswered",
                 false),
             new ProcessorDescriptor.Input(
                 "AiSetupCancelled",
@@ -1294,7 +1300,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "22b3687f4426c43c64c76c61d8e720af56dc1bcf9638c8fb23241f3b908894df",
+              "dd6496d95b7a9577cb941f70d21ec765c2bde91b1798def3e33241175e309337",
               null));
 
   @Override
@@ -1486,6 +1492,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof AiSetupBack) {
       AiSetupBack typedEvent = (AiSetupBack) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupBuildModeAnswered) {
+      AiSetupBuildModeAnswered typedEvent = (AiSetupBuildModeAnswered) event;
       handleEvent(typedEvent);
     } else if (event instanceof AiSetupCancelled) {
       AiSetupCancelled typedEvent = (AiSetupCancelled) event;
@@ -2043,6 +2052,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AiSetupBack event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupBuildModeAnswered event) {
     processEvent(event);
   }
 
@@ -2969,6 +2983,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(aiSetup, "aiSetup", "onBack", typedEvent);
     isDirty_aiSetup = aiSetup.onBack(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupBuildModeAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onBuildModeAnswered", typedEvent);
+    isDirty_aiSetup = aiSetup.onBuildModeAnswered(typedEvent);
     afterEvent();
   }
 
@@ -5283,6 +5305,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(aiSetup, "aiSetup", "onBack", typedEvent);
       isDirty_aiSetup = aiSetup.onBack(typedEvent);
+    } else if (event instanceof AiSetupBuildModeAnswered) {
+      AiSetupBuildModeAnswered typedEvent = (AiSetupBuildModeAnswered) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onBuildModeAnswered", typedEvent);
+      isDirty_aiSetup = aiSetup.onBuildModeAnswered(typedEvent);
     } else if (event instanceof AiSetupCancelled) {
       AiSetupCancelled typedEvent = (AiSetupCancelled) event;
       auditEvent(typedEvent);

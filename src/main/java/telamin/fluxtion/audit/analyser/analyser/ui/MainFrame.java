@@ -5261,6 +5261,11 @@ public final class MainFrame extends JFrame {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
                         .LocalAgentRestartOfferRequested("restart chip"));
             }
+            // owner decision 2026-10-18: the person's answer to the Build-mode offer, reported; aiSetup decides
+            @Override public void answerBuildMode(long offer, boolean switchMode) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBuildModeAnswered(
+                        offer, switchMode));
+            }
         });
     }
 
@@ -5679,6 +5684,7 @@ public final class MainFrame extends JFrame {
         localAgentPanel.renderListener(next.listener());   // review B2/B5: before render, which redraws the limits line
         localAgentPanel.render(agent);
         localAgentPanel.renderProposal(next.proposal());
+        localAgentPanel.renderBuildModeOffer(next.profiles());
         localAgentPanel.renderPermission(next.permission());
         LocalAgentPermissionDialog open = permissionDialogs.get(next.permission().pendingRef());
         if (open != null) open.setWaiting(next.permission().queued());     // review #10c: rendered, never decided

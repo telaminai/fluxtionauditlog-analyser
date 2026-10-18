@@ -272,6 +272,15 @@ public final class AiSetupLines {
      */
     public static final String ACCEPT_EDITS_NOTE = "Claude edits files in this project without asking; commands still ask "
             + "you.";
+    /**
+     * Owner decision 2026-10-18: the one-line offer when Full Claude Code is already in force in {@code default} and
+     * Start building is pressed — the mode is the posture, so Switch begins a new chat.
+     */
+    public static final String BUILD_MODE_OFFER = "Building works best when Claude edits files in this project "
+            + "without asking; commands still ask you. Switch?";
+    public static final String BUILD_MODE_SWITCH = "Switch (new chat)";
+    public static final String BUILD_MODE_KEEP = "Keep asking";
+
     /** The mode a Build question preselects: Claude Code's own {@code acceptEdits} (never bypassPermissions). */
     public static final String BUILD_FULL_MODE = "acceptEdits";
     public static final String FULL_TITLE = "Full Claude Code";

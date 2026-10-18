@@ -1035,6 +1035,14 @@ public final class SessionEvents {
     public record AiSetupMoreOptions() {
     }
 
+    /**
+     * Owner decision 2026-10-18: the person's answer to {@code aiSetup}'s Build-mode offer (Full Claude Code in force in
+     * {@code default}, and Start building pressed) — {@code switchMode}: Switch, which writes {@code acceptEdits} and
+     * restarts in a new chat; false: Keep asking, which changes nothing. For an offer that is no longer open it is stale.
+     */
+    public record AiSetupBuildModeAnswered(long offer, boolean switchMode) {
+    }
+
     /** OD-77.5: the box "Also turn off External MCP/REST access" under No AI, ticked or not. */
     public record AiSetupAlsoTurnOffChosen(boolean turnOff) {
     }

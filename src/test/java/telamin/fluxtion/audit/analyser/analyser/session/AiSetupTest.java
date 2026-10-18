@@ -507,6 +507,96 @@ class AiSetupTest {
         assertEquals("default", setup(h).fullMode(), "a plain question never inherits Build's preselection");
     }
 
+    /** Full Claude Code set up and RUNNING in {@code mode}: the profile, what can answer, and a session at READY. */
+    static SessionDriver fullRunning(FakeSessionAdapter a, LocalAgentPosture.FullMode mode) {
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        d.post(new SessionEvents.AiSetupStartupObserved(true, Client.NONE, false));
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.FULL));
+        d.post(new SessionEvents.StartPageAvailability(false, true, false, false));
+        LocalAgentFullPostureTest.startFull(d, a, mode);
+        assertEquals("READY", d.snapshot().localAgent().phase());
+        return d;
+    }
+
+    static SessionEvents.StartPagePromptSent build(long request, LocalAgentPosture.FullMode mode) {
+        return new SessionEvents.StartPagePromptSent(request, AiSetup.BUILD_ENTRY, 7, LocalAgentFullPostureTest.full(mode),
+                true, false, true, true);
+    }
+
+    /**
+     * ★ Owner decision (2026-10-18): with Full Claude Code ALREADY set up and running in {@code default}, Start building
+     * still offers {@code acceptEdits} — the hands-on session ran entirely in default because the Build preselection lives
+     * only in the wizard, which an assistant that can answer never opens. The offer is aiSetup's (rule 9); the question
+     * still goes on to Claude. Keep asking changes nothing; Switch applies Full with acceptEdits through the one performer
+     * as a quick switch (no second consent: Full is confirmed), and localAgentSession restarts the running session at
+     * once on the new mode. Witness: put back {@code if (canAnswer) return false;} in {@code AiSetup.onStartPageSent} —
+     * no offer is published and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ Full already in default: Start building offers acceptEdits; Keep asking keeps it; Switch writes it and restarts")
+    void fullInDefaultIsOfferedAcceptEditsForBuild() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fullRunning(a, LocalAgentPosture.FullMode.DEFAULT);
+        int flows = a.startFlows.size();
+        d.post(build(1, LocalAgentPosture.FullMode.DEFAULT));
+        assertTrue(d.snapshot().profiles().buildModeOffered(), "★ the offer is published");
+        assertFalse(setup(d).open(), "no wizard: Full is already set up");
+        assertEquals(0, a.fullConfirms.size(), "no second consent");
+        assertEquals(flows + 1, a.startFlows.size(), "the Build question still goes on (the starter catalogue is read)");
+        assertEquals(0, a.profileApplies.size(), "never switched without the person");
+
+        // Keep asking: the mode is unchanged and the offer is gone
+        long offer = d.snapshot().profiles().buildModeOffer();
+        d.post(new SessionEvents.AiSetupBuildModeAnswered(offer, false));
+        assertFalse(d.snapshot().profiles().buildModeOffered());
+        assertEquals(0, a.profileApplies.size(), "★ Keep asking writes nothing");
+        assertEquals(0, LocalAgentSessionTest.kills(a).size(), "and restarts nothing");
+        d.post(new SessionEvents.AiSetupBuildModeAnswered(offer, true));
+        assertEquals(0, a.profileApplies.size(), "an answered offer is stale");
+
+        // Start building again: offered again; Switch writes acceptEdits through the one Apply, as a quick switch
+        d.post(build(2, LocalAgentPosture.FullMode.DEFAULT));
+        long again = d.snapshot().profiles().buildModeOffer();
+        assertTrue(again != 0 && again != offer, "a new offer");
+        d.post(new SessionEvents.AiSetupBuildModeAnswered(again, true));
+        assertEquals(1, a.profileApplies.size());
+        var apply = a.profileApplies.get(0);
+        assertEquals(AssistantProfile.FULL, apply.profile());
+        assertEquals("acceptEdits", apply.fullMode(), "★ the mode written is acceptEdits (never bypassPermissions)");
+        assertEquals(ProfileOrigin.MENU, apply.origin(), "applied as the person's own switch");
+        assertEquals(0, a.fullConfirms.size(), "Full was confirmed already: no second consent");
+        assertFalse(d.snapshot().profiles().buildModeOffered());
+        // the performer reports the consent, then the result: the running session restarts at once on acceptEdits
+        d.post(new SessionEvents.LocalAgentConsentChanged(LocalAgentFullPostureTest.full(LocalAgentPosture.FullMode.ACCEPT_EDITS)));
+        d.post(new SessionEvents.AssistantProfileApplied(901, apply.request(), AssistantProfile.FULL, true, "",
+                ProfileOrigin.MENU));
+        assertEquals(1, LocalAgentSessionTest.kills(a).size(), "★ the old process stopped");
+        var restarted = a.agentStarts.get(a.agentStarts.size() - 1);
+        assertEquals(2, a.agentStarts.size(), "★ and a new one started");
+        assertEquals(LocalAgentPosture.FullMode.ACCEPT_EDITS, restarted.posture().fullMode(), "★ in acceptEdits");
+    }
+
+    /** ★ No offer when Full is not in default (acceptEdits already, or Safe analysis), or for a plain question. */
+    @Test
+    @DisplayName("★ no Build-mode offer for acceptEdits, Safe analysis or a plain question")
+    void noBuildModeOfferOtherwise() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fullRunning(a, LocalAgentPosture.FullMode.ACCEPT_EDITS);
+        d.post(build(1, LocalAgentPosture.FullMode.ACCEPT_EDITS));
+        assertFalse(d.snapshot().profiles().buildModeOffered(), "already acceptEdits");
+        d.post(new SessionEvents.StartPagePromptSent(2, "NONE", 7,
+                LocalAgentFullPostureTest.full(LocalAgentPosture.FullMode.DEFAULT), true, false, true, true));
+        assertFalse(d.snapshot().profiles().buildModeOffered(), "a plain question is not Build");
+
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = LocalAgentSessionTest.driver(b);
+        e.post(new SessionEvents.AiSetupStartupObserved(true, Client.NONE, false));
+        e.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.SAFE));
+        e.post(new SessionEvents.StartPageAvailability(false, true, false, false));
+        e.post(StartPagePromptTest.press(1, AiSetup.BUILD_ENTRY, 7, true, true, false, true));
+        assertFalse(e.snapshot().profiles().buildModeOffered(), "Safe analysis: not this offer");
+    }
+
     /**
      * ★ Authoring walk (shot 03): a no-AI fallback says "No AI assistant can answer here yet" ONCE — as the fallback
      * row's label — not again as the page's note. Witness: put the sentence back as {@code note} in
