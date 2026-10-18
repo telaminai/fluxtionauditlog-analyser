@@ -69,7 +69,7 @@ class SourceRootConfinementTest {
         List<Path> refused = new ArrayList<>(List.of(home, home.getParent(), tmp, Path.of("/")));
         for (String c : SecretFolders.CREDENTIAL_FOLDERS) {
             refused.add(home.resolve(c));
-            refused.add(home.resolve(c).resolve("inner"));
+            if (!".m2".equals(c)) refused.add(home.resolve(c).resolve("inner"));   // below ~/.m2 is allowed (next test)
         }
         Path link = Files.createSymbolicLink(tmp.resolve("innocent-looking"), home.resolve(".ssh"));
         refused.add(link);
@@ -86,6 +86,39 @@ class SourceRootConfinementTest {
         assertEquals(SourceRootPolicy.Reason.HOME_FOLDER, SourceRootPolicy.tier1(home, home));
         assertEquals(SourceRootPolicy.Reason.CREDENTIAL_FOLDER, SourceRootPolicy.tier1(link, home), "the link is resolved");
         assertTrue(SourceRootPolicy.words(SourceRootPolicy.Reason.CREDENTIAL_FOLDER, link).contains("credential folder"));
+    }
+
+    /**
+     * ★ Owner correction 2026-10-18: ~/.m2 holds settings.xml and settings-security.xml at its top level only, so
+     * ~/.m2/repository (source jars, poms) is an allowed root for every caller while ~/.m2 itself, and a link to it, is
+     * refused. Witness: the earlier, broader rule (drop ".m2" from SecretFolders.TOP_LEVEL_ONLY) — the repository rows
+     * fail.
+     */
+    @Test
+    @DisplayName("★ ~/.m2/repository is allowed for every caller; ~/.m2 itself (or a link to it) is refused; ~/.config/x is not allowed")
+    void mavenRepositoryIsAllowed() throws Exception {
+        Path repo = Files.createDirectories(home.resolve(".m2/repository/com/acme/demo"));
+        Files.writeString(home.resolve(".m2/settings.xml"), "<settings/>");
+        for (Caller caller : List.of(Caller.PERSON, Caller.EXTERNAL)) {
+            assertTrue(SourceRootPolicy.decide(home.resolve(".m2/repository"), home, null, caller).allowed(), caller.name());
+            assertTrue(SourceRootPolicy.decide(repo, home, null, caller).allowed(), caller.name());
+        }
+        // assistants: tier 1 lets it through; tier 2 is only about the project
+        assertNull(SourceRootPolicy.tier1(home.resolve(".m2/repository"), home));
+        assertTrue(SourceRootPolicy.decide(home.resolve(".m2/repository"), home, home.resolve(".m2/repository"),
+                Caller.IN_APP_ASSISTANT).allowed());
+        assertTrue(SourceRootPolicy.decide(repo, home, projectRoot(), Caller.HOSTED_CLAUDE_CODE).allowed());
+        assertEquals(SourceRootPolicy.Reason.CREDENTIAL_FOLDER, SourceRootPolicy.tier1(home.resolve(".m2"), home));
+        assertEquals(SourceRootPolicy.Reason.CREDENTIAL_FOLDER, SourceRootPolicy.tier1(home.resolve(".m2/repository/.."), home));
+        Path toM2 = Files.createSymbolicLink(tmp.resolve("maven-home"), home.resolve(".m2"));
+        assertEquals(SourceRootPolicy.Reason.CREDENTIAL_FOLDER, SourceRootPolicy.tier1(toM2, home), "a link to ~/.m2");
+        assertEquals(SourceRootPolicy.Reason.CREDENTIAL_FOLDER, SourceRootPolicy.tier1(home.resolve(".config/inner"), home),
+                "~/.config subfolders hold app credentials");
+        assertEquals(SourceRootPolicy.Reason.CREDENTIAL_FOLDER, SourceRootPolicy.tier1(home.resolve(".ssh/inner"), home));
+        // no allowed root can reach ~/.m2/settings*.xml: it sits directly in ~/.m2, which is never a root
+        for (Path root : List.of(home.resolve(".m2/repository"), repo)) {
+            assertFalse(SecretFolders.within(home.resolve(".m2/settings.xml"), SecretFolders.canonical(root)), root.toString());
+        }
     }
 
     @Test

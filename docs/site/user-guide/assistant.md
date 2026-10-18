@@ -950,7 +950,8 @@ would simply stall the session.
 under your source roots, and moves the transient source view). The verbs that only change what the app shows are
 reversible and marked accordingly. Six are marked **destructive**, so a client can prompt before running them: `open`
 replaces the loaded log (taking the session's flags with it), `source_root` writes the persisted config (never the home
-folder or a credential folder — `~/.ssh`, `~/.aws`, `~/.m2`, `~/.config`, `~/.gnupg` — whoever calls), `screenshot`
+folder or a credential folder — `~/.ssh`, `~/.aws`, `~/.config`, `~/.gnupg`, and `~/.m2` itself but not
+`~/.m2/repository` — whoever calls), `screenshot`
 and `report` write files, `walk` can replace a saved walk by name (and `walk {reel}` writes an HTML file), and `import`
 merges a bundle's saved state into your project. A further verb, `propose`, is offered **only** to Claude Code in the
 Assistant tab ([Set up a project with Claude](#set-up-a-project-with-claude)), never to an external client.

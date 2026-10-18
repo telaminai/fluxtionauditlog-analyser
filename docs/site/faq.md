@@ -89,8 +89,8 @@ no file writes**. These groups of verbs go further, honestly labelled:
 - **Scripting verbs — `open` and `source_root` — can change which log, event processor or source roots
   are open**, the same things you change through the UI. Still nothing outside the analyser: no shell,
   no arbitrary file reads, and your API key is never reachable. A source root is never your home folder (or a
-  folder containing it) or a credential folder — `~/.ssh`, `~/.aws`, `~/.m2`, `~/.config`, `~/.gnupg` — for any
-  caller, links resolved; a project profile, a shared settings file or a set-up proposal cannot carry one in either.
+  folder containing it) or a credential folder — `~/.ssh`, `~/.aws`, `~/.config`, `~/.gnupg`, or inside one, and `~/.m2`
+  itself (`~/.m2/repository` stays allowed) — for any caller, links resolved; a project profile, a shared settings file or a set-up proposal cannot carry one in either.
   An assistant (the in-app one or Claude Code in the tab) is held to the open project: the in-app assistant is refused
   a folder outside it (add that folder yourself in *Settings ▸ Sources*), and Claude Code's approval dialog says
   *"outside this project"*.

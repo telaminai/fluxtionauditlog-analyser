@@ -11,7 +11,8 @@ import java.util.List;
  * <ul>
  *   <li><b>Tier 1, every caller</b> — a person, an external MCP/REST client, the in-app assistant, Claude Code in the
  *       tab: never the home folder or a folder containing it, and never a credential folder ({@code ~/.ssh},
- *       {@code ~/.aws}, {@code ~/.m2}, {@code ~/.config}, {@code ~/.gnupg}), a folder inside one, or one containing one
+ *       {@code ~/.aws}, {@code ~/.m2}, {@code ~/.config}, {@code ~/.gnupg}), a folder inside one (below {@code ~/.m2}
+ *       excepted: {@code ~/.m2/repository} is allowed), or one containing one
  *       ({@link SecretFolders}, the function Claude Code's working directory is judged by). A source root grants reading
  *       beneath it, so a root there would expose credentials to whoever reads source through the analyser. A project
  *       profile, a shared settings file or a proposal cannot carry one in either.</li>
@@ -97,7 +98,7 @@ public final class SourceRootPolicy {
             case HOME_FOLDER -> "not added: " + d + " is your home folder or contains it — a source root lets the analyser "
                     + "read every file beneath it, your credentials included. Add the project's own source folder instead.";
             case CREDENTIAL_FOLDER -> "not added: " + d + " is, holds or is inside a credential folder (~/.ssh, ~/.aws, "
-                    + "~/.m2, ~/.config, ~/.gnupg) — a source root there would let the analyser read it.";
+                    + "~/.config, ~/.gnupg; or is ~/.m2 itself) — a source root there would let the analyser read it.";
             case OUTSIDE_PROJECT -> "not added: " + d + " is outside this project, and the in-app assistant adds only "
                     + "folders inside it — add this folder yourself in Settings ▸ Sources.";
         };

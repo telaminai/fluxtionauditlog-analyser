@@ -16,14 +16,29 @@ import java.util.Locale;
  *
  * <p>Exposed: the home folder or any folder containing it (it holds every credential folder), and a credential folder —
  * {@code ~/.ssh}, {@code ~/.aws}, {@code ~/.m2}, {@code ~/.config}, {@code ~/.gnupg}, plus any a caller adds — or a folder
- * inside one, or a folder containing one. Paths are compared as they really are: symbolic links resolved (the longest
+ * inside one (except below {@code ~/.m2}, see {@link #TOP_LEVEL_ONLY}), or a folder containing one. Paths are compared as they really are: symbolic links resolved (the longest
  * existing prefix made real, the rest appended), and on macOS, whose file system ignores case by default, without
  * regard to case — so {@code ~/.SSH} or a link to {@code ~/.ssh} is {@code ~/.ssh}.
  */
 public final class SecretFolders {
 
-    /** The credential folders under the home folder, by name. */
+    /**
+     * The credential folders under the home folder, by name. Refused: the folder itself, any folder containing it, and —
+     * except where {@link #TOP_LEVEL_ONLY} says otherwise — anything inside it. {@code ~/.ssh}, {@code ~/.aws} and
+     * {@code ~/.gnupg} hold keys at every depth. {@code ~/.config} stays refused at every depth too: its subfolders are
+     * where applications keep their own credentials (tokens of {@code gh}, {@code gcloud}, cloud CLIs, and so on), so a
+     * root at {@code ~/.config/anything} could expose them.
+     */
     public static final List<String> CREDENTIAL_FOLDERS = List.of(".ssh", ".aws", ".m2", ".config", ".gnupg");
+
+    /**
+     * Owner correction 2026-10-18: credential folders whose secrets sit at their TOP level only. {@code ~/.m2} holds
+     * {@code settings.xml} and {@code settings-security.xml} directly; {@code ~/.m2/repository} and below hold source
+     * jars and poms that Maven source lookup and a person's own roots legitimately use. So {@code ~/.m2} itself and any
+     * folder containing it are refused, and a folder inside it is not — a root strictly below {@code ~/.m2} can never
+     * reach a file directly in it.
+     */
+    public static final java.util.Set<String> TOP_LEVEL_ONLY = java.util.Set.of(".m2");
 
     /** What a folder exposes. */
     public enum Exposure {
@@ -48,7 +63,10 @@ public final class SecretFolders {
         if (alsoSecret != null) names.addAll(alsoSecret);
         for (String name : names) {
             Path s = canonical(h.resolve(name));
-            if (within(d, s) || within(s, d)) return Exposure.CREDENTIAL_FOLDER;
+            // the folder itself, or one containing it: always (within(s, d) holds when d IS s)
+            if (within(s, d)) return Exposure.CREDENTIAL_FOLDER;
+            // a folder inside it: unless its secrets sit at its top level only (~/.m2)
+            if (within(d, s) && !TOP_LEVEL_ONLY.contains(name)) return Exposure.CREDENTIAL_FOLDER;
         }
         return Exposure.NONE;
     }
