@@ -51,7 +51,17 @@ final class ImportSettingsDialog extends JDialog {
             rows.add(detail, g);
             g.gridy++;
         }
-        content.add(rows, BorderLayout.CENTER);
+        if (plan.machineOnly().isEmpty()) {
+            content.add(rows, BorderLayout.CENTER);
+        } else {
+            // P3: a switch the file carried that is this machine's is named, never applied and never a checkbox
+            JPanel middle = new JPanel(new BorderLayout(0, UiTheme.GAP));
+            middle.add(rows, BorderLayout.CENTER);
+            JLabel ignored = UiText.label(machineOnlyText(plan));
+            UiTheme.status(ignored);
+            middle.add(ignored, BorderLayout.SOUTH);
+            content.add(middle, BorderLayout.CENTER);
+        }
 
         JButton ok = new JButton("Import");
         JButton cancel = new JButton("Cancel");
@@ -72,6 +82,11 @@ final class ImportSettingsDialog extends JDialog {
         Set<Category> s = EnumSet.noneOf(Category.class);
         boxes.forEach((c, cb) -> { if (cb.isSelected()) s.add(c); });
         return s;
+    }
+
+    /** P3: the import summary's line for the machine-tier switches the file carried, or "" when it carried none. */
+    static String machineOnlyText(ImportPlan plan) {
+        return String.join(". ", plan.machineOnly()) + (plan.machineOnly().isEmpty() ? "" : ".");
     }
 
     /** Show the summary; returns the selected categories, or {@code null} if cancelled. */

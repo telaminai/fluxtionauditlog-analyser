@@ -734,7 +734,8 @@ public final class ConfigPanel extends JDialog {
                 + "<b>Safe analysis</b>, <b>Full Claude Code</b>, <b>In-app assistant</b> or <b>Off</b>. Every option "
                 + "those cards set is here, grouped by the profile it belongs to. All of them are this machine's and "
                 + "this user's only — never in a project, a shared settings file or a bundle; an administrator cannot "
-                + "lock them yet."), c);
+                + "lock them yet. A shared settings file carries only the in-app assistant's two action limits; "
+                + "External MCP/REST access, file exchange and every other switch here are set on each machine."), c);
         c.gridy = 1;
         p.add(buildClaudeCodeSection(), c);
         c.gridy = 2;

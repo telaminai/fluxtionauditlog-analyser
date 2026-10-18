@@ -38,10 +38,31 @@ class MainArgsTest {
 
     @Test
     void usageNamesEveryLaunchMode() {
-        String usage = Main.usage();
+        String usage = Main.usage().replaceAll("\\s+", " ");
         assertTrue(usage.contains(Main.MCP_FLAG), "the MCP mode is discoverable from --help");
         assertTrue(usage.contains("--help"));
         assertTrue(usage.contains("log-file"));
-        assertTrue(usage.contains("REST transport"), "says the app must be running for --mcp to be useful");
+        assertTrue(usage.contains("running separately with External MCP/REST access on"),
+                "says the app must be running for --mcp to be useful");
+    }
+
+    /**
+     * ★ P4 (docs-IA product findings): {@code --help} names the switch as Settings does, and names every field the
+     * replay comparison excepts. Witnesses: put back "the REST transport" — the first assertion fails; add a field to
+     * {@code ReplayCompare.EXCEPTED_FIELDS} (or put back "every record exact but endTime") — the loop fails.
+     */
+    @Test
+    void usageNamesTheSwitchAndEveryExceptedField() {
+        String usage = Main.usage().replaceAll("\\s+", " ");
+        assertFalse(usage.contains("REST transport"), "one name for the switch: " + usage);
+        assertTrue(usage.contains("with External MCP/REST access ON"), usage);
+        assertTrue(usage.contains("External MCP/REST access on: Settings ▸ Assistant"), usage);
+        assertEquals(java.util.List.of("endTime", "thread"),
+                telamin.fluxtion.audit.analyser.bundle.ReplayCompare.EXCEPTED_FIELDS, "change the help with the rule");
+        assertTrue(usage.contains("every record exact except its endTime and thread lines"), usage);
+        for (String field : telamin.fluxtion.audit.analyser.bundle.ReplayCompare.EXCEPTED_FIELDS) {
+            assertTrue(usage.contains(field), "--help must name the excepted field " + field);
+        }
+        assertFalse(usage.contains("exact but endTime"), usage);
     }
 }

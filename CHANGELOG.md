@@ -57,6 +57,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- **`analyser --help` names the switch as Settings does** — *External MCP/REST access*, not "the REST transport" — and says what `--replay-compare` excepts: every record is exact except its `endTime` and `thread` lines, not `endTime` alone.
+- **The start page's *Evidence bundles guide* button says where it goes**: its tooltip read *Help ▸ User guide ▸ Evidence bundles*, a section the in-app help does not have; the button opens the docs site's *Opening a bundle you were sent* page in your browser, and the tooltip now says so.
 - **The REST endpoint file `~/.fluxtion-analyser/rest-endpoint`** is removed when the analyser's window closes (as before, now pinned by a test) and also when the analyser quits without closing its window — the application menu's *Quit* on macOS, or a `SIGTERM`. It **can remain after a crash or a `kill -9`**; every client checks the `pid` it names before trusting it (the analyser's MCP bridge reports *analyser not running*), so a stale file is harmless, and the next analyser to start replaces it.
 
 - **The Safe analysis card's promise is shown in full** — it stopped at "…after you approve each call. No"; a card is as tall as its text.
@@ -74,6 +76,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Security
 
+- **A shared settings file can no longer turn on External MCP/REST access.** *Project ▸ Export settings…*'s *Assistant* category, ticked by default, carried *External MCP/REST access* and *Let the in-app assistant change the views as it answers*, and *Import settings…* applied them on the receiving machine. Both are now set on each machine only, as file exchange, project creation and the Claude Code switches already were: never exported, never applied on import and never in a project profile. The category is now *Assistant limits* and carries only the in-app assistant's two action limits; an import of a file that carries a switch ignores it, and its summary says so — *External MCP/REST access is set on this machine only*. **A team that turned external access on through a shared settings file must now tick it once on each machine** (*Settings ▸ Assistant ▸ External MCP/REST access*, or *AI ▸ External MCP/REST access*).
 - **No assistant profile is local-only, Safe analysis included.** The profile cards, the assistant's limits line, *Settings ▸ Assistant*, the in-app help, the FAQ and the assistant guide now say it plainly: what you ask, and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude Code session; the in-app assistant sends them to the model provider you chose, on your API key. *Safe* describes what Claude Code may do on this machine, not where your words go.
 
 - **Full Claude Code's folder trust is checked again when the process starts**, by its whole digest (settings, `.mcp.json` and instruction files), so a hook added between the confirmation and the start is refused by name; the confirmation now says plainly what it does not re-check — files a `CLAUDE.md` imports with `@path`, `CLAUDE.md` files in the folders above, and the contents of a hook's scripts.

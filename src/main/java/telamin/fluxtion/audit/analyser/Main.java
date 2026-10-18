@@ -25,7 +25,7 @@ public class Main {
     static final String MCP_FLAG = "--mcp";
 
     /**
-     * Start with the REST transport ON and no first-run dialog (M19.7). A process asked for this
+     * Start with External MCP/REST access ON and no first-run dialog (M19.7). A process asked for this
      * launch — an agent on a fresh machine — and a process cannot answer Settings. Read by
      * {@code MainFrame} as the system property {@value #REST_PROPERTY}.
      */
@@ -176,7 +176,8 @@ public class Main {
     static final int REPLAY_COMPARE_THRESHOLD_MB = 256;
 
     /**
-     * {@code --replay-compare}: 0 when the replayed log reproduces the bundled one (every record exact but {@code endTime}),
+     * {@code --replay-compare}: 0 when the replayed log reproduces the bundled one (every record exact except its
+     * {@code endTime} and {@code thread} lines — {@code ReplayCompare.EXCEPTED}),
      * 1 when it diverges or the bundle is refused. The bundle is verified first, and the verdict states its limits.
      */
     private static int replayVerdict(telamin.fluxtion.audit.analyser.bundle.ReplayCompare.Verdict c,
@@ -252,8 +253,9 @@ public class Main {
                 Usage:
                   analyser [log-file]   open the desktop app, optionally on a log
                   analyser --mcp        run as an MCP server on stdio, for an MCP client to launch
-                                        (needs the app running separately with the REST transport on)
-                  analyser --rest [log] open the desktop app with the REST transport ON and no first-run
+                                        (needs the app running separately with External MCP/REST
+                                        access on: Settings ▸ Assistant)
+                  analyser --rest [log] open the desktop app with External MCP/REST access ON and no first-run
                                         dialog — for an agent starting the analyser on a fresh machine.
                                         The setting persists (Settings ▸ Assistant) and stdout says so.
                   analyser --verify <bundle.fexp>
@@ -264,7 +266,8 @@ public class Main {
                                         extracted if verification fails
                   analyser --replay-compare <bundle.fexp> <replayed-audit.yaml>
                                         verify, then compare a replayed audit log with the bundle's:
-                                        every record exact but endTime; names the first difference
+                                        every record exact except its endTime and thread lines (when
+                                        and where a cycle ran); names the first difference
                   analyser --help       show this message
                 """.formatted(ReleaseNotes.version());
     }

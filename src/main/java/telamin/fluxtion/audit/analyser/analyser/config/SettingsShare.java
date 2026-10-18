@@ -62,7 +62,13 @@ public final class SettingsShare {
         // label names them, because ticking the box is consenting to what leaves the machine
         REPORTS("Investigation reports and spotlight walks (definitions + commentary — never log data)", true),
         VIEW("View (hidden columns)", true),
-        ASSISTANT("Assistant", true),
+        /**
+         * P3 (docs-IA product findings): only the in-app assistant's two LIMITS travel. Every switch that lets an
+         * assistant act — External MCP/REST access, the in-app assistant changing the views, file exchange, creating
+         * projects, Claude Code — is machine tier ({@link SettingsShare#MACHINE_ONLY_SWITCHES}), so ticking this box can never turn
+         * one on at the recipient's. The label says so, because ticking it is consenting to what it carries.
+         */
+        ASSISTANT("Assistant limits (max action rounds and actions per reply — never an access switch)", true),
         LLM("LLM provider/model/base-URL (never the API key)", false),
         /** M38.1 D-C8: off by default, and the exporter refuses any value that is not a project-relative path. */
         RUNBOOKS("Runbook LOCATIONS and descriptions (paths in your repository and one line saying when to use each — never their contents)", false),
@@ -94,6 +100,25 @@ public final class SettingsShare {
             for (Category c : values()) if (c.defaultOn) s.add(c);
             return s;
         }
+    }
+
+    /**
+     * P3: the assistant switches that are set on this machine only. A share export never writes them, an import never
+     * applies them, and a file that carries one is told so in its import summary ({@link ImportPlan#machineOnly}).
+     * Key → the sentence the summary shows. {@code assistant.exports} (file exchange) and the {@code claudeCode} /
+     * {@code createProjects} switches were never exported; they are named here so a hand-made file that carries one
+     * hears the same sentence.
+     */
+    public static final Map<String, String> MACHINE_ONLY_SWITCHES;
+    static {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("assistant.rest", "External MCP/REST access is set on this machine only");
+        m.put("assistant.inProcess", "Letting the in-app assistant change the views is set on this machine only");
+        m.put("assistant.exports", "Assistant file exchange is set on this machine only");
+        m.put("assistant.createProjects", "Allowing the assistant to create projects is set on this machine only");
+        m.put("assistant.claudeCode", "Allowing the analyser to start Claude Code is set on this machine only");
+        m.put("assistant.claudeCode.full", "Full Claude Code is set on this machine only");
+        MACHINE_ONLY_SWITCHES = java.util.Collections.unmodifiableMap(m);
     }
 
     /** Thrown when a share file declares a {@link #SHARE_VERSION} this build can't read. */
@@ -235,8 +260,7 @@ public final class SettingsShare {
             ConfigStore.writeList(p, "hiddenColumn", c.hiddenColumns);
         }
         if (categories.contains(Category.ASSISTANT)) {
-            ConfigStore.put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
-            ConfigStore.put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
+            // P3: the limits only. assistant.rest and assistant.inProcess are machine tier (MACHINE_ONLY_SWITCHES)
             ConfigStore.put(p, "assistant.maxRounds", Integer.toString(c.maxActionRounds));
             ConfigStore.put(p, "assistant.maxActionsPerReply", Integer.toString(c.maxActionsPerReply));
         }
@@ -512,20 +536,20 @@ public final class SettingsShare {
             summary.put(Category.VIEW, "sets " + hiddenColumns.size() + " hidden column(s)");
         }
 
-        Boolean assistantInProcess = null, assistantRest = null;
         Integer maxRounds = null, maxActionsPerReply = null;
-        if (hasAny(p, "assistant.inProcess", "assistant.rest", "assistant.maxRounds", "assistant.maxActionsPerReply")) {
+        if (hasAny(p, "assistant.maxRounds", "assistant.maxActionsPerReply")) {
             present.add(Category.ASSISTANT);
-            if (p.getProperty("assistant.inProcess") != null)
-                assistantInProcess = ConfigStore.parseBool(p.getProperty("assistant.inProcess"), current.assistantActionsInProcess);
-            if (p.getProperty("assistant.rest") != null)
-                assistantRest = ConfigStore.parseBool(p.getProperty("assistant.rest"), current.assistantActionsRest);
             if (p.getProperty("assistant.maxRounds") != null)
                 maxRounds = ConfigStore.parseInt(p.getProperty("assistant.maxRounds"), current.maxActionRounds);
             if (p.getProperty("assistant.maxActionsPerReply") != null)
                 maxActionsPerReply = ConfigStore.parseInt(p.getProperty("assistant.maxActionsPerReply"), current.maxActionsPerReply);
-            summary.put(Category.ASSISTANT, "applies assistant preferences");
+            summary.put(Category.ASSISTANT, "applies the assistant's action limits");
         }
+        // P3: a switch this file carries is never read — it is this machine's — and the summary says so
+        List<String> machineOnly = new ArrayList<>();
+        MACHINE_ONLY_SWITCHES.forEach((key, sentence) -> {
+            if (p.getProperty(key) != null) machineOnly.add(sentence + " — this file's value was ignored");
+        });
 
         String llmProvider = null, llmModel = null, llmBaseUrl = null;
         if (hasAny(p, "llmProvider", "llmModel", "llmBaseUrl")) {
@@ -538,8 +562,8 @@ public final class SettingsShare {
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
                 eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, defaultFocus, reports, walks, List.copyOf(walkNotes), hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot, exchangeDir,
-                assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
-                llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
+                maxRounds, maxActionsPerReply,
+                llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary), List.copyOf(machineOnly));
     }
 
     // ---- apply ----------------------------------------------------------------------------------
@@ -642,8 +666,6 @@ public final class SettingsShare {
             target.hiddenColumnsSet = true;
         }
         if (selected.contains(Category.ASSISTANT) && plan.present().contains(Category.ASSISTANT)) {
-            if (plan.assistantInProcess() != null) target.assistantActionsInProcess = plan.assistantInProcess();
-            if (plan.assistantRest() != null) target.assistantActionsRest = plan.assistantRest();
             if (plan.maxRounds() != null) target.maxActionRounds = plan.maxRounds();
             if (plan.maxActionsPerReply() != null) target.maxActionsPerReply = plan.maxActionsPerReply();
         }
@@ -687,14 +709,17 @@ public final class SettingsShare {
             String workspaceRoot,
             /** #21 — project-supplied exchange directory, or null when absent or refused. */
             String exchangeDir,
-            Boolean assistantInProcess,
-            Boolean assistantRest,
             Integer maxRounds,
             Integer maxActionsPerReply,
             String llmProvider,
             String llmModel,
             String llmBaseUrl,
-            Map<Category, String> summary) {
+            Map<Category, String> summary,
+            /**
+             * P3: one sentence per machine-tier switch the file carried and this import ignored (for example "External
+             * MCP/REST access is set on this machine only — this file's value was ignored"); empty when it carried none.
+             */
+            List<String> machineOnly) {
     }
 
     // ---- helpers --------------------------------------------------------------------------------
