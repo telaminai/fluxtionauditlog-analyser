@@ -105,33 +105,84 @@ Things this project expects of a review, learned from ones that went wrong:
 - **Swing is not unit-tested** (rule 4, headless CI). UI claims rest on model tests, source-text checks
   and someone actually clicking. If a UI behaviour matters, say so rather than assuming coverage.
 
-## 6. Current review map — 2026-09-24
+## 6. Current review — the integration of 2026-10-18
 
-The [live tracker](../specs/tracker.md) owns current status and delivery order; the changelog distinguishes
-released work from **Unreleased**. **The latest release is 1.19.1 (2026-09-24).** This section was last
-refreshed at 1.15.0 and had gone stale by five releases, which is the reason to check its date against the
-changelog before trusting it.
+The [live tracker](../specs/tracker.md) owns status and delivery order; the changelog separates released work from
+**Unreleased**. **The latest release is 1.32.0 (2026-10-06).** Nothing below is released. This section replaces the
+2026-09-24 map (M68.1), which had gone stale; check this date against the tracker before trusting it.
 
-**In review now: M68.1**, the first slice of [evidence integrity](../specs/spec-evidence-integrity.md), on branch
-`feat/m68-1-coverage-pairing-scope`. It fixes what a held-out client was told on 2026-09-24 — that a declared
-node was absent from a graph that declares it, and that the graph was probably from a different build. Read the
-[brief](handoff_m68_1_coverage_pairing_scope.md) on `main`, then the implementation report
-`report_m68_1_coverage_pairing_scope_2026_09_24.md` **on the branch**. The report names a command for every
-claim; run those rather than reading the tables.
+**What you are reviewing:** one integration branch plus the PRs it gathers, together. Every branch, tip, base, claim
+and piece of evidence is in the [review map](review_map_integration_2026_10_18.md); this section tells you how to
+read it.
 
-**Know the review history before you start, because it bears on your independence.** The M68 spec went through
-four review rounds on 2026-09-24, none of them independent: two parties, one of whom wrote the spec and then
-implemented it. Their commits and conflicts are tabled in the spec's review record. An implementation review by
-someone who took no part in those rounds is worth more than any of them, and agreement between them is not
-evidence.
+### 6.1 The stack's shape
 
-**Direct-to-`main` changes awaiting review** are in the [ledger](unreviewed-changes.md), including a correction of
-a release-gate closure (SG-2) that the M68 session over-read from a CI summary and then split.
+- **Base:** `feature/claude-code-p3` at `a875fcba` — M74 (Claude Code as the assistant) in layer PRs #145, #146, #147,
+  #150 (P2), #151 (P3) and #152 (the docs restructure, `b1c22704`, reconciled at integration), under the umbrella
+  draft #156. P3 already contains two merged fixes: first-run polish and the Facts-column floors.
+- **Fix branches** (no PR; straight into integration): `fix/no-log-offer-cancel`, `fix/records-filter-visibility`,
+  `fix/event-types-default-collapsed` (on the records fix), `fix/authoring-walk-defects` (on M77-2).
+- **Feature PRs, stacked:** #157 M77-1 → #159 M77-2 → {#161 M77-5, #162 M77-3, #163 M78 D1}; #165 M77-4 on #162 (merges
+  #161); M78 D2 on M77-4 + D1 follows.
+  #160, the usability scorecard, sits on P3 beside them.
+- **Spec PRs (docs only):** `docs/m77-ai-setup-wizard` (no PR) → #158 M78 and #164 M79; #154 M76, #153 M75 and
+  #155 the virgin-LLM pack. Each spec carries its owner decisions (OD-77, OD-Q, OD-79, OD-76) — judge the code against
+  the spec, and the spec against itself.
 
-**The later M68 slices are not cleared to start.** Rendering needs the original session logs checked for
-publication; the framing diagnostic's trigger rule and the freshness policy were rewritten after review and are
-unreviewed; the whole-or-refused slice needs its disposition table first; the naming slice waits on an owner
-decision.
+### 6.2 Review by seams, not by PR
+
+Each PR was quick-gated on its own; the full gates run once, on integration. The defects that survive that are at the
+seams, where two branches each did the right thing alone:
+
+- **The generated session processor.** FIX-1, FIX-2, M77-1, M77-2, M77-3 and M77-4 each regenerated
+  `session/generated/SessionProcessor.java`. On integration it must be **regenerated** (`mvn -Pregen process-classes`)
+  from the merged nodes, never hand-merged. Diff the merged node set against the regenerated dispatch.
+- **Shared surfaces:** `MainFrame`, `AssistantPanel`, `StartPanel`, `SessionSnapshot`, `SessionEffects`,
+  `SessionEvents`, `FakeSessionAdapter`, the CI frame-suite list, and `CHANGELOG.md` (every branch adds lines; a clean
+  merge can file them under a released section — read it after merging).
+- **Words and layout at 1200×800 / 1200×680:** the quiet panel (M78 D1), the wizard (M77-2/-3/-5) and the records
+  fixes all change the docked column. The word budgets and T19 must hold on the merged build, not only per branch.
+
+### 6.3 Rule 9 and the dispatch-order checks
+
+State and the decision of *when* belong to a session node; adapters perform `SessionEffects` and report facts; surfaces
+render `SessionSnapshot` (CLAUDE.md rule 9). Check, on the merged build: `OneDispatchModelTest` green with its
+per-branch additions intact; that each new node (`aiSetup`, `recordsView`, `startPageNoLogHint`, the quiet panel's
+state) reads its parents **after** they handled the fact in the generated order — the M77 spec §8.1 names the
+`AssistantProfileApplied` and `RestSwitchObserved` orders M77-1 checked; and that no listener posts a second fact or
+composes a status line where an event happens. Rule 6: read the generated dispatcher; do not infer it.
+
+### 6.4 The customer API invariants
+
+External clients (the customer's developers and their agents) read the MCP/REST schemas, tool lists, server
+instructions, manifests and `context`. `WorkModeKeepsTheApiTest` pins those surfaces by SHA-256; its digests must not
+move on integration. It does **not** cover `context`'s view fields or HTTP headers, so check by reading: `hidden` is
+additive (FIX-2, `ContextSections`), and `X-Analyser-Client` / `X-Analyser-Probe` are additive (M77-3, `McpBridge`,
+`ActionServer`). Anything that renames, removes or re-types an existing field is a blocker.
+
+### 6.5 The safety surfaces
+
+The ones this stack touches: the Full consent and folder trust (`FullFolderTrust`, the `STAY_IN_PROJECT_NOTE` — a
+request to the model, not a sandbox); the permission dialog and single-use server-side grants (`HostedGrantServerTest`);
+the narrow pre-allow of an in-project `open` in Full (a real-path check, with a time-of-check residual); downloaded
+examples' executable bits and archive containment; the one owner of external access and its confirmations at every
+door (M77-3); the auth-probe parse that must drop email and organisation (M77-1); the FAQ's claims
+(`FaqSecurityContractTest`, `DocsExternalAccessClaimsTest`). Each change of behaviour here is one of the map's flags.
+
+### 6.6 Hygiene, and where the evidence lives
+
+- **The public-repo sweep** (CLAUDE.md rule 1) on the merged tree, plus reading every new screenshot — the sweep cannot
+  see inside images. User-visible text is plain: no milestone ids, no internal jargon (`UserVisibleJargonTest`).
+- **Evidence:** each PR's description and tests; the scorecard in `docs/usability/` (#160); M74's probe and smoke
+  reports in `docs/specs/evidence/m74-*`; the dispositions of earlier reviews in `docs/handoff/review_m74_*`,
+  `review_m76_r1_k4m9.md` and `review_m77_r1_7f3c.md`. The map lists them per branch.
+
+### 6.7 The fix policy for this review
+
+**Reviewers fix, unless the fix needs a redesign** — then the finding goes to the owner with the failure scenario and
+a proposed design. Fix on a review branch, one commit per finding, and **give the owner the commit range of every fix**:
+authorship cannot identify a reviewer's commit, so the owner reviews the delta from the range. Do not merge, release or
+force-push.
 
 ## 7. Two habits of the previous sessions to be sceptical of
 
