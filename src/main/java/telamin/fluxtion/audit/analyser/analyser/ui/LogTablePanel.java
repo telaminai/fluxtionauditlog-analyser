@@ -40,7 +40,14 @@ public final class LogTablePanel extends JPanel {
     private static final Color FLAG_L = new Color(0xADD9B1), FLAG_D = new Color(0x255A2C);
     private static final Color NODE_BAR = new Color(9, 105, 218, 55);   // translucent blue
 
+    /**
+     * Owner, 2026-10-18: the records table always shows at least this many rows under its header, however
+     * the Facts column is divided; {@link #getMinimumSize()} measures it from the table's real row height.
+     */
+    static final int MIN_VISIBLE_ROWS = 3;
+
     private final JTable table;
+    private JScrollPane scroll;
     private TableRowSorter<LogTableModel> sorter;
     private Consumer<int[]> selectionListener = rows -> { };
     private IntPredicate flagged = r -> false;
@@ -60,6 +67,25 @@ public final class LogTablePanel extends JPanel {
      * What the table says for a file-identity verdict, or null for none. Only a CHANGE is stated: nothing observed, a
      * verified file and a log reopened after a replacement are all current.
      */
+    /**
+     * The height that shows {@link #MIN_VISIBLE_ROWS} rows: the panel's insets, the identity banner when it
+     * shows, the scroll pane's insets, the column header, three rows at the table's row height, and the
+     * horizontal scroll bar when the columns are wider than the view (the table does not auto-resize them).
+     * Measured from the components, so it follows the theme and the font size.
+     */
+    @Override
+    public java.awt.Dimension getMinimumSize() {
+        if (isMinimumSizeSet() || scroll == null) return super.getMinimumSize();
+        java.awt.Insets in = getInsets();
+        java.awt.Insets frame = scroll.getInsets();
+        int h = in.top + in.bottom + frame.top + frame.bottom + MIN_VISIBLE_ROWS * table.getRowHeight();
+        if (identityBanner.isVisible()) h += identityBanner.getPreferredSize().height;
+        if (table.getTableHeader() != null) h += table.getTableHeader().getPreferredSize().height;
+        int view = scroll.getViewport().getWidth();
+        if (view == 0 || table.getPreferredSize().width > view) h += scroll.getHorizontalScrollBar().getPreferredSize().height;
+        return new java.awt.Dimension(100, h);
+    }
+
     static String identityBannerText(String verdict, String reason) {
         if (!"UNVERIFIED".equals(verdict) && !"REPLACEMENT".equals(verdict)) return null;
         return "⚠ " + (reason == null ? "the file behind this log changed after it was read" : reason)
@@ -130,7 +156,8 @@ public final class LogTablePanel extends JPanel {
             for (int i = 0; i < viewRows.length; i++) modelRows[i] = table.convertRowIndexToModel(viewRows[i]);
             selectionListener.accept(modelRows);
         });
-        add(new JScrollPane(table), java.awt.BorderLayout.CENTER);
+        scroll = new JScrollPane(table);
+        add(scroll, java.awt.BorderLayout.CENTER);
         identityBanner.setVisible(false);
         identityBanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
         identityBanner.setForeground(UiTheme.warnForeground());       // theme-aware, light and dark
