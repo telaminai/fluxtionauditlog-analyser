@@ -132,7 +132,7 @@ public final class SafeChoice {
     static Asked build(Component parent, String title, JComponent message, Icon icon, String riskyLabel, String safeLabel,
                        boolean modal) {
         Window owner = parent == null ? null : parent instanceof Window w ? w : SwingUtilities.getWindowAncestor(parent);
-        JDialog d = new JDialog(owner, title, modal ? Dialog.ModalityType.APPLICATION_MODAL : Dialog.ModalityType.MODELESS);
+        JDialog d = new JDialog(owner, UiText.inert(title), modal ? Dialog.ModalityType.APPLICATION_MODAL : Dialog.ModalityType.MODELESS);
         JButton risky = UiText.button(riskyLabel);
         JButton safe = UiText.button(safeLabel);
         Asked asked = new Asked(d, risky, safe);
