@@ -175,7 +175,9 @@ no file writes**. These groups of verbs go further, honestly labelled:
   says so.
   Claude Code can then use **your own tools, including Bash**, file edits and web access, **as far as your permission
   rules and the mode you chose allow** (`default`, `acceptEdits`, `auto` or `plan`; **bypassPermissions is never
-  offered**, nor `dontAsk`) — **the analyser does not confine it to the folder**. In Claude Code's own `default` and
+  offered**, nor `dontAsk`) — **the analyser does not confine it to the folder**; it adds one standing instruction
+  to the session (work only inside the project folder, never look for the Fluxtion API key or key files, build with
+  `./mvnw` and the project's scripts), **a request to the model, not a sandbox**. In Claude Code's own `default` and
   `acceptEdits` modes, whatever it would ask you in a terminal it asks in the analyser's dialog — Bash, file edits, web
   access, your MCP servers' tools and the analyser's own verbs above — one at a time, Deny the default; under `auto` and
   `plan` the analyser's verbs that change what is open stay hidden. **A call your own rules or hooks approve is not

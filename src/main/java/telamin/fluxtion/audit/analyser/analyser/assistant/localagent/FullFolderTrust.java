@@ -178,6 +178,12 @@ public final class FullFolderTrust {
      * CLAUDE.md pulls in with {@code @path} imports, CLAUDE.md files in folders ABOVE this one, and the contents of the
      * scripts a hook runs are read by Claude Code but not re-checked by the analyser: a change to them asks nothing.
      */
+    /** The dialog's disclosure of the analyser's standing instruction ({@code ClaudeCodeProvider.STAY_IN_PROJECT_NOTE}). */
+    public static final String ADDS_INSTRUCTION = "The analyser adds one instruction to full Claude Code: work only "
+            + "inside this folder, never look for the Fluxtion API key or key files, and build with ./mvnw and the "
+            + "project's scripts. It is a request to Claude, not a sandbox — your permission rules and the analyser's "
+            + "approvals still decide what runs.";
+
     public static final String NOT_RECHECKED = "Not re-checked by the analyser: files a CLAUDE.md imports with @path, "
             + "CLAUDE.md files in the folders above this one, and the contents of the scripts a hook runs. Claude Code "
             + "reads or runs them, and a change to them does not ask again.";
@@ -657,6 +663,8 @@ public final class FullFolderTrust {
         }
         // holistic review B7 (2026-10-17): what the trust does NOT cover, said plainly
         sb.append("\n").append(NOT_RECHECKED).append('\n');
+        // owner, 2026-10-18: what the analyser itself adds to the session, so the person knows
+        sb.append("\n").append(ADDS_INSTRUCTION).append('\n');
         sb.append("\nTrust ").append(dir).append(" for full Claude Code in the analyser? This is asked again if these files ")
                 .append("change.\n\nRemembered on this machine only; never in a project, a shared settings file or a bundle.");
         return sb.toString();

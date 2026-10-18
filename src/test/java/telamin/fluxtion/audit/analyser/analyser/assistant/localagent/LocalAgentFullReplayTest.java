@@ -337,4 +337,33 @@ class LocalAgentFullReplayTest {
                 LocalAgentPosture.full(FullMode.DEFAULT)), 0, SessionEvents.FolderVerdict.OK, true, FullMode.DEFAULT, false);
         return h;
     }
+
+    /**
+     * ★ Owner 2026-10-18: the Full session is LAUNCHED with the analyser's standing instruction (stay in the project, never
+     * look for the key) on its {@code --append-system-prompt}; the Safe session is not; and the folder-trust dialog says
+     * the analyser adds it. Witness: end {@code FULL_SYSTEM_NOTE} before {@code STAY_IN_PROJECT_NOTE} — the launched argv
+     * lacks it.
+     */
+    @Test
+    @DisplayName("★ the launched Full argv carries the stay-in-the-project instruction; Safe's does not; the dialog says so")
+    void theFullArgvCarriesTheStandingInstruction() throws Exception {
+        Harness full = full("pb-mode-default-iso.jsonl", FullMode.DEFAULT);
+        List<String> argv = full.agent.commands.get(0);
+        String note = argv.get(argv.indexOf("--append-system-prompt") + 1);
+        assertTrue(note.contains(ClaudeCodeProvider.STAY_IN_PROJECT_NOTE), note);
+        assertEquals(1, argv.stream().filter(a -> a.contains(ClaudeCodeProvider.STAY_IN_PROJECT_NOTE)).count(),
+                "carried once, as the system prompt, never as a user turn");
+
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        Harness safe = new Harness(agent, home.resolve("safe"));
+        safe.start();
+        List<String> safeArgv = safe.agent.commands.get(0);
+        assertFalse(String.join(" ", safeArgv).contains(ClaudeCodeProvider.STAY_IN_PROJECT_NOTE),
+                "Safe has no shell and runs --restricted: no such instruction");
+
+        Path dir = home.resolve("proj");
+        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains(FullFolderTrust.ADDS_INSTRUCTION),
+                "the person is told the analyser adds it");
+    }
 }
