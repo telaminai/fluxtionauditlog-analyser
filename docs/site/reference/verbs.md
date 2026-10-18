@@ -241,7 +241,8 @@ prompt and is served as `context.vocabulary.text`, so the assistant reads `live`
     faults also qualify `topology`), and a rolled set's member list `files` travels with `view`, whose
     selection reports file-local byte offsets. `scope.carried` says why each rode along, so
     `sections: ["pairing"]` during a load or on a log with producer faults still says so. `scope` also names what was selected and every available section. An unknown name, an
-    empty list or a non-list is refused before anything is read. The Project panel is drawn only from a
+    empty list or a non-list is refused before anything is read; a name that is a key rather than a section — `walks`,
+    `reports`, `graphPairing` — is refused with the section that carries it (`walks` and `reports` are in `project`). The Project panel is drawn only from a
     full `context`. On the fixed test fixture the full response is 1709 bytes, `["menus"]` 541 and
     `["pairing"]` 817 — measured, not a promise about your session.
 

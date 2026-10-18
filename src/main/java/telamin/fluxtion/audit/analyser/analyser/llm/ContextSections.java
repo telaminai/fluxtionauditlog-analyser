@@ -94,9 +94,28 @@ public final class ContextSections {
             else unknown.add(name);
         }
         if (!unknown.isEmpty()) {
-            return new Parsed(null, "unknown context section(s) " + unknown + "; sections are " + NAMES);
+            return new Parsed(null, "unknown context section(s) " + unknown + "; sections are " + NAMES + keyHints(unknown));
         }
         return new Parsed(new Selection(List.copyOf(picked)), null);
+    }
+
+    /**
+     * Owner hands-on test (2026-10-18): {@code sections: ["walks"]} was refused — {@code walks} is a KEY of the full
+     * context (the walk verb's docs say "context.walks"), carried by the {@code project} section. A name that is such a
+     * key is answered with the section that carries it, so the retry is one call, not a guess.
+     */
+    static String keyHints(List<String> unknown) {
+        StringBuilder out = new StringBuilder();
+        for (String name : unknown) {
+            for (Map.Entry<String, List<String>> e : SECTIONS.entrySet()) {
+                if (e.getValue().contains(name)) {
+                    out.append("; '").append(name).append("' is a key of the '").append(e.getKey())
+                            .append("' section: ask for sections: [\"").append(e.getKey()).append("\"]");
+                    break;
+                }
+            }
+        }
+        return out.toString();
     }
 
     /** A validated, non-empty set of section names. */
