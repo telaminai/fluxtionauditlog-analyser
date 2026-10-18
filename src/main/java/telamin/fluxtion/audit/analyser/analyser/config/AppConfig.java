@@ -24,7 +24,11 @@ public final class AppConfig {
     public String apiKey = "";                    // cleartext (by decision)
     public final List<String> eventProcessorFqns = new ArrayList<>();
     public final List<ProcessorDeclaration> processorDeclarations = new ArrayList<>();
-    public String selectedEventProcessor = "com.acme.marketmaker.strategy.DemoMarketMakerStrategy";
+    /**
+     * The selected event processor: EMPTY until one is configured (owner decision, 2026-10-18). It defaulted to a
+     * placeholder class no demo or project ships, which the sample project then wrote into its profile.
+     */
+    public String selectedEventProcessor = "";
     public int memoryThresholdMb = 500;
 
     /** Local Maven repositories searched for {@code *-sources.jar} when a class isn't under a source root. */

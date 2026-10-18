@@ -1622,18 +1622,15 @@ public final class MainFrame extends JFrame {
                     "Open sample project", JOptionPane.ERROR_MESSAGE);
             return false;
         }
-        Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
-        if (!Files.isRegularFile(profile)) {
-            AppConfig sample = new AppConfig();
-            sample.sourceRoots.add(root.toString());
-            try {
-                telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, sample,
-                        new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
-            } catch (java.io.IOException ex) {
-                JOptionPane.showMessageDialog(this, UiText.inert("Could not create the sample project: " + ex.getMessage()),
-                        "Open sample project", JOptionPane.ERROR_MESSAGE);
-                return false;
-            }
+        // owner hands-on test (2026-10-18): the sample names its own shipped processor — written when absent, and
+        // healed when an older one still names the placeholder, which never resolved
+        Path profile;
+        try {
+            profile = DemoAssets.ensureSampleProfile(root);
+        } catch (java.io.IOException ex) {
+            JOptionPane.showMessageDialog(this, UiText.inert("Could not create the sample project: " + ex.getMessage()),
+                    "Open sample project", JOptionPane.ERROR_MESSAGE);
+            return false;
         }
         if (!requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
                 "sample-project")) return false;
@@ -7570,7 +7567,9 @@ public final class MainFrame extends JFrame {
     /** Candidate EventProcessors: configured FQNs + those discovered in the strategy package. */
     private List<String> candidateProcessors() {
         Set<String> set = new LinkedHashSet<>(config.eventProcessorFqns);
-        if (config.selectedEventProcessor != null) set.add(config.selectedEventProcessor);
+        if (config.selectedEventProcessor != null && !config.selectedEventProcessor.isBlank()) {
+            set.add(config.selectedEventProcessor);
+        }
         set.addAll(SourceService.discover(sourceService.resolver(), STRATEGY_PKG));
         return new ArrayList<>(set);
     }
@@ -11056,7 +11055,8 @@ public final class MainFrame extends JFrame {
                 }
                 // PR #30 review, finding 2: the EDT does not read the processor to answer. Until a source pane has
                 // read it, node types are omitted and this says why, rather than stalling or guessing.
-                if (config.selectedEventProcessor != null && !sourceService.modelRead())
+                if (config.selectedEventProcessor != null && !config.selectedEventProcessor.isBlank()
+                        && !sourceService.modelRead())
                     source.put("processorModel", "not yet read — node types appear once a source pane reads the processor");
                 out.put("source", source);
             }

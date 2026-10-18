@@ -173,7 +173,7 @@ class ConfigStoreTest {
     @Test
     void missingFileYieldsDefaults(@TempDir Path dir) {
         AppConfig d = new ConfigStore(dir.resolve("does-not-exist")).load();
-        assertEquals("com.acme.marketmaker.strategy.DemoMarketMakerStrategy", d.selectedEventProcessor);
+        assertEquals("", d.selectedEventProcessor, "no processor until one is configured (owner, 2026-10-18)");
         assertEquals(500, d.memoryThresholdMb);
         assertTrue(d.sourceRoots.isEmpty());
         assertEquals(List.of(AppConfig.defaultMavenRepo()), d.mavenRepos, "default ~/.m2/repository");

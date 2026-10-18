@@ -122,6 +122,53 @@ public final class DemoAssets {
         }
     }
 
+    /** The sample's event processor: its generated source ships in the set, under {@link #sourceRoot()}. */
+    public static final String PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor";
+    /** The traced log's processor, also shipped, so the traced log resolves to its own source. */
+    public static final String TRACED_PROCESSOR = "com.acme.demo.generated.DemoQuoteTracedProcessor";
+    /**
+     * The placeholder {@code AppConfig}'s default once named (owner hands-on test, 2026-10-18): a class that does not
+     * exist in the demo set. A sample profile written before then holds it, and the sample's source and
+     * {@code source {bean}} could never resolve.
+     */
+    static final String LEGACY_PLACEHOLDER = "com.acme.marketmaker.strategy.DemoMarketMakerStrategy";
+
+    /**
+     * The sample project's profile under {@code root}: written when absent, and HEALED when it still names the
+     * placeholder processor (or none) — only the processor fields change, so a saved DEMO tour or report survives.
+     *
+     * @return the profile's path
+     */
+    public static Path ensureSampleProfile(Path root) throws IOException {
+        Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
+        var share = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare();
+        var sample = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        if (Files.isRegularFile(profile)) {
+            var loaded = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.load(profile, sample, share);
+            if (!loaded.loaded() || !needsProcessorHeal(sample)) return profile;
+        } else {
+            sample.sourceRoots.add(root.toString());
+        }
+        sampleProcessors(sample);
+        telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, sample, share);
+        return profile;
+    }
+
+    /** The profile names the placeholder, or no processor at all. */
+    static boolean needsProcessorHeal(telamin.fluxtion.audit.analyser.analyser.config.AppConfig c) {
+        String selected = c.selectedEventProcessor == null ? "" : c.selectedEventProcessor.trim();
+        return selected.isEmpty() || selected.equals(LEGACY_PLACEHOLDER) || c.eventProcessorFqns.contains(LEGACY_PLACEHOLDER);
+    }
+
+    /** The sample's two shipped processors, the walkthrough's selected. */
+    static void sampleProcessors(telamin.fluxtion.audit.analyser.analyser.config.AppConfig c) {
+        c.eventProcessorFqns.remove(LEGACY_PLACEHOLDER);
+        for (String fqn : List.of(PROCESSOR, TRACED_PROCESSOR)) {
+            if (!c.eventProcessorFqns.contains(fqn)) c.eventProcessorFqns.add(fqn);
+        }
+        c.selectedEventProcessor = PROCESSOR;
+    }
+
     /** The files that ship — exposed so a test can assert the jar carries every one. */
     public static List<String> files() {
         return FILES;
