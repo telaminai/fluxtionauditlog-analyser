@@ -172,6 +172,12 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
                 new telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt(assistantMode, localAgent,
                         openLog, effects);
         startPagePrompt.setAssistantProfile(assistantProfile);
+        // robot re-walk #3: an evidence question with no log open is held before the cards or a placement see it
+        telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint noLogHint =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint(openLog, effects);
+        cfg.addNode(noLogHint, "startPageNoLogHint");
+        assistantProfile.setNoLogHint(noLogHint);
+        startPagePrompt.setNoLogHint(noLogHint);
         cfg.addNode(startPagePrompt, "startPagePrompt");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects), "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)

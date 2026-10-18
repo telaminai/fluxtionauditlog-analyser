@@ -16,11 +16,22 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  *                           built-in list
  * @param packRefusal        why the last dropped pack was not used, or null
  * @param packRefusalLine    its line (0 for the file as a whole)
+ * @param noLogHeld          robot re-walk #3: the press held because it is about evidence and no log is open (the page
+ *                           shows "No log is open — the answer will be general" and its three actions), or 0
+ * @param noLogOpening       the person chose to open the sample or a log for it, which has not opened yet
  */
 public record StartPageState(Route route, boolean claudeCodeNotFound, String fallbackEntry, String note,
                              long answeredRequest, long packRef,
                              telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Cause packRefusal,
-                             int packRefusalLine) {
+                             int packRefusalLine, long noLogHeld, boolean noLogOpening) {
+
+    /** The shape before robot re-walk #3: nothing held for want of a log. */
+    public StartPageState(Route route, boolean claudeCodeNotFound, String fallbackEntry, String note, long answeredRequest,
+                          long packRef, telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Cause packRefusal,
+                          int packRefusalLine) {
+        this(route, claudeCodeNotFound, fallbackEntry, note, answeredRequest, packRef, packRefusal, packRefusalLine, 0,
+                false);
+    }
 
     public StartPageState(Route route, boolean claudeCodeNotFound, String fallbackEntry, String note, long answeredRequest) {
         this(route, claudeCodeNotFound, fallbackEntry, note, answeredRequest, 0, null, 0);

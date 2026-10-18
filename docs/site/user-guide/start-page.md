@@ -64,6 +64,12 @@ when it applies. Choose *Off*, or close the cards, and your words stay in the bo
 chosen, or if you close the cards without choosing, the page never opens them by itself again. The flows (the demo, build, teach, set-up, a
 bundle, the templates, a log) never open them: they work with no AI.
 
+**A question about evidence with no log open** — *What happened here?*, *Why did the breach fire?* — would get a general
+answer, so the page says so first: *No log is open — the answer will be general.* with **Open the sample**, **Open a
+log…** and **Ask anyway**. Nothing is placed or sent until you choose one. After the sample or your log has opened, the
+question goes on as if you had just asked it, now about that log; close the chooser without choosing and the line stays.
+A question about the tool itself (*What can this tool do?*) is not held.
+
 With **no AI configured**, every entry still ends somewhere: the demo plays, a bundle or log still opens, and each entry
 offers buttons that run what you would otherwise do yourself — *Assistant settings*, *Connect an AI client…*, *New
 project…*, *New project from template…*, *Evidence bundles guide*, *User guide* — and **Copy prompt**. The start page's

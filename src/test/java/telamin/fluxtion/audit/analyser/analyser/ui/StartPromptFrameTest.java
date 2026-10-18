@@ -140,6 +140,10 @@ class StartPromptFrameTest {
                 prompt.actionButton().doClick();
             });
             Thread.sleep(300);
+            // robot re-walk #3: a question about evidence with no log open is held first; the person asks anyway
+            onEdt(() -> assertTrue(startPanel(f.frame).prompt().noLogRow().isShowing(), "No log is open — said first"));
+            onEdt(() -> startPanel(f.frame).prompt().noLogButton(StartPromptView.NoLogAction.ASK_ANYWAY).doClick());
+            Thread.sleep(300);
             LocalAgentPanel agent = (LocalAgentPanel) field(f.frame, "localAgentPanel");
             Window host = hostOf(agent);
             assertNotSame(f.frame, host, "popped out");

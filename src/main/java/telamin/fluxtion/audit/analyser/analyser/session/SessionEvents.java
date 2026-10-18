@@ -706,6 +706,18 @@ public final class SessionEvents {
     public record AssistantNewChatRequested(String reason) {
     }
 
+    /**
+     * Robot re-walk #1 (2026-10-18): pointing at something on screen took the canvas away from the DOCKED assistant's
+     * tab, to tab {@code shown} ("Topology") — an observation of what the reveal did, posted by the frame. The answer the
+     * person was reading is now behind another tab; {@code assistantLoop} decides what the canvas says about it.
+     */
+    public record CanvasLeftAssistant(String shown) {
+    }
+
+    /** The canvas shows the docked assistant's tab again (the person chose it, or "↩ Back to the answer" did). */
+    public record AssistantTabShown(String origin) {
+    }
+
     /** Dock ({@code docked} true) or pop out the assistant. Presentation only. */
     public record AssistantHostRequested(boolean docked, String origin) {
     }
@@ -1258,10 +1270,29 @@ public final class SessionEvents {
      * {@code NONE} (free text alone).
      * {@code textRef} is the box's words in the start page's store, 0 when empty. {@code workspaceOpen}: a workspace is
      * behind the page (Help ▸ Start page), so the docked tab can be revealed; with none the assistant pops out (OD-74.21).
+     * Robot re-walk #3: {@code aboutEvidence} — the box's words read as being about evidence (the frame's word check;
+     * the words never travel); {@code noLogAcknowledged} — the person already chose to ask it with no log open (Ask
+     * anyway), or a log was opened for it, so it is never held again.
      */
     public record StartPagePromptSent(long request, String entryId, long textRef,
                                       LocalAgentConsent consent, boolean claudeCodeFound, boolean inAppCanAnswer,
-                                      boolean inProcessActions, boolean workspaceOpen) {
+                                      boolean inProcessActions, boolean workspaceOpen, boolean aboutEvidence,
+                                      boolean noLogAcknowledged) {
+
+        /** The shape before robot re-walk #3: not read as evidence, so never held for want of a log. */
+        public StartPagePromptSent(long request, String entryId, long textRef, LocalAgentConsent consent,
+                                   boolean claudeCodeFound, boolean inAppCanAnswer, boolean inProcessActions,
+                                   boolean workspaceOpen) {
+            this(request, entryId, textRef, consent, claudeCodeFound, inAppCanAnswer, inProcessActions, workspaceOpen,
+                    false, false);
+        }
+    }
+
+    /** Robot re-walk #3: what the person chose on the start page's "No log is open" line. */
+    public enum NoLogChoice { OPEN_SAMPLE, OPEN_LOG, ASK_ANYWAY }
+
+    /** The person pressed one of the "No log is open" line's actions for held press {@code request}. */
+    public record StartPageNoLogAnswered(long request, NoLogChoice choice) {
     }
 
     /** How a start-page flow ended. */

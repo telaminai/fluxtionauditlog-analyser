@@ -73,6 +73,8 @@ public class AssistantLoop implements EventLogSource {
     private boolean manifestSent;
     private boolean manifestInFlight;
     private boolean docked = true;
+    /** Robot re-walk #1: the tab a reveal took the canvas to from the docked assistant, or "". */
+    private String away = "";
     private boolean frozen;
     private SessionEvents.AssistantRoute route;
     private String basisKey;
@@ -254,10 +256,35 @@ public class AssistantLoop implements EventLogSource {
         return changed();
     }
 
+    // ---- robot re-walk #1 (2026-10-18): pointing at the evidence never takes the person away from the answer -------
+
+    /**
+     * A reveal (the assistant pointing at something on another tab) took the canvas from the DOCKED assistant. What it
+     * points at stays in view (the person asked to be shown it), and the canvas offers one way back — "↩ Back to the
+     * answer" — until the assistant's tab shows again. Popped out, the answer never moved, so nothing is offered.
+     */
+    @OnEventHandler
+    public boolean onCanvasLeftAssistant(SessionEvents.CanvasLeftAssistant e) {
+        String tab = e.shown() == null ? "" : e.shown();
+        if (!docked || tab.isBlank() || tab.equals(away)) return false;
+        away = tab;
+        auditLog.info("assistantAway", tab);
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onAssistantTabShown(SessionEvents.AssistantTabShown e) {
+        if (away.isEmpty()) return false;
+        away = "";
+        auditLog.info("assistantAway", "BACK").info("origin", String.valueOf(e.origin()));
+        return changed();
+    }
+
     @OnEventHandler
     public boolean onHostRequested(SessionEvents.AssistantHostRequested e) {
         if (e.docked() == docked) return false;
         docked = e.docked();
+        away = "";                                 // the answer moves with the panel: it is never behind a tab now
         auditLog.info("assistantHost", docked ? "docked" : "window").info("origin", String.valueOf(e.origin()));
         effects.request(new SessionEffects.ShowAssistantHostEffect(0L, docked));
         return changed();
@@ -279,6 +306,7 @@ public class AssistantLoop implements EventLogSource {
     public boolean onHostShown(SessionEvents.AssistantHostShown e) {
         if (e.ok()) return false;
         docked = e.docked();                       // what the frame could actually do
+        if (!docked) away = "";
         reason = e.reason();
         return changed();
     }
@@ -765,7 +793,7 @@ public class AssistantLoop implements EventLogSource {
     public AssistantState state() {
         if (dirty) {
             published = new AssistantState(conversation, ticket, phase, round, actionsRun, runningVerb, entries, docked,
-                    frozen, basisLabel, reason, answer);
+                    frozen, basisLabel, reason, answer, away);
             dirty = false;
         }
         return published;

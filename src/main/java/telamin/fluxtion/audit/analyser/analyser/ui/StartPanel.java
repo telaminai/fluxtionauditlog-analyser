@@ -86,6 +86,10 @@ public final class StartPanel extends JPanel {
         /** The prompt's button: the person's act; the session decides the route. */
         default void pressStartPrompt(String entryId, String text) { }
 
+        /** Robot re-walk #3: an action on the "No log is open" line, for held press {@code request}. */
+        default void answerStartNoLog(long request,
+                                      StartPromptView.NoLogAction choice) { }
+
         /** A guide page ({@code ""} for the in-app user guide). */
         default void openUserGuide(String page) { }
 
@@ -158,6 +162,10 @@ public final class StartPanel extends JPanel {
                 return actions.promptPack(ref);
             }
             @Override public void returnToMainOptions() { actions.returnToMainOptions(); }
+            @Override public void answerNoLog(long request,
+                                              StartPromptView.NoLogAction c) {
+                actions.answerStartNoLog(request, c);
+            }
             @Override public void downloadExample(int entryIndex) { actions.downloadExample(entryIndex); }
             @Override public void seePackFormat() { actions.openUserGuide("user-guide/start-page/#prompt-packs"); }
         };
