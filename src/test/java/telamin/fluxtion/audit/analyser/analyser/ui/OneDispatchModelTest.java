@@ -864,6 +864,72 @@ class OneDispatchModelTest {
         assertFalse(control.contains(".busy()") || control.contains(".phase()"), "★ and never picks one from the phase");
     }
 
+    // ---- Option 2 (owner, 2026-10-18): a project from a starter template — ONE home for each step ----------------------
+
+    private static final String R = "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result ";
+
+    /**
+     * ★ One template home. The menu posts the intent and nothing else; the catalogue is read in one method, a starter is
+     * downloaded and unpacked only by the download effect's performer, skills written only by the vendor effect's, and
+     * the old frame-side flow is gone. Witnesses: download from {@code chooseTemplateProject} again, or put
+     * {@code configureTemplateDownload} back — the counts or the absence assertions fail.
+     */
+    @Test
+    @DisplayName("★ Option 2: one template home — the menu posts the intent; each starter step has one performer")
+    void theTemplateFlowHasOneHome() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String menu = bodyOf(frame, "private void chooseTemplateProject(");
+        assertTrue(menu.contains("StarterMenuRequested("), "the menu posts the same intent a proposal's Apply hands over");
+        for (String forbidden : List.of("starterSource", "download(", "install(", "TemplateProjectDialog", "requestProject(")) {
+            assertFalse(menu.contains(forbidden), "the menu must not " + forbidden);
+        }
+        assertFalse(frame.contains("configureTemplateDownload") || frame.contains("openInstalledTemplate"),
+                "the old frame-side template flow is gone: its steps are the starter effects' performers");
+        Map<Pattern, String> homes = Map.of(
+                Pattern.compile("\\bsource\\.download\\("), R + "downloadStarter(",
+                Pattern.compile("templateArchive\\.install\\("), R + "downloadStarter(",
+                Pattern.compile("source\\.catalogue\\(\\)"), "private void readStarterCatalogue(",
+                Pattern.compile("new\\s+telamin\\.fluxtion\\.audit\\.analyser\\.analyser\\.template\\.StarterSkills\\("),
+                R + "vendorSkills(");
+        for (var h : homes.entrySet()) {
+            assertEquals(1, count(h.getKey(), frame), "one site: " + h.getKey().pattern());
+            assertEquals(1, count(h.getKey(), bodyOf(frame, h.getValue())), h.getValue() + " is its home");
+        }
+        // the start page's S4/S7 flow reads through the same reader (it reports what it read to starterProject)
+        assertTrue(bodyOf(frame, R + "runStartPageFlow(").contains("readStarterCatalogue("));
+        assertTrue(bodyOf(frame, R + "readStarterDefaults(").contains("source.template("));
+    }
+
+    /**
+     * ★ {@code context.starters} renders and never fetches. Witness: call {@code readStarterCatalogue} (or the source)
+     * from the context builder — the assertion fails; StarterContext reads no source either.
+     */
+    @Test
+    @DisplayName("★ Option 2: context.starters is rendered from the snapshot — the context builder fetches nothing")
+    void contextNeverFetchesTheStarters() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        int at = frame.indexOf("out.put(\"starters\"");
+        assertTrue(at > 0, "context puts starters");
+        String block = frame.substring(frame.lastIndexOf("if (session != null) {", at), frame.indexOf("}", at) + 1);
+        assertTrue(block.contains("StarterContext.render("), block);
+        for (String forbidden : List.of("readStarterCatalogue", "starterSource", "ReadStarterCatalogueEffect", "post(")) {
+            assertFalse(block.contains(forbidden), "context must not " + forbidden);
+        }
+        String ctx = Files.readString(UI.resolve("StarterContext.java"));
+        assertFalse(ctx.contains("StarterSource") || ctx.contains("TemplateClient") || ctx.contains("post("));
+    }
+
+    /** ★ The proposal's starter row: Claude names no path, and the review's Choose… reports the person's folder as a fact. */
+    @Test
+    @DisplayName("★ Option 2: the review's Choose… posts the person's folder as a fact; the review decides nothing")
+    void theStarterFolderIsAFact() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String choose = bodyOf(frame, "private void chooseStarterFolder(");
+        assertTrue(choose.contains("StarterDestinationChosen("));
+        String dialog = Files.readString(UI.resolve("ProposalReviewDialog.java"));
+        assertFalse(dialog.contains("session()") || dialog.contains("SessionEvents"), "the dialog posts nothing itself");
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;

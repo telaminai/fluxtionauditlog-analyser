@@ -1560,7 +1560,21 @@ public final class SessionEvents {
      * the class name's form. The node decides every item-level refusal from these.
      */
     public record ProposalItemFact(String kind, long pathRef, String pathDigest, long classNameRef, String classNameDigest,
-                                   long reasonRef, boolean tooLong, boolean classNameMalformed) {
+                                   long reasonRef, boolean tooLong, boolean classNameMalformed, long starterRef,
+                                   String starterDigest, long artifactRef, long groupRef, long basePackageRef,
+                                   boolean namesMalformed) {
+        /** An item that names no starter (every kind but {@code starter}). */
+        public ProposalItemFact(String kind, long pathRef, String pathDigest, long classNameRef, String classNameDigest,
+                                long reasonRef, boolean tooLong, boolean classNameMalformed) {
+            this(kind, pathRef, pathDigest, classNameRef, classNameDigest, reasonRef, tooLong, classNameMalformed, 0, null,
+                    0, 0, 0, false);
+        }
+
+        /** Option 2: whether the item names a starter id (by reference, as Claude's words always are). */
+        public boolean hasStarter() {
+            return starterRef != 0;
+        }
+
         public boolean hasPath() {
             return pathRef != 0;
         }
@@ -1633,6 +1647,139 @@ public final class SessionEvents {
 
     /** Answered at once by a proposal effect whose outcome arrives later. */
     public record ProposalEffectStarted(long opId, String proposalId, String what) implements Result {
+    }
+
+    // ---- Option 2 (owner, 2026-10-18): a project from one of the analyser's starter templates ----------------------------
+    //
+    // starterProject decides every step (rule 9); the frame reads the catalogue and the template files, downloads,
+    // vendors the skills, discovers, asks and opens, and reports each as one of these facts. Catalogue words are not a
+    // model's, but they are the network's: the node holds digests, vocabulary words and references, never a name.
+
+    /**
+     * The starter catalogue was read (or could not be): {@code entriesRef} names the frame's copy of the entries (0 when
+     * unreachable); per entry, in the catalogue's order, the digest of its id ({@code LocalAgentPosture.digest}) and its
+     * authoring, host, mode and key need — vocabulary words, which the node orders and recommends by.
+     */
+    public record StarterCatalogueObserved(long request, boolean reachable, long entriesRef,
+                                           java.util.List<StarterFacts> entries) {
+        public StarterCatalogueObserved {
+            entries = java.util.List.copyOf(entries == null ? java.util.List.of() : entries);
+        }
+    }
+
+    /** One catalogue entry as the node holds it: its id's digest and four vocabulary words. */
+    public record StarterFacts(String idDigest, String authoring, String host, String mode, String keyNeed) {
+    }
+
+    /** The person's Project ▸ New project from template… — the same chain as a proposal's starter, from its picker. */
+    public record StarterMenuRequested(long request) {
+    }
+
+    /** The menu's picker answered: the chosen entry's id digest, or null when cancelled. */
+    public record StarterChosen(long request, String idDigest) {
+    }
+
+    /**
+     * The template file was read for {@code request}: its identity defaults by reference ({@code defaultsRef}, the frame
+     * holds them), its authoring word, whether a Fluxtion key file is on this machine, or the analyser's words for why it
+     * could not be read.
+     */
+    public record StarterDefaultsObserved(long opId, long request, boolean ok, long defaultsRef, String authoring,
+                                          boolean keyPresent, String failure) implements Result {
+    }
+
+    /**
+     * The menu's own form answered (Download and open, or Cancel): the names and the folder by reference, and whether the
+     * optional authoring-guide links were asked for.
+     */
+    public record StarterConfigured(long request, boolean ok, long namesRef, long dirRef, String dirShown,
+                                    boolean referenceGuide) {
+    }
+
+    /**
+     * The person chose the starter row's folder in the review ({@code Choose…}): its absolute path by reference
+     * ({@code 0} when cancelled) and shown as {@code …/name}. Claude never names it.
+     */
+    public record StarterDestinationChosen(String proposalId, String itemId, long dirRef, String dirShown) {
+    }
+
+    /**
+     * What the folder is, observed: {@code ABSENT} (its parent exists), {@code EMPTY}, {@code NOT_EMPTY},
+     * {@code NOT_A_DIRECTORY}, {@code NO_PARENT}, {@code NOT_ABSOLUTE} or {@code SECRET_FOLDER} (the home folder or a
+     * credential folder, or one holding it). Only the first two can receive a starter.
+     */
+    public record StarterDirectoryObserved(long opId, long request, long dirRef, String dirShown, String verdict)
+            implements Result {
+    }
+
+    /** The starter was downloaded from the configured origin and unpacked: its root by reference, whether it has a profile. */
+    public record StarterInstalled(long request, long rootRef, String rootShown, boolean profilePresent, long commandsRef) {
+    }
+
+    /** The download or the unpack failed, in the analyser's words (paths shown as …/name). */
+    public record StarterInstallFailed(long request, String why) {
+    }
+
+    /**
+     * The project's skills were written under {@code .claude/skills/}: the skill names written, those kept because a file
+     * was already there (never overwritten), each written file's sha-256 prefix, or the refusal (a resource that does not
+     * match its pinned digest refuses the whole set, before anything is written).
+     */
+    public record SkillsVendored(long request, java.util.List<String> written, java.util.List<String> kept,
+                                 java.util.List<String> digests, String refusal) {
+        public SkillsVendored {
+            written = java.util.List.copyOf(written == null ? java.util.List.of() : written);
+            kept = java.util.List.copyOf(kept == null ? java.util.List.of() : kept);
+            digests = java.util.List.copyOf(digests == null ? java.util.List.of() : digests);
+        }
+    }
+
+    /**
+     * Day-two discovery ran in the new project: the offer by reference ({@code offerRef}) and its digest, what it
+     * counted, and whether the starter shipped a profile.
+     */
+    public record StarterDiscoveryObserved(long request, String offerDigest, long offerRef, boolean profilePresent,
+                                           int roots, int skills, int graphs) {
+    }
+
+    /**
+     * The person answered the ONE combined review: whether to open the project, the source roots and skills chosen from
+     * the offer (relative identities, as M73's selection), the graph chosen (by reference, 0 for none), the digest of
+     * the offer they saw, and whether the Spring design's folder is added as a source root (so the design opens).
+     */
+    public record StarterReviewAnswered(long request, boolean open, java.util.List<String> sourceRoots,
+                                        java.util.List<String> skills, long graphRef, String offerDigest,
+                                        boolean designRoot) {
+        /** An answer with the design folder's row at No (or not offered). */
+        public StarterReviewAnswered(long request, boolean open, java.util.List<String> sourceRoots,
+                                     java.util.List<String> skills, long graphRef, String offerDigest) {
+            this(request, open, sourceRoots, skills, graphRef, offerDigest, false);
+        }
+
+        public StarterReviewAnswered {
+            sourceRoots = java.util.List.copyOf(sourceRoots == null ? java.util.List.of() : sourceRoots);
+            skills = java.util.List.copyOf(skills == null ? java.util.List.of() : skills);
+        }
+    }
+
+    /** The project open (or create) through the person's own path returned: ok, or the analyser's words for why not. */
+    public record StarterProjectOpened(long request, boolean ok, String why) {
+    }
+
+    /** The Spring design (M66) was opened at once, or why not (no design in the starter, a read that failed). */
+    public record StarterDesignOpened(long request, boolean ok, String why) {
+    }
+
+    /** The armed GraphML watch saw the first build's graph: its path by reference, shown as …/name. */
+    public record StarterGraphmlAppeared(long request, long pathRef, String shown) {
+    }
+
+    /** The person answered the after-build offer: open the graph (and pair it with the logs) or not now. */
+    public record StarterGraphOfferAnswered(long request, boolean open) {
+    }
+
+    /** Answered at once by a starter effect whose outcome arrives later. */
+    public record StarterEffectStarted(long opId, long request, String what) implements Result {
     }
 
     /**

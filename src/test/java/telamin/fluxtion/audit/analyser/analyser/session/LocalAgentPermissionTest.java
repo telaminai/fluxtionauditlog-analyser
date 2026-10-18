@@ -144,6 +144,45 @@ class LocalAgentPermissionTest {
     }
 
     /**
+     * ★ Owner, 2026-10-18: in Full, a WebFetch the adapter observed as the public Fluxtion docs (PRE_ALLOWED: https,
+     * exactly fluxtion-playground.dev) is allowed without a dialog; any other WebFetch — another domain, a subdomain, an
+     * http URL, all observed as CHANGES — is asked; in Safe every WebFetch is denied. Witness: allow every Full WebFetch
+     * in {@code LocalAgentPermission.onRequested} (drop the PRE_ALLOWED condition) — the asked row's dialog count fails.
+     */
+    @Test
+    @DisplayName("★ Full: the docs WebFetch is allowed without asking; any other WebFetch is asked; Safe denies them all")
+    void onlyTheDocsFetchIsPreAllowed() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = LocalAgentFullPostureTest.startFull(d, a, FullMode.DEFAULT);
+        var t = LocalAgentSessionTest.send(d, a, 10, LocalAgentFullPostureTest.full(FullMode.DEFAULT));
+        d.post(LocalAgentFullPostureTest.fullInit(start, t.ticket(), "default", List.of(), "connected"));
+        d.post(new SessionEvents.LocalAgentPermissionRequested(start.generation(), t.ticket(), 61, ToolClass.BUILT_IN,
+                "WebFetch", INPUT, TOOL_USE, true, SessionEvents.HostedCallKind.PRE_ALLOWED));
+        assertEquals(0, a.permissionDialogs.size(), "the docs fetch is not asked");
+        assertTrue(lastAnswer(a).allow());
+        assertEquals(PermissionBy.PRE_ALLOWED, lastAnswer(a).by());
+        d.post(new SessionEvents.LocalAgentPermissionRequested(start.generation(), t.ticket(), 62, ToolClass.BUILT_IN,
+                "WebFetch", INPUT, TOOL_USE, true, SessionEvents.HostedCallKind.CHANGES));
+        assertEquals(1, a.permissionDialogs.size(), "★ another URL is asked of the person");
+        d.post(new SessionEvents.LocalAgentPermissionChosen(62, false));
+        // a PRE_ALLOWED kind on any other built-in is not a docs fetch: still asked
+        d.post(new SessionEvents.LocalAgentPermissionRequested(start.generation(), t.ticket(), 63, ToolClass.BUILT_IN,
+                "WebSearch", INPUT, TOOL_USE, true, SessionEvents.HostedCallKind.PRE_ALLOWED));
+        assertEquals(2, a.permissionDialogs.size(), "WebSearch is never pre-allowed");
+
+        FakeSessionAdapter sa = new FakeSessionAdapter();
+        SessionDriver sd = LocalAgentSessionTest.driver(sa);
+        var safe = LocalAgentSessionTest.startToReady(sd, sa);
+        var st = LocalAgentSessionTest.send(sd, sa, 10);
+        sd.post(LocalAgentSessionTest.goodInit(safe, st.ticket()));
+        sd.post(new SessionEvents.LocalAgentPermissionRequested(safe.generation(), st.ticket(), 71, ToolClass.BUILT_IN,
+                "WebFetch", INPUT, TOOL_USE, true, SessionEvents.HostedCallKind.PRE_ALLOWED));
+        assertFalse(lastAnswer(sa).allow(), "Safe has no web: denied");
+        assertEquals(LocalAgentPermission.DENIED_DEFAULT_POSTURE, lastAnswer(sa).message());
+    }
+
+    /**
      * ★ M74 UX (P3 leftover a): in the full posture Claude Code's {@code AskUserQuestion} would ask the person through a
      * terminal dialog the analyser does not have. The policy denies it without a dialog; the model is told to ask in its
      * reply and the transcript tells the person to answer in the conversation. Witness: drop the AskUserQuestion case

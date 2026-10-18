@@ -2134,6 +2134,29 @@ same thing.
 dialog shows, and `UserVisibleJargonTest.noMilestoneIdReachesThePerson` checks the served catalogue's shown text and the
 analyser's own Ask catalogue. The workaround can go once the catalogue no longer carries them.
 
+## UP-PG-10 ☐ Ship the skills inside the starters, and license the Spring authoring pages
+
+**Target** `fluxtion-web` (playground scaffold and `spring-authoring/` pages) · **Found** Option 2, owner decision
+2026-10-18 ("Spring is our preferred route: start with a template, then load the skills")
+
+**Evidence.** The Spring starter download (`fluxtion-spring.starter.json`, 2026-10-18) ships no `.claude/skills`: its
+agent entry is `CLAUDE.md` → `PROJECT.md` → the runbooks. So the analyser now writes the skills itself after a starter
+is unpacked: the `m19-skills/2` selection for the starter's authoring and host, from its own jar, and the playground's
+`spring-authoring/skill.md` and `contract.md`, bundled as verbatim copies pinned by sha-256
+(`9875abf6…929e`, `a00cfdec…f0a8`). Those two pages carry no licence statement, and the site's *Licensing* page says
+licensing is being finalised; the analyser bundles them on the owner's authority as the same publisher. The canonical
+skills' `TODO(bundle)` markers reach the project unsubstituted, because the analyser is not a bundle generator and has
+nothing to substitute them with.
+
+**The ask.** (1) Every starter ships `.claude/skills/` — the `m19-skills/2` selection for its own authoring and host,
+with its `TODO(bundle)` markers substituted by the generator, and for Spring the design skill and contract — so the
+analyser's copy becomes a fallback. (2) State the licence of `spring-authoring/skill.md` and `contract.md` (the
+starters' and the analyser's redistribution of them). (3) Version the two pages, so a pinned copy can name what it is.
+
+**What the analyser does meanwhile.** `StarterSkills` writes its copy and never overwrites a file the starter shipped;
+`CanonicalSkillsTest` pins the jar's copies to the index and the playground pins. Once (1) lands, a starter's own
+skills are kept and the analyser writes only what is missing.
+
 ## Spring authoring edit loop — 2026-09-25 intake
 
 **Status: proposed handoff, not implemented.** Canonical acceptance is the

@@ -274,6 +274,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ### M47 · Start from a template
 - [M47.1] ☐ Do the onboarding templates remove the four round-16 blockers structurally? ▸ detail: *M47*.
+- [OPT-2] ◐ **A starter proposed by Claude Code** (owner, 2026-10-18), on `feature/propose-starter`: `propose {kind: starter}`, `context.starters` (Spring first), the review row, ONE `starterProject` chain for it and *New project from template…* (download, skills from the jar, discovery, one review, open, design, GraphML watch, draft), the identity note, Full's docs-site WebFetch — **acceptance open:** review, the owner's hands-on test; UP-PG-10 (skills in the starters, the pages' licence).
 
 ### M48 · Authoring modes ([spec](spec-authoring-modes.md)) — .1–.4, .7, .11 shipped
 - [M48.17] ☐ **(owner)** The shared-evidence-canvas thesis has had no independent read — now the Telamin Canvas product thesis; raised by M74.

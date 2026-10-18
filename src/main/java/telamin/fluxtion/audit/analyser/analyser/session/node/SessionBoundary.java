@@ -77,6 +77,17 @@ public class SessionBoundary implements EventLogSource {
         this.onboardingProposal = onboardingProposal;
     }
 
+    /** Option 2: the starter chain, a JavaBean parent — its own open of the starter's project is never held. */
+    private StarterProject starterProject;
+
+    public StarterProject getStarterProject() {
+        return starterProject;
+    }
+
+    public void setStarterProject(StarterProject starterProject) {
+        this.starterProject = starterProject;
+    }
+
     /** The kind of the request currently awaiting its {@code ProfileLoaded}. */
     private TransitionKind inFlightKind;
     private long inFlightOpId = -1;
@@ -130,6 +141,10 @@ public class SessionBoundary implements EventLogSource {
                 && event.audience().origin() == SessionEvents.OperationOrigin.PERSON && event.assistantOrigin() == null;
         if (!person) return false;
         if (k.mayNoOp() && activeProject.isAt(event.profilePath())) return false;
+        // Option 2: the starter the person just confirmed opens as their Apply said; localAgentSession then offers the
+        // restart in the new folder (its folder-change offer), so a running answer is never cut off by this open
+        if ((k == TransitionKind.EXPLICIT_SWITCH || k == TransitionKind.CREATE) && starterProject != null
+                && starterProject.openingOwnProject()) return false;
         return !(k == TransitionKind.CREATE && onboardingProposal != null && onboardingProposal.applyingOwnCreate());
     }
 

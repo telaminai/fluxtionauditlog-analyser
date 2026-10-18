@@ -510,11 +510,24 @@ public final class VerbSchemas {
         className.put("maxLength", 300);
         Map<String, Object> reason = string();
         reason.put("maxLength", 500);
+        // one map per property: p() writes its description into the map it is given
+        java.util.function.Supplier<Map<String, Object>> name = () -> {
+            Map<String, Object> m = string();
+            m.put("maxLength", 100);
+            return m;
+        };
         item.put("properties", props(
-                p("kind", enumStr("sourceRoot", "processor", "graphml", "runbook", "logToOpen"), "what this item sets up"),
+                p("kind", enumStr("sourceRoot", "processor", "graphml", "runbook", "logToOpen", "starter"),
+                        "what this item sets up; starter: create a new project from one of the analyser's starter "
+                                + "templates (context.starters), alone in its proposal"),
                 p("path", path, "sourceRoot: a directory; graphml: a .graphml file; runbook: a SKILL.md or .md file; "
-                        + "logToOpen: an audit log file; processor: the generated processor's source file, if known"),
+                        + "logToOpen: an audit log file; processor: the generated processor's source file, if known; "
+                        + "never for a starter: the person chooses its folder"),
                 p("className", className, "processor only: the fully qualified class name"),
+                p("starter", name.get(), "starter only: a starter id from context.starters.entries[].id"),
+                p("artifact", name.get(), "starter only, optional: the Maven artifact id (default: the template's)"),
+                p("group", name.get(), "starter only, optional: the Maven group id (default: the template's)"),
+                p("basePackage", name.get(), "starter only, optional: the Java base package (default: the template's)"),
                 p("reason", reason, "why, in one or two sentences; shown to the person as your words")));
         item.put("required", List.of("kind", "reason"));
         Map<String, Object> items = new LinkedHashMap<>();
@@ -527,7 +540,9 @@ public final class VerbSchemas {
         Map<String, Object> m = schema("Hosted Claude Code only. Offer the person a project set-up. Records an offer and "
                         + "changes NOTHING: the analyser checks each item, the person answers each one, and the analyser "
                         + "applies the accepted ones itself. Call context afterwards to see each item's outcome. Paths are "
-                        + "relative to your working directory or absolute inside it.",
+                        + "relative to your working directory or absolute inside it. To begin a new application, offer "
+                        + "ONE starter item (kind starter, a context.starters id) and nothing else: the person chooses "
+                        + "the folder, and the analyser downloads it, adds the skills and opens the project.",
                 props(p("summary", summary, "one sentence: what this set-up is for"),
                         p("items", items, "the set-up items, 1 to 10")),
                 req("items"));

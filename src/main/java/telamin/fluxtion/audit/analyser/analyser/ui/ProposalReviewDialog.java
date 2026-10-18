@@ -16,6 +16,12 @@ import java.util.Map;
  * <b>No</b>; an item marked outside or refused has no Yes. With no project in the set-up folder the first row is the
  * analyser's own <i>Create a project in …</i> (also No), and the items that need a project stay disabled until it is
  * chosen. <i>Apply chosen</i> returns the person's answers; the session applies them.
+ *
+ * <p>Option 2 (owner, 2026-10-18): a STARTER proposal is one row — "Create a project from starter <b>…</b>", the starter's
+ * facts, Claude's words, the folder the person chooses here with <i>Choose…</i> (Claude never names one), and where it
+ * downloads from — starting at No, with <i>Apply chosen</i> disabled until an empty or new folder is chosen. The row
+ * renders {@code starterProject}'s state ({@link StarterRow}); <i>Choose…</i> reports the folder as a fact and the row is
+ * rendered again from what the analyser observed.
  */
 public final class ProposalReviewDialog {
 
@@ -34,6 +40,27 @@ public final class ProposalReviewDialog {
         public Answer {
             rows = Map.copyOf(rows == null ? Map.of() : rows);
         }
+    }
+
+    /**
+     * Option 2: the starter row as rendered from {@code starterProject}'s state — the starter's name and facts (the
+     * catalogue's and the template file's words), the folder chosen as {@code …/name} and what it is, whether Apply may
+     * proceed, and the origin it downloads from.
+     */
+    public record StarterRow(String itemId, String name, String facts, String dirShown, String dirWords, boolean ready,
+                             String origin) {
+    }
+
+    /** What the starter row reads and does: the row now, and the person's Choose… for an item. */
+    public interface StarterControls {
+        StarterRow row();
+
+        void choose(String itemId);
+    }
+
+    /** The line under the starter row (publisher first, as an example's confirmation leads with its publisher). */
+    static String originLine(String origin) {
+        return "Downloads from " + origin + "; nothing is built or run.";
     }
 
     /** The reason box's label: Claude's words, never verified by the analyser. */
@@ -58,6 +85,11 @@ public final class ProposalReviewDialog {
             reason.setCaretPosition(0);
         }
         final JButton apply = UiText.button("Apply chosen");
+        /** Option 2: the starter row's folder, its Choose… and what the analyser observed (null without a starter). */
+        final JLabel starterFolder = UiText.plain(new JLabel("(none chosen)"));
+        JButton starterChoose;
+        final JLabel starterFolderWords = UiText.plain(new JLabel(" "));
+        Runnable starterRefresh = () -> { };
 
         Answer answer() {
             List<String> ids = new ArrayList<>();
@@ -80,6 +112,7 @@ public final class ProposalReviewDialog {
             case "graphml" -> "Graph file";
             case "runbook" -> "Runbook";
             case "logToOpen" -> "Log to open";
+            case "starter" -> "Starter";
             default -> kind == null || kind.isBlank() ? "Item" : kind;
         };
     }
@@ -136,6 +169,12 @@ public final class ProposalReviewDialog {
 
     /** {@code words} resolves Claude's words by reference (the transcript store): the summary, a path, a reason (R6). */
     static Content content(java.util.function.LongFunction<String> words, ProposalState p) {
+        return content(words, p, null);
+    }
+
+    static Content content(java.util.function.LongFunction<String> words, ProposalState p, StarterControls starter) {
+        ProposalState.Item starterItem = p.items().stream().filter(i -> "starter".equals(i.kind())).findFirst().orElse(null);
+        if (starterItem != null && starter != null) return starterContent(words, p, starterItem, starter);
         Content c = new Content();
         JPanel rows = new JPanel(new GridBagLayout());
         GridBagConstraints g = new GridBagConstraints();
@@ -274,13 +313,111 @@ public final class ProposalReviewDialog {
         return c;
     }
 
+    /**
+     * Option 2: a starter proposal's one row. Every answer starts at No; Apply chosen is disabled until the analyser has
+     * observed an empty or absent folder for it (and stays disabled while the row cannot be answered).
+     */
+    static Content starterContent(java.util.function.LongFunction<String> words, ProposalState p,
+                                  ProposalState.Item item, StarterControls starter) {
+        Content c = new Content();
+        StarterRow first = starter.row();
+        JPanel row = new JPanel(new GridBagLayout());
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0;
+        g.gridy = 0;
+        g.anchor = GridBagConstraints.WEST;
+        g.fill = GridBagConstraints.HORIZONTAL;
+        g.weightx = 1;
+        g.gridwidth = 3;
+        g.insets = new Insets(3, 4, 3, 4);
+        // the catalogue's words: plain, never markup (SF-2)
+        JLabel title = UiText.label("Create a project from starter " + (first == null ? "" : VisibleMarks.show(first.name())));
+        title.setFont(title.getFont().deriveFont(Font.BOLD));
+        row.add(title, g);
+        g.gridy++;
+        JLabel facts = UiText.label(first == null ? "" : "(" + VisibleMarks.show(first.facts()) + ")");
+        row.add(facts, g);
+        g.gridy++;
+        String reason = item.reasonRef() == 0 ? "" : words.apply(item.reasonRef());
+        JTextArea claude = Fluid.text("Claude: “" + (reason == null || reason.isBlank() ? "(no reason given)"
+                : VisibleMarks.show(reason)) + "” — " + REASON_LABEL.substring(REASON_LABEL.indexOf("—") + 2));
+        claude.setForeground(UiTheme.mutedForeground());
+        row.add(claude, g);
+        g.gridy++;
+        g.gridwidth = 1;
+        g.weightx = 0;
+        row.add(UiText.label("Folder:"), g);
+        g.gridx = 1;
+        g.weightx = 1;
+        row.add(c.starterFolder, g);
+        g.gridx = 2;
+        g.weightx = 0;
+        c.starterChoose = UiText.button("Choose…");
+        c.starterChoose.getAccessibleContext().setAccessibleName("Choose the new project's folder");
+        row.add(c.starterChoose, g);
+        g.gridx = 0;
+        g.gridy++;
+        g.gridwidth = 3;
+        row.add(c.starterFolderWords, g);
+        g.gridy++;
+        JLabel origin = UiText.label(originLine(first == null ? "the configured origin" : first.origin()));
+        row.add(origin, g);
+        g.gridy++;
+        JPanel yn = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+        yn.add(UiText.label("Your answer:"));
+        if (item.applicable()) {
+            JRadioButton y = UiText.plain(new JRadioButton("Yes"));
+            JRadioButton n = UiText.plain(new JRadioButton("No", true));          // the row starts at No
+            ButtonGroup bg = new ButtonGroup();
+            bg.add(y);
+            bg.add(n);
+            yn.add(y);
+            yn.add(n);
+            y.getAccessibleContext().setAccessibleName("Create a project from this starter: Yes");
+            n.getAccessibleContext().setAccessibleName("Create a project from this starter: No");
+            c.yes.put(item.id(), y);
+            c.no.put(item.id(), n);
+        } else {
+            yn.add(UiText.label(item.state() == ProposalState.ItemState.CHECKING ? "being checked…"
+                    : item.state().name().toLowerCase(java.util.Locale.ROOT)
+                    + (item.why().isBlank() ? "" : ": " + item.why())));
+        }
+        row.add(yn, g);
+        c.starterRefresh = () -> {
+            StarterRow r = starter.row();
+            boolean ready = r != null && r.ready() && item.applicable();
+            c.starterFolder.setText(r == null || r.dirShown() == null ? "(none chosen)" : r.dirShown());
+            c.starterFolderWords.setText(r == null || r.dirWords() == null || r.dirWords().isBlank() ? " "
+                    : "The analyser's check: " + r.dirWords());
+            c.apply.setEnabled(ready);
+            c.apply.setToolTipText(ready ? null : "Choose an empty or new folder for the project first");
+        };
+        c.starterChoose.setEnabled(item.applicable());
+        c.starterChoose.addActionListener(e -> {
+            starter.choose(item.id());
+            c.starterRefresh.run();
+        });
+        c.starterRefresh.run();
+        JTextArea lede = Fluid.text("Claude Code proposes a new project from one of the analyser's starters. Nothing has "
+                + "been downloaded. Choose its folder; every answer starts at No.");
+        c.panel.add(lede, BorderLayout.NORTH);
+        c.panel.add(row, BorderLayout.CENTER);
+        return c;
+    }
+
     /** The review's default (and least) width. */
     static final int DEFAULT_WIDTH = 760;
 
     /** Show the review, modal for the person's own click; null when closed without applying. */
     public static Answer show(Window owner, ProposalState p, java.util.function.LongFunction<String> words) {
+        return show(owner, p, words, null);
+    }
+
+    /** As above, with the starter row's controls (Option 2); null for a proposal without a starter. */
+    public static Answer show(Window owner, ProposalState p, java.util.function.LongFunction<String> words,
+                              StarterControls starter) {
         Answer[] result = new Answer[1];
-        JDialog d = dialog(owner, p, words, true, result);
+        JDialog d = dialog(owner, p, words, true, result, starter);
         d.setVisible(true);
         return result[0];
     }
@@ -288,7 +425,12 @@ public final class ProposalReviewDialog {
     /** The review's dialog, built and not shown ({@code modal} false for a frame test or a capture). */
     static JDialog dialog(Window owner, ProposalState p, java.util.function.LongFunction<String> words, boolean modal,
                           Answer[] result) {
-        Content c = content(words, p);
+        return dialog(owner, p, words, modal, result, null);
+    }
+
+    static JDialog dialog(Window owner, ProposalState p, java.util.function.LongFunction<String> words, boolean modal,
+                          Answer[] result, StarterControls starter) {
+        Content c = content(words, p, starter);
         JDialog d = new JDialog(owner, "Review Claude Code's set-up proposal", modal ? Dialog.ModalityType.APPLICATION_MODAL
                 : Dialog.ModalityType.MODELESS);
         JButton close = UiText.button("Close");

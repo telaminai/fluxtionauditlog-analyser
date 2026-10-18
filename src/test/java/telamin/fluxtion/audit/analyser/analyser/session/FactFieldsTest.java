@@ -117,6 +117,29 @@ class FactFieldsTest {
                 "LocalAgentConsent.model")) {
             M74.put(c, Holds.PERSON_CONFIG);
         }
+        // Option 2 (owner, 2026-10-18): a project from a starter template. Catalogue words stay in the frame: the facts
+        // carry the id's digest and the catalogue's declarations as vocabulary words (Starters.word), the folders as
+        // …/name, discovery's RELATIVE identities, and the analyser's own words with paths removed
+        for (String c : List.of("StarterFacts.authoring", "StarterFacts.host", "StarterFacts.mode", "StarterFacts.keyNeed",
+                "StarterDefaultsObserved.authoring", "StarterDirectoryObserved.verdict", "StarterEffectStarted.what",
+                "SkillsVendored.written", "SkillsVendored.kept")) {
+            M74.put(c, Holds.VOCABULARY);
+        }
+        for (String c : List.of("ProposalItemFact.starterDigest", "StarterFacts.idDigest", "StarterChosen.idDigest",
+                "StarterDestinationChosen.proposalId", "StarterDestinationChosen.itemId", "StarterDiscoveryObserved.offerDigest",
+                "StarterReviewAnswered.offerDigest", "SkillsVendored.digests")) {
+            M74.put(c, Holds.DIGEST);
+        }
+        for (String c : List.of("StarterDestinationChosen.dirShown", "StarterDirectoryObserved.dirShown",
+                "StarterConfigured.dirShown", "StarterInstalled.rootShown", "StarterGraphmlAppeared.shown")) {
+            M74.put(c, Holds.SHOWN_PATH);
+        }
+        for (String c : List.of("StarterDefaultsObserved.failure", "StarterInstallFailed.why", "SkillsVendored.refusal",
+                "StarterProjectOpened.why", "StarterDesignOpened.why", "StarterReviewAnswered.sourceRoots",
+                "StarterReviewAnswered.skills")) {
+            M74.put(c, Holds.ANALYSER_WORDS);
+        }
+        M74.put("StarterCatalogueObserved.entries", Holds.STRUCTURE);
         M74.put("ExampleDownloadRequested.source", Holds.PERSON_PACK);
         // the Records view's counts (usability review 2026-10-18): numbers, flags, the log's event-type names, and the
         // search text by reference only (RecordsViewCounts.textRef) — an assistant may have typed it

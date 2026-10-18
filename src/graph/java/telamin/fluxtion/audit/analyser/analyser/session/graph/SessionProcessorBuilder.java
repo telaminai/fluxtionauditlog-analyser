@@ -158,12 +158,20 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission(localAgent, effects),
                 "localAgentPermission");
         // M74 P2b (§5.6): Claude proposes, the analyser applies — the offer, the preview's verdicts, the person's answers
+        // Option 2 (owner, 2026-10-18): a project from a starter template — the catalogue, and ONE chain for Claude's
+        // starter item and the Project menu alike. onboardingProposal pushes an accepted starter item and its Apply here
+        telamin.fluxtion.audit.analyser.analyser.session.node.StarterProject starterProject =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.StarterProject(effects);
         telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal onboarding =
-                new telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal(localAgent, effects);
+                new telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal(localAgent, effects,
+                        starterProject);
         cfg.addNode(onboarding, "onboardingProposal");
+        cfg.addNode(starterProject, "starterProject");
         // M74 P2b (the simplified Move): a person's project switch is held while Claude Code runs, and the person asked
         boundary.setLocalAgentSession(localAgent);
         boundary.setOnboardingProposal(onboarding);
+        // Option 2: the analyser's OWN open of a starter project is never a switch the person must be asked about
+        boundary.setStarterProject(starterProject);
         // M74 P2b (owner request 2026-10-17): a prompt pack's example entry — confirm, fetch, verify, unpack, offer
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ExampleDownload(effects), "exampleDownload");
         // M74 UX (owner, 2026-10-17), M77 (spec-ai-setup-wizard.md §8.1, OD-77.13 — one node): the assistant profile and

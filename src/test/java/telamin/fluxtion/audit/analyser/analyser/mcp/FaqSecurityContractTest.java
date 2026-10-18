@@ -88,7 +88,15 @@ class FaqSecurityContractTest {
                 // owner 2026-10-18: the one narrow open that needs no dialog, and what still asks
                 "Under **Full Claude Code only**", "inside the session's project folder",
                 "Safe analysis asks for every `open`",
-                "Start button starts full Claude Code"}) {
+                "Start button starts full Claude Code",
+                // owner 2026-10-18 (Option 2): the one web read Full makes without asking, and its exact rule
+                "Full may read fluxtion-playground.dev documentation without asking",
+                "`WebFetch(domain:fluxtion-playground.dev)`", "never `WebSearch`, another domain or a network command",
+                "any other fetch is asked",
+                // the analyser's note to Claude Code, and a proposed starter
+                "The analyser's note to Claude Code", "fixed text with nothing interpolated",
+                "Claude names a catalogue id and never a path", "only then is the starter downloaded",
+                "the *Allow the assistant to create projects* switch does not gate this path"}) {
             assertTrue(answer.contains(claim), "the FAQ security answer must state, for full Claude Code: " + claim);
         }
         assertFalse(answer.contains("(preview)") || answer.contains("not for customer release"),
@@ -341,5 +349,41 @@ class FaqSecurityContractTest {
                 .endsWith(note), "the Full note carries it");
         assertFalse(telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.SYSTEM_NOTE
                 .contains(note), "Safe has no shell and --restricted: it does not");
+    }
+
+    /**
+     * ★ Option 2 (owner, 2026-10-18): the analyser's note that begins BOTH postures' sessions, and Full's starter rule, are
+     * FIXED analyser text — pinned word for word, no placeholder — and every surface that discloses Full says it may read
+     * the docs site without asking. Witness: change a word of {@code ClaudeCodeProvider.IDENTITY_NOTE}, put a {@code %s}
+     * into it, or drop {@code FullFolderTrust.DOCS_FETCH} from the folder-trust or About text — this fails.
+     */
+    @Test
+    void theIdentityNoteIsFixedTextAndTheDocsReadIsDisclosed() {
+        var p = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.class;
+        String identity = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.IDENTITY_NOTE;
+        String full = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.FULL_STARTER_NOTE;
+        assertTrue(identity.equals("You are the assistant inside the Fluxtion Audit Log Analyser, the desktop app the "
+                + "person is using now. Here, 'project', 'starter' or 'template', 'log', 'graph' and 'report' mean the "
+                + "analyser's: a project is an analyser project folder, a starter is one of the analyser's starter "
+                + "templates, and a log is the Fluxtion audit log open in it. Call analyser_context first: it says what "
+                + "is open and lists the starters."), "the pinned note changed: review it as a security-contract change");
+        assertTrue(full.equals("To begin a new application, offer a starter with analyser_propose; do not search the web "
+                + "or scaffold by hand. Until a project exists you are in an empty scratch folder: create nothing there. "
+                + "Do not use gh, curl or other network commands to look for examples."), "the pinned Full rule changed");
+        for (char ch : "{}<>%$`\\\n\r".toCharArray()) {
+            assertTrue(identity.indexOf(ch) < 0 && full.indexOf(ch) < 0, "plain text: no placeholder or markup: " + ch);
+        }
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.SYSTEM_NOTE
+                .startsWith(identity) && telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider
+                .FULL_SYSTEM_NOTE.startsWith(identity + " " + full), "both notes begin with it; Full adds its rule");
+        String docs = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.DOCS_FETCH;
+        assertTrue(docs.startsWith("Full may read fluxtion-playground.dev documentation without asking"), docs);
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.ADDS_INSTRUCTION
+                .contains(docs), "the Full folder-trust disclosure says it");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.LocalAgentPanel.ABOUT_NOTE_FULL.contains(docs),
+                "About this session… says it for Full");
+        assertFalse(telamin.fluxtion.audit.analyser.analyser.ui.LocalAgentPanel.ABOUT_NOTE_SAFE.contains("fluxtion-playground"),
+                "and Safe, which has no web, does not");
+        assertTrue(p.getSimpleName().length() > 0);
     }
 }

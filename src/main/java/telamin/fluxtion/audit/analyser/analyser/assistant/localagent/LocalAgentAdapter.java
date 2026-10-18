@@ -607,6 +607,27 @@ public final class LocalAgentAdapter {
      * digest, the {@code tool_use_id}'s digest and whether the input can be shown in full. Any other request from the CLI
      * is denied, never granted.
      */
+    /** The CLI's built-in web fetch tool, by its vocabulary name. */
+    static final String WEB_FETCH = "WebFetch";
+
+    /**
+     * Owner, 2026-10-18: what a built-in call does, observed from its own input — a WebFetch of the public Fluxtion docs
+     * (https, exactly {@link LocalAgentPosture#DOCS_DOMAIN}) is {@code PRE_ALLOWED}; every other call, and an unreadable
+     * input, {@code CHANGES} (asked, as before). localAgentPermission decides what that means, and only in Full.
+     */
+    static SessionEvents.HostedCallKind builtInKind(String name, String inputRaw) {
+        if (!WEB_FETCH.equals(name)) return SessionEvents.HostedCallKind.CHANGES;
+        try {
+            Object in = telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(inputRaw);
+            if (in instanceof java.util.Map<?, ?> m && LocalAgentPosture.docsFetch(m.get("url"))) {
+                return SessionEvents.HostedCallKind.PRE_ALLOWED;
+            }
+        } catch (RuntimeException unreadable) {
+            // unreadable: asked, as before
+        }
+        return SessionEvents.HostedCallKind.CHANGES;
+    }
+
     private void onControlRequest(Run run, StreamJson.ControlRequest r) {
         if (!r.canUseTool() || r.requestId() == null) {
             write(run, StreamJson.deny(r.requestId(), "Denied: the analyser does not answer this request"));
@@ -632,6 +653,8 @@ public final class LocalAgentAdapter {
             } catch (RuntimeException unreadable) {
                 kind = SessionEvents.HostedCallKind.CHANGES;     // unreadable: asked, as before
             }
+        } else if (named.toolClass() == SessionEvents.ToolClass.BUILT_IN && judged.showable()) {
+            kind = builtInKind(named.name(), r.inputRaw());
         }
         env.post(new SessionEvents.LocalAgentPermissionRequested(run.generation, ticket, ref, named.toolClass(),
                 named.name(), judged.digest(), r.toolUseId() == null ? null : LocalAgentPosture.digest(r.toolUseId()),

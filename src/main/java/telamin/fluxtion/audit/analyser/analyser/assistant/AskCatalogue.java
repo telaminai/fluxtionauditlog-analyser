@@ -512,6 +512,18 @@ public final class AskCatalogue {
         return "\n\n" + text("binding.model", Map.of("gen", AskPointers.integer(generation)));
     }
 
+    /**
+     * Option 2 (owner, 2026-10-18): the POINTER-ONLY draft placed after a starter project opens — the project's folder name
+     * and the starter's catalogue id through the identifier rules, and the files to read; never a record, a path or a
+     * model's words. Placed, never sent: the person presses Send.
+     */
+    public static Draft composeStarter(String projectName, String starterId) {
+        Map<String, String> v = new LinkedHashMap<>();
+        v.put("project", AskPointers.name(projectName));
+        v.put("starter", AskPointers.identifier(starterId, "(the chosen starter)"));
+        return new Draft("STARTER", text("STARTER.template", v), null, 0);
+    }
+
     /** The journey handoff's draft in the Claude Code mode (§5.5 Journeys), bound to the walk's log. */
     public static Draft composeJourney(String walkName, int walkPosition, AskContext c) {
         Map<String, String> v = new LinkedHashMap<>();

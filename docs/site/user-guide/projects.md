@@ -66,10 +66,43 @@ configured roots is refused ([Source navigation](source-navigation.md#spring-des
 - **From a template**: *Project ▸ New project from template…*, or **From template** on the start page, downloads a
   starter project from the playground's catalogue into a new or empty folder, and opens the project profile it
   ships, if it ships one. It builds and runs nothing ([Starter templates and examples](../start/templates-and-examples.md)).
+- **With the assistant**: ask Claude Code in the analyser to build a new application, and it offers one of the
+  analyser's starters for you to confirm ([Create from a starter with the assistant](#create-from-a-starter-with-the-assistant)).
 - **For code you have**: *Project ▸ New project…*, below; or let Claude Code look at the folder and propose the
   set-up ([Set up a project with Claude](../build/set-up-with-claude.md)).
 - **From a log**: open an audit log that sits inside a project folder, and the analyser offers to open that project
   ([Opening a log inside a project](#opening-a-log-inside-a-project)).
+
+### Create from a starter with the assistant
+
+Spring is the preferred route: start with a template, then load the skills. Claude Code in the analyser can list the
+analyser's starter templates (`context.starters`: each one's id, name, description, how its graph is authored, where
+it runs, and whether its build needs a Fluxtion key, Spring first and recommended) and **propose** one. It never
+creates the project itself, and it never names a folder.
+
+1. **The proposal.** A banner says Claude Code has a proposal; **Review…** opens one row: *Create a project from
+   starter* **Fluxtion Spring XML** *(Spring XML · embedded · AOT · build needs a Fluxtion key; none found on this
+   machine)*, Claude's reason in its own words, a **Folder** with **Choose…**, and *Downloads from
+   fluxtion-playground.dev; nothing is built or run.* The row starts at **No**, and **Apply chosen** stays disabled
+   until you choose a new or empty folder. A starter's build that needs a key says so whether or not one is found.
+2. **The download.** Only your Apply downloads, from the configured HTTPS origin, and unpacks with the same checks as
+   *New project from template…*. Nothing is built or run.
+3. **The skills.** The analyser writes the project's skills from its own copy — the canonical set for the starter's
+   authoring and host and, for Spring, the playground's design skill and XML contract, each checked against its
+   pinned digest — under `.claude/skills/`. A file already there is never overwritten.
+4. **One review.** What opening the project puts in force: with the starter's own profile, one row opens it (its source
+   roots, processor and runbooks named); without one, each discovered source root and skill is a row. Every row
+   starts at No; **Close** opens nothing and leaves the files.
+5. **Synced.** The project opens, its Spring design is shown at once, and the analyser watches for the first build's
+   GraphML and offers to open it, which pairs it with the project's logs.
+6. **Back to Claude.** The project's folder is not the folder the session started in, so the analyser offers to
+   restart Claude Code there (the folder is confirmed as for any Start); the new session loads the project's
+   `CLAUDE.md` and the skills. A short draft is placed — *Project … was created from starter …; read PROJECT.md and
+   the spring-authoring skill, then lead the Spring design conversation.* — and nothing is sent until you press
+   **Send**.
+
+Your Apply is the consent, so *Allow the assistant to create projects* does not gate this path. The same chain runs
+from *Project ▸ New project from template…*, which ends by showing the starter's own commands instead of a draft.
 
 ## Opening and switching
 

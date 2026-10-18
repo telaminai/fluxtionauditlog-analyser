@@ -132,7 +132,8 @@ class ClaudeCodeProviderTest {
                     "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--replay-user-messages",
                     "--session-id", "11111111-2222-4333-8444-555555555555", "--model", "sonnet",
                     "--mcp-config", c.get(c.indexOf("--mcp-config") + 1),
-                    "--allowedTools", asks ? allowed : allowedNoAsk,
+                    // owner, 2026-10-18: Full reads the public Fluxtion docs at exactly one host without a prompt
+                    "--allowedTools", (asks ? allowed : allowedNoAsk) + ",WebFetch(domain:fluxtion-playground.dev)",
                     "--disallowedTools", asks ? "mcp__fluxtion-analyser" : "mcp__fluxtion-analyser," + destructive,
                     "--permission-mode", mode.cli(), "--permission-prompts", "host", "--permission-prompt-tool", "stdio",
                     "--append-system-prompt", ClaudeCodeProvider.FULL_SYSTEM_NOTE);
@@ -356,5 +357,102 @@ class ClaudeCodeProviderTest {
         LocalAgentProvider.Slash s = ClaudeCodeProvider.classifyLine("/teleport", newer);
         assertEquals(SlashClass.UNCLASSIFIED, s.slash());
         assertEquals("teleport", s.command(), "a name the CLI knows may be named");
+    }
+
+    // ---- Option 2 (owner, 2026-10-18): who Claude Code is here, and the docs it may read --------------------------------
+
+    /**
+     * ★ The identity note begins BOTH system notes, word for word, and Full alone adds the starter rule. Witness: change a
+     * word of {@code IDENTITY_NOTE}, or put {@code FULL_STARTER_NOTE} into the Safe note — the pinned text or the Safe
+     * assertion fails.
+     */
+    @Test
+    @DisplayName("★ the identity note is pinned and begins both notes; Full alone says to offer a starter and stay off the web")
+    void theIdentityNoteIsPinned() {
+        String identity = "You are the assistant inside the Fluxtion Audit Log Analyser, the desktop app the person is "
+                + "using now. Here, 'project', 'starter' or 'template', 'log', 'graph' and 'report' mean the analyser's: a "
+                + "project is an analyser project folder, a starter is one of the analyser's starter templates, and a log "
+                + "is the Fluxtion audit log open in it. Call analyser_context first: it says what is open and lists the "
+                + "starters.";
+        String full = "To begin a new application, offer a starter with analyser_propose; do not search the web or "
+                + "scaffold by hand. Until a project exists you are in an empty scratch folder: create nothing there. Do "
+                + "not use gh, curl or other network commands to look for examples.";
+        assertEquals(identity, ClaudeCodeProvider.IDENTITY_NOTE);
+        assertEquals(full, ClaudeCodeProvider.FULL_STARTER_NOTE);
+        assertTrue(ClaudeCodeProvider.SYSTEM_NOTE.startsWith(identity + " "), "Safe begins with it");
+        assertTrue(ClaudeCodeProvider.FULL_SYSTEM_NOTE.startsWith(identity + " " + full + " "), "Full begins with both");
+        assertFalse(ClaudeCodeProvider.SYSTEM_NOTE.contains(full), "Safe has no web and no shell: it carries no such rule");
+        for (char ch : "{}<>%$`\\\n\r".toCharArray()) {
+            assertTrue(identity.indexOf(ch) < 0 && full.indexOf(ch) < 0, "fixed text, nothing interpolated: " + ch);
+        }
+    }
+
+    /** The note is part of the posture ref: a session made before it is never resumed under it (CHANGELOG says so). */
+    @Test
+    @DisplayName("the identity note is part of postureRef, so an earlier session is not resumed")
+    void theNoteIsInThePostureRef() {
+        Path dir = tmp;
+        String before = LocalAgentPosture.ANALYSER_ASSISTANT.ref(ClaudeCodeProvider.realPath(dir),
+                ClaudeCodeProvider.SYSTEM_NOTE.substring(ClaudeCodeProvider.IDENTITY_NOTE.length() + 1));
+        assertNotEquals(before, ClaudeCodeProvider.postureRef(dir, LocalAgentPosture.ANALYSER_ASSISTANT));
+    }
+
+    /**
+     * ★ Owner, 2026-10-18: Full's argv carries exactly ONE docs rule — WebFetch, exactly fluxtion-playground.dev — and
+     * Safe's carries none (Safe has no web tool at all). Witness: widen the rule to {@code WebFetch} or
+     * {@code WebFetch(domain:*.fluxtion-playground.dev)}, or add WebSearch — the exact-rule assertions fail.
+     */
+    @Test
+    @DisplayName("★ Full's argv pre-allows exactly WebFetch(domain:fluxtion-playground.dev); Safe's has no web rule")
+    void onlyFullReadsTheDocsWithoutAsking() {
+        assertEquals("WebFetch(domain:fluxtion-playground.dev)", LocalAgentPosture.DOCS_FETCH_RULE);
+        for (LocalAgentPosture.FullMode mode : LocalAgentPosture.FullMode.values()) {
+            List<String> c = new ClaudeCodeProvider().command(fullSpec(mode, 0));
+            String allowed = c.get(c.indexOf("--allowedTools") + 1);
+            List<String> web = java.util.Arrays.stream(allowed.split(",")).filter(t -> t.startsWith("Web")).toList();
+            assertEquals(List.of("WebFetch(domain:fluxtion-playground.dev)"), web, "exactly one web rule: " + mode);
+            assertFalse(String.join(" ", c).contains("WebSearch"), "never WebSearch");
+            assertFalse(String.join(" ", c).contains("Bash("), "never a Bash network rule");
+        }
+        List<String> safe = new ClaudeCodeProvider().command(spec(false));
+        assertFalse(String.join(" ", safe).contains("WebFetch"), "Safe carries no web rule");
+        assertEquals("Read,Grep,Glob", safe.get(safe.indexOf("--tools") + 1), "Safe's tools stay the three");
+    }
+
+    /**
+     * ★ The analyser's own approval layer pre-allows only an https URL whose host is exactly the docs host. Witness: make
+     * {@code docsFetch} compare with {@code endsWith(DOCS_DOMAIN)} — the subdomain and look-alike rows fail; drop the
+     * scheme check — the http row fails.
+     */
+    @Test
+    @DisplayName("★ docsFetch: https and exactly fluxtion-playground.dev; another domain, a subdomain trick and http:// are not")
+    void theDocsFetchRuleIsExact() {
+        assertTrue(LocalAgentPosture.docsFetch("https://fluxtion-playground.dev/spring-authoring/skill.md"));
+        assertTrue(LocalAgentPosture.docsFetch("https://FLUXTION-PLAYGROUND.dev/claude.txt"));
+        assertTrue(LocalAgentPosture.docsFetch("https://fluxtion-playground.dev:443/x"));
+        for (String no : List.of("http://fluxtion-playground.dev/claude.txt", "https://example.com/",
+                "https://docs.fluxtion-playground.dev/x", "https://fluxtion-playground.dev.example.com/x",
+                "https://evil-fluxtion-playground.dev/x", "https://fluxtion-playground.dev@example.com/x",
+                "https://user@fluxtion-playground.dev/x", "https://fluxtion-playground.dev:8443/x", "ftp://fluxtion-playground.dev/",
+                "fluxtion-playground.dev/x", "", "https://")) {
+            assertFalse(LocalAgentPosture.docsFetch(no), no);
+        }
+        assertFalse(LocalAgentPosture.docsFetch(null));
+        assertFalse(LocalAgentPosture.docsFetch(42));
+    }
+
+    /** The adapter observes a docs fetch as PRE_ALLOWED and every other built-in call as one that changes something. */
+    @Test
+    @DisplayName("the adapter observes a docs WebFetch as PRE_ALLOWED; another URL, another tool or bad JSON is asked")
+    void theAdapterObservesTheDocsFetch() {
+        var pre = telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED;
+        var changes = telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.CHANGES;
+        assertEquals(pre, LocalAgentAdapter.builtInKind("WebFetch",
+                "{\"url\":\"https://fluxtion-playground.dev/claude.txt\",\"prompt\":\"x\"}"));
+        assertEquals(changes, LocalAgentAdapter.builtInKind("WebFetch", "{\"url\":\"https://example.com/\"}"));
+        assertEquals(changes, LocalAgentAdapter.builtInKind("WebFetch", "{\"url\":\"http://fluxtion-playground.dev/\"}"));
+        assertEquals(changes, LocalAgentAdapter.builtInKind("WebSearch", "{\"query\":\"fluxtion-playground.dev\"}"));
+        assertEquals(changes, LocalAgentAdapter.builtInKind("Bash", "{\"command\":\"curl https://fluxtion-playground.dev\"}"));
+        assertEquals(changes, LocalAgentAdapter.builtInKind("WebFetch", "not json"));
     }
 }

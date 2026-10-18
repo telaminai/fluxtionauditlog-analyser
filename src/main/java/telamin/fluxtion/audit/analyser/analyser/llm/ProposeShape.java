@@ -13,7 +13,9 @@ import java.util.regex.Pattern;
  * duplicate, a second processor or log) is the node's, from the per-item facts this class observes and never decides.
  *
  * <p>Whole-call refusals: params not an object; {@code items} missing, not an array, empty or over 10; an item that is
- * not an object; an unknown top-level key.
+ * not an object; an unknown top-level key. Option 2 (owner, 2026-10-18): a {@code starter} item — create a project from
+ * one of the analyser's starter templates — stands ALONE: two starters, or a starter beside any other kind, is refused
+ * whole (the set-up items belong to the project the starter makes, which does not exist yet).
  */
 public final class ProposeShape {
 
@@ -25,14 +27,28 @@ public final class ProposeShape {
     public static final int MAX_PATH = 1024;
     public static final int MAX_CLASS_NAME = 300;
     public static final int MAX_REASON = 500;
+    /** A starter id and each of its optional names: the AskPointers identifier bound. */
+    public static final int MAX_NAME = 100;
+    /** The starter item's kind. */
+    public static final String STARTER = "starter";
 
     private static final Set<String> TOP_LEVEL = Set.of("summary", "items");
     private static final Pattern QUALIFIED = Pattern.compile(
             "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*(\\.\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*)*");
 
-    /** One item as Claude sent it, with what was OBSERVED about its fields (the node decides what that means). */
+    /**
+     * One item as Claude sent it, with what was OBSERVED about its fields (the node decides what that means). A starter
+     * item names {@code starter} (a catalogue id) and optionally {@code artifact}, {@code group} and {@code basePackage};
+     * {@code namesMalformed} says one of the four does not match the identifier rules (AskPointers' bounded identifier,
+     * and the scaffold's own artifact and Java-package forms).
+     */
     public record Item(String kind, String path, String className, String reason, boolean tooLong,
-                       boolean classNameMalformed) {
+                       boolean classNameMalformed, String starter, String artifact, String group, String basePackage,
+                       boolean namesMalformed) {
+        public Item(String kind, String path, String className, String reason, boolean tooLong,
+                    boolean classNameMalformed) {
+            this(kind, path, className, reason, tooLong, classNameMalformed, null, null, null, null, false);
+        }
     }
 
     /** A call whose shape is acceptable. */
@@ -66,13 +82,47 @@ public final class ProposeShape {
             String path = text(item.get("path"));
             String className = text(item.get("className"));
             String reason = text(item.get("reason"));
-            boolean tooLong = over(path, MAX_PATH) || over(className, MAX_CLASS_NAME) || over(reason, MAX_REASON);
+            String starter = text(item.get("starter"));
+            String artifact = text(item.get("artifact"));
+            String group = text(item.get("group"));
+            String basePackage = text(item.get("basePackage"));
+            boolean tooLong = over(path, MAX_PATH) || over(className, MAX_CLASS_NAME) || over(reason, MAX_REASON)
+                    || over(starter, MAX_NAME) || over(artifact, MAX_NAME) || over(group, MAX_NAME)
+                    || over(basePackage, MAX_NAME);
             boolean malformed = className != null && !QUALIFIED.matcher(className).matches();
-            items.add(new Item(kind, path, className, reason, tooLong, malformed));
+            boolean namesMalformed = (starter != null && !telamin.fluxtion.audit.analyser.analyser.assistant.AskPointers
+                    .isIdentifier(starter))
+                    || (artifact != null && !(identifier(artifact) && TemplateClientRules.artifact(artifact)))
+                    || (group != null && !(identifier(group) && TemplateClientRules.javaPackage(group)))
+                    || (basePackage != null && !(identifier(basePackage) && TemplateClientRules.javaPackage(basePackage)));
+            items.add(new Item(kind, path, className, reason, tooLong, malformed, starter, artifact, group, basePackage,
+                    namesMalformed));
+        }
+        long starters = items.stream().filter(i -> STARTER.equals(i.kind())).count();
+        if (starters > 1) {
+            return refuse("a proposal holds at most one starter item");
+        }
+        if (starters == 1 && items.size() > 1) {
+            return refuse("a starter item stands alone: propose the set-up items after the project exists");
         }
         String summary = text(m.get("summary"));
         if (over(summary, MAX_SUMMARY)) summary = summary.substring(0, MAX_SUMMARY);
         return new Shaped(new Call(summary, items), null);
+    }
+
+    private static boolean identifier(String s) {
+        return telamin.fluxtion.audit.analyser.analyser.assistant.AskPointers.isIdentifier(s);
+    }
+
+    /** The scaffold's own forms for the optional names (TemplateClient validates them again at download). */
+    private static final class TemplateClientRules {
+        static boolean artifact(String s) {
+            return telamin.fluxtion.audit.analyser.analyser.template.TemplateClient.validArtifact(s);
+        }
+
+        static boolean javaPackage(String s) {
+            return telamin.fluxtion.audit.analyser.analyser.template.TemplateClient.validPackage(s);
+        }
     }
 
     private static String text(Object o) {

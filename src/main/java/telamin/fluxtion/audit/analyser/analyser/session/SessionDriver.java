@@ -375,6 +375,21 @@ public final class SessionDriver {
             case SessionEffects.ChooseAssistantModeEffect ignored -> "chooseAssistantMode";
             case SessionEffects.ConfigureActionListenerEffect ignored -> "configureActionListener";
             case SessionEffects.OfferExampleProjectEffect ignored -> "offerExampleProject";
+            case SessionEffects.ReadStarterCatalogueEffect ignored -> "readStarterCatalogue";
+            case SessionEffects.ChooseStarterEffect ignored -> "chooseStarter";
+            case SessionEffects.ReadStarterDefaultsEffect ignored -> "readStarterDefaults";
+            case SessionEffects.ConfigureStarterEffect ignored -> "configureStarter";
+            case SessionEffects.ObserveStarterDirectoryEffect ignored -> "observeStarterDirectory";
+            case SessionEffects.DownloadStarterEffect ignored -> "downloadStarter";
+            case SessionEffects.VendorSkillsEffect ignored -> "vendorSkills";
+            case SessionEffects.RunDiscoveryEffect ignored -> "runDiscovery";
+            case SessionEffects.ReviewStarterProjectEffect ignored -> "reviewStarterProject";
+            case SessionEffects.OpenStarterProjectEffect ignored -> "openStarterProject";
+            case SessionEffects.OpenStarterDesignEffect ignored -> "openStarterDesign";
+            case SessionEffects.WatchStarterGraphmlEffect ignored -> "watchStarterGraphml";
+            case SessionEffects.OfferStarterGraphEffect ignored -> "offerStarterGraph";
+            case SessionEffects.ArmStarterDraftEffect ignored -> "armStarterDraft";
+            case SessionEffects.ShowStarterCommandsEffect ignored -> "showStarterCommands";
         };
     }
 

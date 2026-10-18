@@ -35,7 +35,8 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <ul>
  *   <li>{@code context}: every section and every key 1.35.1 published is still there, in its section; the only new keys
- *       are {@link #CONTEXT_ADDITIVE} ({@code project.proposals}, M74 P2b; {@code view.hidden}, the records-filter fix).
+ *       are {@link #CONTEXT_ADDITIVE} ({@code project.proposals}, M74 P2b; {@code project.starters}, Option 2; {@code view.hidden},
+ *       the records-filter fix).
  *       {@code ContextSectionsTest.theSectionTableCoversEveryKeyTheBuilderPuts} proves the section table is exactly
  *       the set of top-level keys {@code context} puts, so this pins the reply's top-level key set too.</li>
  *   <li>{@code hidden}'s own keys: {@code count}, {@code byFilter[]} of {@code filter}, {@code hides} and, for event
@@ -76,7 +77,7 @@ class CustomerApiKeysTest {
 
     /** The keys added since 1.35.1, by section — additive only: nothing existing changed for them. */
     static final Map<String, List<String>> CONTEXT_ADDITIVE = Map.of(
-            "project", List.of("proposals"),          // M74 P2b: Claude Code's set-up proposal
+            "project", List.of("proposals", "starters"), // M74 P2b: Claude Code's set-up proposal; Option 2: the starters
             "view", List.of("hidden"));               // the records-filter fix: what each filter hides
 
     /** The headers 1.35.1's bridge sent on every {@code /action} call. */
