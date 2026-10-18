@@ -47,6 +47,12 @@ public final class StartPromptView extends JPanel {
         /** "← Return to main options". */
         default void returnToMainOptions() { }
 
+        /**
+         * Robot re-walk #3: one of the "No log is open" line's actions for held press {@code request} — the person's act;
+         * the session decides what follows.
+         */
+        default void answerNoLog(long request, NoLogAction choice) { }
+
         /** "See the format": the user guide's prompt-pack section. */
         default void seePackFormat() { }
 
@@ -56,6 +62,9 @@ public final class StartPromptView extends JPanel {
          */
         default void downloadExample(int entryIndex) { }
     }
+
+    /** Robot re-walk #3: the "No log is open" line's actions, as the page reports them (the frame makes them facts). */
+    public enum NoLogAction { OPEN_SAMPLE, OPEN_LOG, ASK_ANYWAY }
 
     /** P2b: the download badge an example entry shows in the list and on its chip. */
     static final String DOWNLOAD_BADGE = "⤓";
@@ -134,6 +143,15 @@ public final class StartPromptView extends JPanel {
     private final JPanel packHeader = new JPanel();
     private final JPanel refusalRow = new JPanel(new BorderLayout(8, 0));
     private final JPanel fallbacks = new JPanel(new WrapLayout(FlowLayout.LEFT, 6, 4));
+    /** Robot re-walk #3: "No log is open — the answer will be general" and its three actions, while a press is held. */
+    private final JPanel noLog = new JPanel(new WrapLayout(FlowLayout.LEFT, 6, 4));
+    private final JLabel noLogLine = UiText.label(telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint.HINT);
+    private final JButton noLogSample = UiText.button(NO_LOG_SAMPLE);
+    private final JButton noLogOpen = UiText.button(NO_LOG_OPEN);
+    private final JButton noLogAnyway = UiText.button(NO_LOG_ANYWAY);
+    static final String NO_LOG_SAMPLE = "Open the sample";
+    static final String NO_LOG_OPEN = "Open a log…";
+    static final String NO_LOG_ANYWAY = "Ask anyway";
     private final JTextArea notFound = Fluid.text(" ");
     private final Border boxBorder;
     private final List<Runnable> recolour = new ArrayList<>();
@@ -322,6 +340,21 @@ public final class StartPromptView extends JPanel {
         add(Box.createVerticalStrut(UiTheme.SPACE_XS));
         add(keyHint);
         add(Box.createVerticalStrut(UiTheme.SPACE_XS));
+        noLog.setOpaque(false);
+        noLog.setAlignmentX(LEFT_ALIGNMENT);
+        noLog.getAccessibleContext().setAccessibleName("No log is open");
+        noLogLine.setFont(noLogLine.getFont().deriveFont(Font.BOLD));
+        noLog.add(noLogLine);
+        for (JButton b : new JButton[]{noLogSample, noLogOpen, noLogAnyway}) noLog.add(b);
+        noLogSample.addActionListener(e -> answerNoLog(
+                NoLogAction.OPEN_SAMPLE));
+        noLogOpen.addActionListener(e -> answerNoLog(
+                NoLogAction.OPEN_LOG));
+        noLogAnyway.addActionListener(e -> answerNoLog(
+                NoLogAction.ASK_ANYWAY));
+        noLog.setVisible(false);
+        recolour.add(() -> noLogLine.setForeground(UiTheme.noteForeground()));
+        add(noLog);
         add(note);
         add(exampleNote);
         add(notFound);
@@ -380,6 +413,9 @@ public final class StartPromptView extends JPanel {
         }
         note.setText(state.note());
         note.setVisible(!state.note().isBlank());
+        // robot re-walk #3: the held press's one line — nothing is placed or sent until one of its actions is pressed
+        noLog.setVisible(state.noLogHeld() != 0);
+        for (JButton b : new JButton[]{noLogSample, noLogOpen}) b.setEnabled(!state.noLogOpening());
         renderAction();
         renderFallbacks();
         renderFullCue();
@@ -651,6 +687,23 @@ public final class StartPromptView extends JPanel {
         } else if (!text.isEmpty()) {
             host.press("NONE", text);
         }
+    }
+
+    private void answerNoLog(NoLogAction choice) {
+        if (state.noLogHeld() != 0) host.answerNoLog(state.noLogHeld(), choice);
+    }
+
+    /** For the tests: the "No log is open" line and its actions. */
+    JPanel noLogRow() {
+        return noLog;
+    }
+
+    JButton noLogButton(NoLogAction choice) {
+        return switch (choice) {
+            case OPEN_SAMPLE -> noLogSample;
+            case OPEN_LOG -> noLogOpen;
+            case ASK_ANYWAY -> noLogAnyway;
+        };
     }
 
     /** After the button was answered: the box keeps its words until the person clears them. */

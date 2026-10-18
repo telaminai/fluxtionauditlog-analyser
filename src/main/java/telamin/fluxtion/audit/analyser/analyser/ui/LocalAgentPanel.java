@@ -726,7 +726,7 @@ public final class LocalAgentPanel extends JPanel {
             emphasise(send, LocalAgentState.Guide.SEND.equals(guide.primary()));
             emphasise(stop, LocalAgentState.Guide.STOP.equals(guide.primary()));
             // a refusal is the one line: the composer's "Press Send" hint is not shown beside it
-            if (guide.refusal()) composerHint.setVisible(false);
+            surface.renderHint(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, guide.refusal());
             newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
             renderFullCue(s);
         }
@@ -855,16 +855,9 @@ public final class LocalAgentPanel extends JPanel {
         return b;
     }
 
-    private JLabel chip(String text, boolean strong) {
-        JLabel l = UiText.label(text);                 // a model name or a folder is not the analyser's words
-        l.setOpaque(true);
-        l.setBackground(UiTheme.accentWash(strong ? 0.22f : 0.10f));
-        l.setForeground(strong ? UiTheme.accentText() : UIManager.getColor("Label.foreground"));
-        l.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UiTheme.controlBorder(), 1, true),
-                BorderFactory.createEmptyBorder(1, 6, 1, 6)));
-        Font f = UIManager.getFont("Label.font");
-        if (f != null) l.setFont(f.deriveFont(strong ? Font.BOLD : Font.PLAIN, f.getSize2D() - 1f));
-        return l;
+    /** Robot re-walk #6: a chip wraps to the row rather than running off a narrow column's edge. */
+    private javax.swing.JComponent chip(String text, boolean strong) {
+        return new Chip(text, strong, UiTheme.controlBorder());   // a model name or a folder is not the analyser's words
     }
 
     /**

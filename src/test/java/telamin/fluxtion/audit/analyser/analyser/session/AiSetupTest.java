@@ -470,6 +470,40 @@ class AiSetupTest {
         assertEquals(0, b.agentSends.size(), "placed, never sent");
     }
 
+    /**
+     * The merge of the first-run polish with M77: an evidence question asked with no log open AND nothing set up meets
+     * the no-log line first, then the wizard, then its placement after Finish. Witness: drop the {@code holds} check from
+     * {@code AiSetup.onStartPageSent} — the wizard opens on the first press, behind the no-log line.
+     */
+    @Test
+    @DisplayName("★ no log and nothing set up: the no-log line first, then the wizard (question carried), placed after Finish")
+    void theNoLogLineComesBeforeTheWizard() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        d.post(StartPageNoLogHintTest.evidence(1, false));
+        assertEquals(1, d.snapshot().startPage().noLogHeld(), "the no-log line is first");
+        assertFalse(setup(d).open(), "★ the wizard does not open behind the no-log line");
+        assertTrue(a.startComposes.isEmpty() && a.startFallbacks.isEmpty(), "nothing placed");
+
+        d.post(new SessionEvents.StartPageNoLogAnswered(1, SessionEvents.NoLogChoice.ASK_ANYWAY));
+        assertEquals(1, a.startContinues.size(), "Ask anyway continues the question");
+        // what the performer posts: the same question, pressed again, acknowledged
+        d.post(StartPageNoLogHintTest.evidence(2, true));
+        assertEquals(0, d.snapshot().startPage().noLogHeld());
+        assertTrue(setup(d).open(), "★ then the wizard, nothing being set up");
+        assertEquals(AiSetupState.PendingKind.START_BOX, setup(d).pending().kind(), "the question is carried");
+        assertEquals(AiSetupLines.QUESTION_WAITS, d.snapshot().startPage().note());
+        assertTrue(a.startComposes.isEmpty(), "not placed before Finish");
+
+        d.post(new SessionEvents.AiSetupContinue(Step.CHOICE));
+        found(d, a);
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
+        StartPageCarryTest.reportedAfterApply(d, AssistantProfile.SAFE, true, false);
+        assertEquals(1, a.startComposes.size(), "★ placed after Finish");
+        assertEquals(5, a.startComposes.get(0).textRef(), "the same words, by reference");
+        assertEquals(0, a.agentSends.size(), "placed, never sent");
+    }
+
     // ---- ★ T13: folder trust is not the wizard's ---------------------------------------------------------------------
 
     /** ★ T13. Witness: request a folder confirmation or trust from {@code aiSetup} — the effect lists fill. */

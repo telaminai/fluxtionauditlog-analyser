@@ -75,7 +75,9 @@ class FactFieldsTest {
                 // M77: Set up AI — an effect's own word, the version's digits (parsed, never the CLI's text), Full's
                 // mode (one of four words), and who cancelled
                 "AiSetupEffectStarted.what", "ClaudeObserved.version", "AiSetupPostureChosen.fullMode",
-                "AiSetupCancelled.origin")) {
+                "AiSetupCancelled.origin",
+                // robot re-walk #1: the canvas tab's own title ("Topology") and the analyser's origin word
+                "CanvasLeftAssistant.shown", "AssistantTabShown.origin")) {
             M74.put(c, Holds.VOCABULARY);
         }
         for (String c : List.of("LocalAgentConsent.postureRef", "LocalAgentConsent.folderRef", "LocalAgentStatusObserved.hostedNonceDigest",
