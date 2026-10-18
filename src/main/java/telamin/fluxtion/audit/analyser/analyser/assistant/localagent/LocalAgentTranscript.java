@@ -120,16 +120,30 @@ public final class LocalAgentTranscript {
         return headers.get(id);
     }
 
-    /** P3: keep a request's words; at most 64 are kept (one dialog at a time, and the CLI asks one at a time, P3-6). */
+    /**
+     * P3: keep a request's words until {@link #dropPermission} — when the adapter answers it, the CLI withdraws it or its
+     * process ends. Review PR151 F1 (2026-10-18): nothing is evicted by count. The store used to keep the last 64
+     * requests of any kind, so a burst of others (each answered at once) could evict the words of a request waiting
+     * behind the open dialog while its Allow would still echo them. Every request is answered — the node's queue is
+     * bounded and a request beyond it is answered at once — so only the unanswered ones occupy the store.
+     */
     public synchronized long putPermission(Permission p) {
         long id = next.getAndIncrement();
         permissions.put(id, p);
-        while (permissions.size() > 64) permissions.remove(permissions.keySet().iterator().next());
         return id;
     }
 
     public synchronized Permission permission(long id) {
         return permissions.get(id);
+    }
+
+    /**
+     * Review PR151 F1: a request's words are needed only until it is answered or withdrawn — its dialog reads them when
+     * it is shown, and a request waiting behind the open dialog is shown later. The adapter drops them then, and only
+     * then.
+     */
+    public synchronized void dropPermission(long id) {
+        permissions.remove(id);
     }
 
     public synchronized int size() {

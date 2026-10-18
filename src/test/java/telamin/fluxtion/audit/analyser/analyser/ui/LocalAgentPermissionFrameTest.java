@@ -124,6 +124,37 @@ class LocalAgentPermissionFrameTest {
         assertEquals(List.of("deny", "deny", "deny", "allow", "stop"), said, "Escape, Enter and closing deny; Allow allows");
     }
 
+    /**
+     * ★ Review PR151 F1 (2026-10-18): a dialog whose request's words are not held never enables Allow, after the delay
+     * and on a click. Witness: enable Allow on the delay regardless of {@code held} — Allow becomes active.
+     */
+    @Test
+    @DisplayName("★ missing words: Allow once is never enabled and a click on it does nothing")
+    void missingWordsKeepAllowDisabled() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        var content = PermissionText.of(null, ToolClass.HOSTED_DESTRUCTIVE, "walk");
+        List<String> said = new ArrayList<>();
+        LocalAgentPermissionDialog.Answers answers = new LocalAgentPermissionDialog.Answers() {
+            @Override public void chosen(boolean allow) { said.add(allow ? "allow" : "deny"); }
+            @Override public void stop() { said.add("stop"); }
+        };
+        AtomicReference<LocalAgentPermissionDialog> d = new AtomicReference<>();
+        onEdt(() -> {
+            d.set(new LocalAgentPermissionDialog(null, content, 120_000, answers, false));
+            d.get().setVisible(true);
+        });
+        LocalAgentPermissionDialog dialog = d.get();
+        onEdt(dialog::allowDelayElapsed);
+        Thread.sleep(LocalAgentPermissionDialog.ALLOW_DELAY_MS + 200L);
+        onEdt(() -> {
+            assertFalse(dialog.allowButton().isEnabled(), "Allow stays disabled");
+            dialog.allowButton().doClick();
+            dialog.denyButton().doClick();
+        });
+        onEdt(dialog::close);
+        assertEquals(List.of("deny"), said, "only Deny answered");
+    }
+
     static void awaitEnabled(AbstractButton b) throws Exception {
         long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         AtomicReference<Boolean> on = new AtomicReference<>(false);

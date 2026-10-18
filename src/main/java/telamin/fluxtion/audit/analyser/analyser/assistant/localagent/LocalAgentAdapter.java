@@ -458,6 +458,7 @@ public final class LocalAgentAdapter {
                     ref = run.permissionByRequestId.remove(c.requestId() == null ? "" : c.requestId());
                     if (ref != null) run.pendingPermissions.remove(ref);
                 }
+                if (ref != null) store.dropPermission(ref);       // review PR151 F1: withdrawn, its words are not needed
                 if (ref != null) env.post(new SessionEvents.LocalAgentPermissionCancelled(gen, ref));
             }
             case StreamJson.SystemInit i -> {
@@ -597,6 +598,9 @@ public final class LocalAgentAdapter {
      * carried, which the person was shown), or deny with the node's message. The tool line is marked with who decided.
      * A grant's 60 s are measured from here.
      */
+    /** Review PR151 F1: the deny written when an allow arrives for a request whose shown words are no longer held. */
+    static final String WORDS_NOT_HELD = "Denied: the analyser no longer holds the input it showed for this request";
+
     private SessionEvents.Result answerPermission(SessionEffects.AnswerPermissionEffect e) {
         Run run = runs.get(e.generation());
         String[] pending = null;
@@ -607,8 +611,12 @@ public final class LocalAgentAdapter {
             }
         }
         boolean written = run != null && pending != null;
+        // review PR151 F1: what the person saw is what runs, failing closed — an allow is written only while the words
+        // the dialog showed are still held; then they are dropped, the request answered
+        boolean shown = store.permission(e.requestRef()) != null;
+        store.dropPermission(e.requestRef());
         if (written) {
-            boolean allow = e.allow() && pending[1] != null && !pending[1].isBlank();
+            boolean allow = e.allow() && shown && pending[1] != null && !pending[1].isBlank();
             // the line is marked BEFORE the answer is written: the tool's own result can follow the answer at once
             boolean marked;
             synchronized (run) {
@@ -616,7 +624,8 @@ public final class LocalAgentAdapter {
             }
             if (marked) textChanged(run);
             write(run, allow ? StreamJson.allow(pending[0], pending[1])
-                    : StreamJson.deny(pending[0], e.message() == null ? "Denied in the analyser" : e.message()));
+                    : StreamJson.deny(pending[0], e.allow() && !shown ? WORDS_NOT_HELD
+                    : e.message() == null ? "Denied in the analyser" : e.message()));
             if (allow && e.grantId() != 0) {
                 long gen = e.generation();
                 long grant = e.grantId();
@@ -624,7 +633,7 @@ public final class LocalAgentAdapter {
             }
         }
         return new SessionEvents.LocalAgentPermissionAnswered(e.opId(), e.generation(), e.ticket(), e.requestRef(),
-                e.toolClass(), e.name(), e.allow() && written, e.by(), written);
+                e.toolClass(), e.name(), e.allow() && shown && written, e.by(), written);
     }
 
     /** §8.3 UI: the tool line's mark, by who decided. */
@@ -847,6 +856,10 @@ public final class LocalAgentAdapter {
                     // best effort; the file names a dead process
                 }
             }
+        }
+        synchronized (run) {
+            // review PR151 F1: a request the ended process asked is never answered to it; its words go with it
+            for (Long ref : run.pendingPermissions.keySet()) store.dropPermission(ref);
         }
         runs.remove(run.generation, run);
         if (run.writer instanceof java.util.concurrent.ExecutorService es) es.shutdown();
