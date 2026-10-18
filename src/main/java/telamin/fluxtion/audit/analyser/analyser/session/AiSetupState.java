@@ -82,7 +82,7 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
     }
 
     /** The checks a person can run again (§8.3). */
-    public enum CheckKind { INSTALLED, SIGNED_IN, REGISTRATION, LIVE, READINESS }
+    public enum CheckKind { INSTALLED, SIGNED_IN, REGISTRATION, LIVE, READINESS, BRIDGE }
 
     /** <i>Installed</i>: {@code claude --version}. */
     public enum Installed { UNCHECKED, RUNNING, FOUND, NOT_FOUND, DID_NOT_RUN }
@@ -166,6 +166,14 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
     public enum LiveVerdict { IDLE, WAITING, WAITING_LONG, SEEN, OTHER_INSTANCE, ACCESS_OFF }
 
     /**
+     * Screen 2b's <i>Check connection</i> (the usability fix of 2026-10-18): the bridge your client will start, started
+     * by this window and asked what is open ({@code McpConnectionProbe}, the client dialog's check, M42.1). Its call is
+     * marked, so it never counts as the live check's external client. The values are the probe's own statuses.
+     */
+    public enum Bridge { UNCHECKED, CHECKING, VERIFIED, REST_OFF, OTHER_INSTANCE, LAUNCH_FAILED, PROTOCOL_FAILED,
+        ACTION_FAILED }
+
+    /**
      * The live check: its verdict; when a client was seen (epoch millis) and its self-reported name by reference; and
      * whether a Full Claude Code session ran in the panel while it was checked (the check cannot tell them apart).
      */
@@ -188,17 +196,34 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
      * @param offerTurnOff     OD-77.11: this wizard turned access on and was cancelled — the closing line offers Turn it off
      * @param alsoTurnOff      OD-77.5: the box under No AI is ticked
      * @param offerAlsoTurnOff OD-77.5: the box is shown (No AI chosen while access is on)
+     * @param bridge           part 2's <i>Check connection</i>: the bridge started and asked what is open
+     * @param bridgeAfterAccess <i>Check connection</i> was pressed with access off: it runs once access is on
      */
     public record External(Client client, Access access, Registration registration, Live live, boolean launcher,
-                           boolean offerTurnOff, boolean alsoTurnOff, boolean offerAlsoTurnOff) {
+                           boolean offerTurnOff, boolean alsoTurnOff, boolean offerAlsoTurnOff, Bridge bridge,
+                           boolean bridgeAfterAccess) {
         public static final External NONE = new External(Client.CLAUDE_CODE, Access.OFF, Registration.UNCHECKED,
-                Live.IDLE, true, false, true, false);
+                Live.IDLE, true, false, true, false, Bridge.UNCHECKED, false);
 
         public External {
             client = client == null || client == Client.NONE ? Client.CLAUDE_CODE : client;
             access = access == null ? Access.OFF : access;
             registration = registration == null ? Registration.UNCHECKED : registration;
             live = live == null ? Live.IDLE : live;
+            bridge = bridge == null ? Bridge.UNCHECKED : bridge;
+        }
+
+        /** The shape before <i>Check connection</i> moved onto Screen 2b: the bridge not checked. */
+        public External(Client client, Access access, Registration registration, Live live, boolean launcher,
+                        boolean offerTurnOff, boolean alsoTurnOff, boolean offerAlsoTurnOff) {
+            this(client, access, registration, live, launcher, offerTurnOff, alsoTurnOff, offerAlsoTurnOff,
+                    Bridge.UNCHECKED, false);
+        }
+
+        /** <i>Check connection</i> may be pressed: this copy has a launcher, and nothing is checking or asking. */
+        public boolean bridgeMayCheck() {
+            return launcher && bridge != Bridge.CHECKING && !bridgeAfterAccess && access != Access.CONFIRMING
+                    && access != Access.CLOSED_FOR_SESSION;
         }
 
         /** Part 3 is done: the client knows how to start the bridge (or the person copied it to run it themselves). */

@@ -129,7 +129,7 @@ final class AiSetupWindow extends JDialog {
     private final JScrollPane scroll;
     private final JButton back = UiText.button("Back");
     private final JButton cancel = UiText.button("Cancel");
-    private final JButton primary = UiText.button("Continue");
+    private final JButton primary = UiText.button(AiSetupLines.CONTINUE);
     private final WrapLine line = new WrapLine(" ");
     private final JLabel footer = UiText.label(AiSetupLines.FOOTER);
     /**
@@ -621,6 +621,20 @@ final class AiSetupWindow extends JDialog {
         content.add(switchRow);
         content.add(indentedMuted(AiSetupLines.ACCESS_SETTING_NAME));
         content.add(indented(AiSetupLines.ACCESS_LINE));
+        // the bridge check, here with the switch it needs (usability fix, 2026-10-18: it was behind More options…,
+        // below the fold). The press is an ask: aiSetup asks for access first when it is off, then runs the check
+        JPanel bridgeRow = row();
+        JButton checkBridge = enterPresses(UiText.button(AiSetupLines.CHECK_CONNECTION));
+        checkBridge.setToolTipText(UiText.tooltip(AiSetupLines.CHECK_CONNECTION_TIP));
+        checkBridge.getAccessibleContext().setAccessibleDescription(AiSetupLines.CHECK_CONNECTION_TIP);
+        checkBridge.putClientProperty("aiSetup.bridge", Boolean.TRUE);
+        checkBridge.setEnabled(x.bridgeMayCheck() && s.confirming() == AiSetupState.Confirming.NONE);
+        checkBridge.addActionListener(e -> host.checkAgain(AiSetupState.CheckKind.BRIDGE));
+        bridgeRow.add(checkBridge);
+        content.add(bridgeRow);
+        String bridgeWords = AiSetupLines.bridgeText(x.bridge());
+        if (!bridgeWords.isEmpty()) content.add(statusRow("Connection", bridgeWords));
+        else if (!on && x.launcher()) content.add(indentedMuted(AiSetupLines.CHECK_CONNECTION_ASKS));
         // M77-4: the picture of the path the switch opens, with the switch and its words (the picture needs 340 px, so it
         // sits under the switch's lines rather than squeezed to their right at 520–640 px). It renders the state only.
         accessDiagram.setSnapshot(s, s.choice() == Choice.BOTH ? FlowDiagram.Option.BOTH : FlowDiagram.Option.CLIENT);
@@ -819,18 +833,7 @@ final class AiSetupWindow extends JDialog {
     private void buttons(AiSetupState s) {
         back.setVisible(s.step() == Step.INSIDE || s.step() == Step.OTHER || s.step() == Step.CLIENT);
         cancel.setVisible(s.step() != Step.SUMMARY);
-        String label = switch (s.step()) {
-            case CHOICE -> "Continue";
-            case INSIDE -> s.posture() == Posture.FULL ? AiSetupLines.CONFIRM_FULL_BUTTON
-                    : s.choice() == Choice.BOTH ? "Continue" : "Finish";
-            case OTHER -> "Finish";
-            case SUMMARY -> AiSetupLines.DONE;
-            case CLIENT -> s.external().registration() == AiSetupState.Registration.NO_LAUNCHER
-                    ? AiSetupLines.FINISH_WITHOUT_CLIENT
-                    : s.external().live().verdict() == AiSetupState.LiveVerdict.WAITING
-                    || s.external().live().verdict() == AiSetupState.LiveVerdict.WAITING_LONG
-                    ? AiSetupLines.FINISH_WITHOUT_CHECKING : "Finish";
-        };
+        String label = AiSetupLines.primaryLabel(s);
         primary.setText(label);
         primary.getAccessibleContext().setAccessibleName(label);
         boolean enabled = switch (s.step()) {

@@ -103,8 +103,8 @@ With the analyser open, use **AI ▸ Set up AI…** and choose *Your own AI clie
 client is already set up): choose the client, turn on **External MCP/REST access** (confirmed first), register the
 analyser with your client, and its last step says when a client actually reached this window. The same door is the
 start page's AI line and *Settings ▸ Assistant ▸ Set up AI…*. The **Connect an AI client** dialog is behind that
-screen's **More options…** (its only door since M77-4), for a project-scope command, removing a registration, Claude
-Desktop's note and **Check connection**, which proves the local bridge reaches this live window.
+screen's **More options…** (its only door since M77-4), for a project-scope command, removing a registration and Claude
+Desktop's note. **Check connection**, on the screen itself, proves the local bridge reaches this live window.
 The screen can explicitly register Codex or user-scoped Claude Code when their CLIs are available. For
 Claude Desktop and any other client, **Generic MCP setup** supplies the exact no-token stdio JSON for you
 to copy or save to a file you choose; it never guesses or edits a client configuration location. See

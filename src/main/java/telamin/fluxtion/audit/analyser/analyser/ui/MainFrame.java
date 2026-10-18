@@ -8967,6 +8967,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SetExternalAccessEffect e -> setExternalAccess(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RequestExternalAccessEffect e -> requestExternalAccessFor(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CheckMcpRegistrationEffect e -> checkMcpRegistration(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ProbeBridgeEffect e -> probeBridge(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmRegisterEffect e -> confirmRegister(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RegisterMcpEffect e -> registerMcp(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CopyToClipboardEffect e -> copyForSetup(e);
@@ -12425,6 +12426,39 @@ public final class MainFrame extends JFrame {
                         telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegistrationOutcome.INDETERMINATE)));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
                 "checkMcpRegistration");
+    }
+
+    /** For the frame tests: the bridge check's answer instead of starting a bridge (null: the real probe). */
+    java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge> bridgeProbeForTest;
+
+    /**
+     * ProbeBridgeEffect: Screen 2b's Check connection — the launcher a client is registered with, started off the event
+     * thread and asked what is open (McpConnectionProbe, the client dialog's check). Reports the status as a fact.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result probeBridge(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ProbeBridgeEffect e) {
+        var command = launchCommand();
+        var forTest = bridgeProbeForTest;
+        Background.run(() -> {
+                    if (forTest != null) return forTest.get();
+                    if (command.isEmpty()) return telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.LAUNCH_FAILED;
+                    var r = new telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbe(command.get(),
+                            telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown()).probe();
+                    return switch (r.status()) {
+                        case VERIFIED -> telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.VERIFIED;
+                        case REST_OFF -> telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.REST_OFF;
+                        case OTHER_INSTANCE -> telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.OTHER_INSTANCE;
+                        case LAUNCH_FAILED -> telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.LAUNCH_FAILED;
+                        case PROTOCOL_FAILED -> telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.PROTOCOL_FAILED;
+                        case ACTION_FAILED -> telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.ACTION_FAILED;
+                    };
+                },
+                status -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BridgeObserved(
+                        e.probe(), status)),
+                err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BridgeObserved(
+                        e.probe(), telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.LAUNCH_FAILED)));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "probeBridge");
     }
 
     /** ConfirmRegisterEffect (§9.3): the verbatim vectors, kept for the request, shown under the SafeChoice rule. */

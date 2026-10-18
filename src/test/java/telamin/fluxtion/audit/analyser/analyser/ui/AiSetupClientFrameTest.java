@@ -259,6 +259,106 @@ class AiSetupClientFrameTest {
         }
     }
 
+    /**
+     * The scorecard's T6 fix (2026-10-18): Screen 1 says what its button does (<i>Set up my client</i>), and Screen 2b
+     * carries <i>Check connection</i> itself, above the fold at 640×560 and 520×480, where the integration had it behind
+     * <i>More options…</i> below the fold. With access off the press raises the SAME OD-77.4 confirmation (Cancel the
+     * default; Escape turns nothing on and checks nothing), and its confirm also runs the check: four acts from the
+     * choice to <i>Bridge works now</i>. Witnesses: put the button back behind More options… (it is not on Screen 2b);
+     * move it under the picture (below the fold at 520×480); request {@code SetExternalAccessEffect} at once from the
+     * BRIDGE check (no confirmation shows); drop the check after the confirm ({@code maybeCheckBridge} in
+     * {@code onListenerConfigured}) — the bridge never reports.
+     */
+    @Test
+    @DisplayName("★ T6 fix: Set up my client → Check connection on Screen 2b, above the fold; the confirmation's confirm checks")
+    void checkConnectionIsOnScreenTwoB(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        javax.swing.LookAndFeel lafBefore = javax.swing.UIManager.getLookAndFeel();
+        try (AiSetupWizardFrameTest.Robot r = robot(tmp, new FakeRegistrar())) {
+            int[] probes = new int[1];
+            onEdt(() -> r.frame.bridgeProbeForTest = () -> {
+                probes[0]++;
+                return AiSetupState.Bridge.VERIFIED;
+            });
+            r.await(AiSetupState::firstRun, "first run");
+            onEdt(() -> r.assistant().setUpAiButton().doClick());
+            r.await(AiSetupState::open, "open");
+            onEdt(() -> r.window().choiceRadio(Choice.CLIENT).doClick());
+            r.await(s -> s.choice() == Choice.CLIENT, "chosen");
+            onEdt(() -> assertEquals(AiSetupLines.SET_UP_MY_CLIENT, r.window().primaryButton().getText(),
+                    "★ Screen 1 says what its button does, not Continue"));
+            for (String theme : List.of("Light", "Dark")) {
+                onEdt(() -> { ThemeManager.apply(theme); for (Window x : Window.getWindows()) SwingUtilities.updateComponentTreeUI(x); });
+                onEdt(() -> { r.window().validate(); r.window().relayout(); });
+                shot(r.window(), "screen1-client-" + theme.toLowerCase() + "-640");
+            }
+            onEdt(() -> { ThemeManager.apply("Light"); for (Window x : Window.getWindows()) SwingUtilities.updateComponentTreeUI(x); });
+            onEdt(() -> r.window().primaryButton().doClick());
+            r.await(s -> s.step() == Step.CLIENT, "Screen 2b");
+            AiSetupWindow w = r.window();
+            screens(w, "screen2b-check");
+            for (int width : new int[]{AiSetupWindow.DEFAULT_WIDTH, AiSetupWindow.MIN_WIDTH}) {
+                int height = width == AiSetupWindow.MIN_WIDTH ? AiSetupWindow.MIN_HEIGHT : AiSetupWindow.DEFAULT_HEIGHT;
+                onEdt(() -> { w.setSize(width, height); w.validate(); w.relayout(); });
+                onEdt(() -> {
+                    AbstractButton check = bridgeButton(w);
+                    assertTrue(check.isShowing() && check.isEnabled(), "★ Check connection is on Screen 2b, enabled");
+                    javax.swing.JViewport port = (javax.swing.JViewport) SwingUtilities.getAncestorOfClass(
+                            javax.swing.JViewport.class, check);
+                    java.awt.Rectangle at = SwingUtilities.convertRectangle(check.getParent(), check.getBounds(), port);
+                    assertTrue(new java.awt.Rectangle(0, 0, port.getWidth(), port.getHeight()).contains(at),
+                            "★ above the fold at " + width + "×" + height + ": " + at + " in " + port.getSize());
+                });
+            }
+            onEdt(() -> { w.setSize(AiSetupWindow.DEFAULT_WIDTH, AiSetupWindow.DEFAULT_HEIGHT); w.validate(); w.relayout(); });
+
+            // access is off: the press asks first — the same confirmation as the switch; Escape checks nothing
+            onEdt(() -> bridgeButton(w).doClick());
+            SafeChoice.Asked first = awaitShown(() -> r.frame.externalAccessAsked, null, "the access confirmation");
+            assertSafeByDefault(first, AiSetupLines.ACCESS_CONFIRM_TURN_ON);
+            onEdt(() -> assertTrue(texts(first.dialog()).contains(AiSetupLines.ACCESS_CONFIRM_TEXT), "★ OD-77.4's words"));
+            for (String theme : List.of("Light", "Dark")) {
+                onEdt(() -> { ThemeManager.apply(theme); SwingUtilities.updateComponentTreeUI(first.dialog()); first.dialog().pack(); });
+                shot(first.dialog(), "confirm-access-from-check-" + theme.toLowerCase());
+            }
+            onEdt(() -> { ThemeManager.apply("Light"); for (Window x : Window.getWindows()) SwingUtilities.updateComponentTreeUI(x); });
+            escape(first);
+            r.await(s -> s.external().access() == Access.OFF && !s.external().bridgeAfterAccess(), "★ Escape: off, no check");
+            Thread.sleep(200);
+            assertEquals(0, probes[0], "★ declined: no bridge was started");
+            assertEquals(AiSetupState.Bridge.UNCHECKED, r.setup().external().bridge());
+
+            // again, confirmed: access turns on AND the check runs — one act, not the switch then a second button
+            onEdt(() -> bridgeButton(w).doClick());
+            SafeChoice.Asked second = awaitShown(() -> r.frame.externalAccessAsked, first, "the confirmation again");
+            onEdt(() -> second.riskyButton().doClick());
+            AiSetupState done = r.await(s -> s.external().bridge() == AiSetupState.Bridge.VERIFIED, "★ the check ran");
+            assertEquals(Access.ON, done.external().access(), "access is on");
+            assertEquals(1, probes[0], "one press, one bridge check");
+            onEdt(() -> assertTrue(texts(w.getContentPane()).stream().anyMatch(t -> t.startsWith("Bridge works now")),
+                    "★ Screen 2b says the bridge works: " + texts(w.getContentPane())));
+            screens(w, "screen2b-checked");
+            onEdt(() -> w.cancelButton().doClick());
+            r.await(s -> !s.open(), "closed");
+        } finally {
+            onEdt(() -> {
+                try {
+                    javax.swing.UIManager.setLookAndFeel(lafBefore);
+                } catch (javax.swing.UnsupportedLookAndFeelException e) {
+                    throw new AssertionError(e);
+                }
+                for (Window x : Window.getWindows()) SwingUtilities.updateComponentTreeUI(x);
+            });
+        }
+    }
+
+    static AbstractButton bridgeButton(AiSetupWindow w) {
+        for (AbstractButton b : all(w.contentPanel(), AbstractButton.class)) {
+            if (Boolean.TRUE.equals(b.getClientProperty("aiSetup.bridge"))) return b;
+        }
+        throw new AssertionError("Check connection is not on Screen 2b");
+    }
+
     /** The picture's client → product arrow on Screen 2b, as drawn. */
     static telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram.Line clientArrow(AiSetupWindow w) {
         return w.accessDiagram.model().edges().stream()

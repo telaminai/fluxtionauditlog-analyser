@@ -159,5 +159,35 @@ class UsabilityBudgetFrameTest {
         assertTrue(r.success, "the longer path still opens the sample: " + r.failure);
         assertEquals(UsabilityBudgets.ACTS.get("T7") + 1, r.totalActs(), "one more act is counted");
         assertFalse(UsabilityBudgets.violations(List.of(), List.of(r)).isEmpty(), "★ a step more is over T7's budget");
+
+        // the old T6 route, still possible by hand: the switch, its confirmation, THEN Check connection — one act and one
+        // hesitation more than the fix's route, so T6's act and hesitation budgets both catch a return to it
+        UsabilityTasks.Task oldT6 = new UsabilityTasks.Task("T6", "Set up an external client, the switch first",
+                List.of("client", "connect", "mcp"), (run, dir) -> {
+                    try (UsabilityTasks.Session s = new UsabilityTasks.Session(dir, UsabilityTasks.answering(), true)) {
+                        StartPromptFrameTest.session(s.frame);
+                        run.begin();
+                        run.click("choose your own AI client", Usability.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CLIENT_SHORT));
+                        run.click("set up my client", Usability.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_MY_CLIENT));
+                        Usability.await("Screen 2b", () -> s.setup().open() && s.setup().step()
+                                == telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step.CLIENT);
+                        run.click("the switch", Usability.buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_SWITCH));
+                        run.click("confirm", Usability.buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_CONFIRM_TITLE,
+                                telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_CONFIRM_TURN_ON));
+                        Usability.await("access on", () -> s.setup().external().access()
+                                == telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Access.ON);
+                        run.click("check the connection", Usability.buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE,
+                                telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CHECK_CONNECTION));
+                        Usability.await("checked", () -> s.setup().external().bridge()
+                                != telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.CHECKING);
+                        return run.endScreen(true);
+                    }
+                });
+        Usability.Run old = UsabilityTasks.run(oldT6, tmp.resolve("T6-old"));
+        assertTrue(old.success, "the switch-first route still works: " + old.failure);
+        List<String> oldBroken = UsabilityBudgets.violations(List.of(), List.of(old));
+        assertTrue(oldBroken.stream().anyMatch(v -> v.contains("acts > budget"))
+                && oldBroken.stream().anyMatch(v -> v.contains("hesitations > budget")),
+                "★ the old T6 route is over both budgets: " + oldBroken);
     }
 }

@@ -996,6 +996,10 @@ public final class SessionEvents {
     public record McpRegistrationObserved(long probe, AiSetupState.Client client, RegistrationOutcome status) {
     }
 
+    /** {@code ProbeBridgeEffect{probe}}'s answer: the bridge check's status (the probe's own, never its detail text). */
+    public record BridgeObserved(long probe, AiSetupState.Bridge status) {
+    }
+
     /** The person's answer to {@code ConfirmRegisterEffect{request}}: confirmed only on <i>Register</i>. */
     public record RegisterAnswered(long request, boolean confirmed) {
     }

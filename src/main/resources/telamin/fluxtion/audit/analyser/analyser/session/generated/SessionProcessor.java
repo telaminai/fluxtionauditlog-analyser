@@ -84,6 +84,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantP
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BridgeObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleRootsRestored;
@@ -308,6 +309,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BridgeObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleRootsRestored
@@ -753,6 +755,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "AssistantTabShown",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown",
+                false),
+            new ProcessorDescriptor.Input(
+                "BridgeObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BridgeObserved",
                 false),
             new ProcessorDescriptor.Input(
                 "BundleCaptureRequested",
@@ -1288,7 +1294,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "1db70b575c26342d02657fc3dffae32033cd67791f33b0dd87e3fa889e915d98",
+              "22b3687f4426c43c64c76c61d8e720af56dc1bcf9638c8fb23241f3b908894df",
               null));
 
   @Override
@@ -1594,6 +1600,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof AssistantTabShown) {
       AssistantTabShown typedEvent = (AssistantTabShown) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof BridgeObserved) {
+      BridgeObserved typedEvent = (BridgeObserved) event;
       handleEvent(typedEvent);
     } else if (event instanceof BundleCaptureRequested) {
       BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
@@ -2224,6 +2233,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AssistantTabShown event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(BridgeObserved event) {
     processEvent(event);
   }
 
@@ -2925,6 +2939,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(actionListener, "actionListener", "onConfigured", typedEvent);
     isDirty_actionListener = actionListener.onConfigured(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onListenerConfigured", typedEvent);
+    isDirty_aiSetup = aiSetup.onListenerConfigured(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -3345,6 +3361,14 @@ public class SessionProcessor
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
     }
+    afterEvent();
+  }
+
+  public void handleEvent(BridgeObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onBridgeObserved", typedEvent);
+    isDirty_aiSetup = aiSetup.onBridgeObserved(typedEvent);
     afterEvent();
   }
 
@@ -5242,6 +5266,8 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(actionListener, "actionListener", "onConfigured", typedEvent);
       isDirty_actionListener = actionListener.onConfigured(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onListenerConfigured", typedEvent);
+      isDirty_aiSetup = aiSetup.onListenerConfigured(typedEvent);
     } else if (event instanceof AiClientsObserved) {
       AiClientsObserved typedEvent = (AiClientsObserved) event;
       auditEvent(typedEvent);
@@ -5467,6 +5493,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onAssistantTabShown", typedEvent);
       isDirty_assistantLoop = assistantLoop.onAssistantTabShown(typedEvent);
+    } else if (event instanceof BridgeObserved) {
+      BridgeObserved typedEvent = (BridgeObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onBridgeObserved", typedEvent);
+      isDirty_aiSetup = aiSetup.onBridgeObserved(typedEvent);
     } else if (event instanceof BundleCaptureRequested) {
       BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
       auditEvent(typedEvent);

@@ -332,6 +332,7 @@ public final class SessionDriver {
             case SessionEffects.SetExternalAccessEffect ignored -> "setExternalAccess";
             case SessionEffects.RequestExternalAccessEffect ignored -> "requestExternalAccess";
             case SessionEffects.CheckMcpRegistrationEffect ignored -> "checkMcpRegistration";
+            case SessionEffects.ProbeBridgeEffect ignored -> "probeBridge";
             case SessionEffects.ConfirmRegisterEffect ignored -> "confirmRegister";
             case SessionEffects.RegisterMcpEffect ignored -> "registerMcp";
             case SessionEffects.CopyToClipboardEffect ignored -> "copyToClipboard";

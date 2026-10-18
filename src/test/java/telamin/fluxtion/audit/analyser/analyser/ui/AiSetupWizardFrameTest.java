@@ -222,12 +222,13 @@ class AiSetupWizardFrameTest {
     /**
      * ★ T19 — the newcomer's path in ≤ 6 acts with no dead end: (1) Sample project; (2) right-click a record; (3) its
      * <i>Ask: What happened here? (set up AI first)</i> — the wizard opens at Screen 1 with Claude inside preselected;
-     * (4) Continue — both checks ✓ (the stub answered), Safe preselected; (5) Finish — the window closes, the question
-     * is placed once and bound; (6) Send — a turn starts and the fixture's answer streams. Witness: open nothing on
+     * (4) <i>Check Claude Code</i> (Continue until the scorecard fix) — both checks ✓ (the stub answered), Safe
+     * preselected; (5) <i>Finish, then send my question</i> (a bare Finish before) — the window closes, the question is
+     * placed once and bound; (6) Send — a turn starts and the fixture's answer streams. Witness: open nothing on
      * (3) (drop {@code openWizard} from {@code AiSetup.onDraftPending}) — the wizard never opens.
      */
     @Test
-    @DisplayName("★ T19: Sample → right-click → Ask → Continue → Finish → Send, in ≤ 6 acts at 1200×800 with no dead end")
+    @DisplayName("★ T19: Sample → right-click → Ask → Check Claude Code → Finish, then send → Send, in ≤ 6 acts at 1200×800")
     void theRobotWalkthrough(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         try (Robot r = new Robot(tmp, 1200, 800)) {
@@ -275,7 +276,11 @@ class AiSetupWizardFrameTest {
             assertEquals(AiSetupState.PendingKind.ASK_DRAFT, opened.pending().kind(), "the question waits");
             AiSetupWindow w = r.window();
             assertNotNull(w);
-            onEdt(() -> assertWhollyInside(w.primaryButton(), w));
+            onEdt(() -> {
+                assertWhollyInside(w.primaryButton(), w);
+                // the scorecard's T1/T2 fix: the button says what it does (it opens 2a, which runs the two checks)
+                assertEquals(AiSetupLines.CHECK_CLAUDE_CODE, w.primaryButton().getText(), "★ not Continue");
+            });
             shot(w, "t19-3-screen1");
             // (4) Continue
             r.act(() -> w.primaryButton().doClick());
@@ -285,7 +290,8 @@ class AiSetupWizardFrameTest {
             assertEquals(AiSetupState.Posture.SAFE, checked.posture(), "Safe analysis preselected");
             onEdt(() -> {
                 assertTrue(w.primaryButton().isEnabled(), "Finish is enabled once Installed passed");
-                assertEquals("Finish", w.primaryButton().getText());
+                // a question waits, so this press closes the window and places it (OD-77.2): the label says so
+                assertEquals(AiSetupLines.FINISH_THEN_SEND, w.primaryButton().getText(), "★ not a bare Finish");
                 assertWhollyInside(w.primaryButton(), w);
                 String shownText = String.join("\n", all(w.getContentPane(), JTextComponent.class).stream()
                         .map(JTextComponent::getText).toList());

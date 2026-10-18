@@ -394,4 +394,87 @@ class AiSetupExternalTest {
         d.post(new SessionEvents.AiSetupContinue(Step.CLIENT));
         assertTrue(a.clientWrites.isEmpty(), "no client was set up");
     }
+
+    // ---- the scorecard's T6 fix (2026-10-18): Check connection on Screen 2b ------------------------------------------
+
+    /** What RequestExternalAccessEffect's performer does: the wizard's ask, posted as the SETUP door's fact. */
+    static long asked(SessionDriver d, FakeSessionAdapter a) {
+        var ask = a.accessAsks.get(a.accessAsks.size() - 1);
+        d.post(new SessionEvents.ExternalAccessRequested(ask.request(), ask.on(), AccessOrigin.SETUP));
+        return ask.request();
+    }
+
+    /**
+     * ★ Check connection with access off asks for access through the ONE owner — the same confirmation as the switch
+     * (OD-77.4): nothing is written and no bridge starts before the answer; Cancel checks nothing; the confirm turns access
+     * on AND, once the listener serves external clients, runs the check — one act, not two. Its answer is published for
+     * that probe only. Witnesses: request {@code ProbeBridgeEffect} before access is on (the "no bridge before the
+     * answer" assertion fails); drop {@code maybeCheckBridge} from {@code onListenerConfigured} (no probe after the
+     * confirm); drop the {@code !e.confirmed()} reset (Cancel leaves the check waiting).
+     */
+    @Test
+    @DisplayName("★ Check connection: access first through the confirmation; its confirm also runs the check")
+    void checkConnectionAsksForAccessThenChecks() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        d.post(new SessionEvents.RestSwitchObserved(false));
+        toClient(d);
+        assertTrue(setup(d).external().bridgeMayCheck(), "Check connection is offered with access off");
+        assertEquals(AiSetupState.Bridge.UNCHECKED, setup(d).external().bridge());
+
+        d.post(new SessionEvents.AiSetupCheckAgain(AiSetupState.CheckKind.BRIDGE));
+        assertEquals(1, a.accessAsks.size(), "★ access is asked for first, as a door asks");
+        assertTrue(a.accessAsks.get(0).on());
+        long r1 = asked(d, a);
+        assertEquals(1, a.accessConfirms.size(), "★ the OD-77.4 confirmation, from the one owner");
+        assertTrue(a.accessWrites.isEmpty() && a.bridgeProbes.isEmpty(), "★ nothing written, no bridge before the answer");
+        assertTrue(setup(d).external().bridgeAfterAccess());
+        assertFalse(setup(d).external().bridgeMayCheck(), "one ask at a time");
+        d.post(new SessionEvents.ExternalAccessAnswered(r1, false));            // Cancel or Escape
+        assertTrue(a.accessWrites.isEmpty(), "Cancel writes nothing");
+        assertFalse(setup(d).external().bridgeAfterAccess(), "★ Cancel: the check does not wait on");
+        assertTrue(a.bridgeProbes.isEmpty(), "★ Cancel: no bridge");
+
+        d.post(new SessionEvents.AiSetupCheckAgain(AiSetupState.CheckKind.BRIDGE));
+        long r2 = asked(d, a);
+        d.post(new SessionEvents.ExternalAccessAnswered(r2, true));
+        assertTrue(a.bridgeProbes.isEmpty(), "not before the setting is written and the listener serves");
+        written(d, a);                                // the switch reported; the fake listener answers configured
+        assertEquals(1, a.bridgeProbes.size(), "★ the confirm also ran the check");
+        assertEquals(Access.ON, setup(d).external().access());
+        assertEquals(AiSetupState.Bridge.CHECKING, setup(d).external().bridge());
+        long probe = a.bridgeProbes.get(0).probe();
+        d.post(new SessionEvents.BridgeObserved(probe + 99, AiSetupState.Bridge.LAUNCH_FAILED));
+        assertEquals(AiSetupState.Bridge.CHECKING, setup(d).external().bridge(), "another probe's answer is stale");
+        d.post(new SessionEvents.BridgeObserved(probe, AiSetupState.Bridge.VERIFIED));
+        assertEquals(AiSetupState.Bridge.VERIFIED, setup(d).external().bridge(), "★ published");
+        assertTrue(AiSetupLines.bridgeText(setup(d).external().bridge()).contains("Bridge works now"));
+
+        // access on already: the press checks at once, asking nothing
+        int confirms = a.accessConfirms.size();
+        d.post(new SessionEvents.AiSetupCheckAgain(AiSetupState.CheckKind.BRIDGE));
+        assertEquals(2, a.bridgeProbes.size(), "checked again at once");
+        assertEquals(confirms, a.accessConfirms.size(), "nothing asked: access is on");
+        // access off again: "works" is no longer true
+        d.post(new SessionEvents.BridgeObserved(a.bridgeProbes.get(1).probe(), AiSetupState.Bridge.VERIFIED));
+        d.post(new SessionEvents.ExternalAccessRequested(77, false, AccessOrigin.SETUP));
+        written(d, a);
+        assertEquals(AiSetupState.Bridge.UNCHECKED, setup(d).external().bridge(), "★ off: the verdict is withdrawn");
+    }
+
+    /** A check running when the screen goes answers nothing: Back and Cancel make its answer stale. */
+    @Test
+    @DisplayName("a bridge check still running when Screen 2b goes is stale")
+    void aBridgeCheckOutlivedByItsScreenIsStale() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        d.post(new SessionEvents.RestSwitchObserved(false));
+        toClient(d);
+        accessOn(d, a, 1, AccessOrigin.SETUP);
+        d.post(new SessionEvents.AiSetupCheckAgain(AiSetupState.CheckKind.BRIDGE));
+        assertEquals(1, a.bridgeProbes.size());
+        d.post(new SessionEvents.AiSetupBack(Step.CLIENT));
+        d.post(new SessionEvents.BridgeObserved(a.bridgeProbes.get(0).probe(), AiSetupState.Bridge.VERIFIED));
+        assertNotEquals(AiSetupState.Bridge.VERIFIED, setup(d).external().bridge(), "stale after Back");
+    }
 }

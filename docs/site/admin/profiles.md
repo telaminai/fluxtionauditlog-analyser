@@ -38,6 +38,9 @@ saying what it checked:
    on 127.0.0.1 only, and a Full Claude Code session in the panel can use it too. The AI menu's checkbox, *Settings ▸
    Assistant* and the *Connect an AI client* dialog ask the same question; turning access off never asks. Beside the
    switch, the *Where data goes* picture shows the path it opens: your client's arrow is solid only while access is on.
+   **Check connection**, under the switch, starts the bridge your client will start and asks it what is open here: *Bridge
+   works now* proves this window can be reached through it (not that your client has registered it). With access off,
+   it asks the same question first, and confirming turns access on and runs the check in one step.
 3. **Register the analyser with your client.** The exact command is shown. **Register for me…** runs it only after a
    confirmation that shows the full command (*Cancel* the default); **I'll run it myself** copies it; **Check
    registration** asks your client. Nothing runs before you press one of them, and the analyser never reads or edits your
@@ -47,14 +50,14 @@ saying what it checked:
    — its own claim, shown as such. If another analyser window holds the connection, or access is off, it says so.
 
 **Finish** is enabled once access is on (the last check is never required). **More options…** opens the *Connect an
-AI client* dialog for the rest (project-scope command, remove, Claude Desktop's note, *Check connection*); it is the
-only way to that dialog. If you **Cancel** after this window turned
+AI client* dialog for the rest (project-scope command, remove, Claude Desktop's note); it is the only way to that
+dialog. If you **Cancel** after this window turned
 access on, access stays on and the closing line offers **Turn it off**. Choosing **No AI** while access is on offers a
 ticked box, *Also turn off External MCP/REST access*.
 
 Nothing is sent from the window. If a question is waiting — you asked from a record, the start page or the panel
-before anything was set up — **Finish** closes the window and puts the question in the composer of the assistant you
-chose, so pressing **Send** is the only step left. Otherwise a short summary suggests one first step. **Cancel**
+before anything was set up — the last button reads **Finish, then send my question**: it closes the window and puts the
+question in the composer of the assistant you chose, so pressing **Send** is the only step left. Otherwise a short summary suggests one first step. **Cancel**
 applies nothing further; a question waiting in the start box stays there. *Not now* on the start page's block hides it
 and leaves one line, *AI: not set up — Set up AI…*. Both the block and the line are remembered on this machine only.
 

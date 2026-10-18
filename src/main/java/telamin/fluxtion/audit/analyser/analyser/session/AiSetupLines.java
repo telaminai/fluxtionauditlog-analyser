@@ -59,6 +59,57 @@ public final class AiSetupLines {
     public static final String ALSO_TURN_OFF_ACCESS = "Also turn off External MCP/REST access";
     public static final String NOT_NOW = "Not now";
 
+    // ---- the primary button: what it does, in its own words (usability fix, 2026-10-18) ------------------------------
+    //
+    // The scorecard (docs/usability/scorecard.md) measured Continue and Finish as a hesitation each: neither says what
+    // pressing does. Each label below says it. Continue and Finish remain only where nothing more exact is true.
+
+    public static final String CONTINUE = "Continue";
+    public static final String FINISH = "Finish";
+    /** Screen 1 / the first-run block, Claude inside or Both: Continue opens 2a, which runs the two read-only checks. */
+    public static final String CHECK_CLAUDE_CODE = "Check Claude Code";
+    /** Screen 1 / the first-run block, your own client: Continue opens Screen 2b. */
+    public static final String SET_UP_MY_CLIENT = "Set up my client";
+    /** Screen 1 / the first-run block, No AI: Off is applied at once (§6.0). */
+    public static final String CONTINUE_WITHOUT_AI = "Continue without AI";
+    /** 2a for Both: Claude inside is applied, then Screen 2b. */
+    public static final String CONTINUE_TO_MY_CLIENT = "Continue to my client";
+    /**
+     * The last screen's Finish while a question waits (OD-77.2): the window closes, no Summary, and the question is placed
+     * in the panel with the focus on Send. Nothing is sent from this window, so the label says the person sends it.
+     */
+    public static final String FINISH_THEN_SEND = "Finish, then send my question";
+
+    /** The first-run block's and Screen 1's primary for {@code c}: what Continue does for that choice. */
+    public static String choiceProceedLabel(Choice c) {
+        return switch (c == null ? Choice.NONE : c) {
+            case INSIDE, BOTH -> CHECK_CLAUDE_CODE;
+            case CLIENT -> SET_UP_MY_CLIENT;
+            case NO_AI -> CONTINUE_WITHOUT_AI;
+            case IN_APP, NONE -> CONTINUE;
+        };
+    }
+
+    /** The wizard's primary button on the screen {@code s} shows — rendered from the snapshot, decided nowhere else. */
+    public static String primaryLabel(AiSetupState s) {
+        AiSetupState st = s == null ? AiSetupState.IDLE : s;
+        // a question waits and THIS press is the one that places it (§12): only a screen that applies an assistant
+        boolean placing = st.pending().waiting();
+        return switch (st.step()) {
+            case CHOICE -> choiceProceedLabel(st.choice());
+            case INSIDE -> st.posture() == AiSetupState.Posture.FULL ? CONFIRM_FULL_BUTTON
+                    : st.choice() == Choice.BOTH ? CONTINUE_TO_MY_CLIENT
+                    : placing ? FINISH_THEN_SEND : FINISH;
+            case OTHER -> placing ? FINISH_THEN_SEND : FINISH;
+            case SUMMARY -> DONE;
+            case CLIENT -> st.external().registration() == AiSetupState.Registration.NO_LAUNCHER ? FINISH_WITHOUT_CLIENT
+                    : st.external().live().verdict() == AiSetupState.LiveVerdict.WAITING
+                    || st.external().live().verdict() == AiSetupState.LiveVerdict.WAITING_LONG ? FINISH_WITHOUT_CHECKING
+                    // your own client alone turns the panel off, so nothing is placed; Both places it here
+                    : placing && st.choice() == Choice.BOTH ? FINISH_THEN_SEND : FINISH;
+        };
+    }
+
     /** Screen 1's one-line sentence for a choice, as the first-run block shows it under the selection. */
     public static String sentenceFor(Choice c) {
         return switch (c == null ? Choice.NONE : c) {
@@ -358,6 +409,32 @@ public final class AiSetupLines {
             + "this check cannot tell them apart.";
     public static final String FINISH_WITHOUT_CHECKING = "Finish without checking";
     public static final String MORE_OPTIONS = "More options…";
+
+    /**
+     * Part 2's Check connection (usability fix, 2026-10-18): on Screen 2b itself, under the switch, where the scorecard
+     * found it behind More options… below the fold. It starts the bridge a client is registered with and asks it what is
+     * open — the client dialog's check (M42.1). With access off it asks for access first, through the same confirmation.
+     */
+    public static final String CHECK_CONNECTION = "Check connection";
+    public static final String CHECK_CONNECTION_TIP = "Starts the bridge your client will start and asks it what is open "
+            + "here. Nothing is sent to an AI model.";
+    /** Under the button while access is off: the press asks for access first. */
+    public static final String CHECK_CONNECTION_ASKS = "Checking asks to turn access on first.";
+
+    /** Part 2's line for the bridge check ("" before it ran). */
+    public static String bridgeText(AiSetupState.Bridge b) {
+        return switch (b == null ? AiSetupState.Bridge.UNCHECKED : b) {
+            case UNCHECKED -> "";
+            case CHECKING -> "⏳ Checking the bridge…";
+            case VERIFIED -> "✓ Bridge works now: the command your client will run reached this window.";
+            case REST_OFF -> "✗ Access is off, so the bridge cannot reach this window.";
+            case OTHER_INSTANCE -> "✗ Another " + PRODUCT + " window owns the client connection; check from that window.";
+            case LAUNCH_FAILED -> "✗ The bridge command did not start.";
+            case PROTOCOL_FAILED -> "✗ The bridge started but did not answer in time. A cold start can be slow — check "
+                    + "again once.";
+            case ACTION_FAILED -> "✗ The bridge reached this window, but reading what is open failed.";
+        };
+    }
 
     /** ✓ part 4: honest words — a client with this window's key reached this window, not which client (§9.4). */
     public static String liveSeen(String hhmm) {

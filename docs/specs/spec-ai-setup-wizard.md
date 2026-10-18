@@ -217,6 +217,13 @@ are constructed **from that resolution**, not from their own `detect()` — whic
 (`ClaudeMcpClient.detect`, `CodexMcpClient.detect`), so a Finder-launched {Product} would say "found" and then fail to
 register.
 
+> **Deviation (fix/wizard-scorecard-regressions, 2026-10-18).** The primary button, here and on the first-run block,
+> says what it does for the choice made: **Check Claude Code** (Claude inside, Both), **Set up my client** (your own
+> client), **Continue without AI** (No AI); **Continue** only for the in-app assistant. On 2a, Both's **Continue** reads
+> **Continue to my client**, and the last screen's **Finish** reads **Finish, then send my question** while a question
+> waits (§6.4, OD-77.2). The labels are `AiSetupLines.primaryLabel`, rendered from `AiSetupState`. Reason: the usability
+> scorecard counted every bare Continue and Finish as a hesitation ([`scorecard.md`](../usability/scorecard.md)).
+
 Buttons: **Cancel** · **Continue** (disabled until a choice is made). Preselection: the choice in force (§14.1); on a
 fresh machine *Claude inside {Product}* when `claude` was found, otherwise none.
 
@@ -409,6 +416,18 @@ R1-18).
 
 Buttons: **Back** · **Cancel** · **Finish** (enabled once part 2 is on; the live check is never a gate) and **Finish
 without checking** while ⏳.
+
+> **Deviation (fix/wizard-scorecard-regressions, 2026-10-18).** Part 2 carries **Check connection** under the switch:
+> the client dialog's bridge probe (M42.1, `McpConnectionProbe`: the registered launcher started, one read-only
+> `analyser_context` call, marked so it never counts as part 4's client), which OD-77.12 had left behind **More
+> options…**. It is decided by `aiSetup` (`AiSetupCheckAgain(BRIDGE)` → `ProbeBridgeEffect` → `BridgeObserved`, published
+> as `External.bridge`). With access **off**, the press is a door's ask (`RequestExternalAccessEffect`): the same §9.2
+> confirmation shows, unchanged, and once it is confirmed and the listener serves external clients the check runs, so
+> the confirmation's confirm also proceeds. Cancel turns nothing on and checks nothing. Part 4's live check is unchanged
+> and remains the proof that a client reached this window; *More options…* keeps the dialog for the rest. Reason: the
+> scorecard's T6 went from 4 acts to 7 with the one door (the switch, its confirmation, then More options… below the
+> fold); this route is 4 acts and 1 hesitation. Not done: skipping to the live check when the client is already
+> registered (registration is not known until *Check registration* runs a process).
 
 ### 6.4 Screen 3 — Summary, and one suggested first action
 
@@ -1035,3 +1054,6 @@ poll makes in the view today (review R1-16 e). Each is a tracker line, not M77.
   first launch shows the diamond, and the wizard opens at the first Ask, Send or Start (entry 5, unchanged). The
   first-run block (§5 entry 1, §6.0) is withdrawn before it is built; OD-77.9 and OD-77.19 become moot; the AI line
   stands. T15's single-line check and T20's first-run capture follow the AI line alone.
+- **r5 deviation, 2026-10-18 (fix/wizard-scorecard-regressions)** — the primary buttons say what they do (§6.1), and
+  Screen 2b's part 2 carries *Check connection*, whose access confirmation also runs the check (§6.3). OD-77.4's
+  confirmation and its words are unchanged. Recorded beside §6.1 and §6.3; measured in the usability scorecard.

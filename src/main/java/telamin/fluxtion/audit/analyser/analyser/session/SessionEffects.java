@@ -364,6 +364,14 @@ public sealed interface SessionEffects {
     }
 
     /**
+     * Screen 2b's <i>Check connection</i>: start the bridge command a client is registered with ({@code --mcp}), off the
+     * event thread, and ask it what is open ({@code McpConnectionProbe}, read-only; its call is marked, so it never counts
+     * as the live check's client). Reports {@link SessionEvents.BridgeObserved} for {@code probe}.
+     */
+    record ProbeBridgeEffect(long opId, long probe) implements SessionEffects {
+    }
+
+    /**
      * <i>Register for me…</i>: show, under the SafeChoice rule, the verbatim argument vector(s) that will run ({@code
      * replace}: the remove, then the add). The vectors are kept for {@code request}; {@link RegisterMcpEffect} runs THOSE
      * (S5). Reports {@link SessionEvents.RegisterAnswered}.

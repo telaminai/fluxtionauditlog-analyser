@@ -154,6 +154,11 @@ public class AiSetup implements EventLogSource {
     /** OD-77.5: the box under No AI — ticked by default (turning off is the safe direction). */
     private boolean alsoTurnOff = true;
     private long nextAccessRequest;
+    /** Screen 2b's Check connection (usability fix, 2026-10-18): the bridge check's verdict and its probe (0: none). */
+    private AiSetupState.Bridge bridge = AiSetupState.Bridge.UNCHECKED;
+    private long bridgeProbe;
+    /** Check connection was pressed with access off: the check runs once access is on and serving external clients. */
+    private boolean bridgeAfterAccess;
 
     /**
      * Robot re-walk #3: the hold of an evidence question asked with no log open — a JavaBean parent, upstream, so neither
@@ -286,6 +291,8 @@ public class AiSetup implements EventLogSource {
             offerTurnOff = false;                      // OD-77.11: it is off now; the offer has done its job
             if (AiSetupLines.ACCESS_STILL_ON.equals(line)) line = "";
         }
+        // a bridge verdict is about access as it was: off now, so "works" is no longer true
+        if (!e.on() && bridge != AiSetupState.Bridge.CHECKING) bridge = AiSetupState.Bridge.UNCHECKED;
         rearm();
         return changed();
     }
@@ -305,6 +312,11 @@ public class AiSetup implements EventLogSource {
         if (wizardAccessRequest != 0 && e.request() == wizardAccessRequest) {
             if (e.confirmed()) accessTurnedOnHere = true;
             wizardAccessRequest = 0;
+        }
+        // Check connection asked for access first: Cancel (or Escape) means the check does not run either
+        if (!e.confirmed() && bridgeAfterAccess) {
+            bridgeAfterAccess = false;
+            auditLog.info("aiSetupBridge", "ACCESS_DECLINED");
         }
         rearm();
         return changed();
@@ -781,6 +793,9 @@ public class AiSetup implements EventLogSource {
         liveAt = 0;
         liveLabelRef = 0;
         liveFull = false;
+        bridge = AiSetupState.Bridge.UNCHECKED;
+        bridgeProbe = 0;
+        bridgeAfterAccess = false;
         auditLog.info("aiSetup", "CLIENT").info("client", client.name()).info("launcher", launcher);
         rearm();
     }
@@ -838,6 +853,7 @@ public class AiSetup implements EventLogSource {
         if (step == Step.CLIENT) {
             disarm();
             registrationProbe = 0;                    // a check still running answers a screen that is gone: stale
+            forgetBridgeCheck();
             if (registration == AiSetupState.Registration.RUNNING && registerRequest == 0) {
                 registration = AiSetupState.Registration.UNCHECKED;
             }
@@ -880,6 +896,7 @@ public class AiSetup implements EventLogSource {
 
     private void closeWizard() {
         disarm();
+        forgetBridgeCheck();
         wizardOpen = false;
         probeInstalled = 0;
         probeAuth = 0;
@@ -1191,6 +1208,25 @@ public class AiSetup implements EventLogSource {
                 auditLog.info("aiSetupProbe", "REGISTRATION").info("probe", registrationProbe);
                 effects.request(new SessionEffects.CheckMcpRegistrationEffect(0L, registrationProbe, client));
             }
+            case BRIDGE -> {
+                // Check connection: the bridge your client will start, asked what is open. With access off it asks for
+                // access first — the same confirmation as the switch (OD-77.4) — and its confirm also runs the check
+                if (!launcher) return false;
+                if (bridge == AiSetupState.Bridge.CHECKING || bridgeAfterAccess) {
+                    line = AiSetupLines.ALREADY_CHECKING;
+                    return changed();
+                }
+                AiSetupState.Access a = access();
+                if (a == AiSetupState.Access.CONFIRMING || a == AiSetupState.Access.CLOSED_FOR_SESSION) return false;
+                bridgeAfterAccess = true;
+                bridge = AiSetupState.Bridge.UNCHECKED;
+                if (a == AiSetupState.Access.OFF) {
+                    auditLog.info("aiSetupBridge", "ACCESS_FIRST");
+                    effects.request(new SessionEffects.RequestExternalAccessEffect(0L, -(++nextAccessRequest), true));
+                } else {
+                    maybeCheckBridge();
+                }
+            }
             case LIVE, READINESS -> {
                 if (liveVerdict == AiSetupState.LiveVerdict.SEEN || liveVerdict == AiSetupState.LiveVerdict.ACCESS_OFF
                         || liveVerdict == AiSetupState.LiveVerdict.OTHER_INSTANCE) {
@@ -1256,6 +1292,57 @@ public class AiSetup implements EventLogSource {
                 }
             }
         }
+    }
+
+    /** The listener now serves (or stopped serving) external clients: a Check connection waiting for access runs. */
+    @OnEventHandler
+    public boolean onListenerConfigured(SessionEvents.ActionListenerConfigured e) {
+        if (!bridgeAfterAccess) return false;
+        if (e.failure() != null) {
+            bridgeAfterAccess = false;                // the listener could not start: there is nothing to reach
+            bridge = AiSetupState.Bridge.REST_OFF;
+            auditLog.info("aiSetupBridge", "LISTENER_FAILED");
+            return changed();
+        }
+        maybeCheckBridge();
+        return changed();
+    }
+
+    /** The bridge check's answer, for the probe this node asked for; any other is stale. */
+    @OnEventHandler
+    public boolean onBridgeObserved(SessionEvents.BridgeObserved e) {
+        if (bridgeProbe == 0 || e.probe() != bridgeProbe) {
+            auditLog.info("staleFact", "BridgeObserved").info("probe", e.probe()).info("current", bridgeProbe);
+            return false;
+        }
+        bridgeProbe = 0;
+        bridge = e.status() == null || e.status() == AiSetupState.Bridge.UNCHECKED
+                || e.status() == AiSetupState.Bridge.CHECKING ? AiSetupState.Bridge.LAUNCH_FAILED : e.status();
+        auditLog.info("aiSetupBridge", bridge.name());
+        line = "";
+        return changed();
+    }
+
+    /** Check connection waits for access: it runs once the listener serves external clients, on Screen 2b only. */
+    private void maybeCheckBridge() {
+        if (!bridgeAfterAccess) return;
+        if (!wizardOpen || step != Step.CLIENT) {
+            bridgeAfterAccess = false;
+            return;
+        }
+        if (actionListener == null || !actionListener.state().external()) return;
+        bridgeAfterAccess = false;
+        bridgeProbe = ++nextProbe;
+        bridge = AiSetupState.Bridge.CHECKING;
+        auditLog.info("aiSetupProbe", "BRIDGE").info("probe", bridgeProbe);
+        effects.request(new SessionEffects.ProbeBridgeEffect(0L, bridgeProbe));
+    }
+
+    /** A bridge check still running answers a screen that is gone: stale. */
+    private void forgetBridgeCheck() {
+        bridgeProbe = 0;
+        bridgeAfterAccess = false;
+        if (bridge == AiSetupState.Bridge.CHECKING) bridge = AiSetupState.Bridge.UNCHECKED;
     }
 
     /** The 2-minute tip (§6.3 part 4). */
@@ -1357,7 +1444,7 @@ public class AiSetup implements EventLogSource {
                 : AiSetupState.Confirming.NONE;
         AiSetupState.External ext = new AiSetupState.External(client, access, registration,
                 new AiSetupState.Live(liveVerdict, liveAt, liveLabelRef, liveFull), launcher, offerTurnOff, alsoTurnOff,
-                choice == Choice.NO_AI && restOn());
+                choice == Choice.NO_AI && restOn(), bridge, bridgeAfterAccess);
         AiSetupState.Pending pending = pendingDraft != 0
                 ? new AiSetupState.Pending(AiSetupState.PendingKind.ASK_DRAFT, pendingDraft)
                 : startBoxWaiting ? new AiSetupState.Pending(AiSetupState.PendingKind.START_BOX, interceptedStartPage)

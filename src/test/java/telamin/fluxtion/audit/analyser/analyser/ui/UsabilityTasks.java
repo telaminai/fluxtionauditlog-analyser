@@ -309,14 +309,15 @@ final class UsabilityTasks {
 
     /**
      * M77-2: the first use with nothing set up opens Set up AI at Screen 1 with Claude inside preselected (the stub
-     * claude was found). Continue runs the two checks; Finish (enabled once they pass, Safe analysis preselected)
-     * applies it and places the question. Two counted acts where the cards had one (Apply).
+     * claude was found). <i>Check Claude Code</i> opens 2a, which runs the two checks; <i>Finish, then send my
+     * question</i> (enabled once they pass, Safe analysis preselected) applies it and places the question. Two counted
+     * acts where the cards had one (Apply). The scorecard fix (2026-10-18) relabelled them from Continue and Finish.
      */
     static void setUpInside(Run run, Session s) throws Exception {
         Usability.await("Set up AI opens", () -> s.setup().open());
-        run.click("continue with Claude inside", buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE,
-                "Continue"));
-        Finder finish = buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE, "Finish");
+        run.click("check Claude Code (Claude inside preselected)", buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE,
+                telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CHECK_CLAUDE_CODE));
+        Finder finish = buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.FINISH_THEN_SEND);
         run.awaitEnabled("Finish", finish);
         run.click("finish setting up AI", finish);
         Usability.await("Set up AI closed", () -> !s.setup().open());
@@ -680,9 +681,11 @@ final class UsabilityTasks {
     }
 
     /**
-     * T6: from the start page, the generic MCP client set-up: access on, the bridge checked. M77-3/M77-4: the start
-     * page's Connect block is gone; the first-run block's <i>Your own AI client</i> opens Set up AI at Screen 2b, whose
-     * switch turns access on behind its confirmation, and the bridge check is behind its <i>More options…</i>.
+     * T6: from the start page, your own client set up to a checked bridge. M77-3/M77-4: the start page's Connect block is
+     * gone; the first-run block's <i>Your own AI client</i> and its <i>Set up my client</i> open Set up AI at Screen
+     * 2b. The scorecard fix (2026-10-18): Screen 2b's own <i>Check connection</i>, under the access switch, asks for
+     * access through the OD-77.4 confirmation when it is off, and the confirmation's <i>Turn on access</i> also runs the
+     * check — where the integration had the switch, its confirmation, then <i>More options…</i> below the fold.
      */
     static boolean externalClient(Run run, Path dir) throws Exception {
         try (Session s = new Session(dir, answering(), true)) {
@@ -690,19 +693,38 @@ final class UsabilityTasks {
             run.begin();
             String title = telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE;
             run.click("choose your own AI client", button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CLIENT_SHORT));
-            run.click("continue", button("Continue"));
+            run.click("set up my client", button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_MY_CLIENT));
             Usability.await("Set up AI opens at your own client", () -> s.setup().open()
                     && s.setup().step() == telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step.CLIENT);
-            run.click("let programs on this computer reach this window",
-                    buttonInWindow(title, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_SWITCH));
-            run.click("confirm", buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_CONFIRM_TITLE,
+            run.click("check the connection", buttonInWindow(title, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CHECK_CONNECTION));
+            run.click("confirm turning access on", buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_CONFIRM_TITLE,
                     telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_CONFIRM_TURN_ON));
-            run.click("more options", buttonInWindow(title, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.MORE_OPTIONS));
-            run.awaitEnabled("Check connection", button("Check connection"));
-            run.click("check the connection", button("Check connection"));
-            Usability.await("the bridge check reports", () -> !bridgeLine().contains("checking"));
-            return run.endScreen(bridgeLine().startsWith("Bridge works now"));
+            Usability.await("the bridge check reports", () -> {
+                var b = s.setup().external().bridge();
+                return b != telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.UNCHECKED
+                        && b != telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Bridge.CHECKING
+                        && !s.setup().external().bridgeAfterAccess();
+            });
+            return run.endScreen(wizardBridgeLine().contains("Bridge works now"));
         }
+    }
+
+    /** Screen 2b's bridge line, as shown. */
+    static String wizardBridgeLine() {
+        AtomicReference<String> out = new AtomicReference<>("");
+        try {
+            onEdt(() -> {
+                for (Window w : Usability.windows()) {
+                    if (!(w instanceof AiSetupWindow)) continue;
+                    for (Usability.Shown sh : Usability.chrome(w)) {
+                        if (sh.text().contains("Bridge")) out.set(sh.text());
+                    }
+                }
+            });
+        } catch (Exception e) {
+            return "";
+        }
+        return out.get();
     }
 
     /** Whether a finder's control is on screen now (its centre visible). */
@@ -725,24 +747,6 @@ final class UsabilityTasks {
                     && SwingUtilities.isDescendingFrom(filter, sp.getTopComponent())) return sp;
         }
         return null;
-    }
-
-    /** The McpSetupDialog's bridge status, as shown. */
-    static String bridgeLine() {
-        AtomicReference<String> out = new AtomicReference<>("");
-        try {
-            onEdt(() -> {
-                for (Window w : Usability.windows()) {
-                    if (!(w instanceof McpSetupDialog)) continue;
-                    for (Usability.Shown sh : Usability.chrome(w)) {
-                        if (sh.text().startsWith("Bridge")) out.set(sh.text());
-                    }
-                }
-            });
-        } catch (Exception e) {
-            return "";
-        }
-        return out.get();
     }
 
     /** T7: from the start page, the sample project, its records on screen. */

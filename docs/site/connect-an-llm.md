@@ -82,8 +82,8 @@ set up (Screen 1 otherwise: choose *Your own AI client connects*). The same door
 access, confirmed first), the exact registration command, and a live check that a client reached this window — are in
 [Your own client, step by step](admin/profiles.md#your-own-client-step-by-step).
 
-For what the steps do not do — a project-scope command, removing a registration, Claude Desktop's note, *Check
-connection* — **More options…** on that screen opens the **Connect an AI client** dialog. It is the dialog's only door
+For what the steps do not do — a project-scope command, removing a registration, Claude Desktop's note — **More
+options…** on that screen opens the **Connect an AI client** dialog. It is the dialog's only door
 (since M77-4: the AI menu's *Connect an AI client…*, the start page's *Connect an assistant* block and the Settings
 button are gone). Opening either screen changes nothing: it only inspects this analyser. Its **Bridge command** is the exact local launcher
 this installation can use, including an absolute Java path where one is required. Do not shorten, split or substitute
@@ -135,8 +135,8 @@ state.
 
 **Does the bridge reach the analyser?** The quickest normal check is Set up AI's own last step: ask your client *Use
 analyser_context and tell me what is open* and the step says when a call with this window's key arrived. The
-bridge-only check is **AI ▸ Set up AI… ▸ More options… ▸ Check connection**: it runs the exact command shown on that
-screen and makes one read-only `analyser_context` call. A green result proves the analyser-to-bridge chain
+bridge-only check is **Check connection** on Set up AI's *Your own AI client* screen, under the access switch: it starts
+the same bridge command your client is registered with and makes one read-only `analyser_context` call. A green result proves the analyser-to-bridge chain
 for this window. It does not prove that a client has imported the registration or made a model call. For a technical
 check, the endpoint file exists while the analyser is serving:
 

@@ -260,7 +260,7 @@ elsewhere** means another analyser window owns the endpoint, so a client is read
 *Ready* is not *connected*. This window being reachable and a client actually talking to it are two
 different facts: the first is true continuously, the second only at the moment you measure it. If you
 want the second, *AI ▸ Set up AI…* ▸ *Your own AI client* says when a client with this window's key reached it (and
-its *More options… ▸ Check connection* runs a bridge probe and tells you when it ran).
+its *Check connection* runs a bridge probe and says what it found).
 
 ## Write runbooks in the skill shape
 

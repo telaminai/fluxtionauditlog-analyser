@@ -58,6 +58,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.SetExternalAccessEffect> accessWrites = new ArrayList<>();
     final List<SessionEffects.RequestExternalAccessEffect> accessAsks = new ArrayList<>();
     final List<SessionEffects.CheckMcpRegistrationEffect> registrationChecks = new ArrayList<>();
+    final List<SessionEffects.ProbeBridgeEffect> bridgeProbes = new ArrayList<>();
     final List<SessionEffects.ConfirmRegisterEffect> registerConfirms = new ArrayList<>();
     final List<SessionEffects.RegisterMcpEffect> registerRuns = new ArrayList<>();
     final List<SessionEffects.CopyToClipboardEffect> copies = new ArrayList<>();
@@ -278,6 +279,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.SetExternalAccessEffect e -> { accessWrites.add(e); yield started(e); }
             case SessionEffects.RequestExternalAccessEffect e -> { accessAsks.add(e); yield started(e); }
             case SessionEffects.CheckMcpRegistrationEffect e -> { registrationChecks.add(e); yield started(e); }
+            case SessionEffects.ProbeBridgeEffect e -> { bridgeProbes.add(e); yield started(e); }
             case SessionEffects.ConfirmRegisterEffect e -> { registerConfirms.add(e); yield started(e); }
             case SessionEffects.RegisterMcpEffect e -> { registerRuns.add(e); yield started(e); }
             case SessionEffects.CopyToClipboardEffect e -> { copies.add(e); yield started(e); }

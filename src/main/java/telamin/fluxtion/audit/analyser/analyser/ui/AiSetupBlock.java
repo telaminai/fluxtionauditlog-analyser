@@ -54,7 +54,7 @@ final class AiSetupBlock extends JPanel {
     private final JLabel offerLine = UiText.label(AiSetupLines.ACCESS_STILL_ON_LEAD);
     private final Map<Choice, JRadioButton> radios = new LinkedHashMap<>();
     private final WrapLine sentence = new WrapLine(" ");
-    private final JButton proceed = UiText.button("Continue");
+    private final JButton proceed = UiText.button(AiSetupLines.CONTINUE);
     private final JButton notNow = UiText.button(AiSetupLines.NOT_NOW);
     private final ButtonGroup group = new ButtonGroup();
     /** OD-77.5 (M77-3): shown under No AI while external access is on; ticked by default. */
@@ -161,6 +161,10 @@ final class AiSetupBlock extends JPanel {
             if (radios.values().stream().noneMatch(JRadioButton::isSelected)) group.clearSelection();
             String words = AiSetupLines.sentenceFor(st.choice());
             sentence.setText(words.isEmpty() ? " " : words);
+            // the label says what pressing does for the choice made (usability fix, 2026-10-18), as Screen 1's does
+            String proceedLabel = AiSetupLines.choiceProceedLabel(st.choice());
+            proceed.setText(proceedLabel);
+            proceed.getAccessibleContext().setAccessibleName(proceedLabel);
             proceed.setEnabled(st.choice() != Choice.NONE);
             alsoTurnOff.setVisible(st.firstRun() && st.external().offerAlsoTurnOff());
             alsoTurnOff.setSelected(st.external().alsoTurnOff());
