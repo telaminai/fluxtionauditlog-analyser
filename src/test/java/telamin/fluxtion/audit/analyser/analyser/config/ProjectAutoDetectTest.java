@@ -59,6 +59,25 @@ class ProjectAutoDetectTest {
                 "the comparison must survive a differently-spelled but equal path");
     }
 
+    /**
+     * ★ Authoring walk (2026-10-18, shots 25/26): the open project was reached through a link ({@code /tmp} is a link to
+     * {@code /private/tmp} on macOS) and its log through the chooser's resolved path — the same project, so no
+     * "Load this project?". Witness: compare {@code toAbsolutePath().normalize()} in {@code sameProject} again — this
+     * offers the project that is already open.
+     */
+    @Test
+    void theActiveProjectReachedThroughALinkIsNotOfferedAgain(@TempDir Path dir) throws Exception {
+        Path real = Files.createDirectories(dir.resolve("real"));
+        Path link = Files.createSymbolicLink(dir.resolve("link"), real);
+        repoWithProfile(real, "bundle");
+        Path log = logUnder(real, "bundle");
+        Path activeThroughLink = ProjectProfile.pathFor(link.resolve("bundle"));
+
+        assertNull(detect.offerFor(log, activeThroughLink), "the project already open is never offered");
+        assertNull(detect.offerFor(link.resolve("bundle/build/logs/audit.yaml"), ProjectProfile.pathFor(real.resolve("bundle"))),
+                "nor the other way round");
+    }
+
     /** The brief's rule: respect "no", and do not re-nag for the same log in the same session. */
     @Test
     void decliningStopsTheOfferForThatLogOnly(@TempDir Path dir) throws Exception {
