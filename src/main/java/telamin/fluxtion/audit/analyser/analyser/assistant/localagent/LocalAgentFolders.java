@@ -54,8 +54,17 @@ public final class LocalAgentFolders {
      */
     public static Path sampleRoot(Path projectRoot, Path home) {
         if (projectRoot == null || home == null) return null;
-        Path demo = real(home.resolve(".fluxtion-analyser").resolve("demo"));
-        return real(projectRoot).startsWith(demo) ? demo : null;
+        try {
+            // Canonicalise the home first (normal platform/home aliases are fine), then keep the analyser-owned
+            // anchor fixed beneath it. Resolving a moved demo or analyser directory as the authority would turn,
+            // for example, a link to home into a home-wide grant for an ordinary project's hosted open calls.
+            Path anchor = home.toRealPath().resolve(".fluxtion-analyser").resolve("demo");
+            Path demo = anchor.toRealPath();
+            if (!demo.equals(anchor) || !java.nio.file.Files.isDirectory(demo)) return null;
+            return projectRoot.toRealPath().startsWith(demo) ? demo : null;
+        } catch (IOException | SecurityException e) {
+            return null; // unresolved ownership never widens the pre-allow
+        }
     }
 
     /**

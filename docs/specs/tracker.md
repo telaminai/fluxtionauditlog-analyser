@@ -275,6 +275,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   silently. [M46.4] ☐ U5–U8. [M46.8] ☐ X1–X4 doc gaps. [M46.9] ☐ H1–H2 harness. ▸ detail: *M46*.
 
 ### M47 · Start from a template
+- [INTEG-R4] ☑ Integration review: the sample pre-allow cannot expand through a linked sample/parent directory; genuine sample and home-alias controls retained. [Approval-boundary evidence](../handoff/evidence/integration-review-2026-10-18/f4-sample-anchor.md).
 - [OPT-2-R2] ☑ Integration review: starter design outcome waits for the actual read/display; a declined source root is not recorded as opened. Real-frame wrong-result witness and gates: [F2](../handoff/evidence/integration-review-2026-10-18/f2-design-outcome.md).
 - [OPT-2-R1] ☑ Integration review: a discovery failure settles the starter and its proposal; stale outcomes are ignored and another creation is admitted. Regression and executed red/green evidence: [F1](../handoff/evidence/integration-review-2026-10-18/f1-discovery.md).
 - [M47.1] ☐ Do the onboarding templates remove the four round-16 blockers structurally? ▸ detail: *M47*.
