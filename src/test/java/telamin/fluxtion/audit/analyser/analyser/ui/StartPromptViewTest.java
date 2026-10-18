@@ -182,7 +182,8 @@ class StartPromptViewTest {
             assertEquals("Help ▸ User guide", buttons.get(0).getToolTipText());
             v.choose(0);
             buttons = buttons(v.fallbacksPanel());
-            assertEquals(List.of("Assistant settings", "Connect an AI client…", "Copy prompt"),
+            // M78 D2: the client door's fallback opens Set up AI, and says so
+            assertEquals(List.of("Assistant settings", "Set up AI…", "Copy prompt"),
                     buttons.stream().map(JButton::getText).toList());
             buttons.get(2).doClick();
             assertEquals(List.of("COPY_PROMPT|S1"), host.fallbacks);

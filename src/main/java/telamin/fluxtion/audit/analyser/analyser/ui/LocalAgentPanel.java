@@ -446,7 +446,7 @@ public final class LocalAgentPanel extends JPanel {
             + "Claude Code asks, and cannot confine the rest. "
             + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CLAUDE_CODE_SENDS;
     static final String OFF_LIMITS = "Claude Code is not set up on this machine — choose Safe analysis or Full Claude "
-            + "Code (Assistant ▾ above), or the in-app assistant.";
+            + "Code (the mode chip above), or the in-app assistant.";
 
     static String limitsText(LocalAgentState s) {
         return limitsText(s, telamin.fluxtion.audit.analyser.analyser.session.ListenerState.NONE);

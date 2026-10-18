@@ -793,9 +793,22 @@ public class AssistantLoop implements EventLogSource {
     public AssistantState state() {
         if (dirty) {
             published = new AssistantState(conversation, ticket, phase, round, actionsRun, runningVerb, entries, docked,
-                    frozen, basisLabel, reason, answer, away);
+                    frozen, basisLabel, reason, answer, away, chipWord(phase));
             dirty = false;
         }
         return published;
+    }
+
+    /**
+     * M78 D2 (spec-quiet-assistant-panel.md §5.1, OD-Q.12): the in-app assistant's word on the panel's mode chip — the
+     * same closed set as Claude Code's: "answering…" while a turn is in progress, nothing otherwise (a turn's end, a
+     * cancel or a failure is the transcript's note; the in-app assistant has no process to stop or permission to ask).
+     */
+    public static String chipWord(String phase) {
+        return switch (phase == null ? "" : phase) {
+            case "PREPARING", "REQUESTING", "RUNNING_ACTION" ->
+                    telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.Guide.CHIP_ANSWERING;
+            default -> telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.Guide.CHIP_READY;
+        };
     }
 }

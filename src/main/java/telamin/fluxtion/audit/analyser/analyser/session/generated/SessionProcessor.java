@@ -1266,7 +1266,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "55b4e46daa83436ee20235cef1a8db406ba9db84a5352f6cb5c7d86fd3536b56",
+              "7e92127168d00bea978c26dc0a311fa8033ae0591891ddbda3ebde899414de3c",
               null));
 
   @Override
@@ -3234,10 +3234,16 @@ public class SessionProcessor
   public void handleEvent(AssistantProfileApplied typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onProfileApplied", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onProfileApplied(typedEvent);
     auditInvocation(aiSetup, "aiSetup", "onProfileApplied", typedEvent);
     isDirty_aiSetup = aiSetup.onProfileApplied(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onProfileApplied", typedEvent);
     startPagePrompt.onProfileApplied(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
     afterEvent();
   }
 
@@ -5161,6 +5167,8 @@ public class SessionProcessor
     } else if (event instanceof AssistantProfileApplied) {
       AssistantProfileApplied typedEvent = (AssistantProfileApplied) event;
       auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onProfileApplied", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onProfileApplied(typedEvent);
       auditInvocation(aiSetup, "aiSetup", "onProfileApplied", typedEvent);
       isDirty_aiSetup = aiSetup.onProfileApplied(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onProfileApplied", typedEvent);

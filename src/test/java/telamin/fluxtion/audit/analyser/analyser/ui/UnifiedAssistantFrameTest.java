@@ -95,12 +95,15 @@ class UnifiedAssistantFrameTest {
                 assertTrue(shown.contains("analyser_context") && shown.contains("✓"),
                         "the action is a tool line with Claude Code's marks: " + shown);
                 assertTrue(shown.contains("• nothing is open"), "a list is a list: " + shown);
-                assertEquals("In-app assistant", chips(a).get(0), "the header's chips: " + chips(a));
-                assertTrue(chips(a).contains("API key"), chips(a).toString());
-                assertTrue(a.profileButton().fullWords().startsWith("Assistant: "), "one control for how the assistant "
-                        + "works: " + a.profileButton().fullWords());
-                assertEquals(AssistantPanel.IN_APP_LIMITS, a.limitsLine().getText(), "what in-app cannot do, said");
-                assertTrue(((javax.swing.JButton) field(a, "copyPrompt")).isVisible());
+                // M78 D2 (§4.1 items 1, 12, 42; OD-Q.12): the in-app assistant has the same chip and ⋯ — no chips, no
+                // Copy prompt beside Send
+                assertEquals(List.of(), chips(a), "no in-app chips: " + chips(a));
+                assertTrue(a.profileButton().fullWords().endsWith(" ▾") && !a.profileButton().fullWords().contains(":"),
+                        "one mode chip for how the assistant works: " + a.profileButton().fullWords());
+                assertEquals(AssistantPanel.IN_APP_LIMITS, a.limitsLine().getText(), "what in-app cannot do, in About");
+                assertTrue(a.aboutText().contains(AssistantPanel.IN_APP_LIMITS), "About says it");
+                assertFalse(((javax.swing.JButton) field(a, "copyPrompt")).isVisible(), "Copy prompt is in ⋯");
+                assertTrue(QuietPanelTest.moreItems(a).contains(AssistantPanel.COPY_PROMPT), "in-app ⋯ has Copy prompt");
                 assertFalse(a.surface().start.isVisible(), "in-app has no Start");
                 a.chooseModeForTest(AssistantMode.LOCAL_AGENT);                       // the person chooses Claude Code
             });
@@ -114,6 +117,7 @@ class UnifiedAssistantFrameTest {
                 assertTrue(java.util.Arrays.stream(a.moreMenu().getComponents()).anyMatch(c ->
                         c instanceof javax.swing.JMenuItem m && m.getText().endsWith("Claude Code")), "Start in ⋯");
                 assertFalse(((javax.swing.JButton) field(a, "copyPrompt")).isVisible(), "Copy prompt is the in-app mode's");
+                assertFalse(QuietPanelTest.moreItems(a).contains(AssistantPanel.COPY_PROMPT), "and only in its ⋯");
                 assertEquals(LocalAgentPanel.OFF_LIMITS.equals(a.limitsLine().getText()) || LocalAgentPanel.SAFE_LIMITS
                         .equals(a.limitsLine().getText()), true, "Claude Code's limits, in the same place: "
                         + a.limitsLine().getText());
@@ -125,7 +129,7 @@ class UnifiedAssistantFrameTest {
             onEdt(() -> {
                 AssistantPanel a = AssistantLiveFrameTest.panel(f.frame);
                 assertTrue(a.conversationView().getText().contains("What is open?"), "back in-app, its conversation returns");
-                assertEquals("In-app assistant", chips(a).get(0));
+                assertEquals(List.of(), chips(a), "still no in-app chips");
             });
         }
     }
@@ -157,7 +161,7 @@ class UnifiedAssistantFrameTest {
                 assertSame(line.get(), a.limitsLine(), "the same line");
                 assertNotEquals(AssistantPanel.IN_APP_NO_KEY, a.limitsLine().getText(), "Claude Code's own words there");
                 // review M74 usability A2: Safe analysis says what it does; it no longer presses toward Full on every view
-                assertTrue(a.limitsLine().getText().contains("Assistant ▾")
+                assertTrue(a.limitsLine().getText().contains("the mode chip")
                         || a.limitsLine().getText().equals(LocalAgentPanel.SAFE_LIMITS), a.limitsLine().getText());
             });
         }

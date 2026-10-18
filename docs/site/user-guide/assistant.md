@@ -26,12 +26,12 @@ venue disconnected here", it can plot that series and flag those cycles, and you
 
 ## One assistant, two modes
 
-The **Analyser assistant** tab is one panel, whichever assistant answers in it. At its top, **one control** names how
-the assistant works on this machine — **Assistant: Safe analysis ▾**, *Full Claude Code*, *In-app assistant*, *Off* or
-*Not chosen* — and opens the [quick switch](#choose-how-the-assistant-works); the profile you choose also chooses who
+The **Analyser assistant** tab is one panel, whichever assistant answers in it. At its top, **one mode chip** names how
+the assistant works on this machine — **Safe ▾**, **◆ Full ▾**, **In-app ▾** or **Off ▾**, or **Set up AI…** while
+nothing is set up — and opens the [quick switch](#choose-how-the-assistant-works); the profile you choose also chooses who
 answers: your own installed Claude Code ([below](#claude-code-in-the-assistant-tab)) for *Safe analysis* and *Full Claude Code*,
-or the analyser's own assistant with a provider you configure. How it is paid for is a chip in the header (your Claude
-plan, or an API key). Both share:
+or the analyser's own assistant with a provider you configure. How it is paid for is said once, in a note when a
+session is ready, and in *About this session…* (your Claude plan, or an API key). Both share:
 
 - **one conversation**, drawn the same way: your turns as you typed them; the assistant's words as safe Markdown
   (headings, lists, code blocks with light colouring, links that open only after asking you); record numbers, node ids
@@ -39,17 +39,19 @@ plan, or an API key). Both share:
   and its mark: `✓`, `refused`, `denied`, `approved by you` — that opens to show what was sent (Claude Code) or what came
   back (the in-app assistant);
 - **one composer**, with **Send** — or **Stop** in its place while an answer runs — doing what the mode in force does
-  with it (the in-app assistant adds **Copy prompt**); it reads *Ask about this log…* while empty, and its tooltip has
+  with it; it reads *Ask about this log…* while empty, and its tooltip has
   the keys; **Enter sends and Shift+Enter starts a new line**, as in
   the start page's box; **↑ on the first line recalls the questions you sent** (each assistant its own), **↓ on the last
   line walks forward**, and ↓ past the newest puts back what you were typing — as in a terminal. The history is kept in
   memory only: it is never saved and never sent anywhere, and it is gone when the analyser closes. Shift+↑ and
   Shift+↓ still select, and in a draft of several lines the arrows move the caret until it reaches the first or last
   line;
-- **one header row** — the **Assistant ▾** control, **✎** (New chat) and **⋯**. The control carries the state in one or
-  two words — *answering…*, *needs you*, *starting…*, *stopped*, nothing when ready — and ◆ when full Claude Code is in
-  force. **⋯** holds *New chat*, *Pop out*, **About this session…**, *Switch assistant…*, *Start / Resume Claude Code*,
-  *Set up a project with Claude…* and *Settings…*;
+- **one header row** — the **mode chip**, **✎** (New chat) and **⋯**, in both modes. The chip carries the state in one
+  or two words — *Safe · needs you ▾*, *In-app · answering… ▾*, *◆ Full · stopped ▾*, nothing when ready — and ◆ (◆◆ for
+  the modes that ask least) when full Claude Code is in force. **⋯** holds *New chat*, *Pop out*, **About this
+  session…**, *Switch assistant…* (the same quick switch), *Settings…* and the mode's own items: Claude Code's *Start /
+  Resume Claude Code* and *Set up a project with Claude…*, or the in-app assistant's **Copy prompt** and *Connect a CLI
+  assistant…*;
 - **one primary action.** **Send** (in the Claude Code mode it starts Claude Code first when it is not running), or
   **Stop** in the same place while an answer or a start can be stopped. A refusal or an exit is one banner with
   **Restart** and **Details** (Details only when something needs attention), and a settings change Claude Code has not
@@ -62,7 +64,7 @@ plan, or an API key). Both share:
   (Anthropic, on your Claude plan or API key), as in any Claude Code session — and, for the in-app assistant, to the
   model provider you chose.
 
-![The assistant panel in the in-app mode: Assistant: In-app assistant, the provider and API-key chips, the limits line, a
+![The assistant panel in the in-app mode (an earlier release's header, with the provider and API-key chips): a
 question about record #7, one analyser_read tool line and an answer in safe Markdown with record and node
 chips](../assets/assistant-in-app.png)
 
@@ -74,7 +76,7 @@ permissions and approvals. Changing how the assistant works is refused while an 
 
 ## Set up AI
 
-**Set up AI…** is the one place to choose how AI works with the analyser. It is the last item of **Assistant: … ▾**,
+**Set up AI…** is the one place to choose how AI works with the analyser. It is the last item of the mode chip's quick switch,
 first in the **AI** menu (which opens it at *Your own AI client* when one is set up), at the top of *Settings ▸
 Assistant*, and on the start page's AI line. On a first run the start page asks the same question inline, as part of
 the page: **How do you want AI to work with the analyser?** It is offered once — to a new installation and to one
@@ -127,13 +129,15 @@ and leaves one line, *AI: not set up — Set up AI…*. Both the block and the l
 
 ## Choose how the assistant works
 
-**Assistant: … ▾** in the assistant's header (it names the profile in force, e.g. *Assistant: Safe analysis ▾*) is a
+The **mode chip** in the assistant's header (it names the profile in force, e.g. *Safe ▾*) is a
 quick switch — a short menu, not a set of cards:
 
 > ✓ **Safe analysis** · **◆ Full Claude Code…** · **In-app assistant** · **Off** · ─── · **Set up AI…**
 
 The profile in force is ticked, and said in words to a screen reader (*Safe analysis, in force*). Each row's tooltip
-says what it sets up and where your words go.
+says what it sets up and where your words go. With nothing being answered, a switch that Claude Code must restart for
+(Safe analysis → Full Claude Code) restarts it at once; while an answer runs, the panel asks *Settings changed — restart
+Claude Code now?* with **Restart** / **Later**, as for a change in Settings.
 
 | Profile | What it sets up |
 |---|---|
@@ -165,9 +169,10 @@ switch replaced them.)
 
 ## The in-app assistant
 
-With the **In-app assistant** profile in force, the panel is a live chat with the provider you configure. Its header says
-what it is — **Assistant: In-app assistant ▾**, the provider and model it sends to, and the workspace it is about — and
-the line under it says what it is doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, *Limit reached* or *Failed*.
+With the **In-app assistant** profile in force, the panel is a live chat with the provider you configure. Its header is
+the same mode chip — **In-app ▾**, **In-app · answering… ▾** while it works — with ✎ and ⋯; the provider and model it
+sends to, and the workspace it is about, are in *⋯ ▸ About this session…*, and how a turn ended (*Cancelled*, *Limit
+reached*, *Failed*) is a note in the conversation.
 
 - **Ask, follow up, cancel.** **Send** (or Enter; Shift+Enter is a new line) sends your question with the selected
   records' context. The assistant can answer and run the same verbs an external client does — each result appears
@@ -245,7 +250,7 @@ If you have [Claude Code](https://docs.claude.com/en/docs/claude-code/setup) ins
 can host **one long-running Claude Code session** instead of the in-app assistant: you type into it here, and it drives
 the analyser through the same verbs an external client uses. It is **off by default**.
 
-**Turn it on.** Choose **Safe analysis** in **Set up AI…** or the quick switch (**Assistant: … ▾** in the assistant's header), or *Settings ▸ Assistant
+**Turn it on.** Choose **Safe analysis** in **Set up AI…** or the quick switch (the mode chip in the assistant's header), or *Settings ▸ Assistant
 ▸ Safe analysis ▸ Allow the analyser to start Claude Code*. One assistant drives the tab at a time; switching back stops
 an idle Claude Code, and is refused while Claude is answering (*"Claude is still answering — Stop or wait, then change
 how the assistant works."*). These settings — both switches, Full Claude Code's mode, the model, the spend limit and the
@@ -496,10 +501,9 @@ a copy that holds such characters says how many.
 
 ## No API key? Copy-prompt mode
 
-With no key the assistant sends nothing and says so, offering **Configure provider** (it opens *Settings ▸ LLM*, where
-the provider, model and API key are), **Copy prompt** and **Connect a CLI assistant** (it opens Set up AI at *Your own AI client*). With the *In-app assistant*
-in force and no key, the panel says exactly that in one line — *No API key — **Configure provider*** — with Send
-disabled; it does not say *Ready* or *Press Send*. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
+With no key the assistant sends nothing and says so in one banner — *No API key — nothing is sent.* **Add key…** (it
+opens *Settings ▸ LLM*, where the provider, model and API key are) — with Send disabled; **Copy prompt** and **Connect a
+CLI assistant…** (it opens Set up AI at *Your own AI client*) are in **⋯**; it does not say *Ready* or *Press Send*. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
 prompt is a complete, self-contained brief: the selected records, the node-type map, the relevant
 source, **and** the log's file path, shape and per-record **byte offsets**. The dialog that opens names every
 part it copied, in the order they appear ("the analyser's standing instructions, the glossary, the raw text of 2

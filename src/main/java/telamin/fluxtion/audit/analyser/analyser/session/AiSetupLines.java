@@ -38,7 +38,7 @@ public final class AiSetupLines {
 
     public static final String NO_AI_TITLE = "No AI";
     public static final String NO_AI_TEXT = "Everything in " + PRODUCT + " works without AI: records, topology, charts, "
-            + "reports, walks and the tour. You can set AI up later from Assistant ▾ ▸ Set up AI…";
+            + "reports, walks and the tour. You can set AI up later from the assistant's mode chip ▸ Set up AI…";
     public static final String CLIENT_TITLE = "Your own AI client connects to " + PRODUCT;
     public static final String CLIENT_SHORT = "Your own AI client connects";
     /** OD-77.18 (r4): "another AI app that can connect to {Product}", not "another MCP client". */
@@ -401,7 +401,7 @@ public final class AiSetupLines {
     // ---- the Summary (§6.4) ------------------------------------------------------------------------------------------
 
     public static final String SUMMARY_TITLE = "You're set up";
-    public static final String SUMMARY_CHANGE = "Change any of this: Assistant ▾ ▸ Set up AI…. Settings ▸ Assistant "
+    public static final String SUMMARY_CHANGE = "Change any of this: the assistant's mode chip ▸ Set up AI…. Settings ▸ Assistant "
             + "keeps every option.";
     public static final String DONE = "Done";
     /** §6.4's suggested first actions. Nothing they do sends anything. */

@@ -42,7 +42,8 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  * <ul>
  *   <li>Ready, Safe and Full: at most 15 words and 4 controls (the mode control, ✎, ⋯ and Send);</li>
  *   <li>a turn running, a permission waiting, answered: at most 15 words;</li>
- *   <li>Claude Code exited (error), the in-app assistant with no key, a restart offered: at most 20 words.</li>
+ *   <li>Claude Code exited (error), the in-app assistant with no key, a restart offered: at most 20 words;</li>
+ *   <li>M78 D2 (OD-Q.12): the in-app assistant Ready is held to Ready's budget, and its no-key state to 20 words.</li>
  * </ul>
  *
  * <p>With {@code -Dm78.shots=<dir>} it also paints the panel in each state and theme there (review scratch, never
@@ -113,6 +114,7 @@ class AssistantChromeBudgetFrameTest {
             onEdt(ClaudeCodeTabFrameTest.findButton(folder, LocalAgentFolderDialog.SAFE_TRUST)::doClick);
             ClaudeCodeTabFrameTest.awaitState(frame, s -> "READY".equals(s.phase()), "READY");
             measure("ready-safe");
+            onEdt(() -> assertEquals("Safe ▾", assistant.profileButton().getText(), "★ D2: the one mode chip"));
 
             // a turn running: the fake's stdin waits, so the turn stays open
             java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
@@ -146,6 +148,7 @@ class AssistantChromeBudgetFrameTest {
             onEdt(ClaudeCodeTabFrameTest.findButton(full, LocalAgentFolderDialog.TRUST)::doClick);
             ClaudeCodeTabFrameTest.awaitState(frame, s -> "READY".equals(s.phase()) && s.posture().isFull(), "READY, Full");
             measure("ready-full");
+            onEdt(() -> assertEquals("◆ Full ▾", assistant.profileButton().getText(), "★ D2: ◆ on the chip"));
 
             // Claude Code exited (error)
             FixtureAgent.Proc p = agent.last();
@@ -157,6 +160,20 @@ class AssistantChromeBudgetFrameTest {
             exit.invoke(p, 1);
             ClaudeCodeTabFrameTest.awaitState(frame, s -> "EXITED".equals(s.verdict()), "exited");
             measure("error");
+
+            // M78 D2 (OD-Q.12): the in-app assistant, Ready, with a key — the same chip, ✎, ⋯ and Send, and nothing else
+            settings(c -> {
+                c.claudeCodeAllowed = false;
+                c.claudeCodeFull = false;
+                c.assistantProfile = "IN_APP";
+                c.apiKey = "sk-DEMO-budget";
+            });
+            onEdt(() -> assistant.chooseModeForTest(AssistantMode.IN_APP));
+            UnifiedAssistantFrameTest.awaitMode(frame, AssistantMode.IN_APP);
+            QuickSwitchFrameTest.await(frame, x -> x.profile()
+                    == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.IN_APP && !x.inAppNeedsKey(), "in-app");
+            measure("ready-in-app");
+            onEdt(() -> assertEquals("In-app ▾", assistant.profileButton().getText(), "★ D2: the in-app chip"));
 
             // the in-app assistant with no key: M77-4 retired the cards, and the quick switch opens Set up AI for a
             // profile with no key stored — so the no-key state is what Settings ▸ Assistant can leave behind
@@ -203,7 +220,7 @@ class AssistantChromeBudgetFrameTest {
             assertTrue(m.width() <= 260, "★ measured DOCKED at 1200×800: the panel is " + m.width() + " px wide");
         }
         assertEquals(List.of(), over, "★ the chrome budget (spec §6)");
-        assertEquals(16, measured.size(), "eight states, in both themes");
+        assertEquals(18, measured.size(), "nine states, in both themes");
     }
 
     private void selectAssistantTab() throws Exception {

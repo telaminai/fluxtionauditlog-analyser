@@ -62,9 +62,10 @@ public class AiSetup implements EventLogSource {
     /**
      * The one line for the in-app assistant with no key (or no provider that can answer). Robot re-walk #4 (2026-10-18):
      * the panel shows it with Configure provider beside it — "No API key — Configure provider" — and Send disabled; it
-     * no longer sits under a "Ready" with "Press Send to ask Claude" below it.
+     * no longer sits under a "Ready" with "Press Send to ask Claude" below it. M78 D2 (§4.1 item 26): it is the
+     * conditional banner's sentence, "No API key — nothing is sent.", with Add key… beside it.
      */
-    public static final String IN_APP_NO_KEY = "No API key";
+    public static final String IN_APP_NO_KEY = "No API key — nothing is sent.";
 
     private final LocalAgentSession localAgent;
     private final AssistantLoop assistantLoop;

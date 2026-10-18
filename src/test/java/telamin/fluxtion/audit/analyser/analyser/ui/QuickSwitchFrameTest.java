@@ -152,7 +152,7 @@ class QuickSwitchFrameTest {
                 assertFalse(c.claudeCodeFull, "and never the full posture");
                 assertEquals("SAFE", c.assistantProfile);
                 assertEquals(AssistantMode.LOCAL_AGENT, UnifiedAssistantFrameTest.mode(frame), "the tab is in Claude Code mode");
-                assertEquals("Assistant: Safe analysis ▾", a.profileButton().getText());
+                assertEquals("Safe ▾", a.profileButton().getText(), "M78 D2: the mode chip");
                 a.profileButton().doClick();
                 JMenuItem safe = item(a.quickSwitch().lastShown(), AssistantProfile.SAFE);
                 assertTrue(safe.isSelected(), "★ the row in force is ticked");

@@ -94,7 +94,7 @@ public class LocalAgentPermission implements EventLogSource {
     public static final String DENIED_PLAN_MODE = "Denied: the analyser keeps the mode the person chose for this session — "
             + "give the plan in your reply; the person changes the mode and starts a New chat to act on it";
     public static final String PLAN_MODE_NOTE = "Claude asked to change its plan mode — the mode stays as you chose it; to "
-            + "act on a plan, change the mode (Assistant ▾) and start a New chat";
+            + "act on a plan, change the mode (the mode chip) and start a New chat";
     /** Review P3 N4: a request that arrives while a Stop is in progress is denied without asking. */
     public static final String DENIED_STOPPING = "Denied: the person stopped this turn";
     /** Review M74 usability #10a: a file write the settings would refuse is never asked about. */

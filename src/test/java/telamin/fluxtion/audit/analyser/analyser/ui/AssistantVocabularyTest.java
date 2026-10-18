@@ -45,9 +45,10 @@ class AssistantVocabularyTest {
         TranscriptViewTest.onEdt(() -> {
             AssistantPanel a = new AssistantPanel(new AssistantTranscript());
             a.renderProfiles(ProfileState.of(AssistantProfile.SAFE));
-            assertEquals("Assistant: Safe analysis ▾", a.profileButton().getText());
+            // M78 D2 (§4.1 item 1): the one mode chip — the short title; its name starts with it and names the profile
+            assertEquals("Safe ▾", a.profileButton().getText());
             String name = a.profileButton().getAccessibleContext().getAccessibleName();
-            assertTrue(name.startsWith("Assistant: Safe analysis"), "the name starts with the visible label: " + name);
+            assertTrue(name.startsWith("Safe — Assistant: Safe analysis"), "the name starts with the visible label: " + name);
             for (Component c : all(a)) {
                 if (c instanceof JComboBox<?> box) {
                     assertNotEquals("Assistant mode", box.getAccessibleContext().getAccessibleName(),
@@ -62,7 +63,7 @@ class AssistantVocabularyTest {
                 }
             }
             a.renderProfiles(ProfileState.of(AssistantProfile.IN_APP));
-            assertEquals("Assistant: In-app assistant ▾", a.profileButton().getText());
+            assertEquals("In-app ▾", a.profileButton().getText());
             return null;
         });
     }
@@ -84,7 +85,7 @@ class AssistantVocabularyTest {
      * Witness: the old "(Assistant ▾)" — a label the header no longer shows.
      */
     @Test
-    @DisplayName("★ Settings' intro names the header control as it reads: 'Assistant: Safe analysis ▾'")
+    @DisplayName("★ Settings' intro names the header control as it reads: 'Safe ▾'")
     void theSettingsIntroNamesTheControlAsItReads() throws Exception {
         String src = Files.readString(CONFIG_PANEL);
         assertFalse(src.contains("(<b>Assistant ▾</b>)"), "the header has no control labelled 'Assistant ▾'");
@@ -135,7 +136,8 @@ class AssistantVocabularyTest {
                 "a title that contains the label is kept as it is");
         assertEquals("Fluxtion key — found", StartPanel.accessibleName("Fluxtion key — found", "Fluxtion key ✓"),
                 "the tick is not part of the label a person says");
-        assertEquals("Assistant: Off — choose how the assistant works", AssistantPanel.assistantControlName(AssistantProfile.OFF));
+        assertEquals("Off — Assistant: Off, choose how the assistant works",
+                AssistantPanel.assistantControlName(AssistantProfile.OFF));
     }
 
     /**

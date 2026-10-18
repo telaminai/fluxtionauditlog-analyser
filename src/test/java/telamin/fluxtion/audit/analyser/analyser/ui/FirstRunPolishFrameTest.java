@@ -93,7 +93,8 @@ class FirstRunPolishFrameTest {
             FirstRunLayoutFrameTest.settle();
             onEdt(() -> {
                 AssistantPanel a = f.assistant();
-                assertEquals("No API key — Configure provider", a.guideLine(), "★ the one guide line");
+                // M78 D2 (§4.1 item 26): one conditional banner — the node's sentence and Add key…
+                assertEquals("No API key — nothing is sent. Add key…", a.guideLine(), "★ the one guide line");
                 JButton configure = (JButton) field(a, "configure");
                 assertTrue(configure.isShowing(), "Configure provider is on the line");
                 assertFalse(a.sendButton().isEnabled(), "★ Send cannot be pressed");

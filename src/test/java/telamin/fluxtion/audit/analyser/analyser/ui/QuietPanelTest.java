@@ -11,7 +11,18 @@ import telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession;
 
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile;
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantState;
+import telamin.fluxtion.audit.analyser.analyser.session.ProfileState;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup;
+import telamin.fluxtion.audit.analyser.analyser.ui.setup.QuickSwitch;
+
+import javax.swing.AbstractButton;
+import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import java.awt.Component;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -153,6 +164,172 @@ class QuietPanelTest {
             assertTrue(about.contains(LocalAgentPanel.LOCK_WARNING), "the fork warning, when a conversation exists");
             assertTrue(java.util.Arrays.stream(a.moreMenu().getComponents()).anyMatch(c -> c instanceof javax.swing.JMenuItem m
                     && AssistantPanel.ABOUT.equals(m.getText())), "opened from ⋯");
+            return null;
+        });
+    }
+
+    // ---- M78 D2: one chip -------------------------------------------------------------------------------------------
+
+    /** ⋯'s item labels, as the menu is built now. */
+    static List<String> moreItems(AssistantPanel a) {
+        List<String> out = new ArrayList<>();
+        for (Component c : a.moreMenu().getComponents()) if (c instanceof JMenuItem m) out.add(m.getText());
+        return out;
+    }
+
+    /** An in-app state in {@code phase}, carrying the node's chip word for it (as assistantLoop publishes it). */
+    static AssistantState inApp(String phase) {
+        AssistantState i = AssistantState.IDLE;
+        return new AssistantState(1, 1, phase, 1, 0, null, List.of(), true, false, "", "", i.answer(), "",
+                telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop.chipWord(phase));
+    }
+
+    private static List<AbstractButton> buttons(java.awt.Container root) {
+        List<AbstractButton> out = new ArrayList<>();
+        for (Component c : root.getComponents()) {
+            if (c instanceof AbstractButton b) out.add(b);
+            if (c instanceof java.awt.Container k) out.addAll(buttons(k));
+        }
+        return out;
+    }
+
+    /**
+     * ★ D2 (§4.1 item 1, OD-77.3, OD-Q.12): ONE mode chip in both modes — the profile's short title, ◆ under Full, the
+     * node's chip word joined ("Safe · answering… ▾", "In-app · answering… ▾") — and it is the button that opens M77-4's
+     * quick switch. Witnesses: build the chip from {@code title()} instead of {@code shortTitle()} ("Safe analysis ▾") —
+     * the first assertion fails; drop {@code renderControl()} from {@code render} — the in-app "answering…" assertion
+     * fails; detach the quick switch from the chip — no menu is shown.
+     */
+    @Test
+    @DisplayName("★ D2: one mode chip — Safe ▾, ◆ Full ▾, In-app ▾, Off ▾, with the node's word — and it opens the quick switch")
+    void theOneModeChip() throws Exception {
+        TranscriptViewTest.onEdt(() -> {
+            AssistantPanel a = new AssistantPanel(new AssistantTranscript());
+            // in-app: the same chip, with assistantLoop's word
+            a.renderProfiles(ProfileState.of(AssistantProfile.IN_APP));
+            a.render(inApp("IDLE"), null);
+            assertEquals("In-app ▾", a.profileButton().getText(), "★ the short title");
+            a.render(inApp("REQUESTING"), null);
+            assertEquals("In-app · answering… ▾", a.profileButton().getText(), "★ the in-app assistant's chip word");
+            assertTrue(a.profileButton().getAccessibleContext().getAccessibleName().startsWith("In-app · answering…"),
+                    "the name starts with the visible label (WCAG 2.5.3)");
+            assertTrue(a.profileButton().getAccessibleContext().getAccessibleName().contains("In-app assistant"),
+                    "and names the profile in full");
+            a.render(inApp("COMPLETE"), null);
+            assertEquals("In-app ▾", a.profileButton().getText(), "answered: nothing");
+            a.renderProfiles(ProfileState.of(AssistantProfile.OFF));
+            assertEquals("Off ▾", a.profileButton().getText());
+
+            // Claude Code: Safe, the node's word, then ◆ Full
+            LocalAgentPanel p = new LocalAgentPanel(new LocalAgentTranscript(), a.surface());
+            a.setLocalAgentPanel(p);
+            a.renderMode(AssistantMode.LOCAL_AGENT);
+            a.renderProfiles(ProfileState.of(AssistantProfile.SAFE));
+            p.render(state("READY", 0, List.of(), Map.of(), 0));
+            assertEquals("Safe ▾", a.profileButton().getText(), "★ Ready: the mode word alone");
+            p.render(state("BUSY", 2, List.of(), Map.of(), 0));
+            assertEquals("Safe · answering… ▾", a.profileButton().getText());
+            a.renderProfiles(ProfileState.of(AssistantProfile.FULL));
+            p.render(LocalAgentPanelCueTest.published(LocalAgentPanelCueTest.state("READY",
+                    LocalAgentPosture.full(LocalAgentPosture.FullMode.DEFAULT),
+                    LocalAgentPosture.full(LocalAgentPosture.FullMode.DEFAULT), null)));
+            assertEquals("◆ Full ▾", a.profileButton().getText(), "★ ◆ on the chip under Full");
+            p.render(LocalAgentPanelCueTest.published(LocalAgentPanelCueTest.state("READY",
+                    LocalAgentPosture.full(LocalAgentPosture.FullMode.AUTO),
+                    LocalAgentPosture.full(LocalAgentPosture.FullMode.AUTO), null)));
+            assertEquals("◆◆ Full ▾", a.profileButton().getText(), "◆◆ for a mode that asks least");
+
+            // the chip IS the quick switch
+            assertNull(a.quickSwitch().lastShown(), "nothing shown yet");
+            a.profileButton().doClick();
+            assertNotNull(a.quickSwitch().lastShown(), "★ the chip opens the quick switch");
+            List<String> rows = new ArrayList<>();
+            for (Component c : a.quickSwitch().lastShown().getComponents()) if (c instanceof JMenuItem m) rows.add(m.getText());
+            assertEquals(QuickSwitch.items(ProfileState.of(AssistantProfile.FULL)).stream()
+                    .filter(it -> it.kind() != QuickSwitch.Kind.SEPARATOR).map(QuickSwitch.Item::label).toList(), rows,
+                    "its rows are M77-4's, rendered from the profile state");
+            return null;
+        });
+    }
+
+    /**
+     * ★ D2 (§2.2, items 2–4, 23, 39, 42; M77 §14.4): ⋯ holds what is used occasionally, each item only in the mode it
+     * belongs to — Claude Code's Start / Resume and Set up a project…; the in-app assistant's Copy prompt and Connect a
+     * CLI assistant… — and the header has no ⓘ, no Pop out and no Copy prompt beside Send. Witnesses: offer the in-app
+     * items whatever the mode (drop the {@code else if (!demoShowing)} guard so they follow Claude Code's) — the Claude
+     * Code ⋯ contains Copy prompt; put Copy prompt back in the composer row — the in-app button assertion fails.
+     */
+    @Test
+    @DisplayName("★ D2: ⋯ holds New chat, Pop out, About, Switch, then the mode's own items — Start / Set up, or Copy prompt / Connect CLI")
+    void moreHoldsTheMovedItems() throws Exception {
+        TranscriptViewTest.onEdt(() -> {
+            AssistantPanel a = new AssistantPanel(new AssistantTranscript());
+            a.renderProfiles(ProfileState.of(AssistantProfile.IN_APP));
+            a.render(inApp("IDLE"), null);
+            List<String> inApp = moreItems(a);
+            for (String item : List.of(AssistantSurface.NEW_CHAT, "Pop out", AssistantPanel.ABOUT, AssistantPanel.SWITCH,
+                    AssistantPanel.COPY_PROMPT, AssistantPanel.CONNECT_CLI, AssistantPanel.SETTINGS)) {
+                assertTrue(inApp.contains(item), "★ in-app ⋯ has " + item + ": " + inApp);
+            }
+            assertFalse(inApp.contains(AssistantPanel.SET_UP_PROJECT), "Set up a project is Claude Code's");
+            assertTrue(inApp.stream().noneMatch(i -> i.endsWith("Claude Code")), "no Start Claude Code in-app: " + inApp);
+            for (AbstractButton b : buttons(a)) {
+                if (!b.isVisible() || b.getText() == null) continue;
+                assertFalse(b.getText().contains("ⓘ"), "★ ⓘ is gone: About this session… is in ⋯");
+                assertFalse(b.getText().equals("Copy prompt"), "★ Copy prompt is in ⋯, not beside Send");
+                assertFalse(b.getText().startsWith("Pop out"), "Pop out is in ⋯ (OD-Q.10)");
+                assertFalse(b.getText().startsWith("Connect a CLI"), "★ Connect a CLI assistant is in ⋯");
+            }
+
+            LocalAgentPanel p = new LocalAgentPanel(new LocalAgentTranscript(), a.surface());
+            a.setLocalAgentPanel(p);
+            a.renderMode(AssistantMode.LOCAL_AGENT);
+            a.renderProfiles(ProfileState.of(AssistantProfile.SAFE));
+            p.render(state("OFF", 0, List.of(), Map.of(), 0));
+            List<String> claude = moreItems(a);
+            for (String item : List.of(AssistantSurface.NEW_CHAT, "Pop out", AssistantPanel.ABOUT, AssistantPanel.SWITCH,
+                    AssistantPanel.SET_UP_PROJECT, AssistantPanel.SETTINGS)) {
+                assertTrue(claude.contains(item), "★ Claude Code's ⋯ has " + item + ": " + claude);
+            }
+            assertTrue(claude.stream().anyMatch(i -> i.endsWith("Claude Code")), "Start / Resume in ⋯: " + claude);
+            assertFalse(claude.contains(AssistantPanel.COPY_PROMPT), "★ Copy prompt is the in-app mode's (§14.4)");
+            assertFalse(claude.contains(AssistantPanel.CONNECT_CLI), "★ Connect a CLI assistant is the in-app mode's");
+            assertFalse(((JButton) AsyncOpenInterleavingFrameTest.field(a, "configure")).isVisible()
+                    && ((javax.swing.JPanel) AsyncOpenInterleavingFrameTest.field(a, "noProvider")).isVisible(),
+                    "★ Configure provider is not shown under Claude Code");
+            return null;
+        });
+    }
+
+    /**
+     * ★ D2 (§4.1 items 12, 26): the in-app assistant has no chips; with no key it is ONE conditional banner — the node's
+     * sentence and Add key… — and with a provider configured there is no banner. Witnesses: show the banner whenever no
+     * provider is configured (the old {@code needsKey || !configured}) — the no-provider assertion fails; put back the
+     * "In-app assistant" chip — the chips assertion fails.
+     */
+    @Test
+    @DisplayName("★ D2: no in-app chips; no key is one banner — \"No API key — nothing is sent.\" with Add key…")
+    void theNoKeyBanner() throws Exception {
+        TranscriptViewTest.onEdt(() -> {
+            AssistantPanel a = new AssistantPanel(new AssistantTranscript());
+            a.setProviderConfigured(() -> false);
+            a.renderProfiles(new ProfileState(AssistantProfile.IN_APP, AiSetup.IN_APP_NO_KEY, false, true, false));
+            a.render(inApp("IDLE"), null);
+            assertEquals("No API key — nothing is sent. Add key…", a.guideLine(), "★ the node's sentence and Add key…");
+            assertEquals(0, a.surface().chips.getComponentCount(), "★ no in-app chips");
+            assertFalse(a.sendButton().isEnabled(), "nothing is sent");
+            assertTrue(ChromeCount.words(a.guideLine()) <= 8, "a short banner: " + a.guideLine());
+
+            a.renderProfiles(ProfileState.of(AssistantProfile.OFF));
+            a.render(inApp("IDLE"), null);
+            assertEquals("", a.guideLine(), "Off: the limits line says it, no banner");
+            a.renderProfiles(ProfileState.of(AssistantProfile.IN_APP));
+            a.render(inApp("IDLE"), null);
+            assertEquals("", a.guideLine(), "★ no key reported by the node: no banner");
+            a.setProviderConfigured(() -> true);
+            a.render(inApp("COMPLETE"), null);
+            assertEquals("", a.guideLine(), "a provider configured: no banner");
+            assertEquals(0, a.surface().chips.getComponentCount(), "and still no chips");
             return null;
         });
     }

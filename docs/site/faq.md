@@ -149,9 +149,9 @@ no file writes**. These groups of verbs go further, honestly labelled:
   through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude
   Code session. The in-app assistant sends what you ask, and the evidence it reads, to the model provider you chose,
   on your API key. *Safe* describes what Claude Code may do on this machine, not where your words go.
-- **Claude Code in the Assistant tab is off by default.** **Set up AI…** (in the assistant header's **Assistant: … ▾**
-  control, the AI menu and the start page) turns it on — **Safe analysis** for what is described below, **Full Claude
-  Code** for yours — after checking that Claude Code is installed, and the **Assistant: … ▾** quick switch changes it
+- **Claude Code in the Assistant tab is off by default.** **Set up AI…** (in the assistant header's mode chip —
+  **Safe ▾**, **In-app ▾** — the AI menu and the start page) turns it on — **Safe analysis** for what is described below, **Full Claude
+  Code** for yours — after checking that Claude Code is installed, and the mode chip's quick switch changes it
   later in one step; both write the same switches.
   *Allow the analyser to start Claude Code* (Settings ▸ Assistant) lets the tab's **Start** button run **your own installed `claude`**, logged in as you; the
   analyser never reads or stores your Claude Code credentials. Start contacts Anthropic (the sign-in check and the

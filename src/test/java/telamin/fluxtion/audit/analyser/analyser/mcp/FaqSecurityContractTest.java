@@ -99,7 +99,9 @@ class FaqSecurityContractTest {
         assertTrue(answer.contains("`propose` is offered only to Claude Code in the Assistant tab")
                         && answer.contains("never on `/manifest`") && answer.contains("**changes nothing**"),
                 "the FAQ must say what propose is and who is offered it");
-        assertTrue(answer.contains("**Assistant: … ▾**"), "the header control's real label");
+        // M78 D2: the header control is the mode chip, named by its real labels
+        assertTrue(answer.contains("mode chip") && answer.contains("**Safe ▾**"), "the header control's real label");
+        assertFalse(answer.contains("**Assistant: … ▾**"), "the old control label is gone");
         assertFalse(answer.contains("Profile…"), "Profile… was replaced by Assistant: <profile> ▾");
         assertTrue(answer.contains("*External MCP/REST access*"), "the REST switch's one name");
         assertFalse(answer.contains("REST transport that lets"), "the switch is External MCP/REST access");

@@ -152,6 +152,8 @@ public class LocalAgentSession implements EventLogSource {
     /** AFTER_TURN: the Start request the restart answers, and the consent it was answered under. */
     private long restartRequest;
     private SessionEvents.LocalAgentConsent restartConsent;
+    /** M78 D2 (OD-Q.6): the consent the open offer was made for — what a quick switch's immediate restart starts under. */
+    private SessionEvents.LocalAgentConsent offeredConsent;
     /** The person chose to keep the session in its folder (the project-switch offer's Keep): a folder change is theirs. */
     private boolean folderKept;
     /** M78 D1 (§5.1): a permission dialog is open (localAgentPermission's state), for the header's "needs you". */
@@ -389,6 +391,7 @@ public class LocalAgentSession implements EventLogSource {
         }
         String words = String.join(", ", changes);
         boolean newChat = needsNewChat(c);
+        offeredConsent = c;
         if (words.equals(restartChanged) && newChat == restartNewChat && !restartState.isEmpty()) return false;
         restartChanged = words;
         restartNewChat = newChat;
@@ -539,6 +542,31 @@ public class LocalAgentSession implements EventLogSource {
         return changed();
     }
 
+    /**
+     * M78 D2 (spec-quiet-assistant-panel.md §5.4, OD-Q.6): a quick switch is the person's explicit choice, so with no turn
+     * running it restarts at once on the new settings, with no banner. The switch's own consent report (posted by its
+     * performer before this result) made the offer; this fact says it came from the Assistant ▾ quick switch and was
+     * applied. While a turn runs the offer stands — Restart / Later — exactly as for a Settings change, and a Settings
+     * or wizard apply is always offered. Whether the switch applies at all is {@code aiSetup}'s; whether the running
+     * process restarts is this node's.
+     */
+    @OnEventHandler
+    public boolean onProfileApplied(SessionEvents.AssistantProfileApplied e) {
+        if (!e.ok() || e.origin() != SessionEvents.ProfileOrigin.MENU) return false;
+        if (!LocalAgentState.Restart.OFFERED.equals(restartState) || !running() || offeredConsent == null) return false;
+        if (openTicket != 0 || "STOPPING".equals(phase) || pendingDraft != 0) {
+            auditLog.info("localAgentRestart", "SWITCH_OFFERED").info("offer", restartOffer).info("ticket", openTicket);
+            return false;                                // a turn is running: the banner asks, as OD-Q.6 says
+        }
+        auditLog.info("localAgentRestart", "SWITCHED").info("offer", restartOffer).info("request", e.request());
+        restartNow(0L, offeredConsent);
+        effects.request(new SessionEffects.ShowStatusEffect(0L, SWITCHED_STATUS));   // the offer's line is stale now
+        return changed();
+    }
+
+    /** The main window's line after a quick switch restarted Claude Code at once (OD-Q.6). */
+    public static final String SWITCHED_STATUS = "Claude Code restarted on the assistant you chose";
+
     /** The chip: the offer again (Later chosen). */
     @OnEventHandler
     public boolean onRestartOfferRequested(SessionEvents.LocalAgentRestartOfferRequested e) {
@@ -578,6 +606,7 @@ public class LocalAgentSession implements EventLogSource {
         restartNewChat = false;
         restartRequest = 0;
         restartConsent = null;
+        offeredConsent = null;
     }
 
     @OnEventHandler

@@ -82,43 +82,35 @@ public final class AssistantPanel extends JPanel {
     }
 
     /**
-     * Review M74 usability #8: ONE control for how the assistant works — it names the profile in force and opens the
-     * Assistant ▾ quick switch (M77-4; the four cards are gone). The mode selector it replaces chose the same thing a second way (the profile includes the mode), and its
-     * fixed "your plan" was wrong on API-key billing; the billing chip says which applies.
+     * M78 D2 (spec-quiet-assistant-panel.md §4.1 item 1, OD-77.3): the ONE mode chip — "Safe ▾", "◆ Full ▾", "In-app ▾",
+     * "Off ▾" — with the session's chip word joined ("Safe · needs you ▾"); with nothing set up the chip is Set up AI….
+     * It opens M77-4's quick switch. The panel JOINS the node's word to the profile's short title; it never picks the
+     * word. {@code mark} is the full cue's ◆ or ◆◆ ("" for none).
      */
+    static String chipText(AssistantProfile p, String mark, String chipWord) {
+        return prefixed(mark, profileOf(p).shortTitle()) + joined(chipWord) + " ▾";
+    }
+
+    /** The chip at rest — the profile alone ("Safe ▾"): what Settings names it by. */
     static String assistantControlText(AssistantProfile p) {
-        return "Assistant: " + (p == null ? AssistantProfile.NONE : p).title() + " ▾";
+        return chipText(p, "", "");
     }
 
     /**
-     * Robot re-walk #6 (2026-10-18): the control's words in a row too narrow for {@link #assistantControlText} — the
-     * profile alone ("Safe analysis ▾"); its accessible name still says "Assistant: …" and contains them (WCAG 2.5.3).
+     * The chip's accessible name: it STARTS with its visible label (WCAG 2.5.3), then names the profile in full and says
+     * what pressing it does — "Safe · needs you — Assistant: Safe analysis, choose how the assistant works".
      */
-    static String assistantControlBrief(AssistantProfile p) {
-        return (p == null ? AssistantProfile.NONE : p).title() + " ▾";
+    static String chipName(AssistantProfile p, String mark, String chipWord) {
+        return prefixed(mark, profileOf(p).shortTitle()) + joined(chipWord) + " — Assistant: " + profileOf(p).title()
+                + ", choose how the assistant works";
     }
 
-    /** The control's accessible name: it STARTS with its visible label (WCAG 2.5.3) and says what pressing it does. */
     static String assistantControlName(AssistantProfile p) {
-        return "Assistant: " + (p == null ? AssistantProfile.NONE : p).title() + " — choose how the assistant works";
+        return chipName(p, "", "");
     }
 
-    /**
-     * M78 D1 (§5.1): the control's words with the session's chip word and the full cue — "Assistant: Safe analysis ·
-     * needs you ▾", "◆ Full Claude Code ▾". The panel JOINS the node's word to the mode's title; it never picks the
-     * word. {@code mark} is the cue's ◆ ("" for none).
-     */
-    static String assistantControlText(AssistantProfile p, String mark, String chipWord) {
-        return "Assistant: " + prefixed(mark, (p == null ? AssistantProfile.NONE : p).title()) + joined(chipWord) + " ▾";
-    }
-
-    static String assistantControlBrief(AssistantProfile p, String mark, String chipWord) {
-        return prefixed(mark, (p == null ? AssistantProfile.NONE : p).title()) + joined(chipWord) + " ▾";
-    }
-
-    /** The briefest: the mode word — "Safe · needs you ▾", "◆ Full · stopped ▾" — for the narrowest dock. */
-    static String assistantControlTiny(AssistantProfile p, String mark, String chipWord) {
-        return prefixed(mark, (p == null ? AssistantProfile.NONE : p).shortTitle()) + joined(chipWord) + " ▾";
+    private static AssistantProfile profileOf(AssistantProfile p) {
+        return p == null ? AssistantProfile.NONE : p;
     }
 
     private static String prefixed(String mark, String title) {
@@ -133,10 +125,10 @@ public final class AssistantPanel extends JPanel {
     static final String IN_APP_LIMITS = "In-app cannot read your project folder, set up a project or use your own "
             + "tools — Claude Code can. "
             + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.IN_APP_SENDS;
-    static final String IN_APP_NO_KEY = "No API key is configured, so nothing is sent from here — choose how the assistant "
-            + "works (Assistant ▾ above), Copy prompt, or Connect a CLI assistant.";
+    static final String IN_APP_NO_KEY = "No API key is configured, so nothing is sent from here — Add key…, choose another "
+            + "assistant on the mode chip, or use ⋯ ▸ Copy prompt or Connect a CLI assistant.";
     static final String OFF_LIMITS = "The assistant is off on this machine: no question is sent anywhere. Everything else "
-            + "works — choose a profile (Assistant ▾ above) to turn an assistant on.";
+            + "works — choose a profile on the mode chip (Off ▾ above) to turn an assistant on.";
 
     private final AssistantSurface surface = new AssistantSurface();
     private final AssistantTranscript transcript;
@@ -160,7 +152,8 @@ public final class AssistantPanel extends JPanel {
     private final JButton copyPrompt = new JButton("Copy prompt");
     private final JButton hostButton = new JButton("Pop out");
     private final JButton showAnalyser = new JButton("Show analyser");
-    private final JButton configure = new JButton("Configure provider");
+    /** M78 D2: the no-key banner's Add key… (Configure provider: the in-app assistant's settings). */
+    private final JButton configure = new JButton(ADD_KEY);
     private final JButton connectCli = new JButton("Connect a CLI assistant");
     private final JButton askAboutEvidence = new JButton("Ask about this evidence");
     private final JPanel composer = new JPanel(new BorderLayout(4, 4));
@@ -219,12 +212,19 @@ public final class AssistantPanel extends JPanel {
     private Demo lastDemo;
     private AssistantMode shownMode = AssistantMode.IN_APP;
     /**
-     * Robot walkthrough #2 (2026-10-18): what the mode cannot do, the session's folder and its notes sit behind one ⓘ
-     * disclosure, closed by default — the header keeps one status line. Presentation only; kept for this run.
+     * M78 D1 (§2.2): ⋯ — what is used occasionally: New chat, Pop out, About, Switch, Start / Resume, Set up, Settings.
+     * M78 D2 (items 3, 4, 23, 39, 42; M77 §14.4): ⓘ is gone (About this session… is here), and the in-app assistant's
+     * Copy prompt and Connect a CLI assistant are here too, shown only in the mode they belong to.
      */
-    /** M78 D1 (§2.2): ⋯ — what is used occasionally: New chat, Pop out, About, Switch, Start / Resume, Set up, Settings. */
     private final JButton more = new IconButton("⋯");
     static final String MORE = "More: New chat, Pop out, About this session, Switch assistant, Settings";
+    /** The mode chip's tooltip when no full cue is shown (the cue's sentence replaces it). */
+    static final String CHIP_TIP = "How the assistant works: Safe analysis, Full Claude Code, In-app assistant or Off — "
+            + "or Set up AI…";
+    static final String COPY_PROMPT = "Copy prompt";
+    static final String CONNECT_CLI = "Connect a CLI assistant…";
+    /** M78 D2 (§4.1 item 26): the no-key banner's one action, beside the node's sentence. */
+    static final String ADD_KEY = "Add key…";
     static final String ABOUT = "About this session…";
     static final String SWITCH = "Switch assistant…";
     static final String SET_UP_PROJECT = "Set up a project with Claude…";
@@ -248,10 +248,10 @@ public final class AssistantPanel extends JPanel {
         getAccessibleContext().setAccessibleName("Analyser assistant");
 
         // ---- the header: the mode selector, the chips, the panel's own actions -------------------------------------
-        profileButton.setWords(assistantControlText(AssistantProfile.NONE), assistantControlBrief(AssistantProfile.NONE));
+        profileButton.setWords(assistantControlText(AssistantProfile.NONE), "");
         profileButton.getAccessibleContext().setAccessibleName(assistantControlName(AssistantProfile.NONE));
-        profileButton.setToolTipText(UiText.tooltip("How the assistant works: Safe analysis, Full Claude Code, In-app "
-                + "assistant or Off — or Set up AI…"));
+        profileButton.setToolTipText(UiText.tooltip(CHIP_TIP));
+        // M78 D2 (§4.1 item 1): the mode chip IS M77-4's quick switch — the one button that opens it
         quickSwitch.attach(profileButton, () -> lastProfiles);
         mode.setFont(mode.getFont().deriveFont(Font.BOLD));
         mode.getAccessibleContext().setAccessibleName("Assistant mode, in words");
@@ -333,13 +333,13 @@ public final class AssistantPanel extends JPanel {
         composer.add(surface.draftScroll, BorderLayout.CENTER);
         JPanel buttons = new JPanel(new WrapLayout(FlowLayout.RIGHT, 4, 0));
         buttons.add(surface.start);
-        buttons.add(copyPrompt);
         buttons.add(surface.stop);
         buttons.add(surface.send);
         composer.add(buttons, BorderLayout.SOUTH);
         noProvider.add(noProviderLine);
         noProvider.add(configure);
-        noProvider.add(connectCli);
+        configure.getAccessibleContext().setAccessibleName(ADD_KEY + " — configure the in-app assistant's provider");
+        configure.setToolTipText(UiText.tooltip("Configure provider: the in-app assistant's API key and model"));
         demoBar.add(askAboutEvidence);
         JButton demoCli = new JButton("Connect your CLI assistant");
         demoCli.addActionListener(e -> { if (intents != null) intents.connectCliAssistant(); });
@@ -437,7 +437,8 @@ public final class AssistantPanel extends JPanel {
         detailsLayout.show(details, (claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP).name());
         // M78 D1 (§4.1 item 39): Start / Resume is in ⋯ — Send is the one primary action, and starts Claude Code
         surface.start.setVisible(false);
-        copyPrompt.setVisible(!claude);
+        // M78 D2 (§4.1 item 42): Copy prompt is in ⋯, in the in-app mode only
+        copyPrompt.setVisible(false);
         if (localAgent != null) localAgent.setActive(claude);
         if (changed && !claude) {
             surface.fullBadge.setVisible(false);          // the full-posture cue is Claude Code's alone
@@ -642,7 +643,8 @@ public final class AssistantPanel extends JPanel {
         mode.getAccessibleContext().setAccessibleDescription(mode.getText());
         // a demonstration has no provider: nothing is sent from it; and where the node's one status line says no assistant
         // can answer here, the route does not say it a second time (owner, 2026-10-18)
-        route.setVisible(!inDemo && profileStatus.isBlank());
+        // M78 D2 (items 10, 14): the provider is in About and the state is the chip's word — a demonstration keeps its lines
+        route.setVisible(false);
         basis.setText(inDemo ? demo.walkTitle() : (state.basis().isBlank() ? " " : "About: " + state.basis()));
         // M78 D1 (§4.1 item 13): the basis is in About this session…; a demonstration's line is its walk's title
         basis.setVisible(inDemo);
@@ -654,6 +656,7 @@ public final class AssistantPanel extends JPanel {
         boolean claude = claudeCodeShown();
         renderGuide();
         renderLimits();
+        renderControl();                                  // M78 D2: the in-app assistant's chip word, too
         if (claude) {                                     // Claude Code draws the shared parts while it is shown
             rendered = state;
             renderedDemo = demoLines;
@@ -714,19 +717,15 @@ public final class AssistantPanel extends JPanel {
     private void renderGuide() {
         if (claudeCodeShown()) return;
         boolean configured = Boolean.TRUE.equals(providerConfiguredSupplier.get());
-        noProvider.setVisible(!demoShowing && (needsKey || !configured) && profile != AssistantProfile.OFF);
-        if (needsKey) {
-            noProviderLine.setText(profileStatus + NEEDS_KEY_JOIN);
-            noProviderLine.setVisible(true);
-            connectCli.setVisible(false);
-        } else {
-            noProviderLine.setText(NO_PROVIDER_LINE);
-            // its buttons stay; the one status line says it (2026-10-18)
-            noProviderLine.setVisible(profileStatus.isBlank());
-            connectCli.setVisible(true);
-        }
-        // "Ready" only when this assistant could answer: while the node's one line says none can, it is that line alone
-        status.setVisible(demoShowing || profileStatus.isBlank() || lastState.busy());
+        // M78 D2 (§4.1 items 12, 26): no in-app chips; the in-app assistant with no key is ONE conditional banner — the
+        // node's sentence and Add key… (Connect a CLI assistant is in ⋯). With nothing set up the chip is Set up AI…
+        // and the node's one line says it; with a provider configured there is no banner at all
+        noProvider.setVisible(!demoShowing && needsKey && profile != AssistantProfile.OFF);
+        noProviderLine.setText(needsKey ? profileStatus : NO_PROVIDER_LINE);
+        noProviderLine.setVisible(true);
+        connectCli.setVisible(false);
+        // M78 D2 (item 14): no "Ready" line — the state is the chip's word; a demonstration keeps its status
+        status.setVisible(demoShowing);
         surface.renderHint(AssistantMode.IN_APP, needsKey);
         noProvider.revalidate();
     }
@@ -735,28 +734,27 @@ public final class AssistantPanel extends JPanel {
     String guideLine() {
         if (!noProvider.isVisible()) return "";
         String words = noProviderLine.isVisible() ? noProviderLine.getText() : "";
-        return needsKey ? words + " " + configure.getText() : words;
+        return words + " " + configure.getText();
     }
 
     // ---- M78 D1: the mode control's words, ⋯ and About this session… ------------------------------------------------
 
     /**
-     * The mode control: the profile in force, the session's chip word and the full cue, while Claude Code is shown
-     * (the in-app assistant keeps its words until M77-4, OD-Q.12). Rendered from ProfileState and LocalAgentState.
+     * M78 D2: the ONE mode chip, in both modes — the profile's short title, the session's chip word (Claude Code's
+     * {@code Guide.chipWord}, or the in-app assistant's {@code AssistantState.chipWord}, both the nodes') and the full
+     * cue. Rendered from ProfileState, LocalAgentState and AssistantState; nothing is decided here.
      */
     private void renderControl() {
         boolean claude = claudeCodeShown();
         LocalAgentState s = claude ? localAgent.lastState() : null;
         String mark = LocalAgentPanel.cueMark(s);
-        String word = s == null ? "" : s.extra().guide().chipWord();
-        profileButton.setWords(assistantControlText(profile, mark, word), assistantControlBrief(profile, mark, word),
-                assistantControlTiny(profile, mark, word));
-        String name = assistantControlName(profile);
+        String word = claude ? (s == null ? "" : s.extra().guide().chipWord()) : demoShowing ? "" : lastState.chipWord();
+        profileButton.setWords(chipText(profile, mark, word), "");
         String badge = s == null ? null : LocalAgentPanel.fullBadgeText(s);
+        String name = chipName(profile, mark, word);
         profileButton.getAccessibleContext().setAccessibleName(badge == null ? name : name + ". " + mark + " " + badge);
         profileButton.getAccessibleContext().setAccessibleDescription(word.isEmpty() ? null : word);
-        profileButton.setToolTipText(UiText.tooltip(badge != null ? LocalAgentPanel.fullBadgeTip(s)
-                : "How the assistant works: Safe analysis, Full Claude Code, In-app assistant or Off"));
+        profileButton.setToolTipText(UiText.tooltip(badge != null ? LocalAgentPanel.fullBadgeTip(s) : CHIP_TIP));
         if (badge != null) profileButton.setForeground(TranscriptStyle.fullPosture(s.strongCue(), ThemeManager.isDark()));
         else profileButton.setForeground(null);
     }
@@ -765,7 +763,12 @@ public final class AssistantPanel extends JPanel {
         return more;
     }
 
-    /** ⋯'s items, built on each press so each says what it does now. */
+    /**
+     * ⋯'s items, built on each press so each says what it does now: New chat, Pop out / Dock, About this session…,
+     * Switch assistant… (the same quick switch, shown on the chip), then the mode's own — Claude Code's Start / Resume and
+     * Set up a project…, or the in-app assistant's Copy prompt and Connect a CLI assistant… (M77 §14.4: each only in the
+     * mode it belongs to) — and Settings….
+     */
     JPopupMenu moreMenu() {
         JPopupMenu menu = new JPopupMenu();
         boolean claude = claudeCodeShown();
@@ -782,7 +785,8 @@ public final class AssistantPanel extends JPanel {
         menu.add(about);
         JMenuItem change = new JMenuItem(SWITCH);
         change.setEnabled(profileButton.isEnabled());
-        change.addActionListener(e -> quickSwitch.show(profileButton, lastProfiles));
+        // shown under the chip in sight: the mode chip, or Set up AI… while nothing is set up
+        change.addActionListener(e -> quickSwitch.show(profileButton.isVisible() ? profileButton : setUpAi, lastProfiles));
         menu.add(change);
         if (claude) {
             LocalAgentState s = localAgent.lastState();
@@ -794,6 +798,14 @@ public final class AssistantPanel extends JPanel {
             JMenuItem setUp = new JMenuItem(SET_UP_PROJECT);
             setUp.addActionListener(e -> localAgent.setUpButton().doClick());
             menu.add(setUp);
+        } else if (!demoShowing) {
+            JMenuItem copy = new JMenuItem(COPY_PROMPT);
+            copy.setEnabled(copyPrompt.isEnabled());
+            copy.addActionListener(e -> { if (intents != null) intents.copyPrompt(surface.draft.getText().trim()); });
+            menu.add(copy);
+            JMenuItem cli = new JMenuItem(CONNECT_CLI);
+            cli.addActionListener(e -> { if (intents != null) intents.connectCliAssistant(); });
+            menu.add(cli);
         }
         menu.addSeparator();
         JMenuItem settings = new JMenuItem(SETTINGS);
@@ -913,26 +925,19 @@ public final class AssistantPanel extends JPanel {
         }
     }
 
-    /** The in-app header's chips: who answers, the provider and model, the key, and the action budget. */
+    /**
+     * The in-app header's chips. M78 D2 (§4.1 item 12, OD-Q.12): a live in-app assistant has none — who answers is the
+     * mode chip, the provider and model are in About, the missing key is the banner, a turn in progress is the chip's
+     * word. Only a demonstration says it is one, and that nothing is sent from it.
+     */
     private void renderChips(AssistantState state, boolean configured, boolean inDemo) {
         JPanel chips = surface.chips;
         chips.removeAll();
         if (inDemo) {
             chips.add(chip("Demonstration", true));
             chips.add(chip("nothing is sent", false));
-        } else if (nothingSetUp) {
-            chips.add(chip(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CHIP_NOTHING_SET_UP, true));
-            if (state.busy()) chips.add(chip("answering", false));
-        } else {
-            chips.add(chip("In-app assistant", true));
-            String r = route.getText();
-            if (r.startsWith("via ")) {
-                int dash = r.indexOf(" — ");
-                chips.add(chip(r.substring(4, dash > 0 ? dash : r.length()), false));
-            }
-            chips.add(chip(configured ? "API key" : "no API key", false));
-            if (state.busy()) chips.add(chip("answering", false));
         }
+        chips.setVisible(inDemo);
         chips.revalidate();
         chips.repaint();
     }

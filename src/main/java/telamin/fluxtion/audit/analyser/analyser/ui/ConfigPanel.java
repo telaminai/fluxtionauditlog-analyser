@@ -757,10 +757,10 @@ public final class ConfigPanel extends JDialog {
         c.gridy++;
         // final review #15: the header control's label as it reads (AssistantVocabularyTest holds it to
         // AssistantPanel.assistantControlText, so the two never drift); a literal, as every HTML door's text is
-        p.add(mutedNote("Choose how the assistant works in one step from the control at the top of the assistant's "
-                + "panel that names the profile in force (for example <b>Assistant: Safe analysis ▾</b>): "
+        p.add(mutedNote("Choose how the assistant works in one step from the mode chip at the top of the assistant's "
+                + "panel, which names the profile in force (for example <b>Safe ▾</b>): "
                 + "<b>Safe analysis</b>, <b>Full Claude Code</b>, <b>In-app assistant</b> or <b>Off</b>. Every option "
-                + "those cards set is here, grouped by the profile it belongs to. All of them are this machine's and "
+                + "that switch sets is here, grouped by the profile it belongs to. All of them are this machine's and "
                 + "this user's only — never in a project, a shared settings file or a bundle; an administrator cannot "
                 + "lock them yet. A shared settings file carries only the in-app assistant's two action limits; "
                 + "External MCP/REST access, file exchange and every other switch here are set on each machine."), c);

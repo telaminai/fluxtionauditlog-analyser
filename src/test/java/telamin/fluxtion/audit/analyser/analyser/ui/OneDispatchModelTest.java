@@ -820,6 +820,37 @@ class OneDispatchModelTest {
         assertTrue(node.contains("localAgent.permissionWaiting("), "the permission node's waiting state is the chip's");
     }
 
+    /**
+     * ★ M78 D2 (spec-quiet-assistant-panel.md §4.1 item 1, §5; M77 OD-77.3): ONE surface writes the profile from the panel
+     * — the mode chip, which IS M77-4's quick switch. One {@code QuickSwitch} exists in the product, it is attached to
+     * one button (the chip), and the chip's words are joined from the nodes' chip words: the panel never reads the
+     * in-app phase to choose one. Witnesses: attach the switch to Set up AI… as well, or build a second switch — the
+     * counts fail; compute the in-app word from {@code busy()} in the panel — the last assertion fails.
+     */
+    @Test
+    @DisplayName("★ M78 D2: one quick switch, on one chip; the chip joins the nodes' words and picks none")
+    void theModeChipIsTheOneQuickSwitch() throws Exception {
+        Pattern made = Pattern.compile("new\\s+(telamin\\.fluxtion\\.audit\\.analyser\\.analyser\\.ui\\.setup\\.)?QuickSwitch\\(");
+        Pattern attached = Pattern.compile("quickSwitch\\.attach\\(");
+        int makes = 0;
+        int attaches = 0;
+        try (var files = Files.walk(Path.of("src/main/java"))) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                String src = Files.readString(f);
+                makes += count(made, src);
+                attaches += count(attached, src);
+            }
+        }
+        assertEquals(1, makes, "one quick switch in the product");
+        assertEquals(1, attaches, "attached to one button");
+        String panel = Files.readString(UI.resolve("AssistantPanel.java"));
+        assertTrue(panel.contains("quickSwitch.attach(profileButton, () -> lastProfiles)"), "the mode chip is the switch");
+        String control = bodyOf(panel, "private void renderControl(");
+        assertTrue(control.contains("lastState.chipWord()") && control.contains("guide().chipWord()"),
+                "the chip joins assistantLoop's and localAgentSession's words");
+        assertFalse(control.contains(".busy()") || control.contains(".phase()"), "★ and never picks one from the phase");
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;
