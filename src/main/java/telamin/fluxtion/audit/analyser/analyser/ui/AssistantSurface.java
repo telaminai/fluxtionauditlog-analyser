@@ -106,12 +106,16 @@ final class AssistantSurface {
         });
         // final review #12: deleting a draft's words drops its binding, and the chip with it
         draft.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { }
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                edited();
+            }
             @Override public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                edited();
                 javax.swing.SwingUtilities.invokeLater(AssistantSurface.this::renderBindingChip);
             }
             @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { }
         });
+        installHistoryKeys();
         // final review #7: an Enter whose press began before the composer had the focus (the start page's Enter that
         // placed this draft, still held and auto-repeating) never sends; the composer's own next press does
         HeldEnter.install();
@@ -125,6 +129,137 @@ final class AssistantSurface {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) enterHeldSinceFocus = false;
             }
         });
+    }
+
+    // ---- owner, 2026-10-18: ↑ / ↓ recall the questions sent, as a terminal does -------------------------------------
+
+    /**
+     * The questions sent, per mode, newest last — in memory only: never saved, never sent anywhere, gone when the analyser
+     * closes. A walk starts with ↑ on the composer's first line and ends when the person edits the text; ↓ past the newest
+     * puts back the draft that was being typed. Plain ↑ / ↓ only: Shift and Alt keep their own meaning, and away from the
+     * first (or last) line the caret moves as it always did, so multi-line editing is untouched.
+     */
+    private final java.util.Map<AssistantMode, java.util.List<String>> history = new java.util.EnumMap<>(AssistantMode.class);
+    private AssistantMode historyMode = AssistantMode.IN_APP;
+    /** The entry shown while walking, or -1 when the composer holds the person's own draft. */
+    private int historyIndex = -1;
+    private String historyDraft = "";
+    private boolean recalling;
+    static final int HISTORY_LIMIT = 100;
+
+    /** The mode whose questions ↑ recalls — the mode the panel shows. A change ends a walk. */
+    void historyMode(AssistantMode mode) {
+        AssistantMode m = mode == null ? AssistantMode.IN_APP : mode;
+        if (m == historyMode) return;
+        historyMode = m;
+        historyIndex = -1;
+    }
+
+    /** The questions sent in {@code mode}, oldest first (for the tests). */
+    java.util.List<String> history(AssistantMode mode) {
+        return java.util.List.copyOf(history.getOrDefault(mode, java.util.List.of()));
+    }
+
+    private void remember(AssistantMode mode, String sent) {
+        if (sent == null || sent.isBlank()) return;
+        java.util.List<String> h = history.computeIfAbsent(mode == null ? AssistantMode.IN_APP : mode,
+                k -> new java.util.ArrayList<>());
+        if (h.isEmpty() || !h.get(h.size() - 1).equals(sent)) h.add(sent);
+        while (h.size() > HISTORY_LIMIT) h.remove(0);
+    }
+
+    private void edited() {
+        if (!recalling) historyIndex = -1;         // the person's edit makes the text their draft
+    }
+
+    private void installHistoryKeys() {
+        javax.swing.InputMap keys = draft.getInputMap(JComponent.WHEN_FOCUSED);
+        Object upWas = keys.get(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0));
+        Object downWas = keys.get(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0));
+        keys.put(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "assistant-history-previous");
+        keys.put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "assistant-history-next");
+        // the caret's own actions, looked up when pressed (a theme switch replaces the look and feel's)
+        draft.getActionMap().put("assistant-history-previous", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) {
+                if (!historyPrevious()) caret(upWas, e);
+            }
+        });
+        draft.getActionMap().put("assistant-history-next", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) {
+                if (!historyNext()) caret(downWas, e);
+            }
+        });
+    }
+
+    private void caret(Object name, ActionEvent e) {
+        javax.swing.Action a = name == null ? null : draft.getActionMap().get(name);
+        if (a != null) a.actionPerformed(e);
+    }
+
+    /** ↑: an older question, when the caret is on the first line. False: the key moves the caret as usual. */
+    boolean historyPrevious() {
+        java.util.List<String> h = history.getOrDefault(historyMode, java.util.List.of());
+        if (h.isEmpty() || composing() || draft.getSelectionStart() != draft.getSelectionEnd() || !onFirstLine()) {
+            return false;
+        }
+        if (historyIndex < 0) {
+            historyDraft = draft.getText();
+            show(h.get(h.size() - 1), h.size() - 1);
+        } else if (historyIndex > 0) {
+            show(h.get(historyIndex - 1), historyIndex - 1);
+        } else {
+            draft.setCaretPosition(0);                // the oldest: stay, at its start
+        }
+        return true;
+    }
+
+    /** ↓: a newer question, or the draft back past the newest, when walking and on the last line. */
+    boolean historyNext() {
+        java.util.List<String> h = history.getOrDefault(historyMode, java.util.List.of());
+        if (historyIndex < 0 || composing() || draft.getSelectionStart() != draft.getSelectionEnd() || !onLastLine()) {
+            return false;
+        }
+        if (historyIndex + 1 < h.size()) {
+            show(h.get(historyIndex + 1), historyIndex + 1);
+        } else {
+            show(historyDraft, -1);
+        }
+        return true;
+    }
+
+    private void show(String text, int index) {
+        recalling = true;
+        try {
+            draft.setText(text);
+            draft.setCaretPosition(draft.getDocument().getLength());
+        } finally {
+            recalling = false;
+        }
+        historyIndex = index;
+    }
+
+    /** The caret is on the composer's first row (as wrapped on screen when laid out, else the first line of text). */
+    private boolean onFirstLine() {
+        return sameRow(draft.getCaretPosition(), 0, true);
+    }
+
+    private boolean onLastLine() {
+        return sameRow(draft.getCaretPosition(), draft.getDocument().getLength(), false);
+    }
+
+    private boolean sameRow(int caret, int edge, boolean first) {
+        if (draft.getWidth() > 0) {
+            try {
+                java.awt.geom.Rectangle2D a = draft.modelToView2D(caret);
+                java.awt.geom.Rectangle2D b = draft.modelToView2D(edge);
+                if (a != null && b != null) return Math.abs(a.getY() - b.getY()) < 1;
+            } catch (BadLocationException ignored) {
+                // fall back to the text's own lines
+            }
+        }
+        String text = draft.getText();
+        return first ? text.lastIndexOf('\n', Math.max(0, caret - 1)) < 0 || caret == 0
+                : text.indexOf('\n', caret) < 0;
     }
 
     /** Whether the Enter now held was pressed before the composer gained the focus (final review #7). */
@@ -269,9 +404,19 @@ final class AssistantSurface {
         bindingChip.getAccessibleContext().setAccessibleName(chipName(g, chipLogOpen, chipGeneration, chipOpenedAt));
     }
 
-    /** The node accepted the send: clear the composer. Nothing else clears it (a refused draft stays editable). */
+    /**
+     * The node accepted the send in {@code mode}: the question joins that mode's ↑ history (in memory only) and the
+     * composer is cleared. Nothing else clears it (a refused draft stays editable).
+     */
     void accepted() {
+        accepted(historyMode);
+    }
+
+    void accepted(AssistantMode mode) {
+        remember(mode, draft.getText().strip());
         draft.setText("");
+        historyIndex = -1;
+        historyDraft = "";
         clearDraftMarks();
     }
 

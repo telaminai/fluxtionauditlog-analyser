@@ -54,6 +54,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.SendLocalAgentTurnEffect> agentSends = new ArrayList<>();
     final List<SessionEffects.StopLocalAgentEffect> agentStops = new ArrayList<>();
     final List<SessionEffects.ConfirmLocalAgentFolderEffect> agentConfirms = new ArrayList<>();
+    /** Owner, 2026-10-18: every restart offer the node asked to show. */
+    final List<SessionEffects.OfferLocalAgentRestartEffect> restartOffers = new ArrayList<>();
     /** M74 P2: what the Ask catalogue and the start page asked the adapter to do, in order. */
     final List<SessionEffects.PrimeLocalAgentDraftEffect> agentPrimes = new ArrayList<>();
     final List<SessionEffects.PrimeAssistantDraftEffect> assistantPrimes = new ArrayList<>();
@@ -236,6 +238,11 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 agentConfirms.add(e);
                 agentOrder.add("confirmFolder");
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "confirmFolder");
+            }
+            case SessionEffects.OfferLocalAgentRestartEffect e -> {
+                restartOffers.add(e);
+                agentOrder.add("offerRestart");
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "offerRestart");
             }
             case SessionEffects.PrimeLocalAgentDraftEffect e -> {
                 agentPrimes.add(e);

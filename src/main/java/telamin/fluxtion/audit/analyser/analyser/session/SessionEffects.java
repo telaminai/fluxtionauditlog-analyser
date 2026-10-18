@@ -334,6 +334,16 @@ public sealed interface SessionEffects {
     }
 
     /**
+     * Owner, 2026-10-18: {@code localAgentSession} decided that a settings change can wait for the person — the running
+     * session keeps its old settings until they answer offer {@code offer} (rendered from {@code LocalAgentState.Restart}).
+     * The performer makes the assistant panel visible and says {@code status} on the main window's status line; it
+     * decides nothing. The answer arrives as {@link SessionEvents.LocalAgentRestartAnswered}. Answered at once by
+     * {@link SessionEvents.LocalAgentEffectStarted}.
+     */
+    record OfferLocalAgentRestartEffect(long opId, long generation, long offer, String status) implements SessionEffects {
+    }
+
+    /**
      * Ask the person, outside the dispatch, whether this working directory may be used by Claude Code (OD-74.5). On yes
      * the frame records the confirmation on this machine and submits a NEW Start request; it never starts anything here.
      * {@code full} (OD-74.12): the full-posture dialog, which reads the folder's three files (bounded, names only), names

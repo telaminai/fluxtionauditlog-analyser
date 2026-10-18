@@ -67,10 +67,12 @@ class FactFieldsTest {
                 "LocalAgentPermissionAnswered.name", "HostedCallPresented.verb", "ExampleDownloadConfirmed.targetProblem",
                 "ExampleEffectStarted.what", "ExampleDeadlinePassed.phase",
                 // M74 UX: the assistant profile's facts — who opened or closed the cards (an origin word)
-                "AssistantProfilesRequested.origin", "AssistantProfilesClosed.origin")) {
+                "AssistantProfilesRequested.origin", "AssistantProfilesClosed.origin",
+                // owner, 2026-10-18: the restart chip's origin, the analyser's own words
+                "LocalAgentRestartOfferRequested.origin")) {
             M74.put(c, Holds.VOCABULARY);
         }
-        for (String c : List.of("LocalAgentConsent.postureRef", "LocalAgentStatusObserved.hostedNonceDigest",
+        for (String c : List.of("LocalAgentConsent.postureRef", "LocalAgentConsent.folderRef", "LocalAgentStatusObserved.hostedNonceDigest",
                 "LocalAgentInitObserved.sessionDigest", "LocalAgentDraftComposed.logIdentity",
                 "AssistantDraftComposed.logIdentity", "ProposalItemFact.pathDigest", "ProposalItemFact.classNameDigest",
                 "ProposalItemPreviewed.proposalId", "ProposalItemPreviewed.itemId", "ProposalPreviewDone.proposalId",
@@ -97,12 +99,15 @@ class FactFieldsTest {
         }
         // review P3 N3: the tools the CLI reports are the person's configuration (their MCP servers' tools), not vocabulary
         for (String c : List.of("LocalAgentInitObserved.tools", "LocalAgentStatusObserved.servers", "LocalAgentInitObserved.servers",
-                "LocalAgentInitObserved.skills", "LocalAgentInitObserved.plugins")) {
+                "LocalAgentInitObserved.skills", "LocalAgentInitObserved.plugins",
+                // owner, 2026-10-18: the configured Claude Code model (a model name, checked by validModel)
+                "LocalAgentConsent.model")) {
             M74.put(c, Holds.PERSON_CONFIG);
         }
         M74.put("ExampleDownloadRequested.source", Holds.PERSON_PACK);
         for (String c : List.of("LocalAgentStartRequested.consent", "LocalAgentSendRequested.consent",
                 "LocalAgentConsentChanged.consent", "LocalAgentFolderAnswered.consent", "LocalAgentDraftComposed.consent",
+                "LocalAgentRestartAnswered.consent",
                 "StartPagePromptSent.consent", "ProposalReceived.items")) {
             M74.put(c, Holds.STRUCTURE);
         }

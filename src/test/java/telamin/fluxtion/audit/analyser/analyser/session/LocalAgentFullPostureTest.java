@@ -37,13 +37,18 @@ class LocalAgentFullPostureTest {
     static SessionEffects.StartLocalAgentEffect startFull(SessionDriver d, FakeSessionAdapter a, FullMode mode) {
         d.post(new SessionEvents.LocalAgentStartRequested(1, full(mode)));
         var start = a.agentStarts.get(a.agentStarts.size() - 1);
+        bindFull(d, start, mode);
+        return start;
+    }
+
+    /** Drive a full-posture start in {@code mode} to READY. */
+    static void bindFull(SessionDriver d, SessionEffects.StartLocalAgentEffect start, FullMode mode) {
         d.post(new SessionEvents.LocalAgentSpawned(start.generation(), SessionEvents.SpawnFailure.NONE, 0));
         d.post(new SessionEvents.LocalAgentInitialized(start.generation(), true, mode.cli(), 7,
                 SessionEvents.Billing.SUBSCRIPTION));
         d.post(new SessionEvents.LocalAgentStatusObserved(start.generation(), 480,
                 List.of(PERSON_SERVER, LocalAgentPosture.HOSTED_SERVER, LocalAgentPosture.PERSONS_REGISTRATION),
                 "connected", LocalAgentPosture.digest(start.nonce())));
-        return start;
     }
 
     /** P3: the hosted tools the full posture shows in {@code mode} — the destructive verbs only where the mode asks. */
@@ -327,11 +332,15 @@ class LocalAgentFullPostureTest {
     }
 
     /**
-     * ★ Review finding 4. Witnesses: return false from {@code onConsentChanged} — the withdrawn consent leaves the
-     * session running; drop the Send re-check — a Send under a changed posture is written to the old process.
+     * ★ Review finding 4, owner 2026-10-18. A change that takes powers away ends the session AT ONCE, mid-turn too — the
+     * consent withdrawn, Full switched off, a full mode that asks more — and is never offered; a change that gives more
+     * (a full mode that asks less) is OFFERED and the session runs on. Witnesses: return false from
+     * {@code onConsentChanged} — the withdrawn consent leaves the session running; drop the {@code strictness} check in
+     * {@code mandatoryStop} — DEFAULT → PLAN is offered instead of ending the session; drop the Send's
+     * {@code mandatoryStop} — a Send after Full was switched off is accepted and started afresh, never refused.
      */
     @Test
-    @DisplayName("★ Settings applied while running: withdrawn ends it now; a changed posture after the turn (or now when idle); a Send re-checks")
+    @DisplayName("★ Settings applied while running: withdrawn, Full off and a stricter mode end it now (mid-turn too); a laxer mode is offered; a Send re-checks")
     void settingsAppliedWhileRunning() {
         // withdrawn: at once, even mid-turn
         FakeSessionAdapter a = new FakeSessionAdapter();
@@ -345,38 +354,61 @@ class LocalAgentFullPostureTest {
         d.post(new SessionEvents.LocalAgentConsentChanged(off));
         assertEquals(1, kills(a).size(), "switched off: stopped at once");
         assertEquals("SWITCHED_OFF", state(d).verdict());
+        assertEquals(0, a.restartOffers.size(), "never offered");
 
-        // a changed mode mid-turn: after the turn
+        // a STRICTER mode mid-turn: at once, never offered
         FakeSessionAdapter b = new FakeSessionAdapter();
         SessionDriver e = driver(b);
         var s2 = startFull(e, b, FullMode.DEFAULT);
         e.post(fullInit(s2, 0, "default", List.of(), "connected"));
         e.post(new SessionEvents.LocalAgentSendRequested(10, 10, SessionEvents.SlashClass.TEXT, null, full(FullMode.DEFAULT)));
-        var sent = b.agentSends.get(0);
         e.post(new SessionEvents.LocalAgentConsentChanged(full(FullMode.PLAN)));
-        assertEquals(0, kills(b).size(), "the turn in progress finishes first");
-        assertEquals("POSTURE_CHANGED", state(e).verdict());
-        e.post(new SessionEvents.LocalAgentTurnEnded(s2.generation(), sent.ticket(), SessionEvents.TurnOutcome.COMPLETED));
-        assertEquals(1, kills(b).size(), "then the session ends");
-        assertTrue(state(e).newChatOffered());
+        assertEquals(1, kills(b).size(), "★ a mode that asks more ends the turn and the session at once");
+        assertEquals("MODE_STRICTER", state(e).verdict());
+        assertEquals(0, b.restartOffers.size(), "★ never offered");
+        assertFalse(state(e).extra().restart().any());
 
-        // unchanged settings change nothing; a changed posture while idle ends it now
+        // a LAXER mode mid-turn: offered, the turn and the session go on
+        FakeSessionAdapter b2 = new FakeSessionAdapter();
+        SessionDriver e2 = driver(b2);
+        var s3 = startFull(e2, b2, FullMode.DEFAULT);
+        e2.post(fullInit(s3, 0, "default", List.of(), "connected"));
+        e2.post(new SessionEvents.LocalAgentSendRequested(10, 10, SessionEvents.SlashClass.TEXT, null, full(FullMode.DEFAULT)));
+        e2.post(new SessionEvents.LocalAgentConsentChanged(full(FullMode.AUTO)));
+        assertEquals(0, kills(b2).size(), "a mode that asks less is offered, never forced");
+        assertTrue(state(e2).busy(), "the turn goes on");
+        assertEquals(1, b2.restartOffers.size());
+        assertTrue(state(e2).extra().restart().offered());
+        assertTrue(state(e2).extra().restart().changed().contains("default → auto"), state(e2).extra().restart().changed());
+
+        // unchanged settings change nothing; Full switched off while idle ends it now
         FakeSessionAdapter c = new FakeSessionAdapter();
         SessionDriver f = driver(c);
         startFull(f, c, FullMode.DEFAULT);
         f.post(new SessionEvents.LocalAgentConsentChanged(full(FullMode.DEFAULT)));
         assertEquals(0, kills(c).size(), "the same posture: the session goes on");
+        assertEquals(0, c.restartOffers.size(), "and nothing is offered");
         f.post(new SessionEvents.LocalAgentConsentChanged(consent()));          // the full switch turned off
-        assertEquals(1, kills(c).size(), "another kind of posture, idle: ended now");
+        assertEquals(1, kills(c).size(), "Full switched off: ended now");
+        assertEquals("FULL_OFF", state(f).verdict());
 
-        // a Send under changed settings is refused and ends the session; nothing is written
+        // a Send after Full was switched off is refused and ends the session; nothing is written
         FakeSessionAdapter g = new FakeSessionAdapter();
         SessionDriver h = driver(g);
         startFull(h, g, FullMode.DEFAULT);
-        h.post(new SessionEvents.LocalAgentSendRequested(11, 11, SessionEvents.SlashClass.TEXT, null, full(FullMode.AUTO)));
-        assertEquals(0, g.agentSends.size(), "not written to a process started under other settings");
-        assertFalse(state(h).answer().accepted());
+        h.post(new SessionEvents.LocalAgentSendRequested(11, 11, SessionEvents.SlashClass.TEXT, null, consent()));
+        assertEquals(0, g.agentSends.size(), "not written to a full process the person switched off");
+        assertFalse(state(h).answer().accepted(), "★ the Send is refused, never quietly sent to a new process");
         assertEquals(1, kills(g).size());
+
+        // a Send under a laxer mode goes to the running session, on its old settings, and the restart is offered
+        FakeSessionAdapter g2 = new FakeSessionAdapter();
+        SessionDriver h2 = driver(g2);
+        startFull(h2, g2, FullMode.DEFAULT);
+        h2.post(new SessionEvents.LocalAgentSendRequested(12, 12, SessionEvents.SlashClass.TEXT, null, full(FullMode.AUTO)));
+        assertEquals(1, g2.agentSends.size(), "the session still runs as it was started");
+        assertEquals(0, kills(g2).size());
+        assertEquals(1, g2.restartOffers.size(), "and the restart is offered");
     }
 
     /** ★ Review finding 12. Witness: key the note on the event alone — the second turn's hook joins the first's note. */

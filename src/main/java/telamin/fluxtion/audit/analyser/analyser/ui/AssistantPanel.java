@@ -346,6 +346,8 @@ public final class AssistantPanel extends JPanel {
         shownMode = m;
         this.demoShowing = demoShowing;
         boolean claude = claudeCodeShown();
+        // owner, 2026-10-18: ↑ recalls the questions of the assistant the panel shows
+        surface.historyMode(claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP);
         detailsLayout.show(details, (claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP).name());
         surface.start.setVisible(claude);
         copyPrompt.setVisible(!claude);
@@ -428,7 +430,7 @@ public final class AssistantPanel extends JPanel {
 
     /** The node accepted the send: the composer is cleared for the next question. Nothing else clears the draft. */
     public void draftAccepted() {
-        surface.accepted();
+        surface.accepted(AssistantMode.IN_APP);
     }
 
     /**

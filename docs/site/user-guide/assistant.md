@@ -40,7 +40,11 @@ plan, or an API key). Both share:
   back (the in-app assistant);
 - **one composer**, with **Send**, **Stop** and **New chat** doing what the mode in force does with them (Claude Code
   adds **Start**; the in-app assistant adds **Copy prompt**); **Enter sends and Shift+Enter starts a new line**, as in
-  the start page's box;
+  the start page's box; **↑ on the first line recalls the questions you sent** (each assistant its own), **↓ on the last
+  line walks forward**, and ↓ past the newest puts back what you were typing — as in a terminal. The history is kept in
+  memory only: it is never saved and never sent anywhere, and it is gone when the analyser closes. Shift+↑ and
+  Shift+↓ still select, and in a draft of several lines the arrows move the caret until it reaches the first or last
+  line;
 - **one row of header chips** — who answers, the model, the profile or the provider, how it is paid for;
 - **one line under the header that says what this mode cannot do** — the in-app assistant cannot read your project
   folder or use your own tools; Safe analysis has no shell, edits or web; full Claude Code's own tools are not confined
@@ -329,9 +333,20 @@ that, run inside the analyser.
 - **Stop** interrupts the turn. If Claude Code does not acknowledge within 5 s, or the turn has not ended within 15 s,
   the analyser ends the process; your next Send resumes the same conversation in a new process.
 - **New chat** starts a new conversation. Changing the folder (opening another project), the profile or Full Claude
-  Code's mode means a New chat: a conversation is never resumed under different settings. Applying Settings while
-  Claude Code runs ends the session if the change affects it — at once when you turned Claude Code off, otherwise
-  after the turn in progress — and the next Start offers New chat.
+  Code's mode means a New chat: a conversation is never resumed under different settings.
+- **Changing a setting while Claude Code runs.** Claude Code takes its settings when it starts, so a change made in
+  Settings ▸ Assistant or with the profile cards applies at the next start. What happens to the session running now
+  depends on the change:
+
+    | Change | What happens |
+    |---|---|
+    | *Safe analysis* → *Full Claude Code*; a full mode that asks **less** (for example `default` → `acceptEdits`); the model; the spend limit; the folder | **Offered.** The panel asks *"Settings changed — restart Claude Code now to apply them?"* with **Yes, restart now** and **Later**. Nothing stops until you answer. **Yes** stops Claude Code and starts it again on the new settings — the conversation continues when only the model or the spend limit changed, and a **new chat** begins when the profile, the mode or the folder changed (the prompt says which); while Claude is answering, it restarts when that answer ends. **Later** keeps the session running on the settings it was started with and leaves a **settings changed — restart to apply** chip in the header — click it to be asked again. Putting the setting back withdraws the offer. |
+    | *Allow the analyser to start Claude Code* off (or the *In-app assistant* or *Off* card); Full Claude Code switched **off**; a full mode that asks **more** (for example `auto` → `default`, or any mode → `plan`); the folder no longer confirmed for the profile running | **Stopped at once**, mid-answer too, and never offered: each takes away something the running session can still do. The transcript says why. |
+    | External MCP/REST access, file exchange, creating projects, the in-app assistant's settings | Nothing to restart: Claude Code keeps its own connection to the analyser. |
+
+  After you choose **Keep it running here** when switching projects, the folder change is yours: it is not offered
+  again. Turning *Allow the analyser to start Claude Code* back on after it stopped a session clears the "switched off"
+  line — press Start.
 - **Slash commands** you type are sent as in a terminal — `/compact`, `/model`, `/context`, `/usage` and the like —
   except those that would change how Claude Code works here or the conversation's identity, or act outside this session: `/config`,
   `/mcp` with an argument, `/add-dir`, `/permissions` and others are refused with *"… is not available in the analyser —

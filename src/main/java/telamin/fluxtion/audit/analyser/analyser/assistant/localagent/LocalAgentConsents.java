@@ -20,10 +20,16 @@ public final class LocalAgentConsents {
 
     /** The machine-tier settings the consent is read from. */
     public record Settings(boolean allowed, boolean full, String fullMode, List<String> trusted, List<String> trustedFull,
-                           Double budgetUsd) {
+                           Double budgetUsd, String model) {
         public Settings {
             trusted = List.copyOf(trusted == null ? List.of() : trusted);
             trustedFull = List.copyOf(trustedFull == null ? List.of() : trustedFull);
+        }
+
+        /** The shape before the restart offer: the model not observed. */
+        public Settings(boolean allowed, boolean full, String fullMode, List<String> trusted, List<String> trustedFull,
+                        Double budgetUsd) {
+            this(allowed, full, fullMode, trusted, trustedFull, budgetUsd, null);
         }
     }
 
@@ -53,9 +59,12 @@ public final class LocalAgentConsents {
         String postureRef = ClaudeCodeProvider.postureRef(dir, posture);
         SessionEvents.FolderVerdict folder = verdictOf(dir, home);
         long budget = s.budgetUsd() == null ? 0 : Math.round(s.budgetUsd() * 1_000_000d);
+        // owner, 2026-10-18: the model (blank is the default) and the folder by digest, for the restart offer
+        String model = s.model() == null ? null
+                : s.model().isBlank() ? ClaudeCodeProvider.DEFAULT_MODEL : s.model().strip();
         return new SessionEvents.LocalAgentConsent(s.allowed(), confirmed,
                 dir != null && bundleWorkingCopy != null && bundleWorkingCopy.test(dir), postureRef, budget, folder,
-                s.full(), mode, fullConfirmed);
+                s.full(), mode, fullConfirmed, model, dir == null ? null : LocalAgentPosture.digest(real));
     }
 
     static String realPath(Path p) {

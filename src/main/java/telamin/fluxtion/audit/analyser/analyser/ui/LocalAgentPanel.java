@@ -63,6 +63,12 @@ public final class LocalAgentPanel extends JPanel {
 
         /** P2b (§5.6 step 1): <i>Set up a project with Claude…</i> — the person's chooser for the set-up folder. */
         default void setUpProject() { }
+
+        /** Owner, 2026-10-18: the restart offer {@code offer} answered — Restart now ({@code restart}) or Later. */
+        default void answerRestart(long offer, boolean restart) { }
+
+        /** Owner, 2026-10-18: the "settings changed — restart to apply" chip was clicked. */
+        default void reopenRestartOffer() { }
     }
 
     /**
@@ -124,6 +130,20 @@ public final class LocalAgentPanel extends JPanel {
     static final String CLOSE_EXTERNAL = "Close external access while this session runs";
     private telamin.fluxtion.audit.analyser.analyser.session.ListenerState listener =
             telamin.fluxtion.audit.analyser.analyser.session.ListenerState.NONE;
+    /**
+     * Owner, 2026-10-18 ("update the assistant now? yes / no"): the restart offer, never a modal — rendered from
+     * {@link LocalAgentState.Restart}, which {@code localAgentSession} decides; Yes and Later are reported as facts.
+     */
+    private final JPanel restartBanner = new JPanel(new BorderLayout(6, 2));
+    private final WrapLine restartText = new WrapLine(" ");
+    private final JButton restartYes = UiText.button(RESTART_YES);
+    private final JButton restartLater = UiText.button(RESTART_LATER);
+    /** The chip shown after Later: clicking it shows the offer again. */
+    private final JButton restartChip = UiText.button(RESTART_CHIP);
+    private LocalAgentState.Restart restart = LocalAgentState.Restart.NONE;
+    static final String RESTART_YES = "Yes, restart now";
+    static final String RESTART_LATER = "Later";
+    static final String RESTART_CHIP = "settings changed — restart to apply";
     private final WrapLine diagnostics = new WrapLine(" ");
     private final WrapLine endpoint = new WrapLine(" ");
     /**
@@ -211,6 +231,24 @@ public final class LocalAgentPanel extends JPanel {
         proposalBanner.getAccessibleContext().setAccessibleName("Claude Code's set-up proposal");
         review.addActionListener(e -> { if (intents != null && proposal.exists()) intents.reviewProposal(proposal.id()); });
         notNow.addActionListener(e -> { if (intents != null && proposal.exists()) intents.dismissProposal(proposal.id()); });
+        restartBanner.setOpaque(true);
+        restartBanner.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        restartBanner.add(restartText, BorderLayout.CENTER);
+        JPanel restartButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        restartButtons.setOpaque(false);
+        restartButtons.add(restartYes);
+        restartButtons.add(restartLater);
+        restartBanner.add(restartButtons, BorderLayout.SOUTH);
+        restartBanner.setVisible(false);
+        restartBanner.getAccessibleContext().setAccessibleName("Restart Claude Code to apply the changed settings");
+        restartYes.addActionListener(e -> {
+            if (intents != null && restart.offered()) intents.answerRestart(restart.offer(), true);
+        });
+        restartLater.addActionListener(e -> {
+            if (intents != null && restart.offered()) intents.answerRestart(restart.offer(), false);
+        });
+        restartChip.addActionListener(e -> { if (intents != null && restart.deferred()) intents.reopenRestartOffer(); });
+        restartChip.getAccessibleContext().setAccessibleName("Settings changed: restart Claude Code to apply them");
         closeExternal.setVisible(false);
         closeExternal.setToolTipText(UiText.tooltip("While this session runs, refuse external MCP/REST clients — "
                 + "including this session's own tools, which could otherwise reach the analyser through the endpoint "
@@ -246,7 +284,7 @@ public final class LocalAgentPanel extends JPanel {
         });
         java.util.List<JComponent> lines = new java.util.ArrayList<>();
         if (standalone) lines.add(chips);
-        lines.addAll(java.util.List.of(header, posture, lockWarning, actions, closeExternal,
+        lines.addAll(java.util.List.of(header, posture, lockWarning, actions, closeExternal, restartBanner,
                 proposalBanner, status, detailsToggle, detailsBody));
         for (JComponent c : lines) {
             c.setAlignmentX(LEFT_ALIGNMENT);
@@ -276,6 +314,7 @@ public final class LocalAgentPanel extends JPanel {
             surface.onStop = this::onStop;
             surface.onNewChat = this::onNewChat;
             surface.onSend = this::onSend;
+            surface.historyMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT);
         }
         settings.addActionListener(e -> { if (intents != null) intents.openSettings(); });
     }
@@ -434,7 +473,7 @@ public final class LocalAgentPanel extends JPanel {
 
     /** The node accepted the send: clear the composer. Nothing else clears it (a refused draft stays editable). */
     public void draftAccepted() {
-        surface.accepted();
+        surface.accepted(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT);
     }
 
     /**
@@ -540,6 +579,55 @@ public final class LocalAgentPanel extends JPanel {
         repaint();
     }
 
+    /** Owner, 2026-10-18: the restart offer as the node decided it — the prompt, or nothing (the chip is a header chip). */
+    private void renderRestart(LocalAgentState s) {
+        restart = s.extra().restart();
+        String words = restartWords(restart, s.busy() || "STOPPING".equals(s.phase()));
+        boolean show = words != null;
+        restartText.setText(show ? words : " ");
+        restartYes.setVisible(restart.offered());
+        restartLater.setVisible(restart.offered());
+        restartBanner.setBackground(UiTheme.accentWash(0.14f));
+        restartBanner.setVisible(show);
+        restartBanner.getAccessibleContext().setAccessibleDescription(show ? words : null);
+        restartChip.setToolTipText(restart.deferred() ? UiText.tooltip("Claude Code is running on the settings it was "
+                + "started with. Click to restart it now and apply the change: " + restart.changed()) : null);
+    }
+
+    /** The prompt's words, or null when there is none (pinned by the restart-offer tests). */
+    static String restartWords(LocalAgentState.Restart r, boolean answering) {
+        if (r == null || (!r.offered() && !r.afterTurn())) return null;
+        if (r.afterTurn()) {
+            return "Claude Code restarts with the changed settings when this answer ends"
+                    + (r.newChat() ? " — a new chat begins then." : "; the conversation continues.");
+        }
+        return "Settings changed — restart Claude Code now to apply them? Changed: " + r.changed() + ". "
+                + (r.newChat() ? "Restarting begins a new chat: a conversation is never resumed under other settings. "
+                : "The conversation continues after the restart. ")
+                + (answering ? "Claude is answering: Yes restarts it when this answer ends. " : "")
+                + "Until then it keeps running on the previous settings.";
+    }
+
+    JPanel restartBanner() {
+        return restartBanner;
+    }
+
+    WrapLine restartText() {
+        return restartText;
+    }
+
+    JButton restartYesButton() {
+        return restartYes;
+    }
+
+    JButton restartLaterButton() {
+        return restartLater;
+    }
+
+    JButton restartChip() {
+        return restartChip;
+    }
+
     /** "Claude Code proposes 4 changes to set up …/medmon — Review…" (§5.6 step 4). */
     static String bannerText(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {
         long pending = p.count(telamin.fluxtion.audit.analyser.analyser.session.ProposalState.ItemState.PENDING);
@@ -593,6 +681,7 @@ public final class LocalAgentPanel extends JPanel {
             renderFullCue(s);
         }
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
+        renderRestart(s);
         status.setText(statusText(s, waitingForApproval));
         revalidate();
         String words = s.detailRef() != 0 ? store.text(s.detailRef()) : s.stderrRef() != 0
@@ -695,8 +784,24 @@ public final class LocalAgentPanel extends JPanel {
             String provider = providerWords(h.apiProvider());
             if (provider != null) chips.add(chip(provider, false));
         }
+        if (s.extra().restart().deferred()) chips.add(styledChip(restartChip));   // owner, 2026-10-18: after Later
         chips.revalidate();
         chips.repaint();
+    }
+
+    /** The restart chip: a chip that is a button, in the note colour so it reads as something waiting. */
+    private JButton styledChip(JButton b) {
+        b.setOpaque(true);
+        b.setContentAreaFilled(true);
+        b.setFocusPainted(false);
+        b.setBackground(UiTheme.accentWash(0.22f));
+        b.setForeground(UiTheme.noteForeground());
+        b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UiTheme.noteForeground(), 1, true),
+                BorderFactory.createEmptyBorder(1, 6, 1, 6)));
+        Font f = UIManager.getFont("Label.font");
+        if (f != null) b.setFont(f.deriveFont(Font.BOLD, f.getSize2D() - 1f));
+        b.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        return b;
     }
 
     private JLabel chip(String text, boolean strong) {

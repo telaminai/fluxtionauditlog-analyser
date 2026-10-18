@@ -135,6 +135,19 @@ analyser offers New chat; it never resumes an old session under a different post
 confirmation (OD-74.5, OD-74.12) and are **machine-tier only**: never exported, never in a profile, share or bundle
 (the M73 rule, pinned by test).
 
+**A settings change while a session runs (owner, 2026-10-18).** `localAgentSession` compares every consent fact with
+what the running process was started with (its posture, `postureRef`, folder digest, model and spend limit) and
+classifies the difference. *Mandatory* — consent withdrawn; Full switched off; a full mode that asks more (`plan` >
+`default` > `acceptEdits` > `auto`); the folder no longer confirmed for the posture running (on a Settings change, not
+on every Send, since full Claude Code may edit its own folder's files) — ends the session at once, mid-turn too, and
+is never offered. *Offerable* — Safe → Full, a mode that asks less, the folder, the model, the spend limit — keeps the
+session running and publishes `LocalAgentState.Restart` (OFFERED), asking for `OfferLocalAgentRestartEffect` (the
+frame reveals the panel and says the status line); the person's answer is `LocalAgentRestartAnswered`. Later →
+DEFERRED (the chip; `LocalAgentRestartOfferRequested` asks again); Yes → re-classified under the consent observed then,
+and either a stop at once, a withdrawal, AFTER_TURN (mid-turn) or a kill and a Start — resumed when `postureRef` is
+unchanged, else a new conversation first, so the "posture change needs New chat" rule holds. A change put back
+withdraws the offer; after Keep on a project switch, a folder-only change is the person's and is not offered.
+
 **What the full posture changes about the threat model, stated.** Record text can contain words written to steer an
 AI. In the default posture the most such words can reach is the twelve pre-allowed verbs and three read-only tools in
 one folder. In the full posture they reach an agent with the person's shell, subject only to the person's rules and

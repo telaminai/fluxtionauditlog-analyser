@@ -5059,7 +5059,29 @@ public final class MainFrame extends JFrame {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalDismissed(proposalId));
             }
             @Override public void setUpProject() { pressStartPrompt("S2", ""); }
+            // owner, 2026-10-18: the person's answer to the restart offer, and the chip, reported; the node decides
+            @Override public void answerRestart(long offer, boolean restart) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentRestartAnswered(
+                        ++localAgentRequest, offer, restart, localAgentConsent()));
+            }
+            @Override public void reopenRestartOffer() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                        .LocalAgentRestartOfferRequested("restart chip"));
+            }
         });
+    }
+
+    /**
+     * OfferLocalAgentRestartEffect (owner, 2026-10-18): localAgentSession offered a restart for a settings change. The
+     * offer itself is rendered from the snapshot; this only brings the assistant forward and says the node's words on the
+     * status line. Nothing is stopped or started here.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result offerLocalAgentRestart(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferLocalAgentRestartEffect e) {
+        SwingUtilities.invokeLater(this::revealAssistant);
+        status.setText(e.status());
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(),
+                e.generation(), "offerRestart");
     }
 
     /** r6 §4.2: the hosted bridge is this running jar; JBang only when the running jar cannot be launched. */
@@ -5124,7 +5146,8 @@ public final class MainFrame extends JFrame {
                 localAgentScratch, Path.of(System.getProperty("user.home")),
                 new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentConsents.Settings(
                         config.claudeCodeAllowed, config.claudeCodeFull, config.claudeCodeFullMode,
-                        config.claudeCodeTrustedFolders, config.claudeCodeTrustedFullFolders, config.claudeCodeBudgetUsd),
+                        config.claudeCodeTrustedFolders, config.claudeCodeTrustedFullFolders, config.claudeCodeBudgetUsd,
+                        config.claudeCodeModel),
                 telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy);
     }
 
@@ -8532,6 +8555,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowPermissionDialogEffect e -> showPermissionDialog(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ClosePermissionDialogEffect e -> closePermissionDialog(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e -> confirmLocalAgentFolder(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferLocalAgentRestartEffect e -> offerLocalAgentRestart(e);
             // M74 P2: the Ask catalogue's drafts and the start page — the nodes decided; the frame performs and reports
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeLocalAgentDraftEffect e -> primeLocalAgentDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeAssistantDraftEffect e -> primeAssistantDraft(e);
