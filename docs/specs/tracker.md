@@ -31,6 +31,7 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 - ☑ INTEG-C3 (FIX-9): report admission is bound to the node's project lifetime and exact output; `ReportOwnershipFrameTest` pins project/destination switches and link replacement. See the [v3 review](../handoff/review_integration_v3_2026_10_18_codex.md).
 - ☑ INTEG-C4 (FIX-9): complete report revisions replace timestamp ownership; internal write receipts prevent attribution of later edits. Guards: `ReportRevisionTest`, `ReportOwnershipFrameTest`, `HostedGrantServerTest.theServerRecordsTheReceiptRatherThanAnInterveningEdit`.
 - ☑ INTEG-C5: a Java source spotlight asked right after `goto` or `topology {select, source: true}` waits for that verb's source read before capturing the view, instead of answering "superseded"; Swing adapter timing only. Guard: `SampleProjectSpotlightFrameTest` (held read, back-to-back, genuine supersede).
+- ☑ INTEG-C6: Settings ▸ Assistant's intro note and Safe analysis group shared a grid row since M77-2 put *Set up AI…* above them, painting over each other (seen in the release's settings-assistant.png); rows now count on. Guard: `AssistantFirstRunFrameTest.theAssistantPagesRowsNeverOverlap` (witness: restoring `c.gridy = 1` fails it).
 
 _Refreshed 2026-10-06, after 1.32.0._ **Shipped since the 2026-09-27 refresh:** **1.25.0** (chart and report lifecycle,
 PR #51); **1.26.0 / 1.26.1** (M69 spotlight walks); **1.27.0** (evidence bundles, first delivery); **1.28.0** (M70

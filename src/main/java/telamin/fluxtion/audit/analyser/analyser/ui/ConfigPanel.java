@@ -764,15 +764,18 @@ public final class ConfigPanel extends JDialog {
                 + "this user's only — never in a project, a shared settings file or a bundle; an administrator cannot "
                 + "lock them yet. A shared settings file carries only the in-app assistant's two action limits; "
                 + "External MCP/REST access, file exchange and every other switch here are set on each machine."), c);
-        c.gridy = 1;
+        // each row its own grid row, counted on: M77-2 put Set up AI… above the note and the sections kept their fixed
+        // rows, so the note and Safe analysis shared row 1 and painted over each other (found in the 2026-10-18
+        // release's settings-assistant.png; AssistantFirstRunFrameTest holds it)
+        c.gridy++;
         p.add(buildClaudeCodeSection(), c);
-        c.gridy = 2;
+        c.gridy++;
         p.add(buildFullSection(), c);
-        c.gridy = 3;
+        c.gridy++;
         p.add(buildInAppSection(), c);
-        c.gridy = 4;
+        c.gridy++;
         p.add(buildEveryAssistantSection(), c);
-        c.gridy = 5; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
+        c.gridy++; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
         p.add(Box.createGlue(), c);
         claudeCodeToggle.addActionListener(e -> childrenFollowParents());
         claudeCodeBudgetToggle.addActionListener(e -> childrenFollowParents());

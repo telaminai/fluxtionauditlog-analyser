@@ -253,4 +253,59 @@ class AssistantFirstRunFrameTest {
             assertEquals(ConfigPanel.PROVIDER_PAGE, page[0], "★ on the provider's page");
         }
     }
+
+    /**
+     * Settings ▸ Assistant's rows each have their own place. M77-2 added <i>Set up AI…</i> above the note while the
+     * sections kept fixed grid rows, so the note and the Safe analysis group shared a row and painted over each other
+     * (found reading the 2026-10-18 release's settings-assistant.png). Witness: put {@code c.gridy = 1} back before
+     * the Safe analysis section in {@code buildAssistantTab} — two rows intersect.
+     */
+    @Test
+    @DisplayName("Settings ▸ Assistant lays its rows out one under another, never over each other")
+    void theAssistantPagesRowsNeverOverlap() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        SwingUtilities.invokeLater(() -> ConfigPanel.show(null, new telamin.fluxtion.audit.analyser.analyser.config.AppConfig(),
+                () -> { }, null, "Assistant"));                  // modal: shown off the test's thread
+        ConfigPanel settings = null;
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+        while (settings == null && System.nanoTime() < until) {
+            for (Window w : Window.getWindows()) if (w instanceof ConfigPanel c && c.isShowing()) settings = c;
+            Thread.sleep(40);
+        }
+        assertNotNull(settings, "Settings opened");
+        ConfigPanel shown = settings;
+        StringBuilder overlaps = new StringBuilder();
+        int[] rows = new int[1];
+        onEdt(() -> {
+            try {
+                JButton setUp = null;
+                java.util.ArrayDeque<java.awt.Component> todo = new java.util.ArrayDeque<>(java.util.List.of(shown.getContentPane()));
+                while (!todo.isEmpty() && setUp == null) {
+                    java.awt.Component c = todo.pop();
+                    if (c instanceof JButton b && "Set up AI".equals(b.getAccessibleContext().getAccessibleName())) setUp = b;
+                    if (c instanceof java.awt.Container k) for (java.awt.Component ch : k.getComponents()) todo.add(ch);
+                }
+                assertNotNull(setUp, "the Assistant page's Set up AI… button");
+                java.awt.Container page = setUp.getParent();
+                while (page != null && !(page.getLayout() instanceof java.awt.GridBagLayout)) page = page.getParent();
+                assertNotNull(page, "the Assistant page's grid");
+                page.doLayout();
+                java.awt.Component[] kids = page.getComponents();
+                for (int i = 0; i < kids.length; i++) {
+                    Rectangle a = kids[i].getBounds();
+                    if (!kids[i].isVisible() || a.isEmpty()) continue;
+                    rows[0]++;
+                    for (int j = i + 1; j < kids.length; j++) {
+                        Rectangle b = kids[j].getBounds();
+                        if (kids[j].isVisible() && !b.isEmpty() && a.intersects(b))
+                            overlaps.append(i).append(" ").append(a).append(" × ").append(j).append(" ").append(b).append('\n');
+                    }
+                }
+            } finally {
+                shown.dispose();
+            }
+        });
+        assertTrue(rows[0] >= 6, "the button, the note and the four groups are laid out: " + rows[0]);
+        assertEquals("", overlaps.toString(), "no two rows of Settings ▸ Assistant overlap");
+    }
 }
