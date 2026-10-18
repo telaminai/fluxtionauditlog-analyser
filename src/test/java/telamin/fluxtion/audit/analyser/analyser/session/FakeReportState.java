@@ -18,6 +18,8 @@ public final class FakeReportState implements ReportState {
     public final Map<String, String> reports = new HashMap<>();
     public final Map<String, String> session = new HashMap<>();
     public long sessionGeneration;
+    /** When set, the session's record is the real one: this driver's snapshot. */
+    public SessionDriver driver;
 
     public FakeReportState() {
     }
@@ -36,8 +38,9 @@ public final class FakeReportState implements ReportState {
     @Override public Path projectRoot() { return root; }
     @Override public boolean holds(String name) { return reports.containsKey(name); }
     @Override public String createdAt(String name) { return reports.get(name); }
-    @Override public String sessionCreatedAt(long generation, String name) {
-        return generation == sessionGeneration ? session.get(name) : null;
+    @Override public boolean sessionWrote(long generation, String name, String createdAt) {
+        if (driver != null) return driver.snapshot().permission().sessionWrote(generation, name, createdAt);
+        return generation == sessionGeneration && createdAt != null && createdAt.equals(session.get(name));
     }
     @Override public Path resolveOutput(String path) {
         var r = ExportGuard.resolve(path, exchange != null, exchange == null ? null : exchange.toString());

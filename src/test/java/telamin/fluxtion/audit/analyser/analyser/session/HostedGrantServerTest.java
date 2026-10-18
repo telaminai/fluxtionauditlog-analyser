@@ -358,16 +358,15 @@ class HostedGrantServerTest {
         reports.root = project;
         reports.exchange = java.nio.file.Files.createDirectories(project.resolve("reports"));
         reports.reports.put("Person's findings", "p-1");
-        reports.sessionGeneration = start.generation();
+        reports.driver = driver;                         // the session's record is the real one
         fakeReports = reports;
         boolean[] full = {true};
         server.setHostedScopes(g -> g == start.generation()
                 ? new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(project, full[0], null, g, reports)
                 : null);
         // the session's record, as the frame's observation reads it
-        reports.session.clear();
-        java.util.function.Supplier<String> recorded = () -> driver.snapshot().permission()
-                .sessionReport(start.generation(), "DEMO trace");
+        java.util.function.Predicate<String> recorded = createdAt -> driver.snapshot().permission()
+                .sessionWrote(start.generation(), "DEMO trace", createdAt);
         List<Map<String, Object>> sections = List.of(Map.of("kind", "narrative", "text", "DEMO"));
 
         HttpResponse<String> create = hostedCall(Json.write(Map.of("action", "report", "params",
@@ -379,7 +378,6 @@ class HostedGrantServerTest {
         awaitRecorded(recorded, "written-1");
 
         // the session's own report: a section added needs no approval either
-        reports.session.put("DEMO trace", recorded.get());
         HttpResponse<String> addSection = hostedCall(Json.write(Map.of("action", "report", "params",
                 Map.of("name", "DEMO trace", "sections", List.of(sections.get(0), sections.get(0))))), TOOL_USE);
         assertEquals(200, addSection.statusCode(), addSection.body());
@@ -408,9 +406,9 @@ class HostedGrantServerTest {
         assertTrue(admissions.get(2).isEmpty(), "an external client's report carries no admission: unchanged");
     }
 
-    private void awaitRecorded(java.util.function.Supplier<String> recorded, String expected) throws Exception {
-        for (int i = 0; i < 100 && !expected.equals(recorded.get()); i++) Thread.sleep(20);
-        assertEquals(expected, recorded.get(), "the session recorded the report it wrote, as it is now");
+    private void awaitRecorded(java.util.function.Predicate<String> recorded, String createdAt) throws Exception {
+        for (int i = 0; i < 100 && !recorded.test(createdAt); i++) Thread.sleep(20);
+        assertTrue(recorded.test(createdAt), "the session recorded the report it wrote, as it is now: " + createdAt);
     }
 
     static final String PLAY = Json.write(Map.of("action", "walk", "params", Map.of("name", "DEMO first breach",

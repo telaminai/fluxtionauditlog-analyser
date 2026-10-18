@@ -147,20 +147,22 @@ class InProjectReportTest {
 
     /** ★ The session's record: per generation, only the current one, replaced by a later write. */
     @Test
-    @DisplayName("★ localAgentPermission records the session's own report writes for the current generation only")
+    @DisplayName("★ localAgentPermission records the session's own report writes for the current generation only, as digests")
     void theSessionRecordsItsOwnWrites() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = LocalAgentPermissionTest.ready(d, a);
         long g = start.generation();
-        d.post(new SessionEvents.HostedReportWritten(g + 1, "DEMO trace", "a"));
-        assertNull(d.snapshot().permission().sessionReport(g + 1, "DEMO trace"), "not the current generation: stale");
-        d.post(new SessionEvents.HostedReportWritten(g, "DEMO trace", "a"));
-        assertEquals("a", d.snapshot().permission().sessionReport(g, "DEMO trace"));
-        d.post(new SessionEvents.HostedReportWritten(g, "DEMO trace", "b"));
-        assertEquals("b", d.snapshot().permission().sessionReport(g, "DEMO trace"), "the write after an update");
-        assertNull(d.snapshot().permission().sessionReport(g, "Person's findings"));
-        assertNull(d.snapshot().permission().sessionReport(g + 1, "DEMO trace"), "another generation reads nothing");
+        d.post(SessionEvents.HostedReportWritten.of(g + 1, "DEMO trace", "a"));
+        assertFalse(d.snapshot().permission().sessionWrote(g + 1, "DEMO trace", "a"), "not the current generation: stale");
+        d.post(SessionEvents.HostedReportWritten.of(g, "DEMO trace", "a"));
+        assertTrue(d.snapshot().permission().sessionWrote(g, "DEMO trace", "a"));
+        d.post(SessionEvents.HostedReportWritten.of(g, "DEMO trace", "b"));
+        assertTrue(d.snapshot().permission().sessionWrote(g, "DEMO trace", "b"), "the write after an update");
+        assertFalse(d.snapshot().permission().sessionWrote(g, "DEMO trace", "a"), "…replaces the earlier one");
+        assertFalse(d.snapshot().permission().sessionWrote(g, "Person's findings", "b"));
+        assertFalse(d.snapshot().permission().sessionWrote(g + 1, "DEMO trace", "b"), "another generation reads nothing");
+        assertFalse(d.snapshot().permission().toString().contains("DEMO trace"), "the record holds no report name");
     }
 
     /** ★ The node: in Full, the adapter's PRE_ALLOWED report is allowed with no dialog and no grant. */

@@ -95,7 +95,10 @@ class FactFieldsTest {
                 // review S2: the composed drafts the composer holds, by opaque draft id
                 "LocalAgentSendRequested.draftBindings", "AssistantSendRequested.draftBindings",
                 // robot walkthrough #1: the composer's drafts named again by "Ask again for Claude Code"
-                "LocalAgentAskAgainRequested.draftBindings")) {
+                "LocalAgentAskAgainRequested.draftBindings",
+                // owner 2026-10-18: a report the hosted session wrote without an approval — its name is the model's, so
+                // the fact carries the digest of the name and of the name with its createdAt, never either
+                "HostedReportWritten.nameDigest", "HostedReportWritten.identity")) {
             M74.put(c, Holds.DIGEST);
         }
         for (String c : List.of("ProposalPreviewDone.setupDirShown", "LocalAgentSetupDirectoryChosen.dirShown",

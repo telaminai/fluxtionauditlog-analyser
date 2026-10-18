@@ -143,8 +143,8 @@ public class LocalAgentPermission implements EventLogSource {
     private List<String[]> queued = new ArrayList<>();
     /**
      * Owner 2026-10-18: the reports the current generation's session wrote in the active project without an approval —
-     * name → the createdAt the report carried after it ({@link SessionEvents.HostedReportWritten}). Another generation's
-     * fact starts the record again.
+     * the name's digest → the digest of the name with the createdAt it carried after the write
+     * ({@link SessionEvents.HostedReportWritten}; digests only). Another generation's fact starts the record again.
      */
     private long reportsGeneration;
     private java.util.Map<String, String> sessionReports = new java.util.LinkedHashMap<>();
@@ -529,13 +529,13 @@ public class LocalAgentPermission implements EventLogSource {
     @OnEventHandler(propagate = false)
     public boolean onHostedReportWritten(SessionEvents.HostedReportWritten e) {
         auditLog.info("localAgentHostedReport", e.generation()).info("current", localAgent.currentGeneration());
-        if (e.generation() == 0 || e.generation() != localAgent.currentGeneration() || e.name() == null) return false;
+        if (e.generation() == 0 || e.generation() != localAgent.currentGeneration() || e.nameDigest() == null) return false;
         if (reportsGeneration != e.generation()) {
             reportsGeneration = e.generation();
             sessionReports = new java.util.LinkedHashMap<>();
         }
-        sessionReports.remove(e.name());
-        if (e.createdAt() != null) sessionReports.put(e.name(), e.createdAt());
+        sessionReports.remove(e.nameDigest());
+        if (e.identity() != null) sessionReports.put(e.nameDigest(), e.identity());
         while (sessionReports.size() > 64) sessionReports.remove(sessionReports.keySet().iterator().next());
         dirty = true;
         return false;

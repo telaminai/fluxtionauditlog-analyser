@@ -211,10 +211,10 @@ public final class McpTools {
         String createdAt(String name);
 
         /**
-         * The {@code createdAt} report {@code name} carried after hosted generation {@code generation} wrote it without an
-         * approval (the session's record, {@code PermissionState.sessionReport}), or null.
+         * Whether hosted generation {@code generation} wrote report {@code name} without an approval and left it carrying
+         * {@code createdAt} (the session's record, {@code PermissionState.sessionWrote}).
          */
-        String sessionCreatedAt(long generation, String name);
+        boolean sessionWrote(long generation, String name, String createdAt);
 
         /** Where a verb-supplied {@code path} would be written (the exchange guard's own resolution), or null if refused. */
         java.nio.file.Path resolveOutput(String path);
@@ -357,9 +357,8 @@ public final class McpTools {
         String name = reportName(p.get("name"));
         try {
             if (!reports.holds(name)) return new ReportAdmission(name, null);
-            String own = reports.sessionCreatedAt(scope.generation(), name);
             String now = reports.createdAt(name);
-            return own != null && own.equals(now) ? new ReportAdmission(name, now) : null;
+            return now != null && reports.sessionWrote(scope.generation(), name, now) ? new ReportAdmission(name, now) : null;
         } catch (RuntimeException unknown) {
             return null;
         }

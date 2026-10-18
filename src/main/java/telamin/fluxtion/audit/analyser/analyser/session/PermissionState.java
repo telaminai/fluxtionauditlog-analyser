@@ -16,7 +16,8 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  * @param queued       requests waiting behind the open dialog (review M74 usability #10c), shown after it is answered
  * @param reportsGeneration the generation {@code sessionReports} belongs to (0: none)
  * @param sessionReports owner 2026-10-18: the active project's reports that generation's Claude Code session wrote without
- *                     an approval, name → the {@code createdAt} the report carried after the write
+ *                     an approval — the name's digest → the digest of the name with the createdAt it carried after the
+ *                     write ({@link SessionEvents.HostedReportWritten}); digests, never the model's words
  */
 public record PermissionState(long pendingRef, long generation, SessionEvents.ToolClass toolClass, String name,
                               long deadlineMs, int liveGrants, long decisions, int queued, long reportsGeneration,
@@ -39,11 +40,13 @@ public record PermissionState(long pendingRef, long generation, SessionEvents.To
     }
 
     /**
-     * Owner 2026-10-18: the {@code createdAt} report {@code name} carried after hosted generation {@code generation} wrote
-     * it without an approval, or null — it was not that session's write.
+     * Owner 2026-10-18: whether hosted generation {@code generation} wrote report {@code name} without an approval and
+     * left it carrying {@code createdAt} — so a report that carries it still is that session's own, untouched since.
      */
-    public String sessionReport(long generation, String name) {
-        return generation != 0 && generation == reportsGeneration ? sessionReports.get(name) : null;
+    public boolean sessionWrote(long generation, String name, String createdAt) {
+        if (generation == 0 || generation != reportsGeneration || name == null || createdAt == null) return false;
+        String identity = sessionReports.get(LocalAgentPosture.digest(name));
+        return identity != null && identity.equals(SessionEvents.HostedReportWritten.identity(name, createdAt));
     }
 
     /** Whether a dialog is open: the tab says Claude Code is waiting for the person's answer. */

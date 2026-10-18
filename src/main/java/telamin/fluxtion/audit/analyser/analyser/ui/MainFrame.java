@@ -5365,8 +5365,8 @@ public final class MainFrame extends JFrame {
                     }, null);
                 }
 
-                @Override public String sessionCreatedAt(long generation, String name) {
-                    return sessionSnapshot().permission().sessionReport(generation, name);
+                @Override public boolean sessionWrote(long generation, String name, String createdAt) {
+                    return sessionSnapshot().permission().sessionWrote(generation, name, createdAt);
                 }
 
                 @Override public Path resolveOutput(String path) {

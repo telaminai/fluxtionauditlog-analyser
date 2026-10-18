@@ -1269,13 +1269,24 @@ public final class SessionEvents {
     }
 
     /**
-     * Owner, 2026-10-18: the action server ran a hosted {@code report} call that wrote report {@code name} of the active
-     * project WITHOUT the person's approval (Full Claude Code's in-project create, or an update of a report this session
-     * created), and the report now carries {@code createdAt}. {@code localAgentPermission} records it for
-     * {@code generation}: a later call updating that report — while it still carries that {@code createdAt}, so nobody
-     * replaced it meanwhile — is the session's own, and needs no approval either.
+     * Owner, 2026-10-18: the action server ran a hosted {@code report} call that wrote a report of the active project
+     * WITHOUT the person's approval (Full Claude Code's in-project create, or an update of a report this session wrote).
+     * {@code localAgentPermission} records it for {@code generation}: a later call updating that report — while it still
+     * carries the createdAt it had after this write, so nobody replaced it meanwhile — is the session's own, and needs no
+     * approval either. The report's name is the model's words, so the fact carries digests only (spec §4.1):
+     * {@code nameDigest} of the name, {@code identity} of the name with that createdAt ({@link #of}).
      */
-    public record HostedReportWritten(long generation, String name, String createdAt) {
+    public record HostedReportWritten(long generation, String nameDigest, String identity) {
+        /** The fact for report {@code name}, which now carries {@code createdAt} (null: it is gone — nothing recorded). */
+        public static HostedReportWritten of(long generation, String name, String createdAt) {
+            return new HostedReportWritten(generation, LocalAgentPosture.digest(name),
+                    createdAt == null ? null : identity(name, createdAt));
+        }
+
+        /** The digest a report's name and createdAt are recorded and compared as. */
+        public static String identity(String name, String createdAt) {
+            return LocalAgentPosture.digest(name + "\u0000" + createdAt);
+        }
     }
 
     /** Answered at once by every local-agent effect whose outcome arrives later. */
