@@ -139,4 +139,30 @@ class VerbSchemasTest {
         assertNotNull(required);
         assertTrue(required.contains("metric"));
     }
+
+    /**
+     * Option 2 (owner, 2026-10-18): the HOSTED propose's item — its kinds, starter last, and its fields, the starter's
+     * four after className — pinned; and propose stays out of {@code all()}. Witness: add a path to the starter's fields
+     * or drop "starter" from the kinds — this fails.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void hostedProposeOffersTheStarterKind() {
+        assertFalse(VerbSchemas.all().containsKey(VerbSchemas.PROPOSE), "propose is hosted-only");
+        Map<String, Object> propose = (Map<String, Object>) VerbSchemas.hosted().get(VerbSchemas.PROPOSE);
+        Map<String, Object> items = (Map<String, Object>) ((Map<String, Object>) propose.get("properties")).get("items");
+        Map<String, Object> item = (Map<String, Object>) items.get("items");
+        Map<String, Object> fields = (Map<String, Object>) item.get("properties");
+        assertEquals(java.util.List.of("kind", "path", "className", "starter", "artifact", "group", "basePackage", "reason"),
+                java.util.List.copyOf(fields.keySet()));
+        assertEquals(java.util.List.of("sourceRoot", "processor", "graphml", "runbook", "logToOpen", "starter"),
+                ((Map<String, Object>) fields.get("kind")).get("enum"));
+        for (String name : java.util.List.of("starter", "artifact", "group", "basePackage")) {
+            Map<String, Object> f = (Map<String, Object>) fields.get(name);
+            assertEquals(100, f.get("maxLength"), name);
+            assertTrue(f.get("description").toString().startsWith("starter only"), name + ": " + f.get("description"));
+        }
+        assertEquals(java.util.List.of("kind", "reason"), item.get("required"), "nothing new is required");
+        assertTrue(propose.get("description").toString().contains("ONE starter item"));
+    }
 }

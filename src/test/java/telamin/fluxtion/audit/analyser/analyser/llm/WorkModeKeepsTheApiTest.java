@@ -69,9 +69,11 @@ class WorkModeKeepsTheApiTest {
      */
     static final Map<String, String> PINNED = Map.ofEntries(
             Map.entry("VerbSchemas.all", "057e731d90ba55d7d28a7f0972c237cfd2d0f420395716d43579d21d676259d4"),
-            Map.entry("VerbSchemas.hosted", "d54a546ac0ed8a2ec0b0f91fcdda320219c3da5f5e252c3409d3a205daf7e433"),
+            // Option 2 (owner, 2026-10-18): the HOSTED propose gained the starter kind — never an external client's
+            // surface (propose is hosted-only); StarterProposeApiDeltaTest proves undoing it gives the earlier pins back
+            Map.entry("VerbSchemas.hosted", "27f0694acacfa40a9afdce46e97e6ab37cfe7a1d239b95da96cdbdc83c408ebd"),
             Map.entry("McpTools.list", "4b7a627285c8cb81a01be2566ecb6294b0feb33b789ef7f53baf6220f3b308da"),
-            Map.entry("McpTools.hostedList", "18ab09ebd59e49aa3c4005b51d4bb232e24e750f7c469a5e1682a90a48d16e44"),
+            Map.entry("McpTools.hostedList", "099c47f18645d90e517b910246cc55287dced8a875abff19716ac973f4038a0b"),
             Map.entry("McpBridge.INSTRUCTIONS", "fdcf8b03dab8d45d9c197d230961a41518faa0319b6f5a9cc6a51662cfdf144a"),
             Map.entry("PromptBuilder.inProcessActionManifest", "2df1e7478f92c76b9bf4eef1f52f225effb09d0c552bb42f8806141d0a58d40d"),
             Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),

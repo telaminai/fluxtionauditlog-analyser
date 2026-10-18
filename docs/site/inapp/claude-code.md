@@ -110,6 +110,21 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
 Turn it on only for folders and logs you trust: in Full Claude Code, text in a record that is written to steer an AI
 reaches an agent that may have your shell, and the analyser cannot limit what your own tools do.
 
+## What the analyser tells Claude Code
+
+Every session starts with the analyser's own note, fixed text with nothing of yours in it: Claude Code is the
+assistant inside this app; *project*, *starter* (or *template*), *log*, *graph* and *report* mean the analyser's; and
+it calls `analyser_context` first, which says what is open and lists the starters. **Full Claude Code** adds: begin a
+new application by offering one of the analyser's starters (never a web search or a hand-made scaffold), create
+nothing in the scratch folder a session starts in, and use no `gh`, `curl` or other network command to look for
+examples. **Full may read fluxtion-playground.dev documentation without asking**: one `WebFetch` rule for exactly that
+site, over https; any other web fetch is asked, and Safe analysis has no web tool at all. *⋯ ▸ About this session…*
+says the same. The note is part of what a session is created with, so a conversation from before this note is not
+resumed: it begins a new chat.
+
+When Claude Code proposes a starter, the review and what follows are in
+[Create from a starter with the assistant](../user-guide/projects.md#create-from-a-starter-with-the-assistant).
+
 ## Using it
 
 - **Send** (or Enter; Shift+Enter is a new line) sends one turn. While Claude is answering, Send is refused — *"Claude is still answering — Stop

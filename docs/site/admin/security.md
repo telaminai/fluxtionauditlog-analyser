@@ -161,7 +161,22 @@ tools, including Bash**, file edits and web access, **as far as your permission 
 does not confine it to the folder; it adds one standing instruction to the session (work only inside the project
 folder, never look for the Fluxtion API key or key files, build with `./mvnw` and the project's scripts): **a request to
 the model, not a sandbox**; the folder-trust dialog says the analyser adds it. Only the Start button starts full Claude
-Code.
+Code. **Full may read fluxtion-playground.dev documentation without asking**: its command line carries one fixed rule,
+`WebFetch(domain:fluxtion-playground.dev)` — never `WebSearch`, another domain or a network command — and the
+analyser's own approvals allow without a dialog only an https fetch of exactly that host; any other fetch is asked.
+
+**The analyser's note to Claude Code** begins every session, in both postures, as fixed text with nothing interpolated:
+Claude Code is the assistant inside this app, the analyser's words (project, starter, log, graph, report) mean the
+analyser's, and it calls `analyser_context` first. Full's note adds that a new application begins from one of the
+analyser's starters, never a web search or a hand-made scaffold, and that nothing is created in the scratch folder. It
+is a request to the model, not a sandbox.
+
+**A starter proposed by Claude Code** (`propose {kind: starter}`, hosted-only like the rest of `propose`) changes
+nothing until your Apply: Claude names a catalogue id and never a path; you choose the folder in the review, which
+starts at No; only then is the starter downloaded, from the configured HTTPS origin, and unpacked with the template
+checks. Nothing is built or run. The analyser then writes the project's skills from its own jar, each checked against
+its pinned digest and never over an existing file, and opens the project after one more review, every row at No. Your
+Apply is the consent, so the *Allow the assistant to create projects* switch does not gate this path.
 
 The limits the analyser states rather than hides:
 

@@ -1235,6 +1235,7 @@ public class LocalAgentSession implements EventLogSource {
             if (refusal == null) {
                 arm = "JOURNEY".equals(e.questionId()) ? "armed.JOURNEY"
                         : "S2".equals(e.questionId()) ? "armed.SETUP"            // P2b: onboarding's set-up question
+                        : "STARTER".equals(e.questionId()) ? "armed.STARTER"     // Option 2: a starter project opened
                         : e.questionId() != null && e.questionId().startsWith("Q") ? "armed.ASK" : "armed.START_PAGE";
                 armedWhy = arm;
                 verdict = "";

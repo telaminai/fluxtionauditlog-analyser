@@ -11,7 +11,9 @@ The catalogue is live, so this page does not list it. To choose:
 - **Ask.** Entry 6 on the start page, **Which starter template suits what I'm building?**, reads the catalogue when you
   press *Show templates*, then drafts a question for your assistant that names the templates. Add a sentence about
   what you are building in the box. **Build a new application with me** (entry 2) reads the same catalogue and drafts
-  a request to build from it ([Build with Claude](../build/index.md#where-to-start)).
+  a request to build from it ([Build with Claude](../build/index.md#where-to-start)). Claude Code in the analyser
+  can also list the starters itself and propose one, with Spring first and recommended; you confirm it and choose the
+  folder ([Create from a starter with the assistant](../user-guide/projects.md#create-from-a-starter-with-the-assistant)).
 - **Read the picker.** *Project ▸ New project from template…*, or **From template** under *Or open directly ▸
   Create*, lists the whole catalogue with each template's description. Entries tagged for onboarding are marked
   **Recommended starting points**; the others are still listed. A recommendation is advice, not a promise of a

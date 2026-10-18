@@ -130,18 +130,47 @@ public final class TemplateClient {
     }
 
     /** Read identity defaults from the catalogue-owned template file; never duplicate them in Java. */
-    @SuppressWarnings("unchecked")
     public Defaults defaults(TemplateCatalogue.Entry entry) {
+        return template(entry).defaults();
+    }
+
+    /**
+     * Option 2 (owner, 2026-10-18): what the catalogue-owned template file says about a starter — its identity defaults,
+     * how its graph is authored ({@code fluxtion.definition}: {@code spring} for Spring XML) and whether a Mongoose server
+     * hosts it ({@code type.mongoose}). Read from the file, never duplicated in Java.
+     */
+    public Template template(TemplateCatalogue.Entry entry) {
         if (entry == null) throw new Failure("select a template");
         Reply reply = get(path("/starter-templates/" + entry.file()), MAX_TEMPLATE_BYTES,
                 "template " + entry.name());
         requireStatus(reply, "template " + entry.name());
         try {
-            Object parsed = Json.parse(new String(reply.body(), StandardCharsets.UTF_8));
-            if (!(parsed instanceof Map<?, ?> map)) throw new IllegalArgumentException("template must be an object");
-            return new Defaults(string(map, "artifact"), string(map, "group"), string(map, "basePackage"));
+            return Template.parse(new String(reply.body(), StandardCharsets.UTF_8));
         } catch (RuntimeException e) {
             throw new Failure("invalid defaults for " + entry.name() + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * A template file's facts: the identity defaults, the authoring style ({@code spring}, or "" when the file names
+     * none) and whether the template is Mongoose-hosted.
+     */
+    public record Template(Defaults defaults, String authoring, boolean mongoose) {
+        public Template {
+            authoring = authoring == null ? "" : authoring;
+        }
+
+        public static Template parse(String json) {
+            Object parsed = Json.parse(json);
+            if (!(parsed instanceof Map<?, ?> map)) throw new IllegalArgumentException("template must be an object");
+            Defaults d = new Defaults(string(map, "artifact"), string(map, "group"), string(map, "basePackage"));
+            String authoring = "";
+            if (map.get("fluxtion") instanceof Map<?, ?> f && f.get("definition") instanceof String def
+                    && def.strip().matches("[A-Za-z][A-Za-z0-9_-]{0,31}")) {
+                authoring = def.strip().toLowerCase(java.util.Locale.ROOT);
+            }
+            boolean mongoose = map.get("type") instanceof Map<?, ?> t && Boolean.TRUE.equals(t.get("mongoose"));
+            return new Template(d, authoring, mongoose);
         }
     }
 
@@ -277,6 +306,16 @@ public final class TemplateClient {
     private static String string(Map<?, ?> map, String key) {
         Object value = map.get(key);
         return value instanceof String s ? s : null;
+    }
+
+    /** Whether {@code value} is an artifact id the scaffold endpoint accepts (letters, digits, '.', '_', '-'). */
+    public static boolean validArtifact(String value) {
+        return value != null && value.strip().matches("[A-Za-z0-9][A-Za-z0-9._-]*");
+    }
+
+    /** Whether {@code value} is a Java package name, as {@code group} and {@code basePackage} must be. */
+    public static boolean validPackage(String value) {
+        return value != null && value.strip().matches("[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*");
     }
 
     private static String validateArtifact(String value) {

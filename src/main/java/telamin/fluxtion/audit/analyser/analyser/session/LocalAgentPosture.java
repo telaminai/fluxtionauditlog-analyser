@@ -94,6 +94,36 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
     public static final List<String> PROMPT_FLAGS = List.of("--permission-prompts", "host", "--permission-prompt-tool",
             "stdio");
 
+    /**
+     * Owner, 2026-10-18: the one documentation host FULL Claude Code may read without a prompt. Exactly this host —
+     * the CLI's {@code domain:} rule matches the hostname only, so no subdomain and no other domain
+     * (code.claude.com/docs/en/permissions, read 2026-10-18) — and the analyser's own approval layer pre-allows only an
+     * https URL whose host is exactly this ({@link #docsFetch}). Safe analysis has no web tool at all.
+     */
+    public static final String DOCS_DOMAIN = "fluxtion-playground.dev";
+
+    /** The {@code --allowedTools} rule FULL carries for it, fixed: WebFetch, that host, nothing wider. */
+    public static final String DOCS_FETCH_RULE = "WebFetch(domain:" + DOCS_DOMAIN + ")";
+
+    /**
+     * Whether a WebFetch request's {@code url} is the documentation the analyser pre-allows in FULL: {@code https}, the
+     * host exactly {@link #DOCS_DOMAIN} (case aside), no user info and the default port. Any other URL — another host, a
+     * subdomain, a look-alike ({@code fluxtion-playground.dev.example.com}, {@code user@host}), plain {@code http} — is
+     * not, and is asked as before.
+     */
+    public static boolean docsFetch(Object url) {
+        if (!(url instanceof String u) || u.isBlank() || u.length() > 2048) return false;
+        try {
+            java.net.URI uri = new java.net.URI(u.strip());
+            return "https".equals(uri.getScheme()) && uri.getRawUserInfo() == null && uri.getHost() != null
+                    && uri.getHost().equalsIgnoreCase(DOCS_DOMAIN) && (uri.getPort() == -1 || uri.getPort() == 443)
+                    && uri.getRawAuthority() != null && uri.getRawAuthority().equalsIgnoreCase(uri.getHost()
+                    + (uri.getPort() == -1 ? "" : ":" + uri.getPort()));
+        } catch (java.net.URISyntaxException e) {
+            return false;
+        }
+    }
+
     /** A mode the analyser never starts, offers or accepts: observed in any posture it is {@code MODE_MISMATCH} (§4.4). */
     public static final String BYPASS = "bypassPermissions";
 
@@ -137,7 +167,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
      */
     public String ref(String realFolder, String systemNote) {
         return digest(kind + "|" + (fullMode == null ? "-" : fullMode.cli()) + "|" + realFolder + "|" + systemNote + "|"
-                + preAllowedVerbs());
+                + preAllowedVerbs() + (isFull() ? "|" + DOCS_FETCH_RULE : ""));
     }
 
     /** What the posture check found. */

@@ -104,6 +104,9 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     /** Review S7: the deadlines exampleDownload started. */
     final List<SessionEffects.StartExampleClockEffect> exampleClocks = new ArrayList<>();
     final List<SessionEffects.OfferExampleProjectEffect> exampleOffers = new ArrayList<>();
+    /** Option 2: every effect starterProject asked for, in order; what the folder check answers. */
+    final List<SessionEffects> starterEffects = new ArrayList<>();
+    String starterDirVerdict = "EMPTY";
     final List<SessionEffects.TrustLocalAgentFolderEffect> agentTrusts = new ArrayList<>();
     final List<SessionEffects.ServeHostedBridgeEffect> agentServes = new ArrayList<>();
     final List<SessionEffects.ReleaseHostedBridgeEffect> agentReleases = new ArrayList<>();
@@ -447,6 +450,67 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.OfferExampleProjectEffect e -> {
                 exampleOffers.add(e);
                 yield new SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "offer");
+            }
+            case SessionEffects.ReadStarterCatalogueEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.ChooseStarterEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.ReadStarterDefaultsEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.ConfigureStarterEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.DownloadStarterEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.VendorSkillsEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.RunDiscoveryEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.ReviewStarterProjectEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.OpenStarterProjectEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.OpenStarterDesignEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.WatchStarterGraphmlEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.OfferStarterGraphEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.ArmStarterDraftEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.ShowStarterCommandsEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.ObserveStarterDirectoryEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterDirectoryObserved(e.opId(), e.request(), e.dirRef(), e.dirShown(),
+                        starterDirVerdict);
             }
             case SessionEffects.DeleteBundleEffect e -> {
                 deletes.add(e);

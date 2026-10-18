@@ -32,12 +32,22 @@ import java.util.Set;
  * </ul>
  *
  * <p>It never applies on receipt, never raises a modal (the banner is rendering) and never asks Claude anything.
+ *
+ * <p><b>Option 2 (owner, 2026-10-18): a starter item.</b> {@code {kind: starter, starter: <catalogue id>}} — create a
+ * project from one of the analyser's starter templates — stands alone in its proposal (the shape refuses it beside
+ * anything else). It names no path: the person chooses the folder in the review. Its id is checked against the
+ * catalogue the analyser read; the accepted item is pushed to {@code starterProject}, which reads the template file's
+ * defaults now and downloads nothing until the person's Apply with the row at Yes and an empty or absent folder chosen.
+ * The person's Apply is the consent, so the {@code assistant.createProjects} switch does not gate this path.
  */
 public class OnboardingProposal implements EventLogSource {
 
     private final LocalAgentSession localAgent;
     @PushReference
     private final EffectQueue effects;
+    /** Option 2: the accepted starter item is pushed here, and the person's Apply is handed over (rule 9: one chain). */
+    @PushReference
+    private final StarterProject starter;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     // node-local state (not final: a final field is constructor-mapped by the generator)
@@ -65,19 +75,27 @@ public class OnboardingProposal implements EventLogSource {
     private Map<Long, ProposalState.Answer> answers = new LinkedHashMap<>();
     /** R5: the person's per-row answers to the open proposal, by item id ({@code create} for the create row). */
     private Map<String, Boolean> itemAnswers = new LinkedHashMap<>();
+    /** Option 2: the starter item of the open proposal (null: none), its starterProject request, and its chain running. */
+    private String starterItem;
+    private long starterRequest;
+    private boolean starterApplying;
+    /** A starter proposal (its starter item accepted or not): never offered the analyser's empty-create row. */
+    private boolean starterProposal;
     private ProposalState published = ProposalState.NONE;
     private boolean dirty = true;
 
     /** The fixed apply order (§5.6 step 6). */
     static final List<String> ORDER = List.of("create", "sourceRoot", "processor", "runbook", "graphml", "logToOpen");
-    static final Set<String> KINDS = Set.of("sourceRoot", "processor", "graphml", "runbook", "logToOpen");
+    static final Set<String> KINDS = Set.of("sourceRoot", "processor", "graphml", "runbook", "logToOpen", "starter");
+    static final String STARTER = "starter";
 
     public static final String ALREADY_WAITING = "a proposal is already waiting for the person; call context to see its "
             + "outcome";
 
-    public OnboardingProposal(LocalAgentSession localAgent, EffectQueue effects) {
+    public OnboardingProposal(LocalAgentSession localAgent, EffectQueue effects, StarterProject starter) {
         this.localAgent = localAgent;
         this.effects = effects;
+        this.starter = starter;
     }
 
     @Override
@@ -117,8 +135,13 @@ public class OnboardingProposal implements EventLogSource {
         fit = "";
         checkAwaiting = false;
         rechecks = 0;
+        starterItem = null;
+        starterRequest = 0;
+        starterApplying = false;
+        starterProposal = e.items().stream().anyMatch(f -> STARTER.equals(f.kind()));
         items = new ArrayList<>();
         Set<String> seen = new HashSet<>();
+        SessionEvents.ProposalItemFact starterFact = null;
         boolean processor = false;
         boolean log = false;
         List<SessionEffects.ProposalItemRef> toPreview = new ArrayList<>();
@@ -126,8 +149,11 @@ public class OnboardingProposal implements EventLogSource {
         for (SessionEvents.ProposalItemFact f : e.items()) {
             n++;
             String itemId = id + "." + n;
-            String why = itemRefusal(f, seen, processor, log);
-            if (why == null) {
+            String why = STARTER.equals(f.kind()) ? starterRefusal(f) : itemRefusal(f, seen, processor, log);
+            if (why == null && STARTER.equals(f.kind())) {
+                starterItem = itemId;
+                starterFact = f;
+            } else if (why == null) {
                 if ("processor".equals(f.kind())) processor = true;
                 if ("logToOpen".equals(f.kind())) log = true;
                 seen.add(key(f));
@@ -138,16 +164,42 @@ public class OnboardingProposal implements EventLogSource {
                     : ProposalState.ItemState.REFUSED, why == null ? "" : "REFUSED", why));
         }
         // nothing is ever applied on receipt: CHECKING until the analyser's own preview answers
-        auditLog.info("proposal", id).info("items", items.size()).info("previewing", toPreview.size());
+        auditLog.info("proposal", id).info("items", items.size()).info("previewing", toPreview.size())
+                .info("starter", starterItem != null);
         answer(e.request(), new ProposalState.Answer(true, id, null));
         effects.request(new SessionEffects.PreviewProposalEffect(0L, id, toPreview));
+        if (starterFact != null) {
+            // Option 2: the template file's defaults are read now (read-only); nothing is downloaded before the Apply
+            starterRequest = starter.beginFromProposal(id, starterItem, starterFact.starterDigest(),
+                    starterFact.artifactRef(), starterFact.groupRef(), starterFact.basePackageRef());
+        }
         return changed();
+    }
+
+    /**
+     * Option 2's item-level refusals for a starter, in a fixed order: it takes no path (the person chooses the folder in
+     * the review) and no class name; it needs a reason and a catalogue id; its names must be identifiers; the catalogue
+     * must have been read and must name the id. The words are the analyser's — never Claude's id.
+     */
+    private String starterRefusal(SessionEvents.ProposalItemFact f) {
+        if (f.hasPath()) return "a starter item takes no path: the person chooses its folder in the review";
+        if (f.hasClassName()) return "a starter item takes no className";
+        if (f.tooLong()) return "a field is over its length (starter, artifact, group, basePackage 100; reason 500)";
+        if (!f.hasReason()) return "the item has no reason";
+        if (!f.hasStarter()) return "a starter item needs 'starter': an id from context.starters";
+        if (f.namesMalformed()) return "starter, artifact, group or basePackage is not a valid identifier";
+        if (!starter.catalogueRead()) {
+            return "the analyser has not read the starter catalogue (context.starters.state is not read) — nothing was "
+                    + "recorded for this item";
+        }
+        if (!starter.knows(f.starterDigest())) return "not a starter in the catalogue the analyser read (context.starters)";
+        return null;
     }
 
     /** Whether a proposal is still open: not every item is answered, or the preview has not reported. */
     private boolean open() {
         if (id == null) return false;
-        if (!previewed || applying || "PENDING".equals(create)) return true;
+        if (!previewed || applying || starterApplying || "PENDING".equals(create)) return true;
         for (ProposalState.Item i : items) {
             if (i.state() == ProposalState.ItemState.PENDING || i.state() == ProposalState.ItemState.CHECKING
                     || i.state() == ProposalState.ItemState.APPLYING) return true;
@@ -218,10 +270,11 @@ public class OnboardingProposal implements EventLogSource {
     @OnEventHandler
     public boolean onPreviewDone(SessionEvents.ProposalPreviewDone e) {
         if (id == null || !id.equals(e.proposalId())) return false;
-        // an item the performer never reported is refused rather than left "being checked"
+        // an item the performer never reported is refused rather than left "being checked" (a starter item is checked
+        // by its template file's read, not by the preview)
         for (int i = 0; i < items.size(); i++) {
             ProposalState.Item x = items.get(i);
-            if (x.state() == ProposalState.ItemState.CHECKING) {
+            if (x.state() == ProposalState.ItemState.CHECKING && !x.id().equals(starterItem)) {
                 items.set(i, new ProposalState.Item(x.id(), x.kind(), x.pathRef(), x.classNameRef(), x.reasonRef(),
                         ProposalState.ItemState.REFUSED, "UNKNOWN", "the analyser could not check it"));
             }
@@ -230,7 +283,8 @@ public class OnboardingProposal implements EventLogSource {
         setupDirRef = e.setupDirRef();
         setupDirShown = e.setupDirShown();
         projectExists = e.projectExists();
-        create = e.projectExists() ? "NONE" : "PENDING";
+        // Option 2: a starter makes its own project — the analyser's empty-create row is never offered beside it
+        create = e.projectExists() || starterProposal ? "NONE" : "PENDING";
         auditLog.info("proposalPreviewed", id).info("pending", count(ProposalState.ItemState.PENDING))
                 .info("createRow", !e.projectExists());
         return changed();
@@ -270,6 +324,7 @@ public class OnboardingProposal implements EventLogSource {
         for (Map.Entry<String, Boolean> a : itemAnswers.entrySet()) {
             if (Boolean.FALSE.equals(a.getValue())) yes.remove(a.getKey());
         }
+        if (starterItem != null) return applyStarter(yes);
         boolean createAnsweredNo = Boolean.FALSE.equals(itemAnswers.get("create"));
         itemAnswers = new LinkedHashMap<>();
         queue = new ArrayList<>();
@@ -300,9 +355,69 @@ public class OnboardingProposal implements EventLogSource {
         return changed();
     }
 
+    /**
+     * Option 2: the person's Apply for a starter proposal. A Yes row whose template file was read and whose folder is
+     * empty or absent is handed to {@code starterProject}, which downloads; anything else is declined and nothing is
+     * downloaded — a No row creates nothing, and an Apply before the folder (or the preview) downloads nothing.
+     */
+    private boolean applyStarter(Set<String> yes) {
+        itemAnswers = new LinkedHashMap<>();
+        ProposalState.Item x = item(starterItem);
+        if (x == null || x.state() != ProposalState.ItemState.PENDING) return changed();
+        if (yes.contains(starterItem) && starter.apply(id, starterItem)) {
+            mark(starterItem, ProposalState.ItemState.APPLYING, "");
+            starterApplying = true;
+            auditLog.info("proposalApply", id).info("starter", "DOWNLOADING");
+        } else {
+            mark(starterItem, ProposalState.ItemState.DECLINED, yes.contains(starterItem)
+                    ? "no empty or new folder was chosen for it, so nothing was downloaded" : "");
+            starter.decline(id);
+            auditLog.info("proposalApply", id).info("starter", "DECLINED");
+        }
+        return changed();
+    }
+
+    /** Option 2: the template file was read — the starter row can be answered (or it is refused, with why). */
+    @OnEventHandler
+    public boolean onStarterDefaults(SessionEvents.StarterDefaultsObserved e) {
+        if (starterItem == null || e.request() != starterRequest) return false;
+        ProposalState.Item x = item(starterItem);
+        if (x == null || x.state() != ProposalState.ItemState.CHECKING) return false;
+        items.set(items.indexOf(x), new ProposalState.Item(x.id(), x.kind(), x.pathRef(), x.classNameRef(),
+                x.reasonRef(), e.ok() ? ProposalState.ItemState.PENDING : ProposalState.ItemState.REFUSED,
+                e.ok() ? "TEMPLATE_READ" : "UNKNOWN", e.ok() ? "" : "its template file could not be read"));
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onStarterInstallFailed(SessionEvents.StarterInstallFailed e) {
+        return starterEnded(e.request(), ProposalState.ItemState.FAILED, "the starter was not downloaded or unpacked");
+    }
+
+    @OnEventHandler
+    public boolean onStarterReviewAnswered(SessionEvents.StarterReviewAnswered e) {
+        if (e.open()) return false;
+        return starterEnded(e.request(), ProposalState.ItemState.APPLIED, "downloaded; the project was not opened");
+    }
+
+    @OnEventHandler
+    public boolean onStarterProjectOpened(SessionEvents.StarterProjectOpened e) {
+        return starterEnded(e.request(), e.ok() ? ProposalState.ItemState.APPLIED : ProposalState.ItemState.FAILED,
+                e.ok() ? "" : "the project was not opened");
+    }
+
+    private boolean starterEnded(long request, ProposalState.ItemState state, String why) {
+        if (!starterApplying || request != starterRequest) return false;
+        starterApplying = false;
+        mark(starterItem, state, why);
+        auditLog.info("proposalItem", starterItem).info("outcome", state.name());
+        return changed();
+    }
+
     @OnEventHandler
     public boolean onDismissed(SessionEvents.ProposalDismissed e) {
-        if (id == null || !id.equals(e.proposalId()) || applying) return false;
+        if (id == null || !id.equals(e.proposalId()) || applying || starterApplying) return false;
+        if (starterItem != null) starter.decline(id);
         if ("PENDING".equals(create)) create = "DECLINED";
         for (int i = 0; i < items.size(); i++) {
             ProposalState.Item x = items.get(i);

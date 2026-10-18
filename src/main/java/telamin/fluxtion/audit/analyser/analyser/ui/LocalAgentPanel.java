@@ -469,6 +469,16 @@ public final class LocalAgentPanel extends JPanel {
         return rendered;
     }
 
+    /**
+     * Option 2 (owner, 2026-10-18): the analyser's note to Claude Code, in the person's words — About this session… says
+     * what the session was told (the provider's identity note, and for Full its starter rule).
+     */
+    public static final String ABOUT_NOTE_SAFE = "The analyser tells Claude Code it is the assistant inside this app, what "
+            + "a project, starter, log, graph and report mean here, and to call analyser_context first.";
+    public static final String ABOUT_NOTE_FULL = ABOUT_NOTE_SAFE + " For Full it adds: begin a new application by offering "
+            + "one of the analyser's starters, never by searching the web or scaffolding by hand, and create nothing in the "
+            + "scratch folder. " + telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.DOCS_FETCH;
+
     /** M74 UX: what Claude Code here cannot do — said in the one panel's limits line, where the in-app limits are said. */
     public static final String SAFE_LIMITS = "Safe analysis reads your evidence; it changes what is open or writes a file only "
             + "after you approve each call. No shell, no edits, no web. "
@@ -526,6 +536,9 @@ public final class LocalAgentPanel extends JPanel {
         out.add(postureLine(h, s));
         if (s.resumable()) out.add(LOCK_WARNING);
         out.add(limitsNow());
+        // Option 2 (owner, 2026-10-18): what the analyser tells Claude Code, said where the limits are said
+        boolean full = s.running() ? s.posture().isFull() : s.fullCue() != LocalAgentState.FullCue.NONE;
+        out.add(full ? ABOUT_NOTE_FULL : ABOUT_NOTE_SAFE);
         String ep = endpointText(h, s);
         if (ep != null) out.add(ep);
         String diag = diagnosticsText(s, h);

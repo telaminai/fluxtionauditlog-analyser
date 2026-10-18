@@ -79,9 +79,12 @@ class GraphRestoreApiDeltaTest {
     @DisplayName("★ the external API gains only graph {restore} (and delete's corrected words): undone, every surface is as before")
     void theOnlyDeltaIsTheRestoreForm() throws Exception {
         assertEquals(BEFORE.get("VerbSchemas.all"), WorkModeKeepsTheApiTest.sha(revertSchemas(VerbSchemas.all())));
-        assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(revertSchemas(VerbSchemas.hosted())));
+        // Option 2: the hosted propose's starter kind is its own delta (StarterProposeApiDeltaTest), undone first
+        assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(revertSchemas(
+                StarterProposeApiDeltaTest.revertSchemas(VerbSchemas.hosted()))));
         assertEquals(BEFORE.get("McpTools.list"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.list())));
-        assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.hostedList())));
+        assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(
+                StarterProposeApiDeltaTest.revertTools(McpTools.hostedList()))));
         String manifest = PromptBuilder.inProcessActionManifest(3);
         assertTrue(manifest.contains(NEW_MANIFEST), "the in-process manifest says a chart can be restored");
         assertEquals(BEFORE.get("PromptBuilder.inProcessActionManifest"),

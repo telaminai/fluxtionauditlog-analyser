@@ -46,7 +46,10 @@ until you press Start or Send ([The start page](../user-guide/start-page.md)).
 
 - **Build a new application with me.** Describe what you want in the box and press *Start building*. The analyser
   reads the starter-template catalogue and drafts a request naming the templates. With no AI set up, it offers
-  *New project from template…*, *New project…* and *Copy prompt* instead.
+  *New project from template…*, *New project…* and *Copy prompt* instead. Claude Code in the analyser then offers a
+  starter — Spring first — for you to confirm; you choose the folder, and the analyser downloads it, adds its skills,
+  opens the project and its design
+  ([Create from a starter with the assistant](../user-guide/projects.md#create-from-a-starter-with-the-assistant)).
 - **Teach me by building an example.** Opens the sample DEMO project and drafts a lesson request: explain events,
   triggers and dispatch from the evidence. With no AI it plays the DEMO guided tour.
 - **Set up a project from my code.** For code you already have: Claude Code reads the folder and proposes the set-up

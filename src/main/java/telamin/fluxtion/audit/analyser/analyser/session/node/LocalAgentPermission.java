@@ -110,6 +110,9 @@ public class LocalAgentPermission implements EventLogSource {
     /** What the person reads for that denial. */
     public static final String FILE_EXCHANGE_NOTE = " was not asked about: it writes a file, and file exchange is off — "
             + "turn on Settings ▸ Assistant ▸ Allow assistant file exchange, then ask Claude again";
+    /** The CLI's built-in web fetch tool, by its vocabulary name. */
+    static final String WEB_FETCH = "WebFetch";
+
     /** Review M74 usability #10c: how many requests may wait behind an open dialog; one more is denied as busy. */
     public static final int MAX_QUEUED = 8;
 
@@ -175,6 +178,14 @@ public class LocalAgentPermission implements EventLogSource {
         }
         if (!e.showable()) {
             deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.TOO_LARGE, DENIED_TOO_LARGE);
+            return changed();
+        }
+        if (cls == ToolClass.BUILT_IN && WEB_FETCH.equals(e.name()) && e.kind() == SessionEvents.HostedCallKind.PRE_ALLOWED
+                && localAgent.currentPosture() != null && localAgent.currentPosture().isFull()) {
+            // owner, 2026-10-18: in Full, a WebFetch of the public Fluxtion docs — https, exactly fluxtion-playground.dev,
+            // as the adapter observed it (LocalAgentPosture.docsFetch) — is the one built-in read allowed without asking,
+            // as the CLI's own DOCS_FETCH_RULE allows it; any other URL reaches the person as before
+            allowWithoutAsking(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.PRE_ALLOWED);
             return changed();
         }
         if (cls == ToolClass.HOSTED_DESTRUCTIVE && e.kind() == SessionEvents.HostedCallKind.NON_MUTATING) {
@@ -587,6 +598,8 @@ public class LocalAgentPermission implements EventLogSource {
             case NON_MUTATING -> what + " was allowed: it changes nothing";
             case PRE_ALLOWED -> "open".equals(name) ? what + " was allowed: it only opens a log or GraphML inside this "
                     + "project's folder or the analyser's own sample"
+                    : WEB_FETCH.equals(name) ? what + " was allowed: it reads the Fluxtion documentation at "
+                    + telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.DOCS_DOMAIN
                     : what + " was allowed: it creates or shows a chart";
         };
         // a request of an earlier generation belongs to a conversation entry nobody is reading: no note for it

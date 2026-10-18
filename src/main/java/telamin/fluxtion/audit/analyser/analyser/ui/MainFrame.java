@@ -61,9 +61,28 @@ public final class MainFrame extends JFrame {
     private final telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore fluxtionKeyStore =
             new telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore();
     private final AppConfig config;
-    /** M19.5: one pinned public origin; downloaded content is extracted but never executed. */
-    private final TemplateClient templateClient = TemplateClient.playground();
+    /**
+     * M19.5: one pinned public origin; downloaded content is extracted but never executed. Option 2: read only by the
+     * starter effects' performers, and replaceable so a frame test puts a stub in (no network in a test).
+     */
+    StarterSource starterSource = StarterSource.playground();
     private final TemplateArchive templateArchive = new TemplateArchive();
+    /** Option 2: what the starter performers read, by reference — the facts carry the references, never the words. */
+    private final java.util.Map<Long, java.util.List<telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry>>
+            starterCatalogues = new java.util.LinkedHashMap<>();
+    private final java.util.Map<Long, TemplateClient.Template> starterTemplates = new java.util.LinkedHashMap<>();
+    private final java.util.Map<Long, TemplateClient.Download> starterDownloads = new java.util.LinkedHashMap<>();
+    private final java.util.Map<Long, NewProjectDiscovery.Offer> starterOffers = new java.util.LinkedHashMap<>();
+    private final java.util.Map<Long, java.util.List<String>> starterCommands = new java.util.LinkedHashMap<>();
+    private long starterRefNext = 1;
+    private long starterMenuRequest;
+    private javax.swing.Timer starterWatch;
+    /** Option 2 test seams: the review row's folder chooser, the combined review, the after-build graph offer, the watch. */
+    java.util.function.Supplier<Path> starterFolderChooser = this::chooseStarterFolderDialog;
+    java.util.function.Function<StarterReviewDialog.Data, StarterReviewDialog.Answer> starterReviewAsk =
+            data -> StarterReviewDialog.show(this, data);
+    java.util.function.Predicate<String> starterGraphOffer = this::askStarterGraph;
+    int starterWatchMillis = 4000;
 
     private final LogTablePanel tablePanel = new LogTablePanel();
     /** The start page uses the whole workspace; an open investigation uses the split view. */
@@ -116,16 +135,6 @@ public final class MainFrame extends JFrame {
     private String startFlowBundle;
     /** The toolbar's Ask button: built from the registry, enabled by the selection. */
     private JButton askToolButton;
-    /** Test seam (r8 F10): the S4 catalogue fetch, run only at the button. Returns the names, or null when unreachable. */
-    java.util.function.Supplier<java.util.List<String>> startTemplateNames = () -> {
-        try {
-            return telamin.fluxtion.audit.analyser.analyser.template.TemplateClient.playground()
-                    .catalogue(ReleaseNotes.version()).entries().stream()
-                    .map(telamin.fluxtion.audit.analyser.analyser.template.TemplateCatalogue.Entry::name).toList();
-        } catch (RuntimeException e) {
-            return null;
-        }
-    };
     /** M74 (R6): the words and folders facts name by reference — resolved here when an effect is performed or rendered. */
     private final telamin.fluxtion.audit.analyser.analyser.session.FactRefs factRefs =
             new telamin.fluxtion.audit.analyser.analyser.session.FactRefs();
@@ -8227,93 +8236,15 @@ public final class MainFrame extends JFrame {
         return item;
     }
 
+    /**
+     * Project ▸ New project from template… — Option 2: the person's intent, as ONE fact; {@code starterProject} decides
+     * every step from here (catalogue, picker, defaults, form, download, skills, discovery, the combined review, the open,
+     * the design, the GraphML watch), the same chain a proposal's starter item takes (OneDispatchModelTest pins it).
+     */
     private void chooseTemplateProject() {
         status.setText("Loading the playground template catalogue…");
-        runTemplateTask("Loading the playground template catalogue…",
-                () -> templateClient.catalogue(ReleaseNotes.version()),
-                selection -> {
-                    TemplateCatalogue.Entry chosen = TemplateProjectDialog.chooseTemplate(this, selection);
-                    if (chosen == null) {
-                        status.setText("Template selection cancelled");
-                        return;
-                    }
-                    status.setText("Loading defaults for " + chosen.name() + "…");
-                    runTemplateTask("Loading defaults for " + chosen.name() + "…",
-                            () -> templateClient.defaults(chosen),
-                            defaults -> configureTemplateDownload(chosen, defaults),
-                            error -> showTemplateFailure("Could not load template defaults", error));
-                },
-                error -> showTemplateFailure("Could not load the template catalogue", error));
-    }
-
-    private void configureTemplateDownload(TemplateCatalogue.Entry template, TemplateClient.Defaults defaults) {
-        TemplateProjectDialog.Choice choice = TemplateProjectDialog.chooseDestination(this, template, defaults);
-        if (choice == null) {
-            status.setText("Template download cancelled");
-            return;
-        }
-        status.setText("Downloading and checking " + template.name() + "…");
-        runTemplateTask("Downloading and safely unpacking " + template.name() + "…",
-                () -> {
-                    byte[] zip = templateClient.download(choice.download());
-                    try {
-                        return templateArchive.install(zip, choice.destination());
-                    } catch (java.io.IOException e) {
-                        throw new TemplateClient.Failure("could not install the starter: " + e.getMessage(), e);
-                    }
-                },
-                installed -> openInstalledTemplate(installed, choice.referenceGuide()),
-                error -> showTemplateFailure("Could not create the project", error));
-    }
-
-    private <T> void runTemplateTask(String message, java.util.function.Supplier<T> work,
-                                     java.util.function.Consumer<T> onSuccess,
-                                     java.util.function.Consumer<Throwable> onError) {
-        TemplateProjectDialog.Progress progressDialog = TemplateProjectDialog.showProgress(this, message,
-                () -> status.setText("Template operation cancelled"));
-        java.util.concurrent.Future<?> task = Background.run(work, value -> {
-            progressDialog.finish();
-            if (!progressDialog.cancelled()) onSuccess.accept(value);
-        }, error -> {
-            progressDialog.finish();
-            if (!progressDialog.cancelled()) onError.accept(error);
-        });
-        progressDialog.attach(task);
-    }
-
-    private void openInstalledTemplate(TemplateArchive.Installed installed, boolean referenceGuide) {
-        // Legacy/profile-less downloads may arrive without agent instructions. Honour the explicit
-        // checkbox after extraction, when actual files can be inspected; never infer bootstrap from
-        // the template recommendation. This is never an overwrite: a
-        // template that ships its own file keeps it, and the status line says so rather than staying mute.
-        String guideNote = "";
-        if (referenceGuide) {
-            try {
-                guideNote = switch (ReferenceSet.create(installed.projectRoot(),
-                        NewProjectDiscovery.detectKind(installed.projectRoot()))) {
-                    case WROTE -> "  ·  wrote " + ReferenceSet.FILE_NAME;
-                    case ALREADY_EXISTS -> "  ·  kept the template's own " + ReferenceSet.FILE_NAME;
-                    case NOTHING_AGREED -> "";
-                };
-            } catch (java.io.IOException e) {
-                guideNote = "  ·  could not write " + ReferenceSet.FILE_NAME + ": " + e.getMessage();
-            }
-        }
-        if (installed.profile() != null) {
-            requestProject(installed.profile(), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "template");
-        } else {
-            // Pre-M19 templates have no profile. Reuse day-two discovery: everything found is offered
-            // unchecked and only the person's explicit selection is adopted.
-            createProjectAt(installed.projectRoot());
-        }
-        if (!guideNote.isEmpty()) status.setText(status.getText() + guideNote);
-        TemplateProjectDialog.showCommands(this, installed.projectRoot(), installed.commands());
-    }
-
-    private void showTemplateFailure(String title, Throwable error) {
-        String message = rootMessage(error);
-        status.setText(title + ": " + message);
-        JOptionPane.showMessageDialog(this, UiText.inert(message), UiText.inert(title), JOptionPane.ERROR_MESSAGE);
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterMenuRequested(
+                ++starterMenuRequest));
     }
 
     /** Pick a project directory rather than the profile file — the file name is always the same. */
@@ -9045,6 +8976,25 @@ public final class MainFrame extends JFrame {
                 if (root != null) SwingUtilities.invokeLater(() -> exampleProjectOffer.accept(root));   // M73's offer
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "offer");
             }
+            // Option 2: a project from a starter template — starterProject decided; the frame reads, writes, asks, opens
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReadStarterCatalogueEffect e -> {
+                readStarterCatalogue(e.request(), null);
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "catalogue:" + e.purpose());
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ChooseStarterEffect e -> chooseStarter(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReadStarterDefaultsEffect e -> readStarterDefaults(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfigureStarterEffect e -> configureStarter(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ObserveStarterDirectoryEffect e -> observeStarterDirectory(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DownloadStarterEffect e -> downloadStarter(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.VendorSkillsEffect e -> vendorSkills(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunDiscoveryEffect e -> runStarterDiscovery(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReviewStarterProjectEffect e -> reviewStarterProject(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterProjectEffect e -> openStarterProject(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterDesignEffect e -> openStarterDesign(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.WatchStarterGraphmlEffect e -> watchStarterGraphml(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferStarterGraphEffect e -> offerStarterGraph(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ArmStarterDraftEffect e -> armStarterDraft(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStarterCommandsEffect e -> showStarterCommands(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
@@ -11012,6 +10962,11 @@ public final class MainFrame extends JFrame {
                 if (session != null && sessionSnapshot().proposal().exists()) {
                     out.put("proposals", sessionSnapshot().proposal().contextRows());
                 }
+                // Option 2: the starters, RENDERED from starterProject's state and what was read — context fetches nothing
+                if (session != null) {
+                    var starters = sessionSnapshot().starter();
+                    out.put("starters", StarterContext.render(starters, starterCatalogues.get(starters.entriesRef())));
+                }
                 // evidence bundle capture, rendered from the session's decision (evidenceCapture), never composed here
                 var capture = session == null ? null : sessionSnapshot().capture();
                 if (capture != null && !"IDLE".equals(capture.phase())) {
@@ -12896,7 +12851,9 @@ public final class MainFrame extends JFrame {
             items.add(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemFact(i.kind(), refs.put(i.path()),
                     telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(i.path()), refs.put(i.className()),
                     telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(i.className()), refs.put(i.reason()), i.tooLong(),
-                    i.classNameMalformed()));
+                    i.classNameMalformed(), refs.put(i.starter()),
+                    telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(i.starter()),
+                    refs.put(i.artifact()), refs.put(i.group()), refs.put(i.basePackage()), i.namesMalformed()));
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalReceived(request, generation, refs.put(call.summary()), items);
     }
@@ -12997,20 +12954,8 @@ public final class MainFrame extends JFrame {
                             sessionProblem == null ? "the project was not created" : sessionProblem};
                 }
                 case "sourceRoot" -> {
-                    // Settings ▸ Sources' add: the root, then the profile save the dialog performs
-                    if (at == null || !Files.isDirectory(at)) return new String[]{"REFUSED", "not a directory"};
-                    // P5: a proposal cannot carry in the home folder or a credential folder (tier 1, every caller)
-                    var tier1 = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(at,
-                            telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home());
-                    if (tier1 != null) {
-                        return new String[]{"REFUSED",
-                                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.words(tier1, at)};
-                    }
-                    String canonical = at.toString();               // already the real path (review S3)
-                    if (!config.sourceRoots.contains(canonical)) config.sourceRoots.add(canonical);
-                    onConfigChanged();
-                    inferAndPopulateSource();
-                    return new String[]{"APPLIED", ""};
+                    String refused = addSourceRootAsPerson(at);
+                    return refused == null ? new String[]{"APPLIED", ""} : new String[]{"REFUSED", refused};
                 }
                 case "processor" -> {
                     String fqn = itemClass != null ? itemClass : ProposalPreview.fqnOf(at);
@@ -13044,6 +12989,23 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * Settings ▸ Sources' add, as a person's act the review confirmed (a proposal's sourceRoot row, a starter's design
+     * folder): the root, then the profile save the dialog performs. P5: never the home folder or a credential folder.
+     * Null when added (or already there), else why not.
+     */
+    private String addSourceRootAsPerson(Path at) {
+        if (at == null || !Files.isDirectory(at)) return "not a directory";
+        var tier1 = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(at,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home());
+        if (tier1 != null) return telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.words(tier1, at);
+        String canonical = at.toString();                   // the caller passes the real path (review S3)
+        if (!config.sourceRoots.contains(canonical)) config.sourceRoots.add(canonical);
+        onConfigChanged();
+        inferAndPopulateSource();
+        return null;
+    }
+
     /** CheckProposalOutcomeEffect: §5.6 step 8 — the analyser's own verdicts after the last item. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result checkProposal(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CheckProposalOutcomeEffect e) {
@@ -13066,7 +13028,19 @@ public final class MainFrame extends JFrame {
     private void reviewProposal(String proposalId) {
         var p = sessionSnapshot().proposal();
         if (!proposalId.equals(p.id())) return;
-        var answer = ProposalReviewDialog.show(SwingUtilities.getWindowAncestor(localAgentPanel), p, factRefs::get);
+        // Option 2: a starter row renders starterProject's state; its Choose… reports the person's folder as a fact
+        var starterItem = p.items().stream().filter(i -> "starter".equals(i.kind())).findFirst().orElse(null);
+        ProposalReviewDialog.StarterControls starter = starterItem == null ? null : new ProposalReviewDialog.StarterControls() {
+            @Override public ProposalReviewDialog.StarterRow row() {
+                return starterRow(starterItem.id());
+            }
+
+            @Override public void choose(String itemId) {
+                chooseStarterFolder(proposalId, itemId);
+            }
+        };
+        var answer = ProposalReviewDialog.show(SwingUtilities.getWindowAncestor(localAgentPanel), p, factRefs::get,
+                starter);
         if (answer == null) return;                 // closed: nothing answered, the banner stays
         // scorecard R5: every row's answer, Yes and No, as its own fact — then Apply chosen
         for (var row : answer.rows().entrySet()) {
@@ -13107,6 +13081,579 @@ public final class MainFrame extends JFrame {
         // the consent the next Start is judged under now names the set-up folder
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(
                 localAgentConsent()));
+    }
+
+    // ---- Option 2 (owner, 2026-10-18): a project from a starter template — starterProject decides, these perform ------
+
+    private <T> long starterPut(java.util.Map<Long, T> store, T value) {
+        long ref = starterRefNext++;
+        store.put(ref, value);
+        while (store.size() > 16) store.remove(store.keySet().iterator().next());
+        return ref;
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry starterEntry(long entriesRef, String digest) {
+        return StarterContext.byDigest(starterCatalogues.get(entriesRef), digest);
+    }
+
+    /**
+     * The ONE catalogue read (ReadStarterCatalogueEffect, and the start page's S4/S7 flow): the catalogue and each entry's
+     * template file, off the event thread, reported as {@code StarterCatalogueObserved} — what {@code context.starters}
+     * renders. {@code then} gets the entries (null when unreachable).
+     */
+    private void readStarterCatalogue(long request,
+            java.util.function.Consumer<java.util.List<telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry>> then) {
+        StarterSource source = starterSource;
+        Background.run(() -> {
+            var selection = source.catalogue();
+            java.util.List<telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry> out = new java.util.ArrayList<>();
+            for (var e : selection.entries()) {
+                TemplateClient.Template t;
+                try {
+                    t = source.template(e);
+                } catch (RuntimeException unreadable) {
+                    t = null;                                   // the entry stays listed; its authoring is not known
+                }
+                out.add(telamin.fluxtion.audit.analyser.analyser.template.Starters.of(e, t));
+            }
+            return out;
+        }, entries -> {
+            long ref = starterPut(starterCatalogues, entries);
+            java.util.List<telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterFacts> facts =
+                    new java.util.ArrayList<>();
+            for (var x : entries) {
+                facts.add(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterFacts(
+                        telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(x.id()), x.authoring(),
+                        x.host(), x.mode(), x.keyNeed()));
+            }
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCatalogueObserved(
+                    request, true, ref, facts));
+            if (then != null) then.accept(entries);
+        }, err -> {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCatalogueObserved(
+                    request, false, 0, java.util.List.of()));
+            if (then != null) then.accept(null);
+        });
+    }
+
+    /** ChooseStarterEffect: the menu's picker over what was read; the choice is a fact. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result chooseStarter(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ChooseStarterEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            var entries = starterCatalogues.get(e.entriesRef());
+            TemplateCatalogue.Entry chosen = null;
+            if (entries != null) {
+                var selection = new TemplateCatalogue(TemplateCatalogue.SUPPORTED_VERSION, entries.stream()
+                        .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::catalogue).toList()).forPicker();
+                chosen = TemplateProjectDialog.chooseTemplate(this, selection);
+            }
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterChosen(e.request(),
+                    chosen == null ? null : telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(
+                            telamin.fluxtion.audit.analyser.analyser.template.Starters.idOf(chosen))));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "choose");
+    }
+
+    /** ReadStarterDefaultsEffect: the template file, off the event thread; and whether a Fluxtion key is on this machine. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result readStarterDefaults(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReadStarterDefaultsEffect e) {
+        var entry = starterEntry(e.entriesRef(), e.idDigest());
+        StarterSource source = starterSource;
+        Background.run(() -> {
+            if (entry == null) throw new IllegalStateException("the starter is no longer in the catalogue the analyser read");
+            return source.template(entry.catalogue());
+        }, t -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDefaultsObserved(
+                0L, e.request(), true, starterPut(starterTemplates, t), t.authoring(), fluxtionKeyStore.keyPresent(), null)),
+                err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDefaultsObserved(
+                        0L, e.request(), false, 0, null, fluxtionKeyStore.keyPresent(),
+                        telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "defaults");
+    }
+
+    /** ConfigureStarterEffect: the menu's own form (names, folder, the guide links); the answer is a fact. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result configureStarter(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfigureStarterEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            var entry = starterEntry(e.entriesRef(), e.idDigest());
+            var template = starterTemplates.get(e.defaultsRef());
+            TemplateProjectDialog.Choice choice = entry == null || template == null ? null
+                    : TemplateProjectDialog.chooseDestination(this, entry.catalogue(), template.defaults());
+            if (choice == null) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterConfigured(
+                        e.request(), false, 0, 0, null, false));
+                return;
+            }
+            String dir = choice.destination().toAbsolutePath().normalize().toString();
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterConfigured(e.request(),
+                    true, starterPut(starterDownloads, choice.download()), factRefs.put(dir),
+                    telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(dir), choice.referenceGuide()));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "configure");
+    }
+
+    /** The review row's Choose…: the person's folder (never Claude's), reported as a fact; the row renders the check. */
+    private void chooseStarterFolder(String proposalId, String itemId) {
+        Path chosen = starterFolderChooser.get();
+        String dir = chosen == null ? null : chosen.toString();
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDestinationChosen(
+                proposalId, itemId, dir == null ? 0 : factRefs.put(dir),
+                dir == null ? null : telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(dir)));
+    }
+
+    /** The default chooser: an existing empty folder, or a new folder's name typed in it. Null when cancelled. */
+    private Path chooseStarterFolderDialog() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Choose the new project's folder — empty, or a new name");
+        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        fc.setCurrentDirectory(new File(System.getProperty("user.home")));
+        if (fc.showDialog(SwingUtilities.getWindowAncestor(localAgentPanel), "Choose") != JFileChooser.APPROVE_OPTION) return null;
+        return fc.getSelectedFile().toPath();
+    }
+
+    /** ObserveStarterDirectoryEffect: what the folder is, observed now (it answers at once, so the row renders it). */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result observeStarterDirectory(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ObserveStarterDirectoryEffect e) {
+        String text = factRefs.get(e.dirRef());
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDirectoryObserved(e.opId(),
+                e.request(), e.dirRef(), e.dirShown(), starterDirectoryVerdict(text == null ? null : Path.of(text)));
+    }
+
+    /** The folder's verdict word (see {@code StarterDirectoryObserved}); links resolved, nothing written. */
+    static String starterDirectoryVerdict(Path dir) {
+        if (dir == null || !dir.isAbsolute()) return "NOT_ABSOLUTE";
+        Path at = dir.normalize();
+        try {
+            if (Files.exists(at)) {
+                if (!Files.isDirectory(at)) return "NOT_A_DIRECTORY";
+                Path real = at.toRealPath();
+                if (telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(real,
+                        telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home()) != null) return "SECRET_FOLDER";
+                try (var list = Files.list(real)) {
+                    return list.findAny().isPresent() ? "NOT_EMPTY" : "EMPTY";
+                }
+            }
+            Path parent = at.getParent();
+            if (parent == null || !Files.isDirectory(parent)) return "NO_PARENT";
+            Path real = parent.toRealPath().resolve(at.getFileName().toString());
+            if (telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(real,
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home()) != null) return "SECRET_FOLDER";
+            return "ABSENT";
+        } catch (java.io.IOException ex) {
+            return "NO_PARENT";
+        }
+    }
+
+    /** The starter row, RENDERED from starterProject's state and the catalogue the analyser read. */
+    private ProposalReviewDialog.StarterRow starterRow(String itemId) {
+        var st = sessionSnapshot().starter();
+        var entry = starterEntry(st.entriesRef(), st.idDigest());
+        String facts = entry == null ? "" : telamin.fluxtion.audit.analyser.analyser.template.Starters.facts(
+                entry.authoring(), entry.host(), entry.mode(), entry.keyNeed(), st.keyPresent());
+        return new ProposalReviewDialog.StarterRow(itemId, entry == null ? "(not in the catalogue read)" : entry.name(),
+                facts, st.dirShown(), st.dirWords(), "READY".equals(st.phase()) && st.destinationReady(),
+                starterSource.origin());
+    }
+
+    /**
+     * DownloadStarterEffect — after the person's Apply (or the menu's Download and open) and never before: the scaffold
+     * from the configured HTTPS origin, unpacked through the template archive's containment checks. Nothing is built or
+     * run. With the menu's guide box ticked, the reference guide is added (never over a shipped one).
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result downloadStarter(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DownloadStarterEffect e) {
+        long request = e.request();
+        TemplateClient.Download download;
+        Path target;
+        try {
+            var entry = starterEntry(e.entriesRef(), e.idDigest());
+            if (entry == null) throw new IllegalStateException("the starter is no longer in the catalogue the analyser read");
+            download = e.namesRef() != 0 ? starterDownloads.get(e.namesRef()) : null;
+            if (download == null) {
+                var t = starterTemplates.get(e.defaultsRef());
+                if (t == null) throw new IllegalStateException("the starter's defaults are no longer held");
+                download = new TemplateClient.Download(entry.catalogue(),
+                        orDefault(factRefs.get(e.artifactRef()), t.defaults().artifact()),
+                        orDefault(factRefs.get(e.groupRef()), t.defaults().group()),
+                        orDefault(factRefs.get(e.basePackageRef()), t.defaults().basePackage()));
+            }
+            String dir = factRefs.get(e.dirRef());
+            if (dir == null) throw new IllegalStateException("the chosen folder is no longer held");
+            target = Path.of(dir);
+            // observed again now: a folder that filled up (or became a link) since it was chosen is refused
+            String verdict = starterDirectoryVerdict(target);
+            if (!verdict.equals("ABSENT") && !verdict.equals("EMPTY")) {
+                throw new IllegalStateException("the chosen folder can no longer receive it (" + verdict + ")");
+            }
+        } catch (RuntimeException ex) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstallFailed(request,
+                    telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(ex))));
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), request, "download");
+        }
+        StarterSource source = starterSource;
+        TemplateClient.Download request0 = download;
+        boolean guide = e.referenceGuide();
+        status.setText("Downloading and checking " + download.template().name() + "…");
+        java.util.concurrent.atomic.AtomicBoolean answered = new java.util.concurrent.atomic.AtomicBoolean();
+        TemplateProjectDialog.Progress progress = TemplateProjectDialog.showProgress(this,
+                "Downloading and safely unpacking " + download.template().name() + "…", () -> {
+                    if (answered.compareAndSet(false, true)) {
+                        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstallFailed(
+                                request, "the download was cancelled"));
+                    }
+                });
+        progress.attach(Background.run(() -> {
+            byte[] zip = source.download(request0);
+            try {
+                return templateArchive.install(zip, target);
+            } catch (java.io.IOException ex) {
+                throw new TemplateClient.Failure("could not install the starter: " + ex.getMessage(), ex);
+            }
+        }, installed -> {
+            progress.finish();
+            if (!answered.compareAndSet(false, true)) return;
+            if (guide) {
+                try {
+                    ReferenceSet.create(installed.projectRoot(), NewProjectDiscovery.detectKind(installed.projectRoot()));
+                } catch (java.io.IOException ignored) {
+                    // the guide is an addition: its failure never undoes the starter
+                }
+            }
+            String root = installed.projectRoot().toString();
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstalled(request,
+                    factRefs.put(root), telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(root),
+                    installed.profile() != null, starterPut(starterCommands, installed.commands())));
+        }, err -> {
+            progress.finish();
+            if (!answered.compareAndSet(false, true)) return;
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstallFailed(request,
+                    telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err))));
+        }));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), request, "download");
+    }
+
+    private static String orDefault(String given, String fallback) {
+        return given == null || given.isBlank() ? fallback : given.strip();
+    }
+
+    /** VendorSkillsEffect: the jar's pinned skills into {@code .claude/skills}, never overwriting, off the event thread. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result vendorSkills(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.VendorSkillsEffect e) {
+        String root = factRefs.get(e.rootRef());
+        Background.run(() -> {
+            if (root == null) throw new IllegalStateException("the project folder is no longer held");
+            return new telamin.fluxtion.audit.analyser.analyser.template.StarterSkills().vendor(Path.of(root), e.authoring(),
+                    e.host());
+        }, r -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SkillsVendored(
+                e.request(), r.written(), r.kept(), r.digests(), r.refusal() == null ? null
+                : telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(r.refusal()))),
+                err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SkillsVendored(
+                        e.request(), java.util.List.of(), java.util.List.of(), java.util.List.of(),
+                        telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "skills");
+    }
+
+    /** RunDiscoveryEffect: day-two discovery in the new project — M73's offer, observed, with its digest. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result runStarterDiscovery(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunDiscoveryEffect e) {
+        String root = factRefs.get(e.rootRef());
+        Background.run(() -> {
+            if (root == null) throw new IllegalStateException("the project folder is no longer held");
+            return NewProjectDiscovery.discover(Path.of(root));
+        }, offer -> {
+            Path dir = Path.of(root);
+            var observed = CreateProjectObservation.offer(offer, dir);
+            boolean profile = Files.exists(telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(dir));
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDiscoveryObserved(
+                    e.request(), observed.digest(), starterPut(starterOffers, offer), profile,
+                    offer.sourceRoots().size(), offer.skills().candidates().size(), offer.graphs().candidates().size()));
+        }, err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstallFailed(
+                e.request(), telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "discovery");
+    }
+
+    /** ReviewStarterProjectEffect: the ONE combined review, every row at No; the answers are a fact. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result reviewStarterProject(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReviewStarterProjectEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            String root = factRefs.get(e.rootRef());
+            var offer = starterOffers.get(e.offerRef());
+            if (root == null || offer == null) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterReviewAnswered(
+                        e.request(), false, java.util.List.of(), java.util.List.of(), 0, null));
+                return;
+            }
+            Path dir = Path.of(root);
+            java.util.List<String> declared = new java.util.ArrayList<>();
+            String processor = null;
+            int runbooks = 0;
+            if (e.profilePresent()) {
+                java.util.Properties profile = new java.util.Properties();
+                try (var in = Files.newBufferedReader(telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(dir))) {
+                    profile.load(in);
+                } catch (java.io.IOException | IllegalArgumentException unreadable) {
+                    // shown as declaring nothing; opening it is still the project's own load, which says why it fails
+                }
+                int n = parseCount(profile.getProperty("sourceRoot.count"));
+                for (int i = 0; i < n; i++) {
+                    String r = profile.getProperty("sourceRoot." + i);
+                    if (r != null) declared.add(r);
+                }
+                processor = profile.getProperty("selectedEventProcessor");
+                runbooks = parseCount(profile.getProperty("runbook.count"));
+            }
+            java.util.List<String[]> skills = new java.util.ArrayList<>();
+            for (var c : offer.skills().candidates()) skills.add(new String[]{c.path(), c.name()});
+            java.util.List<String> graphs = new java.util.ArrayList<>();
+            for (var g : offer.graphs().candidates()) graphs.add(offer.root().relativize(g.file()).toString());
+            var data = new StarterReviewDialog.Data(
+                    telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(root), e.profilePresent(), declared,
+                    processor, runbooks, offer.sourceRoots().stream().map(p -> {
+                        String rel = offer.root().relativize(p).toString().replace('\\', '/');
+                        return rel.isEmpty() ? "." : rel;
+                    }).toList(), skills, graphs, e.vendored(), starterDesignRoot(dir, declared, offer));
+            var answer = starterReviewAsk.apply(data);
+            if (answer == null) answer = StarterReviewDialog.Answer.CLOSED;
+            long graphRef = answer.graph() == null ? 0 : factRefs.put(dir.resolve(answer.graph()).normalize().toString());
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterReviewAnswered(
+                    e.request(), answer.open(), answer.roots(), answer.skills(), graphRef,
+                    CreateProjectObservation.offer(offer, dir).digest(), answer.designRoot()));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "review");
+    }
+
+    /**
+     * The Spring design's folder, relative to the project, when no root the review can put in force covers it (the
+     * profile's declared roots, or discovery's) — so the design can be read only after this row's Yes. Null otherwise.
+     */
+    static String starterDesignRoot(Path dir, java.util.List<String> declared, NewProjectDiscovery.Offer offer) {
+        Path design = starterDesignFile(dir);
+        if (design == null) return null;
+        Path folder = design.getParent();
+        try {
+            Path real = dir.toRealPath();
+            java.util.List<Path> roots = new java.util.ArrayList<>();
+            for (String r : declared) roots.add(real.resolve(r).normalize());
+            if (declared.isEmpty() && offer != null) roots.addAll(offer.sourceRoots());
+            for (Path r : roots) if (folder.startsWith(r)) return null;
+            return real.relativize(folder).toString().replace('\\', '/');
+        } catch (java.io.IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static int parseCount(String s) {
+        try {
+            return s == null ? 0 : Math.max(0, Math.min(1000, Integer.parseInt(s.strip())));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * OpenStarterProjectEffect: the person's own path — the starter's profile with OpenProjectRequested{EXPLICIT_SWITCH},
+     * or M73's create with the review's selection — outside the dispatch; then the graph chosen; then what the machine
+     * now says about Claude Code (its folder is the project's), so localAgentSession can offer its restart there.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openStarterProject(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterProjectEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            String root = factRefs.get(e.rootRef());
+            boolean ok;
+            String why = null;
+            if (root == null) {
+                ok = false;
+                why = "the project folder is no longer held";
+            } else {
+                Path dir = CreateProjectObservation.realDir(Path.of(root));
+                Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(dir);
+                if (e.profilePresent()) {
+                    ok = requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
+                            "starter");
+                } else {
+                    var offer = starterOffers.get(e.offerRef());
+                    var request = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(
+                            CreateProjectObservation.facts(dir, offer, config), e.selection());
+                    ok = requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CREATE,
+                            "starter", true, request) && sessionCreated != null;
+                }
+                if (!ok) why = sessionProblem == null ? "the project did not open" : sessionProblem;
+                // the review's Yes: the design's folder through the person's own Sources add, so the design can open now
+                String designFolder = ok && e.designRoot() ? starterDesignRoot(dir, java.util.List.of(), null) : null;
+                if (designFolder != null) {
+                    String refused = addSourceRootAsPerson(dir.resolve(designFolder));
+                    if (refused != null) status.setText("The design's folder was not added: " + refused);
+                }
+                String graph = factRefs.get(e.graphRef());
+                if (ok && graph != null) openGraphml(graph);
+            }
+            if (localAgentAdapter != null) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(
+                        localAgentConsent()));
+            }
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterProjectOpened(
+                    e.request(), ok, why == null ? null : telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(why)));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "open");
+    }
+
+    /** OpenStarterDesignEffect: the project's Spring design (M66) through the person's Design open, at once. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openStarterDesign(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterDesignEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            String root = factRefs.get(e.rootRef());
+            Path design = root == null ? null : starterDesignFile(Path.of(root));
+            if (design != null) {
+                var r = actionControl.openDesign(design.toString());
+                if (!r.ok()) status.setText(r.error());
+            }
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDesignOpened(
+                    e.request(), design != null, design == null ? "the starter has no Spring design" : null));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "design");
+    }
+
+    /**
+     * The starter's Spring design: the file its {@code fluxtion-authoring.json} names ({@code xml}), inside the project,
+     * else the first {@code .xml} under {@code src/main/fluxtion}; null for a starter that has none.
+     */
+    static Path starterDesignFile(Path root) {
+        try {
+            Path real = root.toRealPath();
+            Path manifest = real.resolve("fluxtion-authoring.json");
+            if (Files.isRegularFile(manifest, java.nio.file.LinkOption.NOFOLLOW_LINKS) && Files.size(manifest) < 1_000_000) {
+                Object parsed = telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(Files.readString(manifest));
+                if (parsed instanceof Map<?, ?> m && m.get("xml") instanceof String xml) {
+                    Path p = real.resolve(xml).normalize();
+                    if (p.startsWith(real) && Files.isRegularFile(p) && p.toRealPath().startsWith(real)) return p;
+                }
+            }
+            Path designs = real.resolve("src/main/fluxtion");
+            if (Files.isDirectory(designs)) {
+                try (var walk = Files.walk(designs, 4)) {
+                    return walk.filter(p -> p.toString().endsWith(".xml") && Files.isRegularFile(p)).sorted().findFirst()
+                            .orElse(null);
+                }
+            }
+        } catch (java.io.IOException | RuntimeException unreadable) {
+            return null;
+        }
+        return null;
+    }
+
+    /**
+     * WatchStarterGraphmlEffect: the project is watched for its first build's GraphML — what is there when the watch starts
+     * is the baseline, and a new or rewritten graph is reported. The watch ends with the project or when it reports.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result watchStarterGraphml(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.WatchStarterGraphmlEffect e) {
+        if (starterWatch != null) starterWatch.stop();
+        String rootText = factRefs.get(e.rootRef());
+        if (rootText == null) {
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "watch:none");
+        }
+        Path root = Path.of(rootText);
+        java.util.Map<Path, Long> baseline = new java.util.HashMap<>();
+        boolean[] first = {true};
+        boolean[] scanning = {false};
+        javax.swing.Timer[] timer = new javax.swing.Timer[1];
+        timer[0] = new javax.swing.Timer(starterWatchMillis, ev -> {
+            Path active = projectRoot();
+            if (active == null || !CreateProjectObservation.realDir(active).equals(CreateProjectObservation.realDir(root))) {
+                timer[0].stop();                                // another project now: its graph would not be this one
+                return;
+            }
+            if (scanning[0]) return;
+            scanning[0] = true;
+            Background.run(() -> {
+                var found = telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
+                        java.util.List.of(root.toString()), java.util.Set.of(), -1, -1, root);
+                java.util.Map<Path, Long> now = new java.util.LinkedHashMap<>();
+                for (var c : found.candidates()) {
+                    try {
+                        now.put(c.file(), Files.getLastModifiedTime(c.file()).toMillis());
+                    } catch (java.io.IOException ignored) {
+                        // gone between the scan and the stat: not reported
+                    }
+                }
+                return now;
+            }, now -> {
+                scanning[0] = false;
+                if (!timer[0].isRunning()) return;
+                if (first[0]) {
+                    first[0] = false;
+                    baseline.putAll(now);
+                    return;
+                }
+                for (var f : now.entrySet()) {
+                    Long before = baseline.get(f.getKey());
+                    if (before == null || before < f.getValue()) {
+                        timer[0].stop();
+                        String path = f.getKey().toString();
+                        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphmlAppeared(
+                                e.request(), factRefs.put(path), telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(path)));
+                        return;
+                    }
+                }
+            }, err -> scanning[0] = false);
+        });
+        timer[0].setInitialDelay(0);
+        timer[0].start();
+        starterWatch = timer[0];
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "watch");
+    }
+
+    /** OfferStarterGraphEffect: the person's answer to the after-build offer; Open is the person's own graph open. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result offerStarterGraph(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferStarterGraphEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            String path = factRefs.get(e.pathRef());
+            boolean open = path != null && starterGraphOffer.test(e.shown());
+            if (open) openGraphml(path);                      // the graph pairs with the project's logs as any open does
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphOfferAnswered(
+                    e.request(), open));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "offerGraph");
+    }
+
+    private boolean askStarterGraph(String shown) {
+        Object[] options = {"Open it", "Not now"};
+        int answer = JOptionPane.showOptionDialog(this, UiText.inert("The project's first build wrote " + shown
+                        + ". Open it now? The analyser pairs it with the logs this project writes."),
+                "The first build's graph", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options,
+                options[1]);
+        return answer == 0;
+    }
+
+    /**
+     * ArmStarterDraftEffect: the POINTER-ONLY draft for Claude Code — the project's folder name and the starter's id
+     * (AskCatalogue.composeStarter) — placed, and Start armed by localAgentSession; nothing is sent until Send.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result armStarterDraft(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ArmStarterDraftEffect e) {
+        String root = factRefs.get(e.rootRef());
+        var entry = starterEntry(e.entriesRef(), e.idDigest());
+        if (root != null && entry != null) {
+            Path name = Path.of(root).getFileName();
+            var d = telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.composeStarter(
+                    name == null ? root : name.toString(), entry.id());
+            long ref = localAgentStore.add(
+                    telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER, d.text());
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentDraftComposed(
+                    ref, d.questionId(), null, 0, localAgentConsent(), "starter project"));
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "draft");
+    }
+
+    /** ShowStarterCommandsEffect: the menu's ending — the starter's own first-run commands, to copy, never run. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result showStarterCommands(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStarterCommandsEffect e) {
+        String root = factRefs.get(e.rootRef());
+        var commands = starterCommands.get(e.commandsRef());
+        if (root != null) {
+            SwingUtilities.invokeLater(() -> TemplateProjectDialog.showCommands(this, Path.of(root),
+                    commands == null ? java.util.List.of() : commands));
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "commands");
     }
 
     // ---- M74 P2b: a project switch while Claude Code runs (the simplified Move) ---------------------------------------
@@ -13243,14 +13790,14 @@ public final class MainFrame extends JFrame {
                     SwingUtilities.invokeLater(() -> chooseSetupDirectory(request));
             case "S3" -> SwingUtilities.invokeLater(() -> startPageBundleFlow(request));
             case "S4" -> {
-                // r8 F10: the catalogue is fetched HERE, at the button, once — never on choose
-                java.util.function.Supplier<java.util.List<String>> fetch = startTemplateNames;
-                telamin.fluxtion.audit.analyser.analyser.core.Background.run(fetch::get, names -> {
-                    long ref = names == null ? 0 : startPageWord(String.join("\n", names));
+                // r8 F10: the catalogue is fetched HERE, at the button, once — never on choose. Option 2: by the ONE
+                // catalogue read, which also reports what it read to starterProject (so context.starters holds it)
+                readStarterCatalogue(0, entries -> {
+                    long ref = entries == null ? 0 : startPageWord(String.join("\n", entries.stream()
+                            .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::name).toList()));
                     session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(
                             request, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE, 0, 0, ref));
-                }, err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(
-                        request, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE, 0, 0, 0)));
+                });
             }
             case "S5" -> SwingUtilities.invokeLater(() -> startPageLogFlow(request));
             // the learning pathway: the sample DEMO project opens, and the lesson is drafted once its log has landed

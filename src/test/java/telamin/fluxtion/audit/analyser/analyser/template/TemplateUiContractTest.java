@@ -16,17 +16,23 @@ class TemplateUiContractTest {
                 "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"));
         assertTrue(source.contains("projectMenu.add(newProjectFromTemplateItem())"));
         assertTrue(source.contains("new JMenuItem(\"New project from template…\")"));
-        String flow = source.substring(source.indexOf("private void chooseTemplateProject()"),
+        // Option 2 (owner, 2026-10-18): the menu states ONE intent; the session processor's starterProject decides each
+        // step, and each step has one performer — the same chain a proposal's starter takes (OneDispatchModelTest)
+        String menu = source.substring(source.indexOf("private void chooseTemplateProject()"),
                 source.indexOf("private void chooseAndOpenProject()"));
-        assertTrue(flow.contains("Background.run("), "catalogue/download IO must stay off the EDT");
-        assertTrue(flow.contains("showProgress"), "network/archive work must expose progress and cancellation");
-        assertTrue(flow.contains("templateArchive.install"));
+        assertTrue(menu.contains("StarterMenuRequested("), "the menu is a fact");
+        String download = source.substring(source.indexOf("private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result downloadStarter("),
+                source.indexOf("private static String orDefault("));
+        assertTrue(download.contains("Background.run("), "catalogue/download IO must stay off the EDT");
+        assertTrue(download.contains("showProgress"), "network/archive work must expose progress and cancellation");
+        assertTrue(download.contains("templateArchive.install"));
+        String open = source.substring(source.indexOf("private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openStarterProject("),
+                source.indexOf("private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openStarterDesign("));
         // M44: the template flow still adopts the installed project, but it no longer calls
         // ProjectSession directly — it states an intent and the session processor decides what that
         // transition means. The assertion tracks the intent, not the old call.
-        assertTrue(flow.contains("requestProject(installed.profile()"),
-                "the installed template must be adopted as the active project");
-        assertTrue(flow.contains("TransitionKind.EXPLICIT_SWITCH"),
+        assertTrue(open.contains("requestProject(profile"), "the installed template must be adopted as the active project");
+        assertTrue(open.contains("TransitionKind.EXPLICIT_SWITCH"),
                 "and it must say WHICH kind of transition it is — inferring that from the surface is "
                         + "exactly what M44 removed");
     }

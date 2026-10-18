@@ -178,11 +178,18 @@ public final class FullFolderTrust {
      * CLAUDE.md pulls in with {@code @path} imports, CLAUDE.md files in folders ABOVE this one, and the contents of the
      * scripts a hook runs are read by Claude Code but not re-checked by the analyser: a change to them asks nothing.
      */
+    /** Owner, 2026-10-18: the one web read Full makes without asking, said wherever Full's limits are said. */
+    public static final String DOCS_FETCH = "Full may read fluxtion-playground.dev documentation without asking (that "
+            + "one site, over https; any other web fetch is asked).";
+
     /** The dialog's disclosure of the analyser's standing instruction ({@code ClaudeCodeProvider.STAY_IN_PROJECT_NOTE}). */
-    public static final String ADDS_INSTRUCTION = "The analyser adds one instruction to full Claude Code: work only "
-            + "inside this folder, never look for the Fluxtion API key or key files, and build with ./mvnw and the "
-            + "project's scripts. It is a request to Claude, not a sandbox — your permission rules and the analyser's "
-            + "approvals still decide what runs.";
+    public static final String ADDS_INSTRUCTION = "The analyser adds its own instructions to full Claude Code: that it is "
+            + "the assistant inside this app, and what a project, starter, log and graph mean here; to begin a new "
+            + "application by offering one of the analyser's starters, never by searching the web or scaffolding by hand; "
+            + "to work only inside this folder, never look for the Fluxtion API key or key files, and build with ./mvnw "
+            + "and the project's scripts. " + DOCS_FETCH + " It is a request to Claude, not a sandbox — your permission "
+            + "rules and the analyser's approvals still decide what runs.";
+
 
     public static final String NOT_RECHECKED = "Not re-checked by the analyser: files a CLAUDE.md imports with @path, "
             + "CLAUDE.md files in the folders above this one, and the contents of the scripts a hook runs. Claude Code "

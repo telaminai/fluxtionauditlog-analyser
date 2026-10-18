@@ -742,4 +742,102 @@ public sealed interface SessionEffects {
     /** Open the M73 project offer for {@code root} (the person's New project… path); the person confirms. */
     record OfferExampleProjectEffect(long opId, long request, long rootRef) implements SessionEffects {
     }
+
+    // ---- Option 2 (owner, 2026-10-18): a project from a starter template — starterProject decides, these perform ------
+
+    /**
+     * Read the starter catalogue from the configured origin, and each entry's template file for its authoring and host;
+     * answer {@link SessionEvents.StarterCatalogueObserved}. {@code purpose}: {@code menu}, {@code session} (a hosted
+     * session started) — never {@code context}, which renders what was read and fetches nothing.
+     */
+    record ReadStarterCatalogueEffect(long opId, long request, String purpose) implements SessionEffects {
+    }
+
+    /** The menu's picker over the catalogue read for {@code request} ({@code entriesRef}); answered by {@link SessionEvents.StarterChosen}. */
+    record ChooseStarterEffect(long opId, long request, long entriesRef) implements SessionEffects {
+    }
+
+    /** Read the chosen entry's template file for its defaults; answer {@link SessionEvents.StarterDefaultsObserved}. */
+    record ReadStarterDefaultsEffect(long opId, long request, long entriesRef, String idDigest) implements SessionEffects {
+    }
+
+    /** The menu's own form (names, folder, guide links); answered by {@link SessionEvents.StarterConfigured}. */
+    record ConfigureStarterEffect(long opId, long request, long entriesRef, String idDigest, long defaultsRef)
+            implements SessionEffects {
+    }
+
+    /** Observe the folder the person chose for the starter row; answer {@link SessionEvents.StarterDirectoryObserved}. */
+    record ObserveStarterDirectoryEffect(long opId, long request, long dirRef, String dirShown) implements SessionEffects {
+    }
+
+    /**
+     * After the person's Apply (or the menu's Download and open): download the starter from the configured HTTPS origin
+     * with the names given — the menu's form by reference ({@code namesRef}), or a proposal's own optional names
+     * ({@code artifactRef}, {@code groupRef}, {@code basePackageRef}; 0 takes the template's default) — and unpack it into
+     * {@code dirRef} through the template archive's containment checks. Nothing is built or run. Answered by
+     * {@link SessionEvents.StarterInstalled} or {@link SessionEvents.StarterInstallFailed}.
+     */
+    record DownloadStarterEffect(long opId, long request, long entriesRef, String idDigest, long namesRef,
+                                 long artifactRef, long groupRef, long basePackageRef, long defaultsRef, long dirRef,
+                                 boolean referenceGuide) implements SessionEffects {
+    }
+
+    /**
+     * Write the starter's skills — the canonical set for its authoring and host and, for Spring, the pinned playground
+     * design skill and contract — from the analyser's own jar under {@code <root>/.claude/skills/}, never overwriting a
+     * file; answer {@link SessionEvents.SkillsVendored}.
+     */
+    record VendorSkillsEffect(long opId, long request, long rootRef, String authoring, String host)
+            implements SessionEffects {
+    }
+
+    /** Day-two discovery in the new project; answer {@link SessionEvents.StarterDiscoveryObserved}. */
+    record RunDiscoveryEffect(long opId, long request, long rootRef) implements SessionEffects {
+    }
+
+    /**
+     * The ONE combined review: the starter profile's declared roots and processor, the discovered skills and graphs,
+     * every row at No; answered by {@link SessionEvents.StarterReviewAnswered}.
+     */
+    record ReviewStarterProjectEffect(long opId, long request, long rootRef, long offerRef, boolean profilePresent,
+                                      java.util.List<String> vendored) implements SessionEffects {
+        public ReviewStarterProjectEffect {
+            vendored = java.util.List.copyOf(vendored == null ? java.util.List.of() : vendored);
+        }
+    }
+
+    /**
+     * Open the project through the person's own path: the starter's profile with {@code OpenProjectRequested}
+     * ({@code EXPLICIT_SWITCH}), or — with no profile — M73's create with the selection; then, when the review said so,
+     * the Spring design's folder as a source root (the person's Sources path) and the chosen graph. Answered
+     * by {@link SessionEvents.StarterProjectOpened}.
+     */
+    record OpenStarterProjectEffect(long opId, long request, long rootRef, long offerRef, boolean profilePresent,
+                                    SessionEvents.CreateSelection selection, long graphRef, boolean designRoot)
+            implements SessionEffects {
+    }
+
+    /** Open the project's Spring design (M66) at once; answered by {@link SessionEvents.StarterDesignOpened}. */
+    record OpenStarterDesignEffect(long opId, long request, long rootRef) implements SessionEffects {
+    }
+
+    /** Watch the project for its first build's GraphML; {@link SessionEvents.StarterGraphmlAppeared} when one appears. */
+    record WatchStarterGraphmlEffect(long opId, long request, long rootRef) implements SessionEffects {
+    }
+
+    /** Offer the first build's graph: open it, which pairs it with the project's logs; {@link SessionEvents.StarterGraphOfferAnswered}. */
+    record OfferStarterGraphEffect(long opId, long request, long pathRef, String shown) implements SessionEffects {
+    }
+
+    /**
+     * Place the pointer-only draft for Claude Code — the project and the starter by name, the files to read — and report
+     * it as {@link SessionEvents.LocalAgentDraftComposed}; nothing is sent until the person presses Send.
+     */
+    record ArmStarterDraftEffect(long opId, long request, long rootRef, long entriesRef, String idDigest)
+            implements SessionEffects {
+    }
+
+    /** The menu's ending: the starter's own first-run commands, shown to copy, never run. */
+    record ShowStarterCommandsEffect(long opId, long request, long rootRef, long commandsRef) implements SessionEffects {
+    }
 }

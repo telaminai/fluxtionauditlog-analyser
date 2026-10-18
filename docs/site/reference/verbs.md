@@ -617,11 +617,11 @@ A SPOTLIGHT WALK: a saved, named sequence of spotlight steps the person steps th
 
 *Offered only to Claude Code in the analyser: never on `/manifest`, the MCP bridge or the in-app assistant.*
 
-Hosted Claude Code only. Offer the person a project set-up. Records an offer and changes NOTHING: the analyser checks each item, the person answers each one, and the analyser applies the accepted ones itself. Call context afterwards to see each item's outcome. Paths are relative to your working directory or absolute inside it.
+Hosted Claude Code only. Offer the person a project set-up. Records an offer and changes NOTHING: the analyser checks each item, the person answers each one, and the analyser applies the accepted ones itself. Call context afterwards to see each item's outcome. Paths are relative to your working directory or absolute inside it. To begin a new application, offer ONE starter item (kind starter, a context.starters id) and nothing else: the person chooses the folder, and the analyser downloads it, adds the skills and opens the project.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `summary` | string |  | one sentence: what this set-up is for |
-| `items` | array of object (`kind`, `path`, `className`, `reason`) | yes | the set-up items, 1 to 10 |
+| `items` | array of object (`kind`, `path`, `className`, `starter`, `artifact`, `group`, `basePackage`, `reason`) | yes | the set-up items, 1 to 10 |
 
 <!-- END GENERATED -->

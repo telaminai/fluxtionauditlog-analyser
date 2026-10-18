@@ -112,6 +112,21 @@
             <resource>
                 <directory>src/main/resources</directory>
             </resource>
+            <!-- Option 2 (owner, 2026-10-18): the canonical skills a starter project gets, written from the jar and
+                 never fetched at run time. Only the published index (m19-skills/2) and the files it can select:
+                 StarterSkills checks each against the index's sha256 before writing, and CanonicalSkillsTest pins
+                 the jar's copies to the same index. -->
+            <resource>
+                <directory>${project.basedir}/docs/skills</directory>
+                <includes>
+                    <include>m19-skills/2/index.json</include>
+                    <include>common/**</include>
+                    <include>spring/**</include>
+                    <include>mongoose/**</include>
+                    <include>embedded/**</include>
+                </includes>
+                <targetPath>starter-skills</targetPath>
+            </resource>
             <!-- ship the changelog inside the jar so Help ▸ Release notes and the what's-new dialog
                  read the same notes as the GitHub release (M16 §7) -->
             <resource>
