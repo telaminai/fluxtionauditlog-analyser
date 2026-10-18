@@ -3770,6 +3770,58 @@ public final class MainFrame extends JFrame {
             result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(wrong)); return result;
         }
         long ticket = ++javaSpotlightTicket;
+        long deadlineNanos = System.nanoTime() + javaSourcePreparationTimeout.toNanos();
+        Runnable expire = () -> {
+            if (result.isDone()) return;
+            if (javaSpotlightTicket == ticket) javaSpotlightTicket++;
+            result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source lookup still running; retry (preparation deadline expired)"));
+        };
+        javax.swing.Timer deadlineTimer = new javax.swing.Timer((int) javaSourcePreparationTimeout.toMillis(), e -> expire.run());
+        deadlineTimer.setRepeats(false);
+        var worker = new java.util.concurrent.atomic.AtomicReference<java.util.concurrent.Future<?>>();
+        result.whenComplete((value, failure) -> {
+            var running = worker.get();
+            if (running != null) running.cancel(true); // best effort; the terminal/ticket checks are the correctness boundary
+            Runnable finish = () -> {
+                deadlineTimer.stop();
+                if (result.isCancelled() && javaSpotlightTicket == ticket) javaSpotlightTicket++;
+            };
+            if (SwingUtilities.isEventDispatchThread()) finish.run(); else SwingUtilities.invokeLater(finish);
+        });
+        deadlineTimer.start();
+        // The view is captured only once the source panes' own reads have landed. A read a previous verb started
+        // (topology {select, source: true}, a goto, a revalidation) installs its text and scrolls when it lands;
+        // captured before that, its landing reads as a navigation and the spotlight bounced "superseded" although
+        // nothing newer had asked for anything. A newer spotlight still supersedes a waiting one by its ticket.
+        whenSourceReadsSettle(() -> {
+            if (result.isDone()) return;
+            if (ticket != javaSpotlightTicket) {
+                result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight superseded; retry against the current view")); return;
+            }
+            worker.set(startJavaSpotlightPreparation(params, revealRows, walkTicket, asked, ticket, deadlineNanos, expire, result));
+        });
+        return result;
+    }
+
+    /**
+     * Run {@code then} on the EDT once neither source viewer has a pane read outstanding AND the work those reads'
+     * continuations queued has run: a read's continuation may defer its scroll until after layout
+     * ({@link SourcePanel#openEventHandler}), so one more turn of the event queue follows the last read.
+     */
+    private void whenSourceReadsSettle(Runnable then) {
+        SourcePanel topologyViewer = topologyPanel.sourceViewer();
+        if (sourcePanel.reading()) sourcePanel.whenReadsSettle(() -> whenSourceReadsSettle(then));
+        else if (topologyViewer.reading()) topologyViewer.whenReadsSettle(() -> whenSourceReadsSettle(then));
+        else SwingUtilities.invokeLater(() -> {
+            if (sourcePanel.reading() || topologyViewer.reading()) whenSourceReadsSettle(then);
+            else then.run();
+        });
+    }
+
+    /** Capture the settled view on the EDT, prepare off it, and apply back on it unless something newer moved it. */
+    private java.util.concurrent.Future<?> startJavaSpotlightPreparation(Map<String, Object> params, Runnable revealRows,
+            long walkTicket, SpotlightTarget.Requests asked, long ticket, long deadlineNanos, Runnable expire,
+            java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> result) {
         var lookup = sourceService.captureLookup();
         var capturedStore = store;
         var capturedSourceView = sourcePanel.spotlightViewState();
@@ -3783,15 +3835,7 @@ public final class MainFrame extends JFrame {
             return t.family() == SpotlightTarget.Family.TOPOLOGY || t.family() == SpotlightTarget.Family.TOPOLOGY_NODE
                     || t.family() == SpotlightTarget.Family.TOPOLOGY_VERDICT;
         });
-        long deadlineNanos = System.nanoTime() + javaSourcePreparationTimeout.toNanos();
-        Runnable expire = () -> {
-            if (result.isDone()) return;
-            if (javaSpotlightTicket == ticket) javaSpotlightTicket++;
-            result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source lookup still running; retry (preparation deadline expired)"));
-        };
-        javax.swing.Timer deadlineTimer = new javax.swing.Timer((int) javaSourcePreparationTimeout.toMillis(), e -> expire.run());
-        deadlineTimer.setRepeats(false);
-        var worker = telamin.fluxtion.audit.analyser.analyser.core.Background.run(
+        return telamin.fluxtion.audit.analyser.analyser.core.Background.run(
                 () -> JavaSpotlightPlan.read(lookup, asked.requests(), retained), plan -> {
                     if (result.isDone()) return;
                     if (System.nanoTime() - deadlineNanos >= 0) { expire.run(); return; }
@@ -3834,16 +3878,6 @@ public final class MainFrame extends JFrame {
                         walkOwnSpotlight = displacedSpotlightOrigin;
                     }
                 }, ex -> result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight refused: " + ex.getMessage())));
-        result.whenComplete((value, failure) -> {
-            worker.cancel(true); // best effort; the terminal/ticket checks are the correctness boundary
-            Runnable finish = () -> {
-                deadlineTimer.stop();
-                if (result.isCancelled() && javaSpotlightTicket == ticket) javaSpotlightTicket++;
-            };
-            if (SwingUtilities.isEventDispatchThread()) finish.run(); else SwingUtilities.invokeLater(finish);
-        });
-        deadlineTimer.start();
-        return result;
     }
 
     /** Install the overlay, and keep a live spotlight on its target when the frame is resized. */
