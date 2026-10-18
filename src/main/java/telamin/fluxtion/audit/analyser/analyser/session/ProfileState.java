@@ -50,6 +50,15 @@ public record ProfileState(AssistantProfile profile, boolean open, String why, l
         return observed && profile == AssistantProfile.NONE;
     }
 
+    /**
+     * Robot re-walk #4 (2026-10-18): the in-app assistant is in force and cannot answer — it has no API key — so the
+     * panel's ONE guide line is the node's {@link #status} with Configure provider beside it, and Send cannot be pressed.
+     * The node publishes a status for the in-app profile only in that case.
+     */
+    public boolean inAppNeedsKey() {
+        return profile == AssistantProfile.IN_APP && !status.isBlank();
+    }
+
     /** No card was chosen and nothing is set up. */
     public boolean unchosen() {
         return profile == AssistantProfile.NONE;

@@ -341,6 +341,7 @@ public final class SessionDriver {
             case SessionEffects.PrimeAssistantDraftEffect ignored -> "primeAssistantDraft";
             case SessionEffects.PlayDemoJourneyEffect ignored -> "playDemoJourney";
             case SessionEffects.RunStartPageFlowEffect ignored -> "runStartPageFlow";
+            case SessionEffects.ContinueStartPagePromptEffect ignored -> "continueStartPagePrompt";
             case SessionEffects.ShowStartPageFallbackEffect ignored -> "showStartPageFallback";
             case SessionEffects.ComposeStartPageDraftEffect ignored -> "composeStartPageDraft";
             case SessionEffects.TrustLocalAgentFolderEffect ignored -> "trustLocalAgentFolder";

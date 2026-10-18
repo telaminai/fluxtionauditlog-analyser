@@ -291,7 +291,7 @@ final class AiSetupWindow extends JDialog {
             top.add(r);
             String badge = badge(c, s);
             if (badge != null) {
-                JLabel b = AssistantPanel.chip(badge, false);
+                JComponent b = AssistantPanel.chip(badge, false);   // a Chip (first-run polish): wraps in a narrow row
                 b.setToolTipText(UiText.tooltip(AiSetupLines.FOUND_TOOLTIP));
                 top.add(b);
             }

@@ -140,9 +140,9 @@ public final class ProfileOverlay extends JPanel {
     /** The one scroll pane: the whole chooser scrolls; nothing inside it does. */
     private final JScrollPane scroll;
     private final WrapLine refusal = new WrapLine(" ");
-    private final JButton apply = UiText.button("Apply");
+    private final FitButton apply = UiText.plain(new FitButton());
     private final JButton close = UiText.button("Close");
-    private final JButton settings = UiText.button("All options: Settings ▸ Assistant…");
+    private final FitButton settings = UiText.plain(new FitButton());
     private final JButton setUpAi = UiText.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_LINK);
 
     // the details' own fields
@@ -159,6 +159,12 @@ public final class ProfileOverlay extends JPanel {
     private long request;
     private ProfileState last = ProfileState.NONE;
     private final java.util.List<Runnable> recolour = new java.util.ArrayList<>();
+
+    /** The way to every option, and its brief form for a narrow column (robot re-walk #6). */
+    static final String SETTINGS_LINK = "All options: Settings ▸ Assistant…";
+    static final String SETTINGS_LINK_BRIEF = "All options…";
+    /** Full Claude Code's Apply in a narrow column: still says it turns it ON (the confirmation follows). */
+    static final String FULL_TURN_ON_BRIEF = "Turn on Full";
 
     /** Two columns of cards only when each can be at least this wide (the narrow pop-out has one). */
     static final int CARD_MIN_WIDTH = 260;
@@ -219,6 +225,7 @@ public final class ProfileOverlay extends JPanel {
         buttons.add(apply);
         JPanel left = new JPanel(new WrapLayout(FlowLayout.LEFT, 0, 0));
         left.setOpaque(false);
+        settings.setWords(SETTINGS_LINK, SETTINGS_LINK_BRIEF);
         settings.setBorderPainted(false);
         settings.setContentAreaFilled(false);
         settings.setMargin(new Insets(0, 0, 0, 0));
@@ -293,7 +300,9 @@ public final class ProfileOverlay extends JPanel {
         if (c != null && !c.isSelected()) c.setSelected(true);
         for (var d : detailPanels.entrySet()) d.getValue().setVisible(d.getKey() == p);
         details.revalidate();
-        apply.setText(p == AssistantProfile.FULL ? ConfigPanel.FULL_POSTURE_TURN_ON : "Apply — " + p.title());
+        // robot re-walk #6: the brief words in the docked column at 1200×800, never cut at its edge
+        if (p == AssistantProfile.FULL) apply.setWords(ConfigPanel.FULL_POSTURE_TURN_ON, FULL_TURN_ON_BRIEF);
+        else apply.setWords("Apply — " + p.title(), "Apply");
         apply.getAccessibleContext().setAccessibleName("Apply " + p.title());
         for (Card k : cards.values()) k.repaint();
     }

@@ -98,6 +98,14 @@ public final class AssistantPanel extends JPanel {
         return "Assistant: " + (p == null ? AssistantProfile.NONE : p).title() + " ▾";
     }
 
+    /**
+     * Robot re-walk #6 (2026-10-18): the control's words in a row too narrow for {@link #assistantControlText} — the
+     * profile alone ("Safe analysis ▾"); its accessible name still says "Assistant: …" and contains them (WCAG 2.5.3).
+     */
+    static String assistantControlBrief(AssistantProfile p) {
+        return (p == null ? AssistantProfile.NONE : p).title() + " ▾";
+    }
+
     /** The control's accessible name: it STARTS with its visible label (WCAG 2.5.3) and says what pressing it does. */
     static String assistantControlName(AssistantProfile p) {
         return "Assistant: " + (p == null ? AssistantProfile.NONE : p).title() + " — choose how the assistant works";
@@ -117,7 +125,7 @@ public final class AssistantPanel extends JPanel {
     private Intents intents;
     private LocalAgentPanel localAgent;
 
-    private final JButton profileButton = UiText.button(assistantControlText(AssistantProfile.NONE));
+    private final FitButton profileButton = UiText.plain(new FitButton());
     /** M77-2 (spec-ai-setup-wizard.md §6.6): the empty state's one button, beside the Assistant control. */
     private final JButton setUpAi = UiText.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_LINK);
     /** M77-2: nothing is set up — the chips say so instead of "In-app assistant · no API key" (robot #8). */
@@ -125,9 +133,10 @@ public final class AssistantPanel extends JPanel {
 
     // SF-2: the route names a configured model, the basis a walk or record, the status a provider's error
     private final JLabel mode = UiText.plain(new JLabel("Live assistant"));
-    private final JLabel route = UiText.plain(new JLabel());
-    private final JLabel basis = UiText.plain(new JLabel());
-    private final JLabel status = UiText.plain(new JLabel(" "));
+    // robot re-walk #6: these lines wrap in the narrow docked column rather than ending in "…"
+    private final WrapLine route = new WrapLine(" ");
+    private final WrapLine basis = new WrapLine(" ");
+    private final WrapLine status = new WrapLine(" ");
     /** M74 UX: what the mode in force cannot do — the same place for both modes. */
     private final WrapLine limits = new WrapLine(" ");
     private final JButton copyPrompt = new JButton("Copy prompt");
@@ -137,14 +146,21 @@ public final class AssistantPanel extends JPanel {
     private final JButton connectCli = new JButton("Connect a CLI assistant");
     private final JButton askAboutEvidence = new JButton("Ask about this evidence");
     private final JPanel composer = new JPanel(new BorderLayout(4, 4));
-    private final JPanel noProvider = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-    private final JLabel noProviderLine = UiText.label("No provider is configured — nothing is sent from here.");
+    // robot re-walk #4/#6: a wrapping row, so Configure provider moves below the words in a narrow column instead of
+    // being drawn under the composer
+    private final JPanel noProvider = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 0));
+    static final String NO_PROVIDER_LINE = "No provider is configured — nothing is sent from here.";
+    private final FitLine noProviderLine = new FitLine(NO_PROVIDER_LINE);
     /** The composer, the no-provider bar and the demonstration bar: hidden while the profile cards are open. */
     private final JPanel south = new JPanel(new BorderLayout(4, 4));
     /** Owner, 2026-10-18: the cards are open — a focused view: no composer, no header lines but the one status line. */
     private boolean profilesOpen;
     /** The node's one status line when no assistant can answer from here ({@link ProfileState#status()}). */
     private String profileStatus = "";
+    /** Robot re-walk #4: the in-app assistant is in force with no key ({@link ProfileState#inAppNeedsKey()}). */
+    private boolean needsKey;
+    /** The words before Configure provider on the in-app no-key guide line (the node's status, then the button). */
+    static final String NEEDS_KEY_JOIN = " —";
     private final JPanel demoBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
     /** OA-4 (§6.2): Show / Hide conversation is presentation only; the strip still names the journey and its mode. */
     private final JCheckBox showConversation = new JCheckBox("Show conversation");
@@ -197,6 +213,7 @@ public final class AssistantPanel extends JPanel {
         getAccessibleContext().setAccessibleName("Analyser assistant");
 
         // ---- the header: the mode selector, the chips, the panel's own actions -------------------------------------
+        profileButton.setWords(assistantControlText(AssistantProfile.NONE), assistantControlBrief(AssistantProfile.NONE));
         profileButton.getAccessibleContext().setAccessibleName(assistantControlName(AssistantProfile.NONE));
         profileButton.setToolTipText(UiText.tooltip("How the assistant works: Safe analysis, Full Claude Code, In-app "
                 + "assistant or Off"));
@@ -388,6 +405,7 @@ public final class AssistantPanel extends JPanel {
         boolean claude = claudeCodeShown();
         // robot walkthrough #3: the in-app assistant's provider buttons are not Claude Code's
         if (claude) noProvider.setVisible(false);
+        else renderGuide();
         // owner, 2026-10-18: ↑ recalls the questions of the assistant the panel shows
         surface.historyMode(claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP);
         detailsLayout.show(details, (claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP).name());
@@ -443,14 +461,21 @@ public final class AssistantPanel extends JPanel {
     public void renderProfiles(ProfileState s) {
         ProfileState st = s == null ? ProfileState.NONE : s;
         profile = st.profile();
-        profileButton.setText(assistantControlText(profile));
+        profileButton.setWords(assistantControlText(profile), assistantControlBrief(profile));
         profileButton.getAccessibleContext().setAccessibleName(assistantControlName(profile));
         profiles.render(st);
         centerLayout.show(center, st.open() ? "PROFILES" : "TRANSCRIPT");
         profilesOpen = st.open();
         profileStatus = st.status();
+        boolean keyWas = needsKey;
+        needsKey = st.inAppNeedsKey();
         renderLimits();
+        renderGuide();
         renderFocus();
+        if (keyWas != needsKey && !claudeCodeShown()) {        // Send follows the guide line
+            rendered = null;
+            render(lastState, lastDemo);
+        }
     }
 
     /**
@@ -610,8 +635,7 @@ public final class AssistantPanel extends JPanel {
         profileButton.setEnabled(!inDemo);
         setUpAi.setEnabled(!inDemo);            // §5.1: never during the scripted demo
         boolean claude = claudeCodeShown();
-        noProvider.setVisible(!inDemo && !claude && !configured && profile != AssistantProfile.OFF);
-        noProviderLine.setVisible(profileStatus.isBlank());   // its buttons stay; the one status line says it (2026-10-18)
+        renderGuide();
         renderFocus();
         renderLimits();
         if (claude) {                                     // Claude Code draws the shared parts while it is shown
@@ -621,7 +645,7 @@ public final class AssistantPanel extends JPanel {
         }
         surface.newChat.setEnabled(!inDemo);
         // with nothing chosen Send stays pressable: the first question opens the profile cards (assistantProfile)
-        surface.send.setEnabled(!inDemo && (configured || profile == AssistantProfile.NONE) && !state.busy()
+        surface.send.setEnabled(!inDemo && (configured || profile == AssistantProfile.NONE) && !needsKey && !state.busy()
                 && !state.frozen());
         surface.stop.setEnabled(!inDemo && state.busy());
         copyPrompt.setEnabled(!inDemo && !state.busy());
@@ -648,6 +672,8 @@ public final class AssistantPanel extends JPanel {
             words = OFF_LIMITS;
         } else if (demoShowing) {
             words = " ";
+        } else if (needsKey && !profilesOpen && !claudeCodeShown()) {
+            words = IN_APP_NO_KEY;            // robot re-walk #4: the guide row says it; ⓘ says what that means
         } else if (!profileStatus.isBlank() && (profilesOpen || !claudeCodeShown())) {
             words = profileStatus;            // owner, 2026-10-18: the ONE line, in the node's words
         } else if (profilesOpen) {
@@ -658,8 +684,42 @@ public final class AssistantPanel extends JPanel {
             words = Boolean.TRUE.equals(providerConfiguredSupplier.get()) ? IN_APP_LIMITS : IN_APP_NO_KEY;
         }
         limits.setText(words == null ? " " : words);
-        boolean statusLine = profile == AssistantProfile.OFF || !profileStatus.isBlank() && (profilesOpen || !claudeCodeShown());
+        boolean statusLine = profile == AssistantProfile.OFF || !profileStatus.isBlank() && (profilesOpen || !claudeCodeShown())
+                && !(needsKey && !profilesOpen);
         limits.setVisible(words != null && !words.isBlank() && (statusLine || aboutOpen));
+    }
+
+    /**
+     * Robot re-walk #4 (2026-10-18): the in-app assistant's guide — what to press, said once, matching what can be
+     * pressed. With no key it is ONE line: the node's words and Configure provider ("No API key — Configure provider"),
+     * Send disabled, no "Ready" above it and no "Press Send" hint below. Rendered from {@link ProfileState}; nothing is
+     * decided here. Claude Code draws its own guide while it is shown.
+     */
+    private void renderGuide() {
+        if (claudeCodeShown()) return;
+        boolean configured = Boolean.TRUE.equals(providerConfiguredSupplier.get());
+        noProvider.setVisible(!demoShowing && (needsKey || !configured) && profile != AssistantProfile.OFF);
+        if (needsKey) {
+            noProviderLine.setText(profileStatus + NEEDS_KEY_JOIN);
+            noProviderLine.setVisible(true);
+            connectCli.setVisible(false);
+        } else {
+            noProviderLine.setText(NO_PROVIDER_LINE);
+            // its buttons stay; the one status line says it (2026-10-18)
+            noProviderLine.setVisible(profileStatus.isBlank());
+            connectCli.setVisible(true);
+        }
+        // "Ready" only when this assistant could answer: while the node's one line says none can, it is that line alone
+        status.setVisible(demoShowing || profileStatus.isBlank() || lastState.busy());
+        surface.renderHint(AssistantMode.IN_APP, needsKey);
+        noProvider.revalidate();
+    }
+
+    /** The guide line, as the person reads it: the line's words and the action beside it (for the tests). */
+    String guideLine() {
+        if (!noProvider.isVisible()) return "";
+        String words = noProviderLine.isVisible() ? noProviderLine.getText() : "";
+        return needsKey ? words + " " + configure.getText() : words;
     }
 
     /** Robot walkthrough #2: open or close the ⓘ disclosure — this panel's limits line and Claude Code's notes. */
@@ -795,16 +855,8 @@ public final class AssistantPanel extends JPanel {
     }
 
     /** A header chip, in the same look as Claude Code's (§5.9). */
-    static JLabel chip(String text, boolean strong) {
-        JLabel l = UiText.label(text);                 // a model name or a folder is not the analyser's words
-        l.setOpaque(true);
-        l.setBackground(UiTheme.accentWash(strong ? 0.22f : 0.10f));
-        l.setForeground(strong ? UiTheme.accentText() : UIManager.getColor("Label.foreground"));
-        l.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge(), 1, true),
-                BorderFactory.createEmptyBorder(1, 6, 1, 6)));
-        Font f = UIManager.getFont("Label.font");
-        if (f != null) l.setFont(f.deriveFont(strong ? Font.BOLD : Font.PLAIN, f.getSize2D() - 1f));
-        return l;
+    static JComponent chip(String text, boolean strong) {
+        return new Chip(text, strong, UiTheme.surfaceEdge());     // robot re-walk #6: wraps to a narrow row
     }
 
     /** A demonstration's projection, built by the frame from walkPlayback's frozen definition (OA-4). */

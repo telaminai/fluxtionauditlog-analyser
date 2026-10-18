@@ -72,6 +72,22 @@ public class StartPagePrompt implements EventLogSource {
         this.aiSetup = aiSetup;
     }
 
+    /**
+     * Robot re-walk #3: the hold of an evidence question asked with no log open — a JavaBean parent, upstream, so a press
+     * it holds is not routed here until the person acts. Null only in a processor generated before it existed.
+     */
+    private StartPageNoLogHint noLogHint;
+    /** The hint's revision last published. */
+    private long noLogRevision = -1;
+
+    public StartPageNoLogHint getNoLogHint() {
+        return noLogHint;
+    }
+
+    public void setNoLogHint(StartPageNoLogHint noLogHint) {
+        this.noLogHint = noLogHint;
+    }
+
     /** A press waiting for its flow: what to compose once the flow is done. */
     private record Pending(String entryId, StartPageState.Route route, long textRef, boolean popOut) {
     }
@@ -196,6 +212,11 @@ public class StartPagePrompt implements EventLogSource {
         note = "";
         answered = e.request();
         auditLog.info("startPageSent", id).info("route", route.name());
+        if (noLogHint != null && noLogHint.holds(e.request())) {
+            // robot re-walk #3: about evidence with no log open — held until the person acts on the page's one line
+            auditLog.info("startPageRoute", "NO_LOG_HELD");
+            return changed();
+        }
 
         // the demo plays the same in every column: the walk path, no model (r8 F13)
         if (id.equals("S1")) {
@@ -399,10 +420,12 @@ public class StartPagePrompt implements EventLogSource {
 
     /** The published state — immutable, for the snapshot, rebuilt only after a change. */
     public StartPageState state() {
-        if (dirty) {
+        long hintRevision = noLogHint == null ? 0 : noLogHint.revision();
+        if (dirty || hintRevision != noLogRevision) {
             published = new StartPageState(route(mode.localAgent(), claudeCodeAllowed, claudeCodeFound, inAppCanAnswer),
                     claudeCodeAllowed && !claudeCodeFound, fallbackEntry, note, answered, packRef, packRefusal,
-                    packRefusalLine);
+                    packRefusalLine, noLogHint == null ? 0 : noLogHint.held(), noLogHint != null && noLogHint.opening());
+            noLogRevision = hintRevision;
             dirty = false;
         }
         return published;

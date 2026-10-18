@@ -163,7 +163,8 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // M74 UX (owner, 2026-10-17), M77 (spec-ai-setup-wizard.md §8.1, OD-77.13 — one node): the assistant profile and
         // Set up AI — whether Apply may be applied now (never mid-turn), the wizard's steps, the checks, the first-run
         // block and the AI line. Downstream of both assistants (it reads whether a turn is open), of the action listener
-        // and of the open log (JavaBean parents); upstream of the start page's prompt (a first-use question opens the
+        // and of the open log (JavaBean parents) and of startPageNoLogHint (a held no-log question opens nothing);
+        // upstream of the start page's prompt (a first-use question opens the
         // wizard instead of the no-AI fallback, and a carried question waits for its Finish)
         telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup aiSetup =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup(localAgent, assistantLoop, effects);
@@ -175,6 +176,12 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
                 new telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt(assistantMode, localAgent,
                         openLog, effects);
         startPagePrompt.setAiSetup(aiSetup);
+        // robot re-walk #3: an evidence question with no log open is held before the wizard, the cards or a placement see it
+        telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint noLogHint =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint(openLog, effects);
+        cfg.addNode(noLogHint, "startPageNoLogHint");
+        aiSetup.setNoLogHint(noLogHint);
+        startPagePrompt.setNoLogHint(noLogHint);
         cfg.addNode(startPagePrompt, "startPagePrompt");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects), "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)

@@ -884,9 +884,18 @@ public final class MainFrame extends JFrame {
     private JSplitPane eventTypesSplit;
     /** The checklist's default height when nothing has been dragged; it can be given more. */
     private static final int EVENT_TYPES_MAX_HEIGHT = 190;
-    /** Floors: neither side of the Facts column may be squeezed into uselessness. */
-    private static final int EVENT_TYPES_MIN_HEIGHT = 60;
-    private static final int RECORDS_MIN_HEIGHT = 150;
+    /**
+     * The split between the Facts column's records (Search, checklist, table) and the Record detail pane.
+     *
+     * <p>Floors (owner, 2026-10-18), each measured from its own components so it follows theme and font:
+     * the checklist three rows ({@link EventFilterPanel#rowsFloor()}), the records table three rows under
+     * its header ({@link LogTablePanel#getMinimumSize()}), the detail pane its button row and two lines
+     * ({@link DetailPanel#getMinimumSize()}). A fixed 60px had held only the checklist's buttons. When the
+     * column is short the detail pane gives way first; only at a window too small for the other two does the
+     * checklist give way, never the records — they are what is being read, the checklist only filters them
+     * and its toggle hides it. {@link #fitFactsColumn()} applies this.
+     */
+    private JSplitPane factsSplit;
 
     /** The west column, so the Records row's Event types toggle can relayout it. */
     private JPanel westColumn;
@@ -919,13 +928,15 @@ public final class MainFrame extends JFrame {
             eventTypesSplit.setBottomComponent(tablePanel);
             tableArea.add(eventTypesSplit, BorderLayout.CENTER);
             int column = tableArea.getHeight();
+            int floor = eventFilterPanel.getMinimumSize().height;
             int wanted = config.eventTypesDivider > 0
                     ? config.eventTypesDivider
-                    : Math.max(EVENT_TYPES_MIN_HEIGHT,
-                            Math.min(eventFilterPanel.getPreferredSize().height, EVENT_TYPES_MAX_HEIGHT));
+                    : Math.min(eventFilterPanel.getPreferredSize().height, EVENT_TYPES_MAX_HEIGHT);
             // never past the records' floor, however tall the checklist would like to be
-            if (column > 0) wanted = Math.min(wanted, Math.max(0, column - RECORDS_MIN_HEIGHT));
-            eventTypesSplit.setDividerLocation(Math.max(0, wanted));
+            if (column > 0) wanted = Math.min(wanted, Math.max(0, column - tablePanel.getMinimumSize().height));
+            // and never under its own: a divider saved too small (or by the old 60px floor) is moved out
+            eventTypesSplit.setDividerLocation(Math.max(floor, wanted));
+            fitFactsColumnLater();
         } else {
             eventTypesSplit.setTopComponent(null);
             eventTypesSplit.setBottomComponent(null);
@@ -933,6 +944,46 @@ public final class MainFrame extends JFrame {
         }
         tableArea.revalidate();
         tableArea.repaint();
+    }
+
+    private boolean factsFitQueued;
+
+    /** Coalesce: resizes and floor changes arrive in bursts, and a fit must run after the layout settles. */
+    private void fitFactsColumnLater() {
+        if (factsFitQueued) return;
+        factsFitQueued = true;
+        SwingUtilities.invokeLater(() -> { factsFitQueued = false; fitFactsColumn(); });
+    }
+
+    /**
+     * Hold the Facts column's floors (see {@link #factsSplit}) when something other than a divider drag
+     * sized it: a window resize, the checklist shown, a log's rows arriving, a divider saved too small. A
+     * drag needs nothing here -- each split stops at its components' minimum sizes.
+     */
+    private void fitFactsColumn() {
+        if (factsSplit == null || eventTypesSplit == null) return;
+        // 1. the records area gets its floor, taken from the detail pane down to the detail pane's own floor
+        // (a divider location counts from the split's top edge, its border inset included)
+        java.awt.Insets fi = factsSplit.getInsets();
+        int column = factsSplit.getHeight() - fi.top - fi.bottom - factsSplit.getDividerSize();
+        if (column > 0) {
+            int recordsArea = fi.top + tableArea.getMinimumSize().height;
+            int most = fi.top + column - detailPanel.getMinimumSize().height;
+            int at = factsSplit.getDividerLocation();
+            if (at < recordsArea && at < most) factsSplit.setDividerLocation(Math.max(0, Math.min(recordsArea, most)));
+        }
+        if (!eventFilterPanel.isVisible()) return;
+        // 2. inside it, the records table keeps its floor; the checklist yields only what is not there
+        java.awt.Insets ei = eventTypesSplit.getInsets();
+        int split = eventTypesSplit.getHeight() - ei.top - ei.bottom - eventTypesSplit.getDividerSize();
+        if (split <= 0) return;
+        int records = tablePanel.getMinimumSize().height;
+        int floor = eventFilterPanel.rowsFloor();
+        eventFilterPanel.yieldTo(split - records >= floor ? Integer.MAX_VALUE : split - records);
+        int low = ei.top + eventFilterPanel.getMinimumSize().height;
+        int high = Math.max(low, ei.top + split - records);
+        int at = eventTypesSplit.getDividerLocation();
+        if (at < low || at > high) eventTypesSplit.setDividerLocation(at < low ? low : high);
     }
 
     private void layoutWest(JPanel west) {
@@ -3683,6 +3734,7 @@ public final class MainFrame extends JFrame {
                     try {
                         // All source/line refusals have happened BEFORE goto can relax a record filter.
                         revealRows.run();
+                        javaSpotlightTabBefore = capturedTab;
                         SourcePanel viewer = topology ? topologyPanel.ensureSourcePaneVisible() : sourcePanel;
                         if (viewer == null) throw new IllegalArgumentException("Java source viewer is unavailable");
                         selectSideTab(topology ? "topology" : "source");
@@ -4283,6 +4335,8 @@ public final class MainFrame extends JFrame {
             }
         };
         if (!applyingJavaSpotlight) javaSpotlightTicket++;
+        java.awt.Component tabBefore = applyingJavaSpotlight ? javaSpotlightTabBefore
+                : sideTabs == null ? null : sideTabs.getSelectedComponent();
         if (Boolean.TRUE.equals(params.get("clear"))) {
             boolean was;
             Object only = params.get("target");
@@ -4311,6 +4365,7 @@ public final class MainFrame extends JFrame {
             // refused: nothing new is lit. What WAS lit stays — unless the attempt's reveal hid it, in which
             // case it goes out and the refusal says so rather than leaving it pointing at a hidden tab.
             java.util.List<String> hidden = relightSpotlight();
+            reportCanvasLeftAssistant(tabBefore);           // robot re-walk #1: the reveal may have moved the canvas
             // M64.11: a menu opened for a target that was then refused must not be left hanging open
             if (names.stream().anyMatch(n -> n.regionMatches(true, 0, "menu:", 0, 5))
                     && spotlight.lit().stream().noneMatch(l -> l.target().regionMatches(true, 0, "menu:", 0, 5))) {
@@ -4333,6 +4388,7 @@ public final class MainFrame extends JFrame {
         }
         // keep-clear is measured in relightSpotlight alone: litEcho below relights synchronously, before any paint
         SwingUtilities.invokeLater(this::relightSpotlight);     // once the layout the reveal queued has run
+        reportCanvasLeftAssistant(tabBefore);               // robot re-walk #1: the answer is now behind another tab
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         echo.put("lit", litEcho(true));
         if (!wentOut.isEmpty()) echo.put("wentOut", wentOut);
@@ -4503,10 +4559,9 @@ public final class MainFrame extends JFrame {
 
 
     private void buildLayout() {
-        // small minimums so the JSplitPane can move the divider freely (content min sizes were
-        // otherwise pinning the panels and blocking the drag)
-        tablePanel.setMinimumSize(new Dimension(100, 60));
-        detailPanel.setMinimumSize(new Dimension(100, 60));
+        // The records table and the detail pane compute their own minimums from their rows and lines
+        // (owner, 2026-10-18): small, so the splits still move freely -- the content's own minimum would
+        // pin them -- but never below a readable floor. See factsSplit.
 
         // Search sits directly above the Records table it filters
         searchField.setToolTipText("Filter by eventToString / thread / nodeLogs (case-insensitive); combines with the other filters. Enter to remember.");
@@ -4543,7 +4598,22 @@ public final class MainFrame extends JFrame {
         // then the table. The checklist FILTERS these records, so it belongs in the Facts column with
         // them -- it sat in Context, a column away from the thing it acts on, which the column names
         // made plain the moment they went up (owner, 2026-09-30).
-        tableArea = new JPanel(new BorderLayout());
+        tableArea = new JPanel(new BorderLayout()) {
+            /**
+             * The Search row, the checklist's full floor and its divider when it shows, and the records
+             * table's floor: the records/detail split honours this on a drag, so neither list is squeezed.
+             */
+            @Override public Dimension getMinimumSize() {
+                java.awt.Insets in = getInsets();
+                java.awt.Component north = ((BorderLayout) getLayout()).getLayoutComponent(BorderLayout.NORTH);
+                int h = in.top + in.bottom + (north == null ? 0 : north.getPreferredSize().height)
+                        + tablePanel.getMinimumSize().height;
+                if (eventFilterPanel.isVisible() && eventTypesSplit != null) {
+                    h += eventFilterPanel.rowsFloor() + eventTypesSplit.getDividerSize();
+                }
+                return new Dimension(100, h);
+            }
+        };
         tableArea.setBorder(UiTheme.section("Records"));
         tableArea.add(searchRow, BorderLayout.NORTH);
         eventFilterPanel.setVisible(!config.eventFilterCollapsed);
@@ -4557,16 +4627,23 @@ public final class MainFrame extends JFrame {
         eventTypesSplit.setBorder(BorderFactory.createEmptyBorder());
         eventTypesSplit.setContinuousLayout(true);
         eventTypesSplit.setResizeWeight(0);        // growing the window grows the TABLE
-        eventTypesSplit.setOneTouchExpandable(true);
-        eventFilterPanel.setMinimumSize(new Dimension(0, EVENT_TYPES_MIN_HEIGHT));
-        tablePanel.setMinimumSize(new Dimension(100, RECORDS_MIN_HEIGHT));
+        // No one-touch arrows: collapsing to nothing is what the Event types toggle is for, and the arrow
+        // ignored the checklist's three-row floor (owner, 2026-10-18).
+        // The checklist's minimum size is its own, computed from its rows -- see EventFilterPanel.
         eventTypesSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, e -> {
             if (eventFilterPanel.isVisible() && eventTypesSplit.getDividerLocation() > 0) {
                 config.eventTypesDivider = eventTypesSplit.getDividerLocation();
             }
         });
+        // A divider the person did not just drag can still sit under the checklist's floor: the floor
+        // grows when a log's rows arrive, and the column can shrink. Re-fit whenever either happens.
+        java.awt.event.ComponentAdapter refit = new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) { fitFactsColumnLater(); }
+        };
+        eventFilterPanel.addComponentListener(refit);
+        eventTypesSplit.addComponentListener(refit);
+        eventFilterPanel.addPropertyChangeListener(EventFilterPanel.FLOOR_PROPERTY, e -> fitFactsColumnLater());
         layoutEventTypes();
-        tableArea.setMinimumSize(new Dimension(100, 80));
 
         // The investigation keeps records, detail and output tabs together. The start page is a
         // separate workspace card, so its choices can use the full content width when no log is open.
@@ -4574,10 +4651,12 @@ public final class MainFrame extends JFrame {
         factsColumn.add(columnHeading("Facts",
                 "What the run did: the audit log, as recorded. Nothing here is editable."), BorderLayout.NORTH);
         JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableArea, detailPanel);
+        factsSplit = mainSplit;
+        mainSplit.addComponentListener(refit);
         mainSplit.setResizeWeight(0.45);
         mainSplit.setDividerLocation(330);
         mainSplit.setContinuousLayout(true);   // live relayout while dragging
-        mainSplit.setOneTouchExpandable(true);
+        // No one-touch arrows: they jumped past the records' and checklist's floors (owner, 2026-10-18).
 
         sideTabs = UiText.plain(new JTabbedPane());   // right pane = outputs only (Event types moved to the left rail)
         sideTabs.addTab("Summary", summaryPanel);
@@ -4647,6 +4726,10 @@ public final class MainFrame extends JFrame {
             // M74 P2 (§5.8): the prompt's button and the no-AI fallbacks, through the page's one Actions interface
             @Override public void pressStartPrompt(String entryId, String text) {
                 MainFrame.this.pressStartPrompt(entryId, text);
+            }
+            @Override public void answerStartNoLog(long request, StartPromptView.NoLogAction c) {
+                MainFrame.this.answerStartNoLog(request,
+                        telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.NoLogChoice.valueOf(c.name()));
             }
             @Override public void openUserGuide(String page) {
                 if (page == null || page.isBlank()) showHelp(); else openDocsPage(page);
@@ -4772,13 +4855,22 @@ public final class MainFrame extends JFrame {
         }, text -> status.setText(text));
         factsColumn.add(mainSplit, BorderLayout.CENTER);
         JPanel canvasColumn = new JPanel(new BorderLayout());
-        canvasColumn.add(columnHeading("Canvas",
+        JPanel canvasNorth = new JPanel(new BorderLayout());
+        canvasNorth.add(columnHeading("Canvas",
                 "What you make of it: charts, source, topology, reports — your working views."), BorderLayout.NORTH);
+        buildAnswerAway();
+        canvasNorth.add(answerAway, BorderLayout.SOUTH);           // robot re-walk #1: the way back to the answer
+        canvasColumn.add(canvasNorth, BorderLayout.NORTH);
         canvasColumn.add(sideTabs, BorderLayout.CENTER);
         JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, factsColumn, canvasColumn);
         center.setDividerSize(9);          // constant, rather than whatever the tab's content implies
         sideTabs.addChangeListener(e -> {
             reportWalkViewChanged();
+            // robot re-walk #1: the docked assistant's tab is shown again — the way back is no longer needed
+            if (session != null && sideTabs.getSelectedComponent() == assistantDock) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown(
+                        "canvas tab"));
+            }
             sourceViewportChanged();
             // read now, restore after the tab change has re-laid out
             int location = center.getDividerLocation();
@@ -5475,6 +5567,10 @@ public final class MainFrame extends JFrame {
 
     /** OA-2: the frame's overlay lets presses inside the DOCKED assistant through — so scrolling or copying there keeps a walk. */
     private java.awt.Rectangle assistantPassThrough() {
+        // robot re-walk #1: the way back to the answer is pressed through a standing spotlight, never eaten by it
+        if (answerAway.isShowing()) {
+            return SwingUtilities.convertRectangle(answerAway.getParent(), answerAway.getBounds(), spotlight);
+        }
         if (!assistantDock.isShowing() || !assistantDock.isAncestorOf(assistantPanel)) return null;
         return SwingUtilities.convertRectangle(assistantDock.getParent(), assistantDock.getBounds(), spotlight);
     }
@@ -5514,7 +5610,72 @@ public final class MainFrame extends JFrame {
         renderFullPostureMarkers(agent);
         renderStartPrompt(next);
         renderAiSetup(next);
+        renderAnswerAway(state);
     }
+
+    // ---- robot re-walk #1 (2026-10-18): a spotlight never hides the answer the person was reading -------------------
+
+    /** The canvas's way back to the docked assistant, shown while a spotlight has the canvas on another tab. */
+    private final JPanel answerAway = new JPanel(new WrapLayout(FlowLayout.LEFT, 6, 2));
+    private final FitLine answerAwayLine = new FitLine(" ");
+    private final FitButton answerAwayBack = UiText.plain(new FitButton());
+    static final String BACK_TO_ANSWER = "↩ Back to the answer";
+
+    static String answerAwayWords(String tab) {
+        return "Spotlight on " + tab + " — the answer is in Analyser assistant";
+    }
+
+    private void buildAnswerAway() {
+        answerAway.setVisible(false);
+        answerAway.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, UiTheme.controlBorder()),
+                BorderFactory.createEmptyBorder(4, 6, 4, 6)));
+        answerAway.getAccessibleContext().setAccessibleName("Where the answer is");
+        answerAwayLine.setForeground(UiTheme.noteForeground());
+        answerAwayBack.setWords(BACK_TO_ANSWER, "↩ Answer");
+        answerAwayBack.getAccessibleContext().setAccessibleName("Back to the answer, in the Analyser assistant tab");
+        answerAwayBack.addActionListener(e -> {
+            // presentation: show the tab; the change listener reports it, and assistantLoop takes the way back down
+            if (sideTabs != null) sideTabs.setSelectedComponent(assistantDock);
+        });
+        answerAway.add(answerAwayLine);
+        answerAway.add(answerAwayBack);
+    }
+
+    /** Rendered from {@code AssistantState.away()}, which assistantLoop decides; nothing is decided here. */
+    private void renderAnswerAway(telamin.fluxtion.audit.analyser.analyser.session.AssistantState state) {
+        boolean show = state.answerBehindTab();
+        if (show) answerAwayLine.setText(answerAwayWords(state.away()));
+        if (show != answerAway.isVisible()) {
+            answerAway.setVisible(show);
+            answerAway.revalidate();
+            answerAway.repaint();
+        }
+    }
+
+    /** For the tests: the way back, and its button. */
+    JPanel answerAwayBar() {
+        return answerAway;
+    }
+
+    JButton answerAwayButton() {
+        return answerAwayBack;
+    }
+
+    /**
+     * A spotlight's reveal took the canvas from the docked assistant's tab (it was showing, and now another is): report
+     * it as the observation it is. {@code before} is the tab the canvas showed before the reveal.
+     */
+    private void reportCanvasLeftAssistant(java.awt.Component before) {
+        if (session == null || sideTabs == null || before != assistantDock || !assistantDock.isAncestorOf(assistantPanel)) return;
+        int at = sideTabs.getSelectedIndex();
+        if (at < 0 || sideTabs.getComponentAt(at) == assistantDock) return;
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CanvasLeftAssistant(
+                sideTabs.getTitleAt(at)));
+    }
+
+    /** The tab the canvas showed before the Java source spotlight's own reveal (its apply runs later, off the capture). */
+    private java.awt.Component javaSpotlightTabBefore;
 
     /**
      * OA-4 (§6): while a walk with dialogue shows, the assistant host shows its conversation — a PROJECTION of walkPlayback's
@@ -8640,6 +8801,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeAssistantDraftEffect e -> primeAssistantDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlayDemoJourneyEffect e -> playDemoJourney(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunStartPageFlowEffect e -> runStartPageFlow(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ContinueStartPagePromptEffect e -> continueStartPrompt(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStartPageFallbackEffect e -> showStartPageFallback(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ComposeStartPageDraftEffect e -> composeStartPageDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.TrustLocalAgentFolderEffect e -> trustLocalAgentFolder(e);
@@ -12008,9 +12170,33 @@ public final class MainFrame extends JFrame {
 
     /** The start page's button: the person's act, reported with what this machine says can answer. */
     private void pressStartPrompt(String entryId, String text) {
+        // robot re-walk #3: the words are checked here, where they are; only the verdict travels
+        boolean aboutEvidence = "NONE".equals(entryId)
+                && telamin.fluxtion.audit.analyser.analyser.assistant.EvidenceQuestion.reads(text);
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent(
                 ++startPageRequest, entryId, startPageWord(text), localAgentConsent(), claudeFound(),
-                inAppCanAnswer(), config.assistantActionsInProcess, workspaceOpen()));
+                inAppCanAnswer(), config.assistantActionsInProcess, workspaceOpen(), aboutEvidence, false));
+    }
+
+    /** Robot re-walk #3: the person's act on the start page's "No log is open" line, reported. */
+    private void answerStartNoLog(long request,
+                                  telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.NoLogChoice choice) {
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageNoLogAnswered(request,
+                choice));
+    }
+
+    /**
+     * ContinueStartPagePromptEffect (robot re-walk #3): the held question is pressed again as it was asked — its entry and
+     * the same words, by reference — acknowledged, with what can answer read now. Outside the dispatch.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result continueStartPrompt(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ContinueStartPagePromptEffect e) {
+        SwingUtilities.invokeLater(() -> session().post(
+                new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent(++startPageRequest,
+                        e.entryId(), e.textRef(), localAgentConsent(), claudeFound(), inAppCanAnswer(),
+                        config.assistantActionsInProcess, workspaceOpen(), true, true)));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(),
+                e.request(), "continue");
     }
 
     /**
@@ -12473,6 +12659,11 @@ public final class MainFrame extends JFrame {
             case "S8" -> SwingUtilities.invokeLater(() -> startPageTeachFlow(request));
             case telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt.TEACH_TOUR_FLOW ->
                     SwingUtilities.invokeLater(() -> openSampleProject(true));
+            // robot re-walk #3: the "No log is open" line's opens — the question continues once a log has opened
+            case telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint.SAMPLE_FLOW ->
+                    SwingUtilities.invokeLater(() -> openSampleProject(false));
+            case telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint.LOG_FLOW ->
+                    SwingUtilities.invokeLater(this::chooseFile);
             default -> { }
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(), request,

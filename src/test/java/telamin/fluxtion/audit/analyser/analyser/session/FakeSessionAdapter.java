@@ -73,6 +73,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.PrimeAssistantDraftEffect> assistantPrimes = new ArrayList<>();
     final List<SessionEffects.PlayDemoJourneyEffect> demos = new ArrayList<>();
     final List<SessionEffects.RunStartPageFlowEffect> startFlows = new ArrayList<>();
+    /** Robot re-walk #3: a held start-page question continued (Ask anyway, or a log opened for it). */
+    final List<SessionEffects.ContinueStartPagePromptEffect> startContinues = new ArrayList<>();
     final List<SessionEffects.ShowStartPageFallbackEffect> startFallbacks = new ArrayList<>();
     final List<SessionEffects.ComposeStartPageDraftEffect> startComposes = new ArrayList<>();
     /** M74 P2b: what onboardingProposal, the switch hold and exampleDownload asked for, in order. */
@@ -315,6 +317,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.RunStartPageFlowEffect e -> {
                 startFlows.add(e);
                 yield new SessionEvents.StartPageEffectStarted(e.opId(), e.request(), "flow:" + e.entryId());
+            }
+            case SessionEffects.ContinueStartPagePromptEffect e -> {
+                startContinues.add(e);
+                yield new SessionEvents.StartPageEffectStarted(e.opId(), e.request(), "continue");
             }
             case SessionEffects.ShowStartPageFallbackEffect e -> {
                 startFallbacks.add(e);

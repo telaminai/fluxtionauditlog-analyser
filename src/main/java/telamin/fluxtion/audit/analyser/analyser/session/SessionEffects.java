@@ -480,6 +480,14 @@ public sealed interface SessionEffects {
     record RunStartPageFlowEffect(long opId, long request, String entryId) implements SessionEffects {
     }
 
+    /**
+     * Robot re-walk #3: the start-page question held for want of a log continues — the person chose Ask anyway, or a log
+     * has opened for it. The performer presses it again as asked ({@code entryId}, the box's words by {@code textRef}),
+     * acknowledged, reading what can answer now. Answered at once by {@link SessionEvents.StartPageEffectStarted}.
+     */
+    record ContinueStartPagePromptEffect(long opId, long request, String entryId, long textRef) implements SessionEffects {
+    }
+
     /** Nothing can answer: show entry {@code entryId}'s no-AI fallback buttons (§5.8's last column), saying why. */
     record ShowStartPageFallbackEffect(long opId, long request, String entryId, String why) implements SessionEffects {
     }
