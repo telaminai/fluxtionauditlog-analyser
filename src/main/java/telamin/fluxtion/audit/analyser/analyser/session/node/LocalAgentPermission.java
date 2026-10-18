@@ -585,7 +585,8 @@ public class LocalAgentPermission implements EventLogSource {
                     : DENIED_FILE_EXCHANGE.equals(message) ? what + FILE_EXCHANGE_NOTE
                     : what + " was denied without asking you — " + lower(message);
             case NON_MUTATING -> what + " was allowed: it changes nothing";
-            case PRE_ALLOWED -> "open".equals(name) ? what + " was allowed: it opens this project's own files"
+            case PRE_ALLOWED -> "open".equals(name) ? what + " was allowed: it only opens a log or GraphML inside this "
+                    + "project's folder or the analyser's own sample"
                     : what + " was allowed: it creates or shows a chart";
         };
         // a request of an earlier generation belongs to a conversation entry nobody is reading: no note for it

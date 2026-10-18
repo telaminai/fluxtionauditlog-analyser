@@ -182,7 +182,11 @@ public final class McpTools {
      * {@code open} is asked (fail-closed). The external REST and MCP clients never have one: this is only ever judged
      * for a hosted call.
      */
-    public record OpenScope(java.nio.file.Path projectRoot, boolean full) {
+    public record OpenScope(java.nio.file.Path projectRoot, boolean full, java.nio.file.Path sampleRoot) {
+        /** The session's project folder only — no analyser-owned project is active. */
+        public OpenScope(java.nio.file.Path projectRoot, boolean full) {
+            this(projectRoot, full, null);
+        }
     }
 
     /** The {@code open} keys a pre-allowed call may carry: a log and its GraphML, nothing else. */
@@ -195,6 +199,11 @@ public final class McpTools {
      * opens the project's own evidence. Everything else stays {@code CHANGES} and is asked: a project switch or close,
      * follow, a bundle, a create, any other key, a relative or {@code ~} path, a path outside the folder or one that
      * leads out through a link, and every {@code open} under Safe analysis.
+     *
+     * <p>Owner hands-on test, 2026-10-18: the analyser's OWN sample project works in a scratch folder (OD-74.22), so its
+     * log and GraphML were never "inside the project folder" and every open of them was asked. While the sample is the
+     * ACTIVE project, {@link OpenScope#sampleRoot()} is its real root, and a file inside it qualifies by the same
+     * real-path checks — still Full only, still log and GraphML only.
      */
     public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind hostedCallKind(String verb,
                                                                                                              Object params,
@@ -239,19 +248,23 @@ public final class McpTools {
         if (scope == null || !scope.full() || scope.projectRoot() == null) return false;
         if (p.isEmpty() || !IN_PROJECT_OPEN_KEYS.containsAll(keys(p))) return false;
         if (VerbOperations.open(p) != VerbOperations.OpenOp.FILES) return false;
-        java.nio.file.Path root;
-        try {
-            root = scope.projectRoot().toRealPath();
-        } catch (java.io.IOException | RuntimeException e) {
-            return false;
+        java.util.List<java.nio.file.Path> roots = new java.util.ArrayList<>();
+        for (java.nio.file.Path r : new java.nio.file.Path[]{scope.projectRoot(), scope.sampleRoot()}) {
+            if (r == null) continue;
+            try {
+                roots.add(r.toRealPath());
+            } catch (java.io.IOException | RuntimeException e) {
+                // a root that does not resolve allows nothing
+            }
         }
+        if (roots.isEmpty()) return false;
         for (Object value : p.values()) {
             if (!(value instanceof String s) || s.isBlank() || s.startsWith("~")) return false;
             try {
                 java.nio.file.Path given = java.nio.file.Path.of(s);
                 if (!given.isAbsolute()) return false;
                 java.nio.file.Path real = given.toRealPath();
-                if (!real.startsWith(root) || !java.nio.file.Files.isRegularFile(real)) return false;
+                if (roots.stream().noneMatch(real::startsWith) || !java.nio.file.Files.isRegularFile(real)) return false;
             } catch (java.io.IOException | RuntimeException e) {
                 return false;                     // missing, unreadable or not a path: asked
             }

@@ -92,6 +92,15 @@ public final class LocalAgentAdapter {
         default telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts() {
             return null;
         }
+
+        /**
+         * Owner hands-on test (2026-10-18): the root of the ACTIVE project when it is the analyser's own sample (OD-74.22),
+         * read when a call is judged; null otherwise. A Full session's {@code open} of a log or GraphML inside it needs
+         * no approval ({@code McpTools.openInProject}). The default knows none, so every such open is asked.
+         */
+        default Path sampleProjectRoot() {
+            return null;
+        }
     }
 
     /** Time and delays: real in the application, virtual in the tests. */
@@ -156,10 +165,13 @@ public final class LocalAgentAdapter {
         return run == null ? null : scopeOf(run);
     }
 
-    private static telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope scopeOf(Run run) {
+    private telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope scopeOf(Run run) {
         String folder = run.folder;
-        return folder == null ? null
-                : new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(Path.of(folder), run.full);
+        if (folder == null) return null;
+        // owner hands-on test (2026-10-18): the active sample project's root, read when the call is judged — the
+        // session works in a scratch folder for it, so its own files were never inside the folder
+        Path sample = run.full ? env.sampleProjectRoot() : null;
+        return new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(Path.of(folder), run.full, sample);
     }
 
     /** How a draft reads as a command, against the CLI's last {@code initialize.commands}. */
@@ -684,7 +696,8 @@ public final class LocalAgentAdapter {
     }
 
     /** Owner 2026-10-18: the mark of an {@code open} of the project's own files, allowed without asking. */
-    static final String OPEN_IN_PROJECT_MARK = "allowed: it opens this project's own files";
+    static final String OPEN_IN_PROJECT_MARK = "allowed: it only opens a log or GraphML inside this project's folder or "
+            + "the analyser's own sample";
 
     /** §8.3 UI: the tool line's mark, by who decided. */
     static String markWords(boolean allow, SessionEvents.PermissionBy by) {

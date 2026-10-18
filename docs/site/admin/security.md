@@ -136,7 +136,9 @@ what is open or write files are visible to it, but **before Claude Code runs any
 - Under **Full Claude Code only**, an `open` of nothing but a log or GraphML file whose real path (links resolved) is
   **inside the session's project folder** is allowed without a dialog. A project switch or close, Follow, any other
   field and any path outside the folder are still asked, and Safe analysis asks for every `open`. The check is made on
-  the real path when the call arrives; a link changed between that check and the open is the residual.
+  the real path when the call arrives; a link changed between that check and the open is the residual. While the
+  analyser's own **sample project** is the active project, its folder counts too (its session works in a scratch
+  folder, so the sample's log and GraphML would otherwise always be asked); an evidence bundle's working copy does not.
 - **A request is approved only with its own input on screen.** A waiting request keeps its input until it is answered
   or withdrawn; if it is ever missing, the dialog says so and keeps *Allow once* disabled, and an allow that still
   arrives is sent to Claude Code as a deny.

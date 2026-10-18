@@ -5198,6 +5198,7 @@ public final class MainFrame extends JFrame {
             @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts() {
                 return MainFrame.this::chartExistsNow;
             }
+            @Override public Path sampleProjectRoot() { return sampleProjectRootNow(); }
         };
         localAgentAdapter = new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter(
                 new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider(),
@@ -5298,6 +5299,25 @@ public final class MainFrame extends JFrame {
         return telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.workingDirectory(
                 projectRoot(), Path.of(System.getProperty("user.home")),
                 telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy, this::localAgentScratchDirectory);
+    }
+
+    /**
+     * Owner hands-on test (2026-10-18): the active project's root when it is the analyser's own sample, read on the EDT
+     * (the project is EDT state); from another thread it waits at most 2 s and, unanswered, is null — asked, fail-closed.
+     */
+    Path sampleProjectRootNow() {
+        java.util.concurrent.Callable<Path> read = () ->
+                telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.sampleRoot(projectRoot(),
+                        Path.of(System.getProperty("user.home")));
+        try {
+            if (SwingUtilities.isEventDispatchThread()) return read.call();
+            var task = new java.util.concurrent.FutureTask<>(read);
+            SwingUtilities.invokeLater(task);
+            return task.get(2, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception unknown) {
+            if (unknown instanceof InterruptedException) Thread.currentThread().interrupt();
+            return null;
+        }
     }
 
     /** OD-74.22: the active project's root is one the analyser owns (the sample, a bundle's working copy). */

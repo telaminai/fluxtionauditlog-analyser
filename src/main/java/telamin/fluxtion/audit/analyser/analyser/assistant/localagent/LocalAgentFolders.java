@@ -48,6 +48,17 @@ public final class LocalAgentFolders {
     }
 
     /**
+     * Owner hands-on test (2026-10-18): the sample project's real root ({@code ~/.fluxtion-analyser/demo}) when
+     * {@code projectRoot} is inside it, else null. Only the sample: an evidence bundle's working copy is someone else's
+     * evidence, and is not widened.
+     */
+    public static Path sampleRoot(Path projectRoot, Path home) {
+        if (projectRoot == null || home == null) return null;
+        Path demo = real(home.resolve(".fluxtion-analyser").resolve("demo"));
+        return real(projectRoot).startsWith(demo) ? demo : null;
+    }
+
+    /**
      * §4.3's working directory: the project root; for an analyser-owned root (OD-74.22) or no project, the private scratch
      * folder (which the session then works in, reading the evidence through the verbs; the working copy's
      * {@code CLAUDE.md} is never loaded).

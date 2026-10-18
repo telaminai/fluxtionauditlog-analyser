@@ -303,6 +303,35 @@ class HostedGrantServerTest {
         assertEquals(List.of("open"), rendered, "none of the asked calls ran");
     }
 
+    /**
+     * ★ Owner hands-on test (2026-10-18): the server admits Full's open of the ACTIVE sample project's own log with no
+     * grant when the generation's scope carries the sample root (the session works in a scratch folder); an outside file
+     * and Safe still need one. Witness: build the scope without the sample root — 403.
+     */
+    @Test
+    @DisplayName("★ server: Full's open of the active sample's own log is admitted without a grant; outside or Safe: 403")
+    void theSamplesOwnLogIsAdmittedWithoutAGrantInFull(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp)
+            throws Exception {
+        java.nio.file.Path scratch = java.nio.file.Files.createDirectories(tmp.resolve("analyser-claude-1"));
+        java.nio.file.Path demo = java.nio.file.Files.createDirectories(tmp.resolve("home/.fluxtion-analyser/demo"));
+        java.nio.file.Path log = java.nio.file.Files.writeString(demo.resolve("demo-quote-audit.yaml"), "eventLogRecord:\n");
+        java.nio.file.Path outside = java.nio.file.Files.writeString(tmp.resolve("elsewhere.yaml"), "eventLogRecord:\n");
+        boolean[] full = {true};
+        server.setHostedScopes(g -> g == start.generation()
+                ? new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(scratch, full[0], demo) : null);
+        HttpResponse<String> in = hostedCall(Json.write(Map.of("action", "open", "params", Map.of("log", log.toString()))),
+                TOOL_USE);
+        assertEquals(200, in.statusCode(), in.body());
+        assertEquals(List.of("open"), rendered, "admitted with no approval");
+        HttpResponse<String> out = hostedCall(Json.write(Map.of("action", "open", "params",
+                Map.of("log", outside.toString()))), TOOL_USE);
+        assertEquals(403, out.statusCode(), "outside the sample: needs the person's approval");
+        full[0] = false;
+        HttpResponse<String> safe = hostedCall(Json.write(Map.of("action", "open", "params", Map.of("log", log.toString()))),
+                TOOL_USE);
+        assertEquals(403, safe.statusCode(), "Safe analysis is unchanged");
+    }
+
     static final String PLAY = Json.write(Map.of("action", "walk", "params", Map.of("name", "DEMO first breach",
             "play", true)));
 
