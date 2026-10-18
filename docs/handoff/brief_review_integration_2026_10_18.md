@@ -3,7 +3,7 @@
 _Draft. The owner fills in the integration branch and tip before sending._
 
 Review the integration branch **`<integration branch>` at `<tip>`** together with the PRs it gathers. It is M74's P3
-plus four fix branches, M77-1/-2/-3/-5, M78 D1, the usability scorecard and the spec branches. Use a separate
+plus four fix branches, M77-1 to M77-5, M78 D1 (and D2 if merged), the usability scorecard and the spec branches. Use a separate
 worktree and your own review branch; the owner's checkout and other sessions stay untouched. This brief does not
 permit you to merge, release, rebase or force-push.
 
@@ -14,7 +14,7 @@ Read, in order:
 2. `docs/handoff/REVIEWER-ORIENTATION.md`, all of it. §6 is this review: the stack's shape, the seams, rule 9, the
    customer API, the safety surfaces, hygiene and the fix policy.
 3. `docs/handoff/review_map_integration_2026_10_18.md`. It lists every branch and PR with its tip, base, spec, claims
-   and evidence, the **eleven flags**, the known gaps and the integration's full-gate results.
+   and evidence, the **fourteen flags**, the known gaps and the integration's full-gate results.
 4. The specs, for the parts you judge: `spec-claude-code-provider.md` (M74), `spec-ai-setup-wizard.md` (M77 r5),
    `spec-quiet-assistant-panel.md` (M78), `spec-first-minute.md` (M79, for what M77 must leave room for), and
    `docs/usability/scorecard.md`.
@@ -32,7 +32,7 @@ Read, in order:
   additions.
 - **The customer API.** `WorkModeKeepsTheApiTest`'s digests are unchanged. `context`'s `hidden` and the two bridge
   headers are additive and nothing else moved. A renamed, removed or re-typed field is a blocker.
-- **Safety.** Flags 1–5 and 11: executable bits, the in-project `open` pre-allow and its time-of-check residual,
+- **Safety.** Flags 1–5, 11 and 14: executable bits, the in-project `open` pre-allow and its time-of-check residual,
   `STAY_IN_PROJECT_NOTE` as a request rather than a sandbox, Full acceptEdits preselected, the external-access
   confirmation at every door, and an auth parse that keeps email and organisation out. Check that each claim made in
   the FAQ or trust dialog is true of the code.

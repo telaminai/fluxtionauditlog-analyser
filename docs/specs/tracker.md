@@ -39,8 +39,8 @@ thorough review and shipping later, **on the owner's schedule**. Gates: quick ch
 the integration branch. The stack, every branch and its evidence: [review map](../handoff/review_map_integration_2026_10_18.md).
 
 1. **Integration** — one branch from P3 (`a875fcba`, [#151](https://github.com/telaminai/fluxtionauditlog-analyser/pull/151) / [#156](https://github.com/telaminai/fluxtionauditlog-analyser/pull/156)) with the four fix branches, M77-1/-2/-3/-5
-   (#157, #159, #162, #161), M78 D1 (#163), the scorecard (#160), the spec branches (`docs/m77-ai-setup-wizard`, #158,
-   #164, #154), M77-4 and M78 D2 when built; the docs restructure (#152, `b1c22704`) reconciled; the full gates once.
+   (#157, #159, #162, #161), M77-4 (#165), M78 D1 (#163), the scorecard (#160), the spec branches (`docs/m77-ai-setup-wizard`,
+   #158, #164, #154), M78 D2 when built; the docs restructure (#152, `b1c22704`) reconciled; the full gates once.
 2. **Owner test and review** — the owner's hands-on test of the integration build, then the integration review
    ([brief](../handoff/brief_review_integration_2026_10_18.md)); reviewers fix unless a redesign is needed.
 3. **M79** the first minute — M79-1 … M79-5 below.
@@ -157,13 +157,13 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M77-1] ◐ **built — [PR #157](https://github.com/telaminai/fluxtionauditlog-analyser/pull/157), awaiting review**: the `aiSetup` node and the two read-only Claude checks; the auth parse drops email and organisation.
 - [M77-2] ◐ **built — [PR #159](https://github.com/telaminai/fluxtionauditlog-analyser/pull/159) (on #157), awaiting review**: the wizard's inside path; T19 in 6 acts; the empty `selectedOptionExtra` slot for M77-5.
 - [M77-3] ◐ **built — [PR #162](https://github.com/telaminai/fluxtionauditlog-analyser/pull/162) (on #159), awaiting review**: Screen 2b; one owner of external access, a confirmation at every door; registration; the live check; the additive `X-Analyser-Client` / `X-Analyser-Probe` headers.
-- [M77-4] ◧ **in progress** — branch `feature/m77-4-coexistence` (on #162 with #161 merged; not yet pushed): the quick switch, the profile cards retired, upgraders, Connect folded, in-app behind *Other options*, the 2b diagram, the capture symlink guard.
+- [M77-4] ◐ **built — [PR #165](https://github.com/telaminai/fluxtionauditlog-analyser/pull/165) (on #162, merges #161), awaiting review**: the Assistant ▾ quick switch, the profile cards retired (`ProfileOverlay` deleted), one client door, the first-run block offered once, the diagram on Screen 2b, T20 (`capture-docs.py --setup-ai`), the symlinked-home capture guard. Docs screenshots not regenerated yet.
 - [M77-5] ◐ **built — [PR #161](https://github.com/telaminai/fluxtionauditlog-analyser/pull/161) (on #159), awaiting review**: `FlowDiagram` (Full in amber, the palette, T25–T31); external access always shows OFF until M77-4 wires it.
 
 ### M78 · The quiet assistant panel ([spec](spec-quiet-assistant-panel.md), ACCEPTED)
 - [M78] ☐ **Quiet assistant panel** (owner 2026-10-18: design for the 50th use): the docked panel at 1200×800 (216×431 px) cut from 33–80 chrome words per state to ≤15 (≤20 for error, no key and restart), with ≤4 controls when Ready, with the safety signals kept (◆ Full cue, *Claude · unverified*, permission dialog, Full consent); all 12 owner decisions OD-Q.1–.12 accepted. D1 after M77-2, D2 (one mode chip) with M77-4.
 - [M78-D1] ◐ **built — [PR #163](https://github.com/telaminai/fluxtionauditlog-analyser/pull/163) (on #159), awaiting review**: the quiet panel; Ready 27 → 3 words; four deviations from the spec (the review map's flag 10).
-- [M78-D2] ☐ **next**, on M77-4 + D1: the mode chip is M77-4's quick switch.
+- [M78-D2] ◧ **in progress** — branch `feature/m78-d2-one-chip` (M77-4 + a merge of D1; not yet pushed, PR to come): the mode chip is M77-4's quick switch.
 
 ### M79 · The first minute ([spec](spec-first-minute.md), r1)
 - [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1): first launch autoplays the real-run diamond walk in the person's domain, three doors, a start page under 40 words, AI setup off the first launch; then the evidence chip, the broken-diamond quest, the docs front door, *Connect your own Claude*. 5 PRs, 17–23 days; the domain variants are pinned at `fluxtion-diamond` `24d6d74`.

@@ -122,7 +122,8 @@ read it.
   draft #156. P3 already contains two merged fixes: first-run polish and the Facts-column floors.
 - **Fix branches** (no PR; straight into integration): `fix/no-log-offer-cancel`, `fix/records-filter-visibility`,
   `fix/event-types-default-collapsed` (on the records fix), `fix/authoring-walk-defects` (on M77-2).
-- **Feature PRs, stacked:** #157 M77-1 → #159 M77-2 → {#161 M77-5, #162 M77-3, #163 M78 D1}; M77-4 and M78 D2 follow.
+- **Feature PRs, stacked:** #157 M77-1 → #159 M77-2 → {#161 M77-5, #162 M77-3, #163 M78 D1}; #165 M77-4 on #162 (merges
+  #161); M78 D2 on M77-4 + D1 follows.
   #160, the usability scorecard, sits on P3 beside them.
 - **Spec PRs (docs only):** `docs/m77-ai-setup-wizard` (no PR) → #158 M78 and #164 M79; #154 M76, #153 M75 and
   #155 the virgin-LLM pack. Each spec carries its owner decisions (OD-77, OD-Q, OD-79, OD-76) — judge the code against
@@ -133,7 +134,7 @@ read it.
 Each PR was quick-gated on its own; the full gates run once, on integration. The defects that survive that are at the
 seams, where two branches each did the right thing alone:
 
-- **The generated session processor.** FIX-1, FIX-2, M77-1, M77-2 and M77-3 each regenerated
+- **The generated session processor.** FIX-1, FIX-2, M77-1, M77-2, M77-3 and M77-4 each regenerated
   `session/generated/SessionProcessor.java`. On integration it must be **regenerated** (`mvn -Pregen process-classes`)
   from the merged nodes, never hand-merged. Diff the merged node set against the regenerated dispatch.
 - **Shared surfaces:** `MainFrame`, `AssistantPanel`, `StartPanel`, `SessionSnapshot`, `SessionEffects`,

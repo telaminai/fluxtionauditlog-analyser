@@ -38,8 +38,8 @@ PR links: `#N` means `https://github.com/telaminai/fluxtionauditlog-analyser/pul
 | [#162](https://github.com/telaminai/fluxtionauditlog-analyser/pull/162) | `feature/m77-3-external-path` | `5da42f16` | #159 | M77 §6 (Screen 2b), §13, §18 | Screen 2b; one owner of external access (`ExternalAccessRequested` through `actionListener`); confirmations at every door; registration; the live check; additive `X-Analyser-Client` / `X-Analyser-Probe` headers; regenerated processor | `AiSetupExternalTest`, `AiSetupClientFrameTest`, `ActionServerLiveCheckTest`, `McpRegistrarTest`, `OneDispatchModelTest` |
 | [#163](https://github.com/telaminai/fluxtionauditlog-analyser/pull/163) | `feature/m78-d1-quiet-panel` | `993c0b0c` | #159 | `spec-quiet-assistant-panel.md` §4–§6, §10 (D1) | the quiet panel; Ready 27 → 3 words; the safety signals kept | `QuietPanelTest`, `QuietPanelSessionTest`, `AssistantChromeBudgetFrameTest`, `LocalAgentPanelCueTest`, `LocalAgentDetailsDisclosureTest`, `BindingChipTest` |
 | [#160](https://github.com/telaminai/fluxtionauditlog-analyser/pull/160) | `feature/usability-scorecard` | `e4c8568a` (more commits expected) | P3 | `docs/usability/scorecard.md` | a measured task battery with CI budgets; baselines at `b1c22704` and `a875fcba` | `UsabilityBudgetFrameTest`; `docs/usability/baseline-*.{json,md}`; `tools/usability/run.py` |
-| — | `feature/m77-4-coexistence` | not pushed | #162 + #161 merged | M77 §14, §18 | the quick switch; profile cards retired; upgraders; Connect folded; in-app behind *Other options*; the 2b diagram; the capture symlink guard | in progress |
-| — | M78 D2 | not started | M77-4 + #163 | M78 §10 (D2) | the mode chip is M77-4's quick switch | — |
+| [#165](https://github.com/telaminai/fluxtionauditlog-analyser/pull/165) | `feature/m77-4-coexistence` | `43b7ce8f` (merge of #161 at `3ad0896a`) | #162 | M77 §14, §18 | the Assistant ▾ quick switch (`QuickSwitch`); the profile cards retired (`ProfileOverlay` deleted); Connect folded into one door; the first-run block offered once; the diagram on Screen 2b; T20 (`tools/capture-docs.py --setup-ai`); the symlinked-home capture guard; regenerated processor | `QuickSwitchTest`, `QuickSwitchFrameTest`, `CaptureHomeGuardTest`, `AiSetupWizardFrameTest`, `AiSetupClientFrameTest`, `OneDispatchModelTest`, `DocsExternalAccessClaimsTest` |
+| — | `feature/m78-d2-one-chip` | not pushed; PR to come | M77-4 + a merge of #163 | M78 §10 (D2) | the mode chip is M77-4's quick switch | in progress |
 
 ### Spec PRs (docs only)
 
@@ -81,7 +81,10 @@ Each is a deliberate change of behaviour or contract. Judge it; do not assume it
 | 8 | Search text in facts is stored by `FactRefs` reference, never as words | `fix/records-filter-visibility` | `session/FactRefs`, `RecordsViewCounts`; `FactFieldsTest` |
 | 9 | The Event types list starts collapsed by default (a UI preference; saved choices win) | `fix/event-types-default-collapsed` | `AppConfig`; `EventTypesStartCollapsedFrameTest` |
 | 10 | M78 D1 deviations from the spec: the *"starting…"* chip word; Details opens only when pressed; `shortTitle` labels; a Restart button on the error banner | #163 | `LocalAgentState.CHIP_STARTING`, `LocalAgentSession`; M78 spec §4–§5; `QuietPanelTest` |
-| 11 | M77-5's diagram always shows external access OFF until M77-4 wires it | #161 | `ui/setup/FlowDiagram` (`externalAccess`); `FlowDiagramTest` |
+| 11 | M77-5's diagram always shows external access OFF until M77-4 wires it | #161, wired in #165 | `ui/setup/FlowDiagram` (`externalAccess`); `FlowDiagramTest`; check the wiring on #165 |
+| 12 | The profile cards are retired: `ProfileOverlay` is deleted, the quick switch replaces it and Connect is one door. Every existing user sees this, so it goes in the release notes | #165 | `ui/setup/QuickSwitch`, `AssistantPanel`, `StartPanel`; `QuickSwitchTest`; `CHANGELOG.md` ▸ Unreleased |
+| 13 | The first-run block is offered once, then not again | #165 | `aiSetup` / the start page's first-run state; `FirstRunGuideTest`, `AssistantFirstRunFrameTest` |
+| 14 | `capture-docs.py` refuses a symlinked isolated home (the guard that keeps real names out of screenshots, CLAUDE.md rule 1) | #165 | `tools/capture-docs.py`; `CaptureHomeGuardTest` |
 
 ## 3. Measurements the claims rest on
 
@@ -97,13 +100,20 @@ Each is a deliberate change of behaviour or contract. Judge it; do not assume it
 
 - **No full gate has run on any of this yet.** Each branch had quick checks; the frame suites, mutation shards and
   loop bench run once, on integration (section 5).
-- **M77-4 and M78 D2 are not built.** Until M77-4, the profile cards coexist with the wizard and M77-5 shows external
-  access OFF (flag 11).
+- **M78 D2 is in progress** (`feature/m78-d2-one-chip`, not pushed). M77-4 is built (#165).
+- **M77-4's doc screenshots are not regenerated** (no Screen Recording grant on the capture machine):
+  `start-page.png` and `settings-assistant.png` are stale; regenerate with `tools/capture-docs.py` (and `--setup-ai`)
+  under the isolated home before release.
+- **M74's `[Unreleased]` CHANGELOG lines still describe the profile cards** that M77-4 retires; fold them at release.
+- **`StartWorkspaceFrameTest.nativeFileDropOnHeroTextOpensAuditLog` is flaky under load.** A failure on integration
+  is not a pass to skip; re-run it alone and report it separately.
+- **M78 D1 (#163) edits `ProfileOverlayFrameTest`, which M77-4 (#165) deletes**: a modify/delete conflict, resolved by
+  D2's merge of D1; take D2's resolution.
 - **The scorecard's comprehension and authoring batteries are in progress**; the reduced approval count is predicted,
   not measured.
 - **The docs restructure (#152)** predates every `docs/site/` edit in the fix and feature branches; the reconciliation
   is the integrator's and needs `mkdocs build --strict`.
-- **The generated session processor** is regenerated by five branches; integration must regenerate it, not merge it.
+- **The generated session processor** is regenerated by six branches (with M77-4); integration must regenerate it, not merge it.
   `fix/authoring-walk-defects` changes nodes and `SessionEvents` without regenerating; by reading its diff it adds no
   handler (only fields on existing records), so the regeneration on integration is the check.
 - **Owner acceptance is open** throughout: the hands-on test of the integration build, Windows (#148), OD-74.2 and the
