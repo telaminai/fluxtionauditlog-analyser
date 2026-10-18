@@ -10,7 +10,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 - The Full-mode Build offer now discloses that file edits and some commands can run without asking, subject to Claude Code's permission rules; it no longer promises a dialog for every command.
 
-- Switching projects cancels pending starter opens, design displays, graph offers and later drafts; downloaded files remain. A first-build graph is opened only after the session accepts its still-current offer.
+- Switching projects cancels pending starter opens, design displays, graph offers and later drafts; downloaded files remain. A first-build graph is opened only after the session accepts its still-current offer. Cancelled queued opens never enter the shared project-request handlers.
 
 ### Integration review fixes
 

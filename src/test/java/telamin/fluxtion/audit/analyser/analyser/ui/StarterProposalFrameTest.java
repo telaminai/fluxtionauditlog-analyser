@@ -169,6 +169,48 @@ class StarterProposalFrameTest {
         proposedStarter(tmp, true, true);
     }
 
+    @Test
+    void aCancelledQueuedStarterOpenNeverReachesTheProjectBoundary(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        Path home = Files.createDirectories(tmp.resolve("home"));
+        Path old = Files.createDirectories(tmp.resolve("DEMO-A/.analyser")).resolve("project.fluxtion-settings");
+        Path current = Files.createDirectories(tmp.resolve("DEMO-B/.analyser")).resolve("project.fluxtion-settings");
+        Files.writeString(old, "share.version=1\n");
+        Files.writeString(current, "share.version=1\n");
+        String before = System.getProperty("user.home");
+        MainFrame[] made = new MainFrame[1];
+        System.setProperty("user.home", home.toString());
+        try {
+            onEdt(() -> made[0] = new MainFrame());
+            MainFrame f = made[0];
+            var ex = (ActionExecutor) field(f, "actionExecutor");
+            onEdt(() -> render(ex, "open", Map.of("project", current.toString())));
+            SessionDriver driver = (SessionDriver) field(f, "session");
+            int[] boundary = new int[1];
+            onEdt(() -> {
+                boundary[0] = driver.auditSink().records().size();
+                var refs = (telamin.fluxtion.audit.analyser.analyser.session.FactRefs) field(f, "factRefs");
+                var effect = new telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterProjectEffect(
+                        0, 41, refs.put(old.getParent().getParent().toString()), 0, true, null, 0, false);
+                try {
+                    var method = MainFrame.class.getDeclaredMethod("openStarterProject", effect.getClass());
+                    method.setAccessible(true);
+                    method.invoke(f, effect);
+                } catch (ReflectiveOperationException error) { throw new AssertionError(error); }
+            });
+            onEdt(() -> { });
+            onEdt(() -> {
+                var records = driver.auditSink().records();
+                assertTrue(records.subList(boundary[0], records.size()).stream().noneMatch(r -> r.contains("OpenProjectRequested")),
+                        "a cancelled starter callback must not submit a project request");
+                assertTrue(driver.processor().activeProject.isAt(current.toString()));
+            });
+        } finally {
+            if (made[0] != null) onEdt(made[0]::dispose);
+            System.setProperty("user.home", before);
+        }
+    }
+
     private void proposedStarter(Path tmp, boolean approveDesignRoot, boolean switchDuringGraphOffer) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         Path home = Files.createDirectories(tmp.resolve("home"));

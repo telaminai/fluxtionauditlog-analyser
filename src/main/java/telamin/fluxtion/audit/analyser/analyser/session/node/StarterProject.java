@@ -392,7 +392,12 @@ public class StarterProject implements EventLogSource {
 
     /** While the analyser opens its OWN starter project — never a switch the person must be asked about. */
     public boolean openingOwnProject(SessionEvents.OpenProjectRequested e) {
-        return e.starterRequest() != 0 && e.starterRequest() == request && "OPENING".equals(phase);
+        return permitsProjectOpen(e.starterRequest());
+    }
+
+    /** Revocable permission for an already-issued open effect when its EDT callback finally runs. */
+    public boolean permitsProjectOpen(long req) {
+        return req != 0 && req == request && "OPENING".equals(phase);
     }
 
     /** Called by the boundary node, never an adapter: bind our accepted open to this operation, not an ambient phase. */

@@ -13490,6 +13490,13 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openStarterProject(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterProjectEffect e) {
         SwingUtilities.invokeLater(() -> {
+            // Enforce the NODE's revocation before entering the shared request funnel. A rejected late request
+            // there would still be observed by unrelated request handlers (assistant turn, bundle, reopen offer).
+            if (!session().processor().starterProject.permitsProjectOpen(e.request())) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterProjectOpened(
+                        e.request(), false, "the starter continuation was cancelled"));
+                return;
+            }
             String root = factRefs.get(e.rootRef());
             boolean ok;
             String why = null;

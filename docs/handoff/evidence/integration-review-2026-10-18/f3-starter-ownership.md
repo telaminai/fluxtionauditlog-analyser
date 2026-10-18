@@ -20,3 +20,9 @@ The processor and GraphML were regenerated together with `mvn -Pregen process-cl
 After-fix focused run: **45 / 0 / 0 / 0**. First display run: **9 / 0 / 0 / 0** across StarterProposalFrameTest (4), TemplateCatalogueFrameTest (1), DesignSpotlightFrameTest (4). Final full and display results are recorded in the review report. Counts are total / failures / errors / skips.
 
 The expanded neighbouring display run caught an implementation mistake: rechecking every design guard after the read broke six recovery cases (**20 / 6 / 0 / 0**), because recovery's original guard compares the generation before its own ReadRequested. The new revocation recheck is now specific to StarterDesignGuard; recovery retains its existing captured-generation checks. This failed attempt is retained in local ignored output, not presented as a product finding.
+
+## Final boundary refinement
+
+Source inspection of my correction found that rejecting a stale OpenProjectRequested in SessionBoundary was too late for other request observers (AssistantLoop, OpenBundle, ProjectReopenOffer). A real-frame adapter-boundary probe, now maintained as `StarterProposalFrameTest#aCancelledQueuedStarterOpenNeverReachesTheProjectBoundary`, failed **1 / 1 / 0 / 0** on production `7e826028` at `a cancelled starter callback must not submit a project request`. It injects an already-issued stale effect, not a second complete download chain; the existing successful full chain remains its positive control.
+
+The queued adapter now enforces StarterProject's revocable permission before entering that shared funnel and reports a not-opened fact instead. Ownership and the rule for revoking it remain in the node. The boundary's correlated-operation guard remains defensive. No handler/wiring changed in this refinement, so no regeneration was needed. It is a separate corrective commit: prior review commits were not rewritten.
