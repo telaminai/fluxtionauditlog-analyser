@@ -2343,7 +2343,7 @@ decision: each is the analyser's own, on the real processor; the live smoke is r
     is the `result`'s `duration_ms`.
   - **Trimming** keeps 500 entries plus one note; the transcript store bounds its own words (no eviction effect).
   - **Example entries:** the action button is the entry's own button once the row is chosen (a chip, like a flow);
-    examples unpack with **no executable bit** on any file (a starter keeps its fixed list); the default target is
+    examples unpack with **no executable bit** except on `mvnw` and `*.sh`, which keep the mode the archive records (amended after the authoring walk, 2026-10-18: `./mvnw` and `./regen.sh` were refused with *permission denied*; a starter keeps its fixed list); the default target is
     `~/<repo>-<short commit>`; a redirect is followed only to an allowed https host naming the same commit (GitHub's
     `/archive/` → codeload), at most three.
 - **Live smoke (2026-10-17, [report](evidence/m74-p2b-smoke/SMOKE-report.md)):** items 4, 5, 6, 7, 9 and 10 passed on

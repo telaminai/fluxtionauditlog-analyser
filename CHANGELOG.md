@@ -64,6 +64,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- A downloaded example's `mvnw` and `*.sh` scripts keep the executable bit their archive records, so `./mvnw` and the example's own scripts run as its README says (they failed with *permission denied*). No other file is made executable, a script the archive marks `0644` or as a link stays plain, and the analyser itself still never runs an example.
 - The template dialog no longer shows an internal milestone id in a template's description (*"The M19 onboarding bundle…"* now reads *"The onboarding bundle…"*); a check keeps such ids out of the shown descriptions and the start page's words.
 - *Sources ▸ Find GraphML in source roots…* now also searches the `resources` folder beside each `…/java` source root, where a generated processor's `.graphml` is committed (`src/main/resources`); before, the playground bundle's graph was reported as *"No .graphml found"*.
 - Opening the audit log of the project that is already open no longer asks *"Load this project?"* when the project was reached through a link (macOS's `/tmp` is a link to `/private/tmp`, and a file chooser hands back the resolved path): the two are compared by real path.
