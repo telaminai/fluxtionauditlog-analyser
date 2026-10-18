@@ -71,7 +71,20 @@ class OneDispatchModelTest {
             // review F3 — witness: stop the timer in setFollowing again. The one exception is the exit sequence,
             // which stops every timer the window owns.
             new OnlyIn("the Follow poll timer is stopped", Pattern.compile("followTimer\\.stop\\("),
-                    List.of("private void renderFollow(", "private void finishExit("), true));
+                    List.of("private void renderFollow(", "private void finishExit("), true),
+            // The Records view's counts (usability review 2026-10-18): recordsView decides when, the performer counts,
+            // renderRecordsView renders. Witness: count rows in onFilterChanged again ("showing " + viewRowCount()), or
+            // call RecordsViewCounts.measure from the checklist — each is a second home.
+            new OnlyIn("the Records view is measured",
+                    Pattern.compile("RecordsViewCounts\\s*\\.\\s*measure\\s*\\("),
+                    "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result measureRecordsView("),
+            new OnlyIn("the \"showing N of M\" label is set", Pattern.compile("showingLabel\\.setText\\("),
+                    "private void renderRecordsView(", true),
+            // B2: the Search box shows the snapshot's text filter, whoever set it; nothing else writes it
+            new OnlyIn("the Search box is written", Pattern.compile("searchField\\.setText\\("),
+                    "private void renderRecordsView(", true),
+            new OnlyIn("the Records title is set", Pattern.compile("tableArea\\.setBorder\\("),
+                    List.of("private void renderRecordsView(", "private void buildLayout("), true));
 
     @Test
     @DisplayName("each piece of the log's derived state is computed, composed or started in exactly one place")

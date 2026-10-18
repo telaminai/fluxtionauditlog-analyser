@@ -107,6 +107,35 @@ public class AssistantLoop implements EventLogSource {
         this.assistantMode = assistantMode;
     }
 
+    /**
+     * The Records view's counts, a JavaBean parent read when the basis is stated: the "About:" line says what the filter
+     * hides ("filtered: 1 event type hidden (RiskBreachEvent), 9 of 10 shown"), not only that a filter is in force (robot
+     * walk of P3, 2026-10-18: asked why records were missing, the assistant answered that nothing was).
+     */
+    private RecordsView recordsView;
+
+    public RecordsView getRecordsView() {
+        return recordsView;
+    }
+
+    public void setRecordsView(RecordsView recordsView) {
+        this.recordsView = recordsView;
+    }
+
+    /**
+     * The counts of the view the basis names were measured after the basis was captured (the measurement answers the
+     * filter change in a cycle of its own): restate the SAME basis with them. A different basis is not this handler's —
+     * the filter, log and project facts decide that — and a frozen conversation keeps the words it was frozen with.
+     */
+    @OnEventHandler
+    public boolean onRecordsViewMeasured(SessionEvents.RecordsViewMeasured e) {
+        if (frozen || basisKey == null || !Objects.equals(basisKeyNow(), basisKey)) return false;
+        String label = basisLabelNow();
+        if (label.equals(basisLabel)) return false;
+        basisLabel = label;
+        return changed();
+    }
+
     private boolean localAgentMode() {
         return assistantMode != null && assistantMode.localAgent();
     }
@@ -747,7 +776,26 @@ public class AssistantLoop implements EventLogSource {
         String project = activeProject.isActive() ? "project " + activeProject.name() : "no project";
         String log = openLog.isOpen() ? "log " + fileName(openLog.logPath()) + " (#" + openLog.generation() + ")" : "no log";
         String graph = openGraph.isOpen() ? "graph " + fileName(openGraph.graphPath()) : "no graph";
-        return project + " · " + log + " · " + graph + (viewKey == null ? " · all records" : " · filtered view");
+        return project + " · " + log + " · " + graph + viewLabel();
+    }
+
+    /** What the view shows and what hides the rest, from the Records view's counts (no search words: spec §4.1). */
+    private String viewLabel() {
+        var c = recordsView == null || !openLog.isOpen() ? null : recordsView.counts();
+        if (c == null) return viewKey == null ? " · all records" : " · filtered view";
+        if (!c.anyHidden()) return " · all " + c.total() + " records shown";
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        if (c.typesFiltered() && c.hiddenByTypes() > 0) {
+            java.util.List<String> off = c.types().stream().filter(t -> !t.selected())
+                    .map(t -> t.type().isEmpty() ? "(none)" : t.type()).toList();
+            String names = String.join(", ", off.subList(0, Math.min(3, off.size())))
+                    + (off.size() > 3 ? " +" + (off.size() - 3) + " more" : "");
+            parts.add(off.size() + (off.size() == 1 ? " event type" : " event types") + " hidden (" + names + ")");
+        }
+        if (c.searching() && c.hiddenByText() > 0) parts.add("a search hides " + c.hiddenByText());
+        if (c.timeBounded() && c.hiddenByTime() > 0) parts.add("the time range hides " + c.hiddenByTime());
+        if (c.flaggedOnly() && c.hiddenByFlags() > 0) parts.add("flagged only hides " + c.hiddenByFlags());
+        return " · filtered: " + String.join(", ", parts) + ", " + c.shown() + " of " + c.total() + " shown";
     }
 
     private static String fileName(String path) {

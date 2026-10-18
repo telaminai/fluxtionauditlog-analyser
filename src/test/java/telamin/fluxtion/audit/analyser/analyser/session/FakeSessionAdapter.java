@@ -140,6 +140,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     /** What a synchronous open reports as logged node ids, keyed by location. */
     final java.util.Map<String, java.util.Set<String>> openable = new java.util.HashMap<>();
     String closedGraphPath;
+    /** What a records-view measurement reports (null: no installed view). */
+    telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView;
 
     FakeSessionAdapter withProfile(String path) {
         loadable.add(path);
@@ -154,6 +156,9 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.ShowProjectReopenEffect e -> new SessionEvents.ProjectReopenPresented(e.opId(), true);
             case SessionEffects.OpenBundleEvidenceEffect e -> new SessionEvents.Pending(e.opId(), "opening " + e.plan().logPath());
             case SessionEffects.ScanLogEvidenceEffect e -> new SessionEvents.ScanScheduled(e.opId(), e.generation());
+            // the records view: the fake measures nothing of its own — a test supplies what the view would count
+            case SessionEffects.MeasureRecordsViewEffect e -> new SessionEvents.RecordsViewMeasured(e.opId(), e.generation(),
+                    recordsView);
             // M69: the recording backend for walk playback — what the node ASKED, and a plain answer
             case SessionEffects.ApplyWalkViewEffect e -> {
                 walkViews.add(e);

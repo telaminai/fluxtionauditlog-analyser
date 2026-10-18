@@ -47,7 +47,12 @@ class FactFieldsTest {
         /** A prompt pack's entry the person dropped (its URL and label) — the person's, not a model's. */
         PERSON_PACK,
         /** A nested fact record, itself checked here. */
-        STRUCTURE
+        STRUCTURE,
+        /**
+         * The open log's own names and counts — its event types, as {@code LogOpened}'s node ids are the log's — with any
+         * words a person or an assistant typed named by a {@code FactRefs} reference, never carried.
+         */
+        LOG_COUNTS
     }
 
     static final Map<String, Holds> M74 = new LinkedHashMap<>();
@@ -109,6 +114,9 @@ class FactFieldsTest {
             M74.put(c, Holds.PERSON_CONFIG);
         }
         M74.put("ExampleDownloadRequested.source", Holds.PERSON_PACK);
+        // the Records view's counts (usability review 2026-10-18): numbers, flags, the log's event-type names, and the
+        // search text by reference only (RecordsViewCounts.textRef) — an assistant may have typed it
+        M74.put("RecordsViewMeasured.counts", Holds.LOG_COUNTS);
         for (String c : List.of("LocalAgentStartRequested.consent", "LocalAgentSendRequested.consent",
                 "LocalAgentConsentChanged.consent", "LocalAgentFolderAnswered.consent", "LocalAgentDraftComposed.consent",
                 "LocalAgentRestartAnswered.consent",

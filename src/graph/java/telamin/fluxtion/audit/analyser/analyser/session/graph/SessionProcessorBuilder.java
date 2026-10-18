@@ -124,6 +124,11 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(ignoredParameters, "ignoredParameters");
         cfg.addNode(pairingQualifier, "pairingQualifier");
         cfg.addNode(logEvidence, "logEvidence");
+        // the Records view: what it shows and what each filter hides — measured on the node's request, published in
+        // the snapshot, rendered by the "showing" label, the Records title, the Event types toggle and the empty table
+        telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView recordsView =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView(openLog, effects);
+        cfg.addNode(recordsView, "recordsView");
         // M69: spotlight-walk playback — every transition and decision about a showing walk, in one place (owner)
         // OA-1 (spec-onboard-assistant-journeys.md §5): the onboard assistant's turns, tickets, budgets and basis, in one place
         // M74 (spec-claude-code-provider.md §4.1): one assistant mode at a time, as a session fact, upstream of both
@@ -134,6 +139,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop assistantLoop =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop(openLog, openGraph, activeProject, gate, effects);
         assistantLoop.setAssistantMode(assistantMode);
+        assistantLoop.setRecordsView(recordsView);   // the basis states what the filter hides (a JavaBean parent)
         cfg.addNode(assistantLoop, "assistantLoop");
         telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession localAgent =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(assistantMode, effects);

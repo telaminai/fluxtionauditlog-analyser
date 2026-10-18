@@ -216,8 +216,14 @@ public final class MainFrame extends JFrame {
     /** The machine tier, under Context — see {@link MachinePanel}. */
     private MachinePanel machinePanel;
     /** Event types, on the Records row beside Search — see {@link #showEventTypes}. */
-    private final javax.swing.JToggleButton eventTypesToggle = new javax.swing.JToggleButton("Event types");
+    private final javax.swing.JToggleButton eventTypesToggle = UiText.plain(new javax.swing.JToggleButton("Event types"));
     private final JLabel showingLabel = UiText.plain(new JLabel());
+    /** Under the Records title: what each active filter hides, with its undo (renderRecordsView). */
+    private final RecordsFilterBar hiddenLine = new RecordsFilterBar(RecordsFilterBar.Mode.HIDDEN_LINE, this::undoRecordsFilter);
+    /** The generation whose Records view (store, filter, row filter) is installed and can be measured, or -1. */
+    private long recordsViewGeneration = -1;
+    /** The search text last rendered from the snapshot: the box is written only when THAT moves (see renderRecordsView). */
+    private String searchRendered = "";
     private final JProgressBar progress = new JProgressBar();
     // SF-2: the status line names files, nodes, charts, walks and errors that echo them — shown as characters
     private final JLabel status = UiText.plain(new JLabel("Open a log — Audit log ▸ Open log… (or the toolbar), drag a file in, or Audit log ▸ Open log from S3…."));
@@ -265,6 +271,8 @@ public final class MainFrame extends JFrame {
     private final java.util.Map<Integer, telamin.fluxtion.audit.analyser.analyser.report.Finding> findings
             = new java.util.HashMap<>();
     private boolean flaggedOnly = false;
+    /** The toolbar's Flagged only toggle, kept in step with the Records menu's (and an empty table's undo). */
+    private JToggleButton flaggedOnlyButton;
     /** Guards the table ⇄ topology cursor loop: a selection we caused must not re-drive the cursor. */
     private boolean steppingSelection;
 
@@ -883,7 +891,6 @@ public final class MainFrame extends JFrame {
     private JPanel tableArea;
     private JSplitPane eventTypesSplit;
     /** The checklist's default height when nothing has been dragged; it can be given more. */
-    private static final int EVENT_TYPES_MAX_HEIGHT = 190;
     /**
      * The split between the Facts column's records (Search, checklist, table) and the Record detail pane.
      *
@@ -909,6 +916,7 @@ public final class MainFrame extends JFrame {
      */
     private void showEventTypes(boolean showing) {
         eventFilterPanel.setVisible(showing);
+        renderEventTypesToggle(sessionSnapshot().recordsView());   // the arrow; the badge is the snapshot's
         config.eventFilterCollapsed = !showing;
         saveConfigQuietly();
         layoutEventTypes();
@@ -931,7 +939,7 @@ public final class MainFrame extends JFrame {
             int floor = eventFilterPanel.getMinimumSize().height;
             int wanted = config.eventTypesDivider > 0
                     ? config.eventTypesDivider
-                    : Math.min(eventFilterPanel.getPreferredSize().height, EVENT_TYPES_MAX_HEIGHT);
+                    : Math.min(eventFilterPanel.getPreferredSize().height, EventFilterPanel.MAX_PREFERRED_HEIGHT);
             // never past the records' floor, however tall the checklist would like to be
             if (column > 0) wanted = Math.min(wanted, Math.max(0, column - tablePanel.getMinimumSize().height));
             // and never under its own: a divider saved too small (or by the old 60px floor) is moved out
@@ -1104,10 +1112,7 @@ public final class MainFrame extends JFrame {
 
         JCheckBoxMenuItem only = new JCheckBoxMenuItem("Show flagged only", flaggedOnly);
         only.addActionListener(e -> {
-            flaggedOnly = only.isSelected();
-            for (JCheckBoxMenuItem other : flaggedOnlyToggles) other.setSelected(flaggedOnly);
-            tablePanel.reFilter();
-            onFilterChanged();
+            setFlaggedOnly(only.isSelected());
         });
         flaggedOnlyToggles.add(only);
         into.add(only);
@@ -1121,6 +1126,7 @@ public final class MainFrame extends JFrame {
             tablePanel.repaintRows();
             topologyPanel.refreshFinding();
             graphTabs.refreshFlagRug();
+            reportFlagsToSession();
         });
         into.add(clearFlags);
 
@@ -1268,7 +1274,28 @@ public final class MainFrame extends JFrame {
         tablePanel.repaintRows();
         topologyPanel.refreshFinding();
         graphTabs.refreshFlagRug();   // the rug is DERIVED from the flags (M32.6)
+        reportFlagsToSession();
         if (flaggedOnly) tablePanel.reFilter();
+    }
+
+    /** Turn "flagged only" on or off from any of its controls, keeping the others in step. */
+    private void setFlaggedOnly(boolean on) {
+        flaggedOnly = on;
+        for (JCheckBoxMenuItem other : flaggedOnlyToggles) other.setSelected(on);
+        if (flaggedOnlyButton != null) flaggedOnlyButton.setSelected(on);
+        tablePanel.reFilter();
+        onFilterChanged();
+        reportFlagsToSession();
+    }
+
+    /**
+     * The person's flags or the "flagged only" constraint changed: a FACT for the session. Whether the records view
+     * must be measured again is recordsView's decision (a flag hides nothing while "flagged only" is off).
+     */
+    private void reportFlagsToSession() {
+        if (session == null || store == null) return;
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RecordFlagsChanged(
+                sessionLogGeneration, flaggedOnly, flaggedRows.size()));
     }
 
     /** Flagged rows -> finding note (or null): the rug's payload map, snapshotted per refresh. */
@@ -1299,6 +1326,7 @@ public final class MainFrame extends JFrame {
         tablePanel.repaintRows();
         topologyPanel.refreshFinding();
         graphTabs.refreshFlagRug();
+        reportFlagsToSession();
         if (flaggedOnly) tablePanel.reFilter();
     }
 
@@ -1362,6 +1390,7 @@ public final class MainFrame extends JFrame {
         tablePanel.repaintRows();
         topologyPanel.refreshFinding();
         graphTabs.refreshFlagRug();
+        reportFlagsToSession();
         if (flaggedOnly) tablePanel.reFilter();
     }
 
@@ -2503,6 +2532,9 @@ public final class MainFrame extends JFrame {
         if (projectPanel != null) projectPanel.refreshTheme();   // owner, 2026-08-27: rows are painted from UiTheme at render time
         refreshMcpIndicator();                                  // D-AI9: its colour is explicit too, so it must be recomputed
         eventFilterPanel.refreshTheme();                          // section border + group headers likewise
+        hiddenLine.refreshTheme();                                // the filter lines' muted ink likewise
+        tablePanel.emptyState().refreshTheme();
+        renderRecordsView(sessionSnapshot());                     // the title's border, the toggle's badge, the row inks
         assistantPanel.themeChanged();           // M74 P2/UX: the one transcript re-styles (§5.9)
         repaint();                 // charts read the theme on paint
         config.theme = theme;
@@ -2558,8 +2590,7 @@ public final class MainFrame extends JFrame {
      */
     private void filterToInstance(String instanceId) {
         if (filter == null || instanceId == null) return;
-        searchField.setText(instanceId);
-        filter.setText(instanceId);
+        filter.setText(instanceId);              // the Search box follows the snapshot (renderRecordsView)
         status.setText("Filtered to records mentioning " + instanceId + " — clear the search box to undo.");
     }
 
@@ -4557,18 +4588,22 @@ public final class MainFrame extends JFrame {
         searchField.setPreferredSize(new Dimension(260, searchField.getPreferredSize().height));
         searchField.setHistory(config.searchHistory);
         // Search grows to fill the width; a Clear-history button sits on the right of the same row
-        JPanel searchRow = new JPanel(new BorderLayout(6, 0));
-        searchRow.setBorder(BorderFactory.createEmptyBorder(2, 0, 8, 0));   // vertical breathing room below search
-        searchRow.add(new JLabel("Search:"), BorderLayout.WEST);
-        searchRow.add(searchField, BorderLayout.CENTER);   // BorderLayout centre stretches the field
+        // Label, box, controls: one line while the box keeps a usable width, the controls on a second line below it in
+        // a narrow Facts column (robot walk, 900x680: the controls were laid over the label and the box vanished)
+        SearchRowLayout searchLayout = new SearchRowLayout(6, 4);
+        JPanel searchRow = new JPanel(searchLayout);
+        searchRow.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));   // a little room below search
+        searchRow.add(new JLabel("Search:"));
+        searchRow.add(searchField);                        // takes the width the label and the controls leave
         JButton clearHistory = new JButton("Clear history");
         clearHistory.setToolTipText("Clear the saved search history (does not change the current search)");
         clearHistory.addActionListener(e -> clearSearchHistory());
         // Event types and Columns live HERE, next to Search: all three narrow what the Records table
         // shows, and the two that sat on the west rail were a column away from the thing they filtered.
         eventTypesToggle.setSelected(!config.eventFilterCollapsed);
-        eventTypesToggle.setToolTipText("Show or hide the event-type checklist that filters these records");
+        eventTypesToggle.setHorizontalTextPosition(SwingConstants.LEADING);   // the selection badge follows the name
         eventTypesToggle.addActionListener(e -> showEventTypes(eventTypesToggle.isSelected()));
+        renderEventTypesToggle(null);
         JButton columnsButton = new JButton("Columns");
         columnsButton.setToolTipText("Choose which columns the Records table shows");
         columnsButton.addActionListener(e -> {
@@ -4576,12 +4611,19 @@ public final class MainFrame extends JFrame {
             for (java.awt.Component item : buildColumnsMenu().getMenuComponents()) popup.add(item);
             popup.show(columnsButton, 0, columnsButton.getHeight());
         });
-        JPanel recordControls = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 6, 0));
+        JPanel recordControls = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 4, 0));
         recordControls.setOpaque(false);
         recordControls.add(eventTypesToggle);
         recordControls.add(columnsButton);
         recordControls.add(clearHistory);
-        searchRow.add(recordControls, BorderLayout.EAST);
+        searchRow.add(recordControls);
+        searchRow.addComponentListener(new java.awt.event.ComponentAdapter() {
+            private Boolean wrapped;
+            @Override public void componentResized(java.awt.event.ComponentEvent e) {
+                boolean now = searchLayout.wraps(searchRow, searchRow.getWidth());
+                if (wrapped == null || wrapped != now) { wrapped = now; searchRow.revalidate(); }
+            }
+        });
         // "Records" header on top, then the Search row, then the event-type checklist it toggles,
         // then the table. The checklist FILTERS these records, so it belongs in the Facts column with
         // them -- it sat in Context, a column away from the thing it acts on, which the column names
@@ -4603,7 +4645,13 @@ public final class MainFrame extends JFrame {
             }
         };
         tableArea.setBorder(UiTheme.section("Records"));
-        tableArea.add(searchRow, BorderLayout.NORTH);
+        // the Search row, then what the filters hide (each with its undo) while some records are hidden
+        JPanel recordsNorth = new JPanel(new BorderLayout());
+        recordsNorth.setOpaque(false);
+        recordsNorth.add(hiddenLine, BorderLayout.NORTH);
+        recordsNorth.add(searchRow, BorderLayout.CENTER);
+        tableArea.add(recordsNorth, BorderLayout.NORTH);
+        tablePanel.setEmptyStateUndo(this::undoRecordsFilter);
         eventFilterPanel.setVisible(!config.eventFilterCollapsed);
         // RESIZABLE, not a fixed band. BorderLayout.NORTH grants a component its full preferred
         // height, and the checklist grows with the log's event types: on a log with many it took the
@@ -4851,7 +4899,7 @@ public final class MainFrame extends JFrame {
         north.add(buildFilterBar(), BorderLayout.CENTER);
         workspaceChrome = north;
         add(north, BorderLayout.NORTH);
-        eventFilterPanel.setPreferredSize(new Dimension(240, 200));
+        // m6: no fixed preferred height — the checklist asks for its rows' height, up to its own maximum
         // M37 (owner, 2026-08-27): the west column is DRAGGABLE, not a fixed 240px. The Project panel put
         // paths and class names in it, and a width chosen for a checklist of event names is the wrong
         // width for those. Persisted like every other layout choice (config.westWidth).
@@ -4902,11 +4950,8 @@ public final class MainFrame extends JFrame {
         flaggedOnlyBtn.setToolTipText("Show only flagged rows");
         flaggedOnlyBtn.setFocusable(false);
         flaggedOnlyBtn.setIconTextGap(6);
-        flaggedOnlyBtn.addActionListener(e -> {
-            flaggedOnly = flaggedOnlyBtn.isSelected();
-            tablePanel.reFilter();
-            onFilterChanged();
-        });
+        flaggedOnlyButton = flaggedOnlyBtn;
+        flaggedOnlyBtn.addActionListener(e -> setFlaggedOnly(flaggedOnlyBtn.isSelected()));
         tb.add(flaggedOnlyBtn);
         tb.addSeparator();
         tb.add(toolButton("Next", ToolIcons.warning(), "Jump to the next anomaly — parse-error / breach / NaN (F3)",
@@ -5785,7 +5830,8 @@ public final class MainFrame extends JFrame {
 
         // debounced text filter
         searchDebounce = new Timer(250, e -> {
-            if (filter != null) filter.setText(searchField.getText());
+            // only a CHANGE: the box also changes when it renders the snapshot's text, which is already in force
+            if (filter != null && !searchField.getText().trim().equals(filter.text())) filter.setText(searchField.getText());
         });
         searchDebounce.setRepeats(false);
         searchField.onTextChanged(searchDebounce::restart);
@@ -6357,6 +6403,8 @@ public final class MainFrame extends JFrame {
         flaggedRows.clear();
         findings.clear();
         flaggedOnly = false;
+        for (JCheckBoxMenuItem other : flaggedOnlyToggles) other.setSelected(false);
+        if (flaggedOnlyButton != null) flaggedOnlyButton.setSelected(false);
 
         filter = new FilterState();          // a fresh, unbound filter — listeners on the old one die with it
         tablePanel.setRowFilter(null);
@@ -6379,9 +6427,8 @@ public final class MainFrame extends JFrame {
         pendingRolledSetOffer = null;      // M35.9: likewise
         if (reportsPanel != null) reportsPanel.refresh();   // re-render: anchors now say why they fail
 
-        showingLabel.setText(" ");
-        searchField.setText("");
-        searchField.setEnabled(false);
+        recordsViewGeneration = -1;      // nothing to measure: the LogCleared above clears the counts, and the label,
+        searchField.setEnabled(false);   // the title, the Search box and the checklist render that (renderRecordsView)
         timeSlider.setRange(null, null);
         timeSlider.setHistogram(new int[0]);
         syncingWindow = true;
@@ -6556,6 +6603,8 @@ public final class MainFrame extends JFrame {
         flaggedRows.clear();       // flags are per-file (model row indices)
         findings.clear();
         flaggedOnly = false;
+        for (JCheckBoxMenuItem other : flaggedOnlyToggles) other.setSelected(false);
+        if (flaggedOnlyButton != null) flaggedOnlyButton.setSelected(false);
         tableModel = new LogTableModel(loaded);
         tablePanel.setModel(tableModel);
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
@@ -6565,8 +6614,7 @@ public final class MainFrame extends JFrame {
         final LogIndex index = loaded.index();
         filter = new FilterState();
         filter.setTextSource(loaded::rawText);   // search covers eventToString, thread AND nodeLogs
-        searchField.setText("");
-        searchField.setEnabled(true);
+        searchField.setEnabled(true);    // its text is the snapshot's (renderRecordsView), "" for a fresh view
         timeSlider.setRange(loaded.minLogTime(), loaded.maxLogTime());
         timeSlider.setHistogram(buildHistogram(loaded, 160));
         timeSlider.bind(filter);
@@ -6593,7 +6641,12 @@ public final class MainFrame extends JFrame {
             }
         });
         filter.addListener(this::onFilterChanged);
+        // the view of this log is in place: the session decides to measure it (a fresh log under the same unconstrained
+        // filter moves no filter key, so this fact, not ViewFilterChanged, is what asks for its first counts)
+        recordsViewGeneration = sessionLogGeneration;
         onFilterChanged();
+        if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                .RecordsViewInstalled(sessionLogGeneration));
 
         // source navigation: configure roots, then infer the EventProcessor in the background
         sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
@@ -7007,6 +7060,7 @@ public final class MainFrame extends JFrame {
         renderWalkStrip(next.walkPlayback());    // M69: the walk's strip, as walkPlayback decided it
         if (walksPanel != null) walksPanel.render(next.walkPlayback());
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
+        renderRecordsView(next);                 // what the Records view shows and hides, as recordsView measured it
         renderAssistant(next);                   // OA-1: the assistant, as assistantLoop decided it
         releaseUnusedBundleCopies(next);
         renderBundleProvenance(next);            // #76: whether this session is received evidence, and which bundle
@@ -7825,17 +7879,120 @@ public final class MainFrame extends JFrame {
                     key, ActionExecutor.assistantOrigin()));
         }
         tablePanel.reFilter();
-        if (store != null) {
-            showingLabel.setText("showing " + tablePanel.viewRowCount() + " of " + store.size());
-        } else {
-            // M35.1, found by eyeballing E2/E3: the guard stopped the UPDATE but not the STALENESS,
-            // so after a close this label went on claiming "showing 582 of 582" with no log open —
-            // a half-cleared state, which is the one thing this milestone said must not happen
-            showingLabel.setText(" ");
-        }
+        // "showing N of M" is NOT composed here (rule 9): recordsView measures the view when the key moves and the
+        // snapshot listener renders it (renderRecordsView). M35.1's lesson stands there: no log, no count.
         // a report's evidence is LIVE (D-I3): the view banner, the filter offer and the table rows
         // must move with the filter, not wait for a reselect
         if (reportsPanel != null) reportsPanel.rerender();
+    }
+
+    /**
+     * PERFORM recordsView's measurement: count the installed view of the generation it names and report the counts as
+     * the effect's answer. It decides nothing — when the view is stale was the node's decision — and answers null counts
+     * when it has no installed view of that generation (a load still in progress, or a log since closed).
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result measureRecordsView(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.MeasureRecordsViewEffect e) {
+        var s = store;
+        var f = filter;
+        var counts = s == null || f == null || recordsViewGeneration != e.generation() ? null
+                : telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts.measure(
+                        s.index(), f, flaggedOnly, flaggedRows::contains, searchRef(f.text()));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RecordsViewMeasured(
+                e.opId(), e.generation(), counts);
+    }
+
+    /** The search text's FactRefs reference: the same one while the text is unchanged, so a re-measure moves nothing. */
+    private long searchRef(String text) {
+        if (text == null || text.isEmpty()) return 0;
+        if (text.equals(factRefs.get(searchRefHeld))) return searchRefHeld;
+        searchRefHeld = factRefs.put(text);
+        return searchRefHeld;
+    }
+
+    /** See {@link #searchRef}. */
+    private long searchRefHeld;
+
+    /**
+     * Render what the Records view shows and hides, as recordsView measured it — the one home of every surface that
+     * states it: the Time range header's "showing N of M", the Records title, the hidden line, the empty table, the
+     * Event types toggle and checklist, Record detail's empty hint, and the Search box (B2: a text filter an assistant
+     * set through the action socket or MCP is shown to the person in the box, not only applied).
+     */
+    private void renderRecordsView(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        var rv = next.logOpen() ? next.recordsView() : null;
+        // the search text, by the reference the fact carries (an assistant may have set it: spec §4.1); null when the
+        // reference no longer resolves, in which case the box is left as it is rather than cleared
+        String text = rv == null ? "" : rv.searching() ? factRefs.get(rv.textRef()) : "";
+        showingLabel.setText(RecordsViewWords.showing(rv));
+        if (tableArea != null) {
+            String title = RecordsViewWords.title(rv);
+            tableArea.setBorder(UiTheme.section(UiText.inert(title)));   // our words and numbers, made inert all the same
+            String hidden = RecordsViewWords.hiddenSentence(rv, text);
+            tableArea.getAccessibleContext().setAccessibleName(title);
+            tableArea.getAccessibleContext().setAccessibleDescription(hidden.isEmpty() ? null : hidden);
+        }
+        hiddenLine.render(rv, text);
+        tablePanel.renderRecordsView(rv, text);
+        eventFilterPanel.render(rv);
+        renderEventTypesToggle(rv);
+        detailPanel.setFilterHidesEverything(rv != null && rv.allHidden());
+        // The box is written only when the snapshot's text MOVES, never merely because it differs: a person typing
+        // ahead of the debounce has a box that differs from the filter in force, and an unrelated snapshot (a Follow
+        // append) must not overwrite what they are typing.
+        if (text != null && !text.equals(searchRendered)) {
+            searchRendered = text;
+            if (!searchField.getText().trim().equals(text)) searchField.setText(text);
+        }
+        if (tableArea != null) { tableArea.revalidate(); tableArea.repaint(); }
+    }
+
+    /**
+     * {@code context.hidden}: what each active filter hides, from the snapshot's records-view counts — null before the
+     * open log's view is measured. A record can fail more than one filter, so the per-filter counts can add up to more
+     * than {@code count}. The search text is already {@code context.filter.text}; it is not repeated here.
+     */
+    private static Map<String, Object> contextHidden(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot snap) {
+        var rv = snap.logOpen() ? snap.recordsView() : null;
+        if (rv == null) return null;
+        Map<String, Object> hidden = new java.util.LinkedHashMap<>();
+        hidden.put("count", rv.total() - rv.shown());
+        List<Map<String, Object>> by = new ArrayList<>();
+        if (rv.typesFiltered() && rv.hiddenByTypes() > 0) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("filter", "eventTypes");
+            m.put("hides", rv.hiddenByTypes());
+            m.put("excludedTypes", rv.types().stream().filter(t -> !t.selected())
+                    .map(telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts.TypeCount::type).toList());
+            by.add(m);
+        }
+        if (rv.searching() && rv.hiddenByText() > 0) by.add(new java.util.LinkedHashMap<>(Map.of("filter", "text", "hides", rv.hiddenByText())));
+        if (rv.timeBounded() && rv.hiddenByTime() > 0) by.add(new java.util.LinkedHashMap<>(Map.of("filter", "timeRange", "hides", rv.hiddenByTime())));
+        if (rv.flaggedOnly() && rv.hiddenByFlags() > 0) by.add(new java.util.LinkedHashMap<>(Map.of("filter", "flaggedOnly", "hides", rv.hiddenByFlags())));
+        hidden.put("byFilter", by);
+        return hidden;
+    }
+
+    /** The Event types toggle: ▾/▸ for whether the list shows, and the selection badge whether it shows or not (B1). */
+    private void renderEventTypesToggle(telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts rv) {
+        boolean shown = eventFilterPanel.isVisible();
+        eventTypesToggle.setText(RecordsViewWords.typesToggle(shown));
+        String badge = RecordsViewWords.typesBadge(rv);
+        eventTypesToggle.setIcon(badge == null ? null : new RecordsFilterBar.Badge(badge, eventTypesToggle.getFont()));
+        String name = RecordsViewWords.typesToggleName(rv, shown);
+        eventTypesToggle.getAccessibleContext().setAccessibleName(name);
+        eventTypesToggle.setToolTipText(UiText.tooltip(name + " — show or hide the event-type checklist that filters these records"));
+    }
+
+    /** An undo from the hidden line or the empty table: lift that one filter. The counts that follow are the session's. */
+    private void undoRecordsFilter(RecordsViewWords.Kind kind) {
+        if (filter == null) return;
+        switch (kind) {
+            case TYPES -> filter.setDimensions(null);
+            case TEXT -> filter.setText("");
+            case TIME -> filter.setTimeRange(null, null);
+            case FLAGGED -> setFlaggedOnly(false);
+        }
     }
 
     /**
@@ -8641,6 +8798,7 @@ public final class MainFrame extends JFrame {
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ResolveWalkTargetsEffect e -> walkPresenter.resolveAgain(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.EndWalkEffect e -> walkPresenter.end(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.MeasureRecordsViewEffect e -> measureRecordsView(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ScanLogEvidenceEffect e -> {
                 // M44.5: the processor decided the log's evidence is stale. The scan never runs inside the dispatch, and
                 // only against the store of the generation it names: see scanWhenInstalled.
@@ -10771,6 +10929,10 @@ public final class MainFrame extends JFrame {
             showing.put("visible", tablePanel.viewRowCount());
             showing.put("total", store == null ? 0 : store.size());
             out.put("showing", showing);
+            // ADDITIVE (robot walk of P3, 2026-10-18): what each active filter hides, from the session's records-view
+            // counts (rule 9), so an assistant asked "why are records missing?" can say which filter does it
+            var hidden = contextHidden(sessionSnapshot());
+            if (hidden != null) out.put("hidden", hidden);
 
             List<Map<String, Object>> selected = new ArrayList<>();
             for (LogRecord r : selectedRecords) {
@@ -11101,7 +11263,7 @@ public final class MainFrame extends JFrame {
                     }
                     findings.clear(); findings.putAll(restored);
                     flaggedRows.clear(); flaggedRows.addAll(restored.keySet());
-                    tablePanel.repaintRows(); topologyPanel.refreshFinding(); graphTabs.refreshFlagRug();
+                    tablePanel.repaintRows(); topologyPanel.refreshFinding(); graphTabs.refreshFlagRug(); reportFlagsToSession();
                     outcomes.add("Restored " + restored.size() + " flags/findings against the unchanged log");
                 } else outcomes.add("Flags/findings withheld: no unchanged log identity");
             }
