@@ -90,6 +90,42 @@ class ExampleDownloadTest {
         assertTrue(a.agentTrusts.isEmpty());
     }
 
+    /**
+     * ★ Owner follow-up (2026-10-18): the person is told which files the unpack made runnable — one line, decided by the
+     * node, in the snapshot; the first few and "and N more" past five, every file in its tooltip; nothing for none.
+     * Witness: publish {@code ""} for {@code runnable} in {@code ExampleDownload.state} — the line is missing.
+     */
+    @Test
+    @DisplayName("★ after unpacking, one line names the files made runnable (first few + and N more); none: nothing")
+    void theRunnableFilesAreNamed() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        d.post(new SessionEvents.ExampleDownloadRequested(1, 5, 1, source(DIGEST)));
+        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null));
+        assertEquals("", state(d).runnable(), "nothing is said before the unpack: the modes are not known yet");
+        d.post(new SessionEvents.ExampleFetched(1, true, 9, DIGEST, 100, null));
+        d.post(new SessionEvents.ExampleUnpacked(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null,
+                java.util.List.of("mvnw", "regen.sh")));
+        assertEquals("Runnable after unpacking: mvnw, regen.sh", state(d).runnable());
+        assertEquals("mvnw\nregen.sh", state(d).runnableAll());
+
+        assertEquals("Runnable after unpacking: a.sh, b.sh, c.sh, d.sh and 3 more", telamin.fluxtion.audit.analyser
+                .analyser.session.node.ExampleDownload.runnableLine(java.util.List.of("a.sh", "b.sh", "c.sh", "d.sh",
+                        "e.sh", "f.sh", "g.sh")));
+        assertEquals("Runnable after unpacking: a.sh, b.sh, c.sh, d.sh, e.sh", telamin.fluxtion.audit.analyser
+                .analyser.session.node.ExampleDownload.runnableLine(java.util.List.of("a.sh", "b.sh", "c.sh", "d.sh",
+                        "e.sh")));
+
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = new SessionDriver(b);
+        e.post(new SessionEvents.ExampleDownloadRequested(1, 5, 1, source(DIGEST)));
+        e.post(new SessionEvents.ExampleDownloadConfirmed(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null));
+        e.post(new SessionEvents.ExampleFetched(1, true, 9, DIGEST, 100, null));
+        e.post(new SessionEvents.ExampleUnpacked(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null));
+        assertEquals("DONE", state(e).phase());
+        assertEquals("", state(e).runnable(), "none made runnable: nothing is said");
+    }
+
     @Test
     @DisplayName("an entry with no digest is unpacked on its pinned commit alone; a stale fact is refused")
     void noDigestAndStaleFacts() {

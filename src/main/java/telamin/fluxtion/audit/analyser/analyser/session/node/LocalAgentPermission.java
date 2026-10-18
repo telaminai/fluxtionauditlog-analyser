@@ -179,7 +179,8 @@ public class LocalAgentPermission implements EventLogSource {
         if (cls == ToolClass.HOSTED_DESTRUCTIVE && e.kind() == SessionEvents.HostedCallKind.PRE_ALLOWED) {
             // owner decision 2026-10-18: a graph call that creates a chart or changes only the view is what the pre-allow
             // list covered — allowed without asking and without a grant; the server re-judges the call and runs a
-            // create as a create, so it can never replace a chart that appeared meanwhile
+            // create as a create, so it can never replace a chart that appeared meanwhile. Owner, the same day: in Full,
+            // an open of only a log or GraphML inside the session's real project folder too (McpTools.openInProject)
             allowWithoutAsking(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.PRE_ALLOWED);
             return changed();
         }
@@ -577,7 +578,8 @@ public class LocalAgentPermission implements EventLogSource {
                     : DENIED_FILE_EXCHANGE.equals(message) ? what + FILE_EXCHANGE_NOTE
                     : what + " was denied without asking you — " + lower(message);
             case NON_MUTATING -> what + " was allowed: it changes nothing";
-            case PRE_ALLOWED -> what + " was allowed: it creates or shows a chart";
+            case PRE_ALLOWED -> "open".equals(name) ? what + " was allowed: it opens this project's own files"
+                    : what + " was allowed: it creates or shows a chart";
         };
         // a request of an earlier generation belongs to a conversation entry nobody is reading: no note for it
         if (generation == localAgent.currentGeneration()) {

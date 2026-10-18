@@ -278,6 +278,30 @@ class StartPromptViewTest {
     }
 
     /**
+     * ★ Authoring walk (2026-10-18, shot 36): while Build is chosen the empty box invites the application, never "Ask
+     * about a log"; after the press is answered no row stays lit over the empty box. Witness: drop
+     * {@code renderPlaceholder()} from {@code renderAction} — the Build placeholder never appears.
+     */
+    @Test
+    @DisplayName("★ with Build chosen the box asks for the application, not a log question; answered, nothing stays lit")
+    void theBuildPlaceholder() throws Exception {
+        onEdt(() -> {
+            StartPromptView v = new StartPromptView(new Host());
+            v.render(route(StartPageState.Route.NO_AI), LocalAgentState.IDLE);
+            assertEquals(StartPromptView.PLACEHOLDER, v.box().getClientProperty("JTextField.placeholderText"));
+            v.promptList().setSelectedIndex(1);
+            v.choose(1);                                         // S7, Build
+            assertEquals("S7", v.chosen().id());
+            assertEquals(StartPromptView.BUILD_PLACEHOLDER, v.box().getClientProperty("JTextField.placeholderText"));
+            assertFalse(StartPromptView.BUILD_PLACEHOLDER.contains("log"));
+            v.clearAfterSend();
+            assertEquals(StartPromptView.PLACEHOLDER, v.box().getClientProperty("JTextField.placeholderText"));
+            assertEquals(-1, v.promptList().getSelectedIndex(), "no row stays lit over the empty box");
+            return null;
+        });
+    }
+
+    /**
      * ★ #9: the main action is the page's strongest control — accent-filled while it can be pressed, as tall as the box
      * and at least 32 px, at the box's right edge. Witness: leave it the theme's plain 23 px button — the height assertion
      * fails.

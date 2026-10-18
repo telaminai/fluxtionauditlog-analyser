@@ -217,6 +217,18 @@ public final class ActionServer {
     }
 
     /**
+     * Owner 2026-10-18: a hosted generation's project folder and posture ({@code McpTools.OpenScope}), so an in-project
+     * {@code open} under Full is admitted as the adapter judged it. Unset or null: every hosted {@code open} needs the
+     * grant. Never read for an external caller.
+     */
+    private volatile java.util.function.LongFunction<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope> hostedScopes;
+
+    public void setHostedScopes(
+            java.util.function.LongFunction<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope> scopes) {
+        this.hostedScopes = scopes;
+    }
+
+    /**
      * (Re)write the well-known endpoint file for this running server. Called at start, and again by the
      * owner window when the file has gone missing or names a dead process while this server is still
      * listening — the pointer is disposable, the server is not. Returns false when nothing was published
@@ -318,7 +330,7 @@ public final class ActionServer {
             if (hosted != null) {
                 var charts = chartState;
                 String refused = hostedRefusal(hostedGate, hosted, body, ex.getRequestHeaders().getFirst(TOOL_USE_HEADER),
-                        charts);
+                        charts, hostedScopes);
                 if (refused != null) {
                     send(ex, 403, err(refused));
                     return;
@@ -468,6 +480,13 @@ public final class ActionServer {
     /** {@link #hostedRefusal(HostedCredentials.Gate, String, String, String)}, judging a graph call against {@code charts}. */
     static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body, String toolUseId,
                                 telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts) {
+        return hostedRefusal(gate, credential, body, toolUseId, charts, null);
+    }
+
+    /** {@link #hostedRefusal(HostedCredentials.Gate, String, String, String, McpTools.ChartState)} with the generation's open scope. */
+    static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body, String toolUseId,
+                                telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts,
+                                java.util.function.LongFunction<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope> scopes) {
         long generation = gate == null ? -1 : gate.generationOf(credential);
         if (generation < 0) {
             return BAD_HOSTED_CREDENTIAL;
@@ -494,7 +513,8 @@ public final class ActionServer {
             // every other call of the verb still needs the person's grant
             // owner decision 2026-10-18: a graph call that creates a chart or changes only the view is admitted as the
             // pre-allowed verbs are; one that deletes, renames, restores or replaces a chart's definition needs the grant
-            var kind = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(action, params, charts);
+            var kind = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(action, params, charts,
+                    scopes == null ? null : scopes.apply(generation));
             if (kind == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.NON_MUTATING
                     || kind == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED) {
                 return gate.admit(generation, verb);

@@ -346,6 +346,10 @@ CASES += [
      "if (executables && portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {",
      'if (executables && POSIX_EXECUTABLES.contains(base)) {',
      'TemplateArchiveTest#archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist'),
+    # authoring walk 2026-10-18 (A2): a downloaded example's ./mvnw and ./regen.sh were 0644 — permission denied
+    ('example-scripts-keep-archive-mode', TEMPLATE_ARCHIVE,
+     '            if (!executables && exampleExecutable(portable, archiveMode)) {', '            if (false) {',
+     'ExampleArchiveContainmentTest#scriptsKeepTheArchivesMode'),
     # edit-loop spec §E: without the profile-identity comparison a project recreated at the same path is offered the old session
     ('recovery-profile-identity', SESSION_RECOVERY, '                && !e.profileIdentity().equals(candidate.profileIdentity())) {',
      '                && false) {', 'SessionRecoveryTest#aSessionCapturedByADifferentProfileAtThisPathIsWithheldNotOffered'),

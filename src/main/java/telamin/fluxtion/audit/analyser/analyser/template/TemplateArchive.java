@@ -43,16 +43,31 @@ public final class TemplateArchive {
             "setup.sh", "validate.sh", "generate.sh",
             "run-and-export.sh", "run.sh", "setup-java.sh", "runWasm.sh");
 
-    public record Installed(Path projectRoot, Path profile, List<String> commands) {
+    /**
+     * @param runnable owner follow-up (2026-10-18): the files an example's unpack gave an executable bit, relative to the
+     *                 project root, in archive order — so the person can be told which will run. Empty for a starter
+     *                 (its fixed list is the dialog's commands) and where there is no POSIX mode.
+     */
+    public record Installed(Path projectRoot, Path profile, List<String> commands, List<String> runnable) {
         public Installed {
             commands = List.copyOf(commands == null ? List.of() : commands);
+            runnable = List.copyOf(runnable == null ? List.of() : runnable);
+        }
+
+        public Installed(Path projectRoot, Path profile, List<String> commands) {
+            this(projectRoot, profile, commands, List.of());
         }
     }
 
     private final int maxEntries;
     private final long maxEntryBytes;
     private final long maxExpandedBytes;
-    /** False for a downloaded example (M74 P2b): no file becomes executable, not even a named root script. */
+    /**
+     * False for a downloaded example (M74 P2b): the starters' fixed list does not apply. Authoring walk (2026-10-18,
+     * A2): an example's {@code mvnw} and {@code *.sh} keep the executable bit the archive records for them (a GitHub
+     * archive records each file's git mode), so {@code ./mvnw} and {@code ./regen.sh} run as the example's README says;
+     * no other file is ever made executable, whatever the archive claims (see {@link #exampleExecutable}).
+     */
     private final boolean executables;
 
     public TemplateArchive() {
@@ -60,8 +75,9 @@ public final class TemplateArchive {
     }
 
     /**
-     * M74 P2b: the same fail-closed boundary for a prompt pack's example archive — every containment check and cap, and
-     * NO executable bit on any file: an example is unpacked to be read and offered as a project, never to be run.
+     * M74 P2b: the same fail-closed boundary for a prompt pack's example archive — every containment check and cap. The
+     * analyser never runs an example; only its {@code mvnw} and {@code *.sh} may keep an executable bit the archive
+     * records, so the person can run them as the example's README says (authoring walk, 2026-10-18).
      */
     public static TemplateArchive forExamples() {
         return new TemplateArchive(MAX_ENTRIES, MAX_ENTRY_BYTES, MAX_EXPANDED_BYTES, false);
@@ -97,7 +113,7 @@ public final class TemplateArchive {
         Path staging = Files.createTempDirectory(parent, ".analyser-template-");
         boolean installed = false;
         try {
-            extract(zip, staging);
+            List<String> runnable = extract(zip, staging);
             Path root = soleProjectRoot(staging);
             Path profileInStage = root.resolve(ProjectProfile.CANONICAL_RELATIVE);
             boolean hasProfile = Files.isRegularFile(profileInStage, LinkOption.NOFOLLOW_LINKS);
@@ -120,7 +136,7 @@ public final class TemplateArchive {
             }
             installed = true;
             Path profile = hasProfile ? target.resolve(ProjectProfile.CANONICAL_RELATIVE) : null;
-            return new Installed(target, profile, commands);
+            return new Installed(target, profile, commands, runnable);
         } finally {
             deleteTree(staging);
             // Once the atomic move succeeds the target is the requested result, not staging debris.
@@ -131,7 +147,9 @@ public final class TemplateArchive {
         }
     }
 
-    private void extract(byte[] bytes, Path staging) throws IOException {
+    private List<String> extract(byte[] bytes, Path staging) throws IOException {
+        List<String> runnable = new ArrayList<>();
+        java.util.Map<String, Integer> modes = executables ? java.util.Map.of() : unixModes(bytes);
         int entries = 0;
         long total = 0;
         Set<Path> seen = new HashSet<>();
@@ -171,11 +189,16 @@ public final class TemplateArchive {
                         out.write(buffer, 0, read);
                     }
                 }
-                setFixedPermissions(output, entry.getName(), executables);
+                if (setFixedPermissions(output, entry.getName(), executables, modes.get(entry.getName())) && !executables) {
+                    // below the archive's one top-level folder: the path the person sees in the project
+                    String portable = entry.getName().replace('\\', '/');
+                    runnable.add(portable.substring(portable.indexOf('/') + 1));
+                }
                 input.closeEntry();
             }
         }
         if (entries == 0) throw new IOException("starter archive has no entries");
+        return runnable;
     }
 
     private static Path safeTarget(Path staging, ZipEntry entry) throws IOException {
@@ -283,7 +306,65 @@ public final class TemplateArchive {
         return Files.isRegularFile(root.resolve(file), LinkOption.NOFOLLOW_LINKS);
     }
 
-    private static void setFixedPermissions(Path file, String archiveName, boolean executables) throws IOException {
+    /**
+     * An example's file keeps an executable bit only when its name is {@code mvnw} or ends {@code .sh} AND the archive
+     * records it as an executable regular file. An archive that records no Unix mode for it (one made where there is
+     * none) makes nothing runnable, and a file the archive marks as a link, or as not executable, never gets one.
+     */
+    static boolean exampleExecutable(String archiveName, Integer mode) {
+        String portable = archiveName.replace('\\', '/');
+        String base = portable.substring(portable.lastIndexOf('/') + 1);
+        if (!base.equals("mvnw") && !(base.endsWith(".sh") && base.length() > ".sh".length())) return false;
+        if (mode == null) return false;
+        int type = mode & 0170000;
+        return (type == 0100000 || type == 0) && (mode & 0111) != 0;
+    }
+
+    /**
+     * The Unix mode the archive's central directory records for each entry made on Unix (host 3), by entry name. Read
+     * from the bytes only; a malformed or ZIP64 directory yields what was read so far, never an error — the extraction
+     * itself is the boundary that refuses a bad archive.
+     */
+    static java.util.Map<String, Integer> unixModes(byte[] zip) {
+        java.util.Map<String, Integer> out = new java.util.HashMap<>();
+        int eocd = -1;
+        for (int i = zip.length - 22; i >= Math.max(0, zip.length - 22 - 0xFFFF); i--) {
+            if (u32(zip, i) == 0x06054b50L) {
+                eocd = i;
+                break;
+            }
+        }
+        if (eocd < 0) return out;
+        int count = u16(zip, eocd + 10);
+        long offset = u32(zip, eocd + 16);
+        if (offset >= zip.length) return out;
+        int at = (int) offset;
+        for (int n = 0; n < count && at + 46 <= zip.length && u32(zip, at) == 0x02014b50L; n++) {
+            int host = zip[at + 5] & 0xff;
+            int nameLength = u16(zip, at + 28);
+            int extraLength = u16(zip, at + 30);
+            int commentLength = u16(zip, at + 32);
+            long external = u32(zip, at + 38);
+            if (at + 46 + nameLength > zip.length) break;
+            String name = new String(zip, at + 46, nameLength, java.nio.charset.StandardCharsets.UTF_8);
+            if (host == 3) out.put(name, (int) (external >>> 16));
+            at += 46 + nameLength + extraLength + commentLength;
+        }
+        return out;
+    }
+
+    private static int u16(byte[] b, int i) {
+        return (b[i] & 0xff) | (b[i + 1] & 0xff) << 8;
+    }
+
+    private static long u32(byte[] b, int i) {
+        return ((long) (b[i] & 0xff)) | (long) (b[i + 1] & 0xff) << 8 | (long) (b[i + 2] & 0xff) << 16
+                | (long) (b[i + 3] & 0xff) << 24;
+    }
+
+    /** @return whether the file was given an executable bit */
+    private static boolean setFixedPermissions(Path file, String archiveName, boolean executables, Integer archiveMode)
+            throws IOException {
         try {
             Set<PosixFilePermission> permissions = new HashSet<>(Set.of(
                     PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
@@ -297,9 +378,16 @@ public final class TemplateArchive {
                 permissions.add(PosixFilePermission.GROUP_EXECUTE);
                 permissions.add(PosixFilePermission.OTHERS_EXECUTE);
             }
+            if (!executables && exampleExecutable(portable, archiveMode)) {
+                permissions.add(PosixFilePermission.OWNER_EXECUTE);
+                permissions.add(PosixFilePermission.GROUP_EXECUTE);
+                permissions.add(PosixFilePermission.OTHERS_EXECUTE);
+            }
             Files.setPosixFilePermissions(file, permissions);
+            return permissions.contains(PosixFilePermission.OWNER_EXECUTE);
         } catch (UnsupportedOperationException ignored) {
             // Windows has no POSIX mode. The archive's mode was never applied, which is the property.
+            return false;
         }
     }
 

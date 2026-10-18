@@ -224,4 +224,184 @@ class LocalAgentFullReplayTest {
         assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains(FullFolderTrust.NOT_RECHECKED),
                 "the dialog says plainly what the trust does not cover");
     }
+
+    /**
+     * ★ Authoring walk (2026-10-18, shots 36/37): Full Claude Code with NO project open works in the analyser's own empty
+     * scratch folder — confirmed by the consent's rule (review finding 3) and, now, by the spawn's re-check too. It was
+     * refused TRUST_CHANGED ("changed after you confirmed it") at every Start, though nothing had ever been confirmed.
+     * Witness: make {@code FullFolderTrust.confirmedFull} ignore {@code scratch} (records only) — the consent asks a
+     * question the person never needed, and the spawn is refused.
+     */
+    @Test
+    @DisplayName("★ Full with no project: the empty scratch folder starts, by the same rule the consent used")
+    void fullWithNoProjectStartsInTheEmptyScratchFolder() throws Exception {
+        FixtureAgent agent = new FixtureAgent(FixtureAgent.PB_FIXTURES, "pb-mode-default-iso.jsonl");
+        agent.rewrite = LOGGED_IN;
+        agent.conformHostedTools = true;
+        Harness h = new Harness(agent, home);
+        Path scratch = Files.createDirectories(home.resolve("scratch"));
+        h.scratch = scratch;
+        h.workingDirectory = scratch;
+        h.fullTrust = new java.util.ArrayList<>();                         // nothing was ever trusted
+        h.environment = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin:" + home.resolve("bin"));
+        h.consent = LocalAgentConsents.of(scratch, scratch, home,
+                new LocalAgentConsents.Settings(true, true, "default", List.of(), List.of(), null), p -> false);
+        assertTrue(h.consent.confirmedForPosture(), "the consent exempts the empty scratch folder");
+        h.start();
+        var spawned = h.facts(SessionEvents.LocalAgentSpawned.class);
+        assertFalse(spawned.isEmpty(), "a spawn was attempted");
+        assertEquals(SessionEvents.SpawnFailure.NONE, spawned.get(spawned.size() - 1).failure(), h.state().reason());
+        assertFalse(agent.processes.isEmpty(), "Claude Code was started in the scratch folder");
+        assertFalse(h.state().reason().contains("changed after you confirmed it"), h.state().reason());
+    }
+
+    /**
+     * ★ Authoring walk: a project folder never trusted for Full is ASKED about at Start — the consent says it is not
+     * confirmed, so the node asks for the folder dialog; and should a spawn ever meet a folder no record names, it is
+     * TRUST_NEEDED ("not trusted … yet"), never TRUST_CHANGED. Witness: report TRUST_CHANGED whatever
+     * {@code namesFolder} says — the spawn's verdict is TRUST_CHANGED.
+     */
+    @Test
+    @DisplayName("★ a folder never trusted for Full is asked about, never reported as changed")
+    void aFolderNeverTrustedIsAskedNotChanged() throws Exception {
+        FixtureAgent agent = new FixtureAgent(FixtureAgent.PB_FIXTURES, "pb-mode-default-iso.jsonl");
+        agent.rewrite = LOGGED_IN;
+        agent.conformHostedTools = true;
+        Harness h = new Harness(agent, home);
+        Path dir = home.resolve("proj");
+        h.fullTrust = new java.util.ArrayList<>();
+        h.environment = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin:" + home.resolve("bin"));
+        // what the frame observes: not confirmed, so Start asks
+        h.consent = LocalAgentConsents.of(dir, home.resolve("elsewhere"), home,
+                new LocalAgentConsents.Settings(true, true, "default", List.of(), List.of(), null), p -> false);
+        assertFalse(h.consent.confirmedForPosture());
+        h.start();
+        assertTrue(h.others.stream().anyMatch(e -> e instanceof telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect c && c.full()), "Start asks about the folder: " + h.others);
+        assertTrue(agent.processes.isEmpty(), "nothing was started before the answer");
+        // a consent that claimed it (a record removed between the observation and the spawn): not "changed"
+        h.consent = h.fullConsent(FullMode.DEFAULT);
+        h.start();
+        var spawned = h.facts(SessionEvents.LocalAgentSpawned.class);
+        assertEquals(SessionEvents.SpawnFailure.TRUST_NEEDED, spawned.get(spawned.size() - 1).failure());
+        assertTrue(h.state().reason().contains("not trusted for full Claude Code yet"), h.state().reason());
+        assertTrue(agent.processes.isEmpty(), "nothing was started");
+    }
+
+    /**
+     * ★ Authoring walk (2026-10-18, shot 54): a question SENT while Full asks for folder trust is not lost. Send opens the
+     * folder question; Trust starts Claude Code and the question is sent once, at READY. Don't trust starts nothing, and
+     * the question is not accepted (the composer keeps it). Witness: drop the hold in {@code onFolderAnswered} (never set
+     * {@code pendingDraft} there) — "Ready" with nothing sent.
+     */
+    @Test
+    @DisplayName("★ a Send that asks for folder trust is sent once after Trust, and kept on Don't trust")
+    void aSendThatAsksForTrustIsSentOnceAfterIt() throws Exception {
+        Harness h = untrustedFull(home);
+        h.send("build me a diamond");
+        var asked = h.others.stream().filter(e -> e instanceof telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect).map(e -> (telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect) e).toList();
+        assertEquals(1, asked.size(), "Send asks about the folder: " + h.others);
+        assertFalse(h.state().answer().accepted(), "nothing is accepted before the answer");
+        h.driver.post(new SessionEvents.LocalAgentFolderAnswered(asked.get(0).request(), true, true, h.consent));
+        assertEquals("READY", h.state().phase(), h.state().reason());
+        assertTrue(h.state().answer().accepted(), "the Send's request is accepted: the composer clears");
+        assertEquals(asked.get(0).request(), h.state().answer().request());
+        assertEquals(List.of("build me a diamond"), h.userTurns(), "the question was sent, once");
+        assertEquals(1, h.agent.last().stdin.stream().filter(l -> l.contains("build me a diamond")).count(),
+                "and reached Claude Code once");
+        assertEquals(0, h.state().pendingDraft());
+
+        Harness no = untrustedFull(home.resolve("no"));
+        no.send("build me a diamond");
+        var askedNo = no.others.stream().filter(e -> e instanceof telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect).map(e -> (telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect) e).toList();
+        no.driver.post(new SessionEvents.LocalAgentFolderAnswered(askedNo.get(0).request(), false, true, no.consent));
+        assertFalse(no.state().answer().accepted(), "declined: the question stays in the composer");
+        assertTrue(no.agent.processes.isEmpty(), "nothing was started");
+        assertEquals(List.of(), no.userTurns());
+        assertEquals(0, no.state().pendingDraft(), "and nothing waits to be sent later");
+    }
+
+    /** Full Claude Code in a project folder the person has not yet trusted for it (the consent the frame observes). */
+    private Harness untrustedFull(Path at) throws Exception {
+        FixtureAgent agent = new FixtureAgent(FixtureAgent.PB_FIXTURES, "pb-mode-default-iso.jsonl");
+        agent.rewrite = LOGGED_IN;
+        agent.conformHostedTools = true;
+        Files.createDirectories(at);
+        Harness h = new Harness(agent, at);
+        h.environment = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin:" + at.resolve("bin"));
+        h.consent = new SessionEvents.LocalAgentConsent(true, false, false, ClaudeCodeProvider.postureRef(at.resolve("proj"),
+                LocalAgentPosture.full(FullMode.DEFAULT)), 0, SessionEvents.FolderVerdict.OK, true, FullMode.DEFAULT, false);
+        return h;
+    }
+
+    /**
+     * ★ Owner 2026-10-18: the Full session is LAUNCHED with the analyser's standing instruction (stay in the project, never
+     * look for the key) on its {@code --append-system-prompt}; the Safe session is not; and the folder-trust dialog says
+     * the analyser adds it. Witness: end {@code FULL_SYSTEM_NOTE} before {@code STAY_IN_PROJECT_NOTE} — the launched argv
+     * lacks it.
+     */
+    @Test
+    @DisplayName("★ the launched Full argv carries the stay-in-the-project instruction; Safe's does not; the dialog says so")
+    void theFullArgvCarriesTheStandingInstruction() throws Exception {
+        Harness full = full("pb-mode-default-iso.jsonl", FullMode.DEFAULT);
+        List<String> argv = full.agent.commands.get(0);
+        String note = argv.get(argv.indexOf("--append-system-prompt") + 1);
+        assertTrue(note.contains(ClaudeCodeProvider.STAY_IN_PROJECT_NOTE), note);
+        assertEquals(1, argv.stream().filter(a -> a.contains(ClaudeCodeProvider.STAY_IN_PROJECT_NOTE)).count(),
+                "carried once, as the system prompt, never as a user turn");
+
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        Harness safe = new Harness(agent, home.resolve("safe"));
+        safe.start();
+        List<String> safeArgv = safe.agent.commands.get(0);
+        assertFalse(String.join(" ", safeArgv).contains(ClaudeCodeProvider.STAY_IN_PROJECT_NOTE),
+                "Safe has no shell and runs --restricted: no such instruction");
+
+        Path dir = home.resolve("proj");
+        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains(FullFolderTrust.ADDS_INSTRUCTION),
+                "the person is told the analyser adds it");
+    }
+
+    private static String openRequest(String id, String log) {
+        return "{\"type\":\"control_request\",\"request_id\":\"" + id + "\",\"request\":{\"subtype\":\"can_use_tool\","
+                + "\"tool_name\":\"mcp__fluxtion-analyser-hosted__analyser_open\",\"input\":{\"log\":\""
+                + log.replace("\\", "\\\\") + "\"},\"tool_use_id\":\"toolu_" + id + "\"}}";
+    }
+
+    /**
+     * ★ Owner 2026-10-18, through the REAL adapter and processor: in Full, Claude Code's request to {@code analyser_open}
+     * the project's own log is judged PRE_ALLOWED (the node then allows it with no dialog — LocalAgentPermission's
+     * PRE_ALLOWED path); one outside the folder, and the same request in Safe analysis, are CHANGES (asked). Witness:
+     * pass {@code null} for the scope in the adapter's {@code hostedCallKind} call — the in-project open is CHANGES.
+     */
+    @Test
+    @DisplayName("★ Full: open of the project's own log needs no approval; outside the folder, or in Safe, it is asked")
+    void anInProjectOpenNeedsNoApprovalInFull() throws Exception {
+        Harness h = full("pb-mode-default-iso.jsonl", FullMode.DEFAULT);
+        Path log = Files.writeString(home.resolve("proj/diamond-audit.yaml"), "eventLogRecord:\n");
+        Path outside = Files.writeString(home.resolve("elsewhere.yaml"), "eventLogRecord:\n");
+        h.agent.last().emit(openRequest("in", log.toString()));
+        h.drain();
+        var in = h.facts(SessionEvents.LocalAgentPermissionRequested.class);
+        assertEquals(SessionEvents.HostedCallKind.PRE_ALLOWED, in.get(in.size() - 1).kind(), "the project's own log");
+        h.agent.last().emit(openRequest("out", outside.toString()));
+        h.drain();
+        var out = h.facts(SessionEvents.LocalAgentPermissionRequested.class);
+        assertEquals(SessionEvents.HostedCallKind.CHANGES, out.get(out.size() - 1).kind(), "outside the folder: asked");
+
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        Harness safe = new Harness(agent, home.resolve("safe"));
+        safe.start();
+        Path safeLog = Files.writeString(home.resolve("safe/proj/diamond-audit.yaml"), "eventLogRecord:\n");
+        safe.agent.last().emit(openRequest("safe", safeLog.toString()));
+        safe.drain();
+        var asked = safe.facts(SessionEvents.LocalAgentPermissionRequested.class);
+        assertEquals(SessionEvents.HostedCallKind.CHANGES, asked.get(asked.size() - 1).kind(), "Safe is unchanged");
+    }
 }

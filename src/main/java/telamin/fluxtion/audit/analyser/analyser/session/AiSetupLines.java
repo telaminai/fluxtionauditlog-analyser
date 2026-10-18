@@ -208,6 +208,21 @@ public final class AiSetupLines {
             + "is open or writes a file.";
     public static final String SAFE_LINE_2 = "No shell, no file edits, no web. Your skills, hooks and MCP servers are not "
             + "loaded — safe with logs you did not write.";
+    /**
+     * Authoring walk (2026-10-18, shots 03/15): the wizard's line while a Build question waits — said plainly, because
+     * the recommended Safe analysis cannot do what was asked.
+     */
+    public static final String BUILD_NEEDS_FULL = "Building an application needs Full Claude Code: Safe analysis reads and "
+            + "explains your evidence but cannot write code. Full Claude Code in acceptEdits mode is recommended here — "
+            + "you confirm it before anything is applied.";
+    /**
+     * Owner follow-up (2026-10-18): what {@code acceptEdits} means, under the mode choice — Claude Code accepts its own
+     * file edits in the folder; Bash (mvn, regen) still reaches the analyser's approval dialog, Deny its default.
+     */
+    public static final String ACCEPT_EDITS_NOTE = "Claude edits files in this project without asking; commands still ask "
+            + "you.";
+    /** The mode a Build question preselects: Claude Code's own {@code acceptEdits} (never bypassPermissions). */
+    public static final String BUILD_FULL_MODE = "acceptEdits";
     public static final String FULL_TITLE = "Full Claude Code";
     public static final String FULL_LINE = "Your own settings, skills, hooks, MCP servers and tools, as in your terminal.";
     public static final String CONFIRM_FULL_BUTTON = "Continue — confirm Full…";

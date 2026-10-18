@@ -2053,6 +2053,21 @@ and the templates follow at their next re-vendor.
 **Cost to us if unfixed.** Rungs 2 and 4 can be measured only with a fixture patch. A starter author pays for the
 design context in every diagnosis request.
 
+## UP-PG-09 ☐ Catalogue descriptions carry internal milestone ids
+
+**Target** `fluxtion-web` (playground `starter-templates/index.json`) · **Found** the authoring robot walk, 2026-10-18 (shot 4)
+
+**Evidence.** The *Audit analyser bundle* entry's `description` begins *"The M19 onboarding bundle: …"* (captured in
+`docs/handoff/evidence/project-template-catalogue-2026-09-20/catalogue.json`). `M19` is this project's tracker id; the
+template dialog showed it to a newcomer as if it meant something.
+
+**The ask.** Descriptions are user-visible prose: no milestone ids (`\bM\d+\b`). *"The onboarding bundle: …"* says the
+same thing.
+
+**What the analyser does meanwhile.** `TemplateCatalogue.Entry.shownDescription()` leaves milestone ids out of what the
+dialog shows, and `UserVisibleJargonTest.noMilestoneIdReachesThePerson` checks the served catalogue's shown text and the
+analyser's own Ask catalogue. The workaround can go once the catalogue no longer carries them.
+
 ## Spring authoring edit loop — 2026-09-25 intake
 
 **Status: proposed handoff, not implemented.** Canonical acceptance is the

@@ -1259,7 +1259,12 @@ public final class SessionEvents {
         /** The working directory at spawn is not the one the posture was decided for (review M7). */
         FOLDER_CHANGED,
         /** Review B7: in the full posture, the folder's full trust digest at spawn is not one the person confirmed. */
-        TRUST_CHANGED }
+        TRUST_CHANGED,
+        /**
+         * Authoring walk (2026-10-18): in the full posture, no record names the folder at all — it was never trusted, so
+         * nothing "changed"; the next Start asks about it.
+         */
+        TRUST_NEEDED }
 
     /** The process for {@code generation} started ({@code failure} NONE), or did not; {@code detailRef} names the words. */
     public record LocalAgentSpawned(long generation, SpawnFailure failure, long detailRef) {
@@ -1795,7 +1800,19 @@ public final class SessionEvents {
     }
 
     /** The unpack through the template archive machinery: the project root it made, or why not. */
-    public record ExampleUnpacked(long request, boolean ok, long rootRef, String rootShown, String failure) {
+    public record ExampleUnpacked(long request, boolean ok, long rootRef, String rootShown, String failure,
+                                  java.util.List<String> runnable) {
+        /**
+         * Owner follow-up (2026-10-18): {@code runnable} — the files the unpack gave an executable bit, relative to the
+         * project root (an observation; {@code exampleDownload} decides the words). Empty: none.
+         */
+        public ExampleUnpacked {
+            runnable = java.util.List.copyOf(runnable == null ? java.util.List.of() : runnable);
+        }
+
+        public ExampleUnpacked(long request, boolean ok, long rootRef, String rootShown, String failure) {
+            this(request, ok, rootRef, rootShown, failure, java.util.List.of());
+        }
     }
 
     /** Answered at once by each example effect. */

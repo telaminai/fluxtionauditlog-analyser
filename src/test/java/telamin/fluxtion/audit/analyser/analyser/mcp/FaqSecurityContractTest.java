@@ -74,6 +74,11 @@ class FaqSecurityContractTest {
                 "asks again if those files change", "your own tools, including Bash",
                 "as far as your permission rules and the mode you chose allow",
                 "the analyser does not confine it to the folder", "bypassPermissions is never offered",
+                // owner 2026-10-18: the analyser's standing instruction, said as what it is
+                "it adds one standing instruction", "a request to the model, not a sandbox",
+                // owner 2026-10-18: the one narrow open that needs no dialog, and what still asks
+                "Under **Full Claude Code only**", "inside the session's project folder",
+                "Safe analysis asks for every `open`",
                 "Start button starts full Claude Code"}) {
             assertTrue(answer.contains(claim), "the FAQ security answer must state, for full Claude Code: " + claim);
         }
@@ -271,5 +276,27 @@ class FaqSecurityContractTest {
             assertTrue(entry.contains(claim), "the FAQ entry on Claude Code's own data must say: " + claim);
         }
         assertTrue(AiSetupLines.DIAGRAM_USAGE_LINK.startsWith("What Claude Code itself sends"), "the link's words");
+    }
+
+    /**
+     * ★ Owner 2026-10-18: the standing instruction a Full session carries is FIXED analyser text — pinned here word for
+     * word, so a change to it is a reviewed change to the security contract — with no placeholder a person's or a
+     * model's words could be put into, and plain text (no markup the CLI could read as more than words). Witness: put a
+     * {@code %s} or a folder name into {@code ClaudeCodeProvider.STAY_IN_PROJECT_NOTE} — this fails.
+     */
+    @Test
+    void theFullSessionsStandingInstructionIsFixedText() {
+        String note = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.STAY_IN_PROJECT_NOTE;
+        assertTrue(note.equals("Work only inside this project folder: do not list, search or read files outside it, or "
+                + "the environment. If the build needs the Fluxtion API key, the Fluxtion Maven plugin reads it; never "
+                + "search for it, print it or read key files. Use ./mvnw and the project's own scripts to build and "
+                + "generate."), "the pinned instruction changed: review it as a security-contract change");
+        for (char ch : "{}<>%$`\\\n\r".toCharArray()) {
+            assertTrue(note.indexOf(ch) < 0, "plain text: no placeholder, markup or escape: " + ch);
+        }
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.FULL_SYSTEM_NOTE
+                .endsWith(note), "the Full note carries it");
+        assertFalse(telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.SYSTEM_NOTE
+                .contains(note), "Safe has no shell and --restricted: it does not");
     }
 }

@@ -121,6 +121,9 @@ class FactFieldsTest {
         // the Records view's counts (usability review 2026-10-18): numbers, flags, the log's event-type names, and the
         // search text by reference only (RecordsViewCounts.textRef) — an assistant may have typed it
         M74.put("RecordsViewMeasured.counts", Holds.LOG_COUNTS);
+        // owner follow-up 2026-10-18: file names RELATIVE to the unpacked root (mvnw, regen.sh) of the archive the
+        // person's pack named — never an absolute path, never a model's words
+        M74.put("ExampleUnpacked.runnable", Holds.PERSON_PACK);
         for (String c : List.of("LocalAgentStartRequested.consent", "LocalAgentSendRequested.consent",
                 "LocalAgentConsentChanged.consent", "LocalAgentFolderAnswered.consent", "LocalAgentDraftComposed.consent",
                 "LocalAgentRestartAnswered.consent",

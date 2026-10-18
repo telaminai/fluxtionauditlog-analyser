@@ -178,6 +178,12 @@ public final class FullFolderTrust {
      * CLAUDE.md pulls in with {@code @path} imports, CLAUDE.md files in folders ABOVE this one, and the contents of the
      * scripts a hook runs are read by Claude Code but not re-checked by the analyser: a change to them asks nothing.
      */
+    /** The dialog's disclosure of the analyser's standing instruction ({@code ClaudeCodeProvider.STAY_IN_PROJECT_NOTE}). */
+    public static final String ADDS_INSTRUCTION = "The analyser adds one instruction to full Claude Code: work only "
+            + "inside this folder, never look for the Fluxtion API key or key files, and build with ./mvnw and the "
+            + "project's scripts. It is a request to Claude, not a sandbox — your permission rules and the analyser's "
+            + "approvals still decide what runs.";
+
     public static final String NOT_RECHECKED = "Not re-checked by the analyser: files a CLAUDE.md imports with @path, "
             + "CLAUDE.md files in the folders above this one, and the contents of the scripts a hook runs. Claude Code "
             + "reads or runs them, and a change to them does not ask again.";
@@ -657,6 +663,8 @@ public final class FullFolderTrust {
         }
         // holistic review B7 (2026-10-17): what the trust does NOT cover, said plainly
         sb.append("\n").append(NOT_RECHECKED).append('\n');
+        // owner, 2026-10-18: what the analyser itself adds to the session, so the person knows
+        sb.append("\n").append(ADDS_INSTRUCTION).append('\n');
         sb.append("\nTrust ").append(dir).append(" for full Claude Code in the analyser? This is asked again if these files ")
                 .append("change.\n\nRemembered on this machine only; never in a project, a shared settings file or a bundle.");
         return sb.toString();
@@ -715,6 +723,27 @@ public final class FullFolderTrust {
     }
 
     /** Whether {@code records} confirm {@code realPath} with exactly {@code digest} — never the path alone. */
+    /**
+     * Authoring walk (2026-10-18, shots 36/37): the ONE full-posture confirmation rule, read by the consent the session
+     * decides from AND by the spawn's re-check (holistic review B7) — the analyser's own scratch folder counts as
+     * confirmed while it holds none of the files Start would load (review finding 3); any other folder by its record.
+     * The two had drifted: the consent exempted the scratch folder, the spawn did not, and Full with no project open
+     * was refused "changed after you confirmed it" at every Start, though nothing had ever been confirmed.
+     */
+    public static boolean confirmedFull(List<String> records, Path dir, Path scratch) {
+        if (dir == null) return false;
+        Scan scan = scan(dir);
+        return dir.equals(scratch) && scan.allAbsent()
+                || confirms(records, ClaudeCodeProvider.realPath(dir), scan.digest());
+    }
+
+    /** Whether any record names {@code realPath} — a folder trusted once, whatever its content was then. */
+    public static boolean namesFolder(List<String> records, String realPath) {
+        if (records == null || realPath == null) return false;
+        for (String r : records) if (r != null && r.startsWith(realPath + "|")) return true;
+        return false;
+    }
+
     public static boolean confirms(List<String> records, String realPath, String digest) {
         if (records == null || realPath == null || digest == null) return false;
         return records.contains(record(realPath, digest));

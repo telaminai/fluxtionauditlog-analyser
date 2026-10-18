@@ -127,6 +127,8 @@ public final class StartPromptView extends JPanel {
     private final JLabel keyHint = UiText.label(KEY_HINT);
     static final String KEY_HINT = "Enter sends · Shift+Enter starts a new line";
     static final String PLACEHOLDER = "Ask about a log, or choose an entry above";
+    /** Authoring walk (2026-10-18, shot 36): with Build chosen the box is for the application, not a log question. */
+    static final String BUILD_PLACEHOLDER = "Describe the application you want to build";
     private final JTextArea note = Fluid.text(" ");
     /** P2b: an example download's phase and the node's words (exampleDownload decides them). */
     private final JTextArea exampleNote = Fluid.text(" ");
@@ -374,8 +376,13 @@ public final class StartPromptView extends JPanel {
     /** P2b: render an example download's state, as exampleDownload decided it. */
     public void renderExample(telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState e) {
         example = e == null ? telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState.IDLE : e;
-        exampleNote.setText(example.note().isBlank() ? " " : example.note());
-        exampleNote.setVisible(!example.note().isBlank());
+        // owner follow-up (2026-10-18): the node's runnable line under its note, every file in the tooltip
+        String shown = example.runnable().isBlank() ? example.note()
+                : example.note().isBlank() ? example.runnable() : example.note() + "\n" + example.runnable();
+        exampleNote.setText(shown.isBlank() ? " " : shown);
+        exampleNote.setToolTipText(example.runnableAll().isBlank() ? null
+                : UiText.tooltip("Runnable after unpacking:\n" + example.runnableAll()));
+        exampleNote.setVisible(!shown.isBlank());
         renderAction();
         revalidate();
         repaint();
@@ -493,6 +500,7 @@ public final class StartPromptView extends JPanel {
         action.getAccessibleContext().setAccessibleName(label);
         action.setEnabled(chosen != null || !box.getText().isBlank());
         renderKeyHint(chosen == null ? null : label);
+        renderPlaceholder();
         renderPrimary();
     }
 
@@ -718,9 +726,19 @@ public final class StartPromptView extends JPanel {
         };
     }
 
+    /** What the empty box invites: the application while Build is chosen, otherwise a question about a log. */
+    private void renderPlaceholder() {
+        String want = chosen != null && "S7".equals(chosen.id()) ? BUILD_PLACEHOLDER : PLACEHOLDER;
+        if (!want.equals(box.getClientProperty("JTextField.placeholderText"))) {
+            box.putClientProperty("JTextField.placeholderText", want);
+            box.repaint();
+        }
+    }
+
     /** After the button was answered: the box keeps its words until the person clears them. */
     public void clearAfterSend() {
         box.setText("");
+        list.clearSelection();          // the entry was answered: no row stays lit over an empty box (shot 36)
         unchoose();
     }
 

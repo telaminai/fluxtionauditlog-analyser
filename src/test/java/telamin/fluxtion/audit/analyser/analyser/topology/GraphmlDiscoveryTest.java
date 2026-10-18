@@ -20,6 +20,24 @@ class GraphmlDiscoveryTest {
         return Files.copy(EVIDENCE.resolve(source), target);
     }
 
+    /**
+     * ★ Authoring walk (2026-10-18, shot 12): the bundle's source roots are {@code src/main/java} and its generated
+     * {@code .graphml} is a resource under {@code src/main/resources} — Find GraphML in source roots finds it. Witness:
+     * walk {@code roots} instead of {@code withResources(roots)} in {@code scan} — "No .graphml found".
+     */
+    @Test
+    void aJavaRootBringsItsResourcesFolder(@TempDir Path root) throws Exception {
+        Path java = Files.createDirectories(root.resolve("bundle/src/main/java/com/example"));
+        Path graph = fixture(root, "bundle/src/main/resources/com/example/generated", "MarketProcessor.src-round3.graphml");
+        var result = GraphmlDiscovery.scan(List.of(root.resolve("bundle/src/main/java").toString()), Set.of());
+        assertEquals(List.of(graph), result.candidates().stream().map(GraphmlDiscovery.Candidate::file).toList());
+        // named twice (a root that IS the resources folder): walked once
+        var twice = GraphmlDiscovery.scan(List.of(root.resolve("bundle/src/main/java").toString(),
+                root.resolve("bundle/src/main/resources").toString()), Set.of());
+        assertEquals(1, twice.candidates().size());
+        assertTrue(Files.isDirectory(java));
+    }
+
     @Test
     void committedCopiesDisagreeWithoutALogAndRankByLoggedEvidence(@TempDir Path root) throws Exception {
         Path current = fixture(root, "source", "MarketProcessor.src-round3.graphml");

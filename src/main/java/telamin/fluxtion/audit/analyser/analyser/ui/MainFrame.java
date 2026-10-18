@@ -5197,6 +5197,7 @@ public final class MainFrame extends JFrame {
             }
             @Override public boolean scratchForProject() { return projectRootIsAnalyserOwned(); }
             @Override public java.util.List<String> fullTrustRecords() { return config.claudeCodeTrustedFullFolders; }
+            @Override public Path scratchFolder() { return localAgentScratch; }
             @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts() {
                 return MainFrame.this::chartExistsNow;
             }
@@ -5821,6 +5822,8 @@ public final class MainFrame extends JFrame {
             actionServer.setHostedGate(hostedCredentials.gate(hostedAdmission));
             // owner decision 2026-10-18: a hosted graph call that would replace an existing chart is asked, not pre-allowed
             actionServer.setChartState(this::chartExistsNow);
+            // owner 2026-10-18: a Full session's open of its own project's log or GraphML is judged as the adapter did
+            actionServer.setHostedScopes(g -> localAgentAdapter == null ? null : localAgentAdapter.hostedScope(g));
             // M74 P2b (§5.6): the hosted credential alone may reach `propose`; the offer is the session's to record
             d.setProposer(this::proposeFromHosted);
             actionServer.start();
@@ -11986,7 +11989,13 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e) {
         var before = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.snapshot(config);
         // the details are those of the surface that asked: the wizard's (M77-2), or none for the quick switch
-        telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.apply(e.profile(), profileDetailsFor(e.origin()),
+        var details = profileDetailsFor(e.origin());
+        if (e.fullMode() != null) {
+            // the full mode the node decided (the wizard's sub-choice), with the surface's other details
+            details = new telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.Details(e.fullMode(),
+                    details.claudeModel(), details.provider(), details.model(), details.apiKey());
+        }
+        telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.apply(e.profile(), details,
                 config);
         // review P3+UX S4: the result reports the REAL save — a failed write puts the previous settings back and says so;
         // the mode change is assistantProfile's to ask for, after this fact
@@ -13127,7 +13136,8 @@ public final class MainFrame extends JFrame {
             }
         }, installed -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked(
                 e.request(), true, factRefs.put(installed.projectRoot().toString()),
-                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(installed.projectRoot().toString()), null)),
+                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(installed.projectRoot().toString()), null,
+                installed.runnable())),
                 err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked(
                         e.request(), false, 0, null,
                         telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));

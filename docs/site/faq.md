@@ -168,7 +168,10 @@ no file writes**. These groups of verbs go further, honestly labelled:
   or walks — is allowed without a dialog, the analyser judging the call's own input, and every other call of those verbs
   is still asked; a file write the settings would refuse (file exchange off) is **refused at once with the reason**,
   never asked and then refused; and a second request arriving while a dialog is open **waits** for it, and is denied if
-  its turn ends or you press Stop first. There is no "allow for this turn". Each folder is
+  its turn ends or you press Stop first. Under **Full Claude Code only**, an `open` of nothing but a log or GraphML
+  file whose real path (links resolved) is **inside the session's project folder** is allowed without a dialog; a
+  project switch or close, Follow, any other field, and any path outside the folder are still asked, and Safe analysis
+  asks for every `open`. There is no "allow for this turn". Each folder is
   confirmed once before Start, a bundle's working copy is refused, and its bridge carries its own per-session
   credential: a call with only the REST token is never treated as Claude Code's, Claude Code cannot delete a chart, and
   only the verbs listed above are served to it — a verb added in a later release stays refused until it is listed.
@@ -197,7 +200,9 @@ no file writes**. These groups of verbs go further, honestly labelled:
   says so.
   Claude Code can then use **your own tools, including Bash**, file edits and web access, **as far as your permission
   rules and the mode you chose allow** (`default`, `acceptEdits`, `auto` or `plan`; **bypassPermissions is never
-  offered**, nor `dontAsk`) — **the analyser does not confine it to the folder**. In Claude Code's own `default` and
+  offered**, nor `dontAsk`) — **the analyser does not confine it to the folder**; it adds one standing instruction
+  to the session (work only inside the project folder, never look for the Fluxtion API key or key files, build with
+  `./mvnw` and the project's scripts), **a request to the model, not a sandbox**. In Claude Code's own `default` and
   `acceptEdits` modes, whatever it would ask you in a terminal it asks in the analyser's dialog — Bash, file edits, web
   access, your MCP servers' tools and the analyser's own verbs above — one at a time, Deny the default; under `auto` and
   `plan` the analyser's verbs that change what is open stay hidden. **A call your own rules or hooks approve is not

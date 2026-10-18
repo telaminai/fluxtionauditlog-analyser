@@ -49,11 +49,9 @@ public final class LocalAgentConsents {
         LocalAgentPosture posture = s.full() ? LocalAgentPosture.full(mode) : LocalAgentPosture.ANALYSER_ASSISTANT;
         boolean fullConfirmed = false;
         if (s.full() && dir != null) {
-            FullFolderTrust.Scan scan = FullFolderTrust.scan(dir);
             // review finding 3: the scratch folder counts as confirmed only while it holds none of the three files —
-            // a hook planted there is asked about like any other folder's
-            fullConfirmed = isScratch && scan.allAbsent()
-                    || FullFolderTrust.confirms(s.trustedFull(), real, scan.digest());
+            // a hook planted there is asked about like any other folder's. The spawn re-checks by the same rule.
+            fullConfirmed = FullFolderTrust.confirmedFull(s.trustedFull(), dir, scratch);
         }
         // the one posture function, the adapter's too: it re-digests the folder it is about to use (review M7)
         String postureRef = ClaudeCodeProvider.postureRef(dir, posture);
