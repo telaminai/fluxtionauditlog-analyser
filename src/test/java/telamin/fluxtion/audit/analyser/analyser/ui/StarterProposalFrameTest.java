@@ -151,6 +151,16 @@ class StarterProposalFrameTest {
     @Test
     @DisplayName("★ propose → review → choose folder → Apply → files, skills, discovery, project, design, watch, draft — nothing sent")
     void aProposedStarterBecomesTheOpenProject(@TempDir Path tmp) throws Exception {
+        proposedStarter(tmp, true);
+    }
+
+    @Test
+    @DisplayName("declining the design root never records a refused design read as opened")
+    void aDeclinedDesignRootReportsTheActualReadOutcome(@TempDir Path tmp) throws Exception {
+        proposedStarter(tmp, false);
+    }
+
+    private void proposedStarter(Path tmp, boolean approveDesignRoot) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         Path home = Files.createDirectories(tmp.resolve("home"));
         Path claude = Files.createDirectories(home.resolve(".local/bin")).resolve("claude");
@@ -307,6 +317,7 @@ class StarterProposalFrameTest {
             });
             capture(visual, combined, "03-combined-review.png");
             onEdt(() -> named(combined, "Open the project: Yes").doClick());
+            if (!approveDesignRoot) onEdt(() -> named(combined, "Design folder src/main/fluxtion/designer: No").doClick());
             onEdt(() -> ClaudeCodeTabFrameTest.findButton(combined, "Apply chosen").doClick());
 
             // synced: the project open, its design shown, the watch armed, the draft placed and nothing sent
@@ -318,6 +329,19 @@ class StarterProposalFrameTest {
                     || session.processor().activeProject.name().equals("new-app"), "the project is open"));
             awaitSnapshot(f, s -> s.proposal().items().get(0).state()
                     == telamin.fluxtion.audit.analyser.analyser.session.ProposalState.ItemState.APPLIED, "the row applied");
+            if (!approveDesignRoot) {
+                AtomicReference<String> result = new AtomicReference<>("");
+                awaitTrue(() -> {
+                    onEdt(() -> result.set(session.auditSink().records().stream()
+                            .filter(r -> r.contains("starterDesign:")).reduce((a, b) -> b).orElse("")));
+                    return !result.get().isEmpty();
+                }, "the design operation has reported an outcome");
+                assertTrue(result.get().contains("starterDesign: false"),
+                        "a refused source-root read must not be recorded as opened: " + result.get());
+                assertTrue(snapshot(f).starter().note().contains("design was not shown"), snapshot(f).starter().note());
+                onEdt(() -> assertNull(session.processor().designSession.document(), "the refused design is not displayed"));
+                return;
+            }
             awaitTrue(() -> {
                 String d = session.processor().designSession.path();
                 return d != null && d.endsWith("application-context.xml");

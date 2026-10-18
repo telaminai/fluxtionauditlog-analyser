@@ -8,6 +8,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Integration review fixes
 
+- A new starter reports its design as shown only after the read and display succeed. Declining the design source root, or a failed read, now produces an honest outcome and a session-owned explanation instead of a false success.
 - A starter whose project discovery fails now settles the proposal instead of staying busy forever. The message distinguishes files already unpacked from a failed download; a later starter request can proceed.
 
 ### Added

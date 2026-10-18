@@ -13507,16 +13507,18 @@ public final class MainFrame extends JFrame {
     /** OpenStarterDesignEffect: the project's Spring design (M66) through the person's Design open, at once. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openStarterDesign(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterDesignEffect e) {
-        SwingUtilities.invokeLater(() -> {
-            String root = factRefs.get(e.rootRef());
+        String root = factRefs.get(e.rootRef());
+        // On the EDT openDesign returns only a loading acknowledgement. Run its blocking adapter off the EDT so
+        // the fact describes the read/display result, not the existence of a file or acceptance of a request.
+        Background.run(() -> {
             Path design = root == null ? null : starterDesignFile(Path.of(root));
-            if (design != null) {
-                var r = actionControl.openDesign(design.toString());
-                if (!r.ok()) status.setText(r.error());
-            }
-            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDesignOpened(
-                    e.request(), design != null, design == null ? "the starter has no Spring design" : null));
-        });
+            return design == null ? telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("the starter has no Spring design")
+                    : actionControl.openDesign(design.toString());
+        }, result -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDesignOpened(
+                e.request(), result.ok(), result.ok() ? null
+                : telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(result.error()))),
+                error -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDesignOpened(
+                        e.request(), false, telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(error)))));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "design");
     }
 

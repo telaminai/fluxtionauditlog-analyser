@@ -398,7 +398,7 @@ public class StarterProject implements EventLogSource {
         }
         phase = "OPEN";
         graphWatch = true;
-        note = "Opened " + rootShown + " — the design is shown; its graph is offered after the first build";
+        note = "Opened " + rootShown + " — opening its design; its graph is offered after the first build";
         auditLog.info("starter", "OPEN").info("origin", origin);
         // the analyser now shows the state the project starts in: its design at once, its graph when a build writes one
         effects.request(new SessionEffects.OpenStarterDesignEffect(0L, request, rootRef));
@@ -413,9 +413,12 @@ public class StarterProject implements EventLogSource {
 
     @OnEventHandler
     public boolean onDesignOpened(SessionEvents.StarterDesignOpened e) {
-        if (e.request() != request) return false;
+        if (stale(e.request(), "OPEN", "StarterDesignOpened")) return false;
         auditLog.info("starterDesign", e.ok()).info("why", String.valueOf(e.why()));
-        return false;
+        note = "Opened " + rootShown + (e.ok() ? " — the design is shown; its graph is offered after the first build"
+                : " — the design was not shown: " + safe(e.why()));
+        if (!e.ok()) effects.request(new SessionEffects.ShowStatusEffect(0L, note));
+        return changed();
     }
 
     @OnEventHandler
