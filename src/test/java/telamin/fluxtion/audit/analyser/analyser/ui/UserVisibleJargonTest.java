@@ -100,6 +100,40 @@ class UserVisibleJargonTest {
         assertTrue(found.isEmpty(), "reword these (or exempt them, with a reason, after review): " + found);
     }
 
+    /** The playground catalogue as served (captured 2026-09-20): its descriptions are what the template dialog shows. */
+    static final Path SERVED_CATALOGUE = Path.of("docs/handoff/evidence/project-template-catalogue-2026-09-20/catalogue.json");
+    static final Path ASK_CATALOGUE = Path.of(
+            "src/main/resources/telamin/fluxtion/audit/analyser/analyser/assistant/AskCatalogue.properties");
+
+    /**
+     * ★ Authoring walk (2026-10-18, shot 4): an internal milestone id ("The M19 onboarding bundle…") must not reach the
+     * person — not from the catalogue the analyser shows, nor from its own start-page and Ask words. Witness: make
+     * {@code TemplateCatalogue.Entry.disclosure} use {@code description} again — the served catalogue's M19 is listed.
+     */
+    @Test
+    @DisplayName("★ no milestone id (M19, M74.3) in a template's shown description or the Ask catalogue's words")
+    void noMilestoneIdReachesThePerson() throws IOException {
+        var pattern = telamin.fluxtion.audit.analyser.analyser.template.TemplateCatalogue.MILESTONE_ID;
+        var served = telamin.fluxtion.audit.analyser.analyser.template.TemplateCatalogue.parse(
+                Files.readString(SERVED_CATALOGUE), "test");
+        assertTrue(served.templates().stream().anyMatch(t -> pattern.matcher(t.description()).find()),
+                "the rule is not blind: the served catalogue carries one");
+        List<String> found = new ArrayList<>();
+        for (var t : served.templates()) {
+            if (pattern.matcher(t.disclosure()).find()) found.add(t.name() + ": " + t.disclosure());
+        }
+        java.util.Properties ask = new java.util.Properties();
+        try (var in = Files.newBufferedReader(ASK_CATALOGUE, java.nio.charset.StandardCharsets.UTF_8)) {
+            ask.load(in);
+        }
+        for (String key : ask.stringPropertyNames()) {
+            if (pattern.matcher(ask.getProperty(key)).find()) found.add(key + "=" + ask.getProperty(key));
+        }
+        assertTrue(found.isEmpty(), "a milestone id reaches the person: " + found);
+        assertEquals("The onboarding bundle: a graph (in short).", telamin.fluxtion.audit.analyser.analyser.template
+                .TemplateCatalogue.withoutMilestoneIds("The M19 onboarding bundle: a graph (M74.3) (in short)."));
+    }
+
     /** The rule can see what it guards: the scan finds a planted string, and the exemptions still name real text. */
     @Test
     @DisplayName("the rule is not blind: it reads the files it names, and every exemption names a literal that exists")
