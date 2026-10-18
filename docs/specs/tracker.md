@@ -17,6 +17,8 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 
 ## Delivery order
 
+- ☑ INTEG-C1 (FIX-9): source-text window arithmetic cannot overflow into an empty success; `SourceTextTest.aLargeContextCannotWrapTheWindowIntoAnEmptySuccess` failed at `to = 0` before the correction (expected 200).
+
 _Refreshed 2026-10-06, after 1.32.0._ **Shipped since the 2026-09-27 refresh:** **1.25.0** (chart and report lifecycle,
 PR #51); **1.26.0 / 1.26.1** (M69 spotlight walks); **1.27.0** (evidence bundles, first delivery); **1.28.0** (M70
 replay, M71 Workspace Start); **1.29.0** (the onboard assistant and conversation journeys, PR #77); **1.30.0** (bundles as

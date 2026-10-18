@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Very large `source {text}` windows now return the capped lines with a truncation notice instead of overflowing into an empty successful reply.
+
 ### Added
 
 - **`source` can return the code it finds.** `source {…, text: {from, to}}` (a range) or `{…, text: {around?, context?}}` (a window around the chosen line) returns those lines as data, so Claude shows you code through the analyser instead of reading files itself, with no approval to ask. It is read-only and reads only files under your authorised source roots, by their real path (a link that leads out is refused); at most 200 lines and 32 KB a call, with any cut stated; a binary or non-UTF-8 file is refused. An optional parameter for external MCP and REST clients too: without `text`, `source` and its reply are unchanged.

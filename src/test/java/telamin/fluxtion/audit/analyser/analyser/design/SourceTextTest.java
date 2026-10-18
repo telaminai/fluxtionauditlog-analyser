@@ -126,4 +126,13 @@ class SourceTextTest {
         assertTrue(SourceText.parse(Map.of("context", -1)).error().contains("0 or more"));
         assertEquals(SourceText.DEFAULT_CONTEXT, SourceText.parse(Map.of()).request().context(), "an empty object: a window");
     }
+
+    @Test
+    void aLargeContextCannotWrapTheWindowIntoAnEmptySuccess() {
+        var slice = SourceText.slice(numbered(500), request(Map.of("around", 2, "context", Integer.MAX_VALUE)), 1);
+        assertTrue(slice.ok(), slice.error());
+        assertEquals(200, slice.echo().get("to"), "a wide legal window returns the capped lines, not an empty success");
+        assertTrue(slice.echo().containsKey("truncated"), "the cap is disclosed");
+        assertEquals("line 1", slice.echo().get("content").toString().split("\n")[0]);
+    }
 }
