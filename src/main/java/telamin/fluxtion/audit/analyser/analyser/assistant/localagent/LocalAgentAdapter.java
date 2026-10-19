@@ -109,6 +109,9 @@ public final class LocalAgentAdapter {
         default telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports() {
             return null;
         }
+
+        /** Whether the node's published generation/ticket still owns its requested activity clock. */
+        default boolean activityCurrent(long generation, long ticket) { return false; }
     }
 
     /** Time and delays: real in the application, virtual in the tests. */
@@ -198,6 +201,7 @@ public final class LocalAgentAdapter {
     /** Whether {@code effect} is one this adapter performs. */
     public static boolean handles(SessionEffects effect) {
         return effect instanceof SessionEffects.StartLocalAgentEffect
+                || effect instanceof SessionEffects.StartActivityClockEffect
                 || effect instanceof SessionEffects.PollLocalAgentStatusEffect
                 || effect instanceof SessionEffects.SendLocalAgentTurnEffect
                 || effect instanceof SessionEffects.StopLocalAgentEffect
@@ -209,6 +213,10 @@ public final class LocalAgentAdapter {
     public SessionEvents.Result perform(SessionEffects effect) {
         return switch (effect) {
             case SessionEffects.StartLocalAgentEffect e -> start(e);
+            case SessionEffects.StartActivityClockEffect e -> {
+                clock.schedule(1_000, () -> activityTick(e.generation(), e.ticket()));
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "activityClock", clock.nowMillis());
+            }
             case SessionEffects.PollLocalAgentStatusEffect e -> {
                 Run run = runs.get(e.generation());
                 if (run != null) clock.schedule(e.delayMs(), () -> requestStatus(run));
@@ -235,6 +243,14 @@ public final class LocalAgentAdapter {
         });
     }
 
+    private void activityTick(long generation, long ticket) {
+        Run run = runs.get(generation);
+        if (run == null || run.killed) return;
+        if (!env.activityCurrent(generation, ticket)) return;
+        env.post(new SessionEvents.LocalAgentActivityTick(generation, ticket, clock.nowMillis()));
+        clock.schedule(1_000, () -> activityTick(generation, ticket));
+    }
+
     private static SessionEvents.LocalAgentEffectStarted started(long opId, long generation, String what) {
         return new SessionEvents.LocalAgentEffectStarted(opId, generation, what);
     }
@@ -247,6 +263,7 @@ public final class LocalAgentAdapter {
                 Map.copyOf(env.environment()), env.userHome(),
                 List.copyOf(env.fullTrustRecords() == null ? List.of() : env.fullTrustRecords()), env.scratchFolder());
         Run run = new Run(e.generation(), e.sessionId(), e.nonce(), writers.get());
+        run.resume = e.resume();
         runs.put(e.generation(), run);
         worker.execute(() -> spawn(run, s));
         return started(e.opId(), e.generation(), "start");
@@ -374,7 +391,7 @@ public final class LocalAgentAdapter {
             fail(run, SessionEvents.SpawnFailure.LAUNCH_FAILED, 0);
             return;
         }
-        env.post(new SessionEvents.LocalAgentSpawned(gen, SessionEvents.SpawnFailure.NONE, 0));
+        env.post(new SessionEvents.LocalAgentSpawned(gen, SessionEvents.SpawnFailure.NONE, 0, clock.nowMillis()));
         if (run.killed) {                         // stopped while it was starting
             terminate(run);
             return;
@@ -801,7 +818,8 @@ public final class LocalAgentAdapter {
             // how it is paid for, as an enum: a Claude plan, or an API key — never the plan's or the source's value
             SessionEvents.Billing paid = init.apiKeySource() != null ? SessionEvents.Billing.API_KEY
                     : init.subscriptionType() != null ? SessionEvents.Billing.SUBSCRIPTION : SessionEvents.Billing.UNKNOWN;
-            env.post(new SessionEvents.LocalAgentInitialized(gen, init.loggedIn(), init.permissionMode(), headerRef, paid));
+            env.post(new SessionEvents.LocalAgentInitialized(gen, init.loggedIn(), init.permissionMode(), headerRef, paid,
+                    clock.nowMillis()));
             diagnostics(run);
         } else if (id.startsWith("status-" + gen + "-") && r.status() != null) {
             List<String> names = new ArrayList<>();
@@ -934,7 +952,14 @@ public final class LocalAgentAdapter {
         String last = lastLine(tail);
         if (!last.isEmpty()) stderrRef = store.add(LocalAgentTranscript.Kind.STDERR, last);
         cleanup(run);
-        env.post(new SessionEvents.LocalAgentExited(run.generation, code, stderrRef));
+        env.post(new SessionEvents.LocalAgentExited(run.generation, code, stderrRef,
+                run.resume && resumeSessionUnknown(tail)));
+    }
+
+    /** The vendor's published CLI 2.1.282 error prefix; generic start/auth failures never qualify. */
+    static boolean resumeSessionUnknown(String stderr) {
+        if (stderr == null) return false;
+        return stderr.lines().anyMatch(line -> line.stripLeading().startsWith("No conversation found with session ID: "));
     }
 
     static String lastLine(String text) {
@@ -990,6 +1015,7 @@ public final class LocalAgentAdapter {
         volatile String folder;
         /** Owner 2026-10-18: this run is Full Claude Code (its in-project {@code open} needs no approval). */
         volatile boolean full;
+        boolean resume;
         /** P2b (§5.2): {@code scheme://host[:port]} of the base URL passed to the child, or null. */
         volatile String endpoint;
         /** P2b (§5.2): this run's diagnostics counts, and what was last reported (a fact only when one changes). */

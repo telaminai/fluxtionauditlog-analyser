@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- An interrupted Claude Code conversation that cannot resume in its changed folder or mode starts a new chat with your last request and a recovery reminder placed, never sent. A CLI-reported missing session falls back once; ordinary failures do not retry. The session now records a start activity clock for the live activity display.
+
+- Restart recovers a Claude Code process stuck starting or stopping, preserving its conversation when it can resume. Start on a healthy session now says it is already running; externally stopped processes name signal 15 or 9, and rate-limit notes explain that they do not block Start or Restart.
+
 - The offline onboarding scorer refuses nonempty answer rows without string `text` instead of silently ignoring their contents. Operator correlation now covers current proposal-row, restart, no-log, profile/setup, external-access and starter choices, verified against actual Java records; unknown fact-bearing operator kinds also void the run. Empty answer captures remain explicitly distinguishable from missing or malformed captures.
 
 - The offline M74 onboarding scorer now binds scores to the sealed oracle bytes, refuses incomplete captures, checks ordered person actions and their references/choices, and reads the current Java permission facts. Maven seeds reject live symlink aliases. CI checks the current Java pack parser without rewriting its expected verdicts, including the non-breaking-space URL regression. The live operator harness is still not implemented; no onboarding trial is implied.

@@ -118,6 +118,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCall
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportApplyRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportWritten;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentActivityTick;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentAskAgainRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCallAdmissionRequested;
@@ -366,6 +367,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportApplyRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportWritten
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentActivityTick
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentAskAgainRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCallAdmissionRequested
@@ -956,6 +958,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportWritten",
                 false),
             new ProcessorDescriptor.Input(
+                "LocalAgentActivityTick",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentActivityTick",
+                false),
+            new ProcessorDescriptor.Input(
                 "LocalAgentAskAgainRequested",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentAskAgainRequested",
                 false),
@@ -1429,7 +1435,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "a1a74428fc10df46d1db19d6e0033d9f41c9e94d2e832d9994492c4daf538d00",
+              "b5168d53d70c1a77043e6dcec4a3c60623527d401867dda2687b2feb98fe6730",
               null));
 
   @Override
@@ -1840,6 +1846,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof HostedReportWritten) {
       HostedReportWritten typedEvent = (HostedReportWritten) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentActivityTick) {
+      LocalAgentActivityTick typedEvent = (LocalAgentActivityTick) event;
       handleEvent(typedEvent);
     } else if (event instanceof LocalAgentAskAgainRequested) {
       LocalAgentAskAgainRequested typedEvent = (LocalAgentAskAgainRequested) event;
@@ -2604,6 +2613,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(HostedReportWritten event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentActivityTick event) {
     processEvent(event);
   }
 
@@ -4154,6 +4168,18 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(LocalAgentActivityTick typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onActivityTick", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onActivityTick(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
   public void handleEvent(LocalAgentAskAgainRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -4243,6 +4269,10 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onEffectStarted", typedEvent);
     isDirty_localAgentSession = localAgentSession.onEffectStarted(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
     afterEvent();
   }
 
@@ -6270,6 +6300,11 @@ public class SessionProcessor
       auditInvocation(
           localAgentPermission, "localAgentPermission", "onHostedReportWritten", typedEvent);
       isDirty_localAgentPermission = localAgentPermission.onHostedReportWritten(typedEvent);
+    } else if (event instanceof LocalAgentActivityTick) {
+      LocalAgentActivityTick typedEvent = (LocalAgentActivityTick) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onActivityTick", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onActivityTick(typedEvent);
     } else if (event instanceof LocalAgentAskAgainRequested) {
       LocalAgentAskAgainRequested typedEvent = (LocalAgentAskAgainRequested) event;
       auditEvent(typedEvent);
