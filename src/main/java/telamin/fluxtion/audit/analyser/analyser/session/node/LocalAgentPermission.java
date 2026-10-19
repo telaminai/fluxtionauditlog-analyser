@@ -274,6 +274,7 @@ public class LocalAgentPermission implements EventLogSource {
         effects.request(new SessionEffects.StartPermissionClockEffect(0L, generation, ref, DEADLINE_MS));
     }
 
+
     /**
      * #10c: the open dialog was answered — the next waiting request is shown if it still belongs to the open turn of
      * the running session; one that no longer does is denied as ended.
@@ -700,7 +701,7 @@ public class LocalAgentPermission implements EventLogSource {
 
     private boolean changed() {
         dirty = true;
-        localAgent.permissionWaiting(pendingRef != 0);      // M78 D1 §5.1: the header's "needs you" is the node's
+        localAgent.permissionWaiting(pendingRef != 0 || !queued.isEmpty(), pendingName); // one published approval decision
         return true;
     }
 

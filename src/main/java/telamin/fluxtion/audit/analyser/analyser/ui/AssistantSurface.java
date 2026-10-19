@@ -72,6 +72,9 @@ final class AssistantSurface {
     final JButton start = new JButton("Start Claude Code");
     final JButton stop = new JButton("Stop");
     final JButton send = UiText.button("Send");
+    /** M81: shared composer surface; the local-agent renderer supplies the node's conditional activity words. */
+    final JPanel activityRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+    final JLabel activityLine = UiText.label(" ");
     /** M78 D1 (OD-Q.1): New chat is the ✎ icon in the header (and an item in ⋯); its name says what it does. */
     final JButton newChat = new IconButton(NEW_CHAT_ICON);
     static final String NEW_CHAT_ICON = "✎";
@@ -112,6 +115,10 @@ final class AssistantSurface {
         bindingChip.setOpaque(false);
         bindingChip.setFont(bindingChip.getFont().deriveFont(bindingChip.getFont().getSize2D() - 1f));
         stop.setEnabled(false);
+        activityRow.setOpaque(false);
+        activityRow.add(activityLine);
+        activityRow.setVisible(false);
+        activityLine.getAccessibleContext().setAccessibleName("Assistant activity");
         send.addActionListener(e -> onSend.run());
         stop.addActionListener(e -> onStop.run());
         newChat.addActionListener(e -> onNewChat.run());

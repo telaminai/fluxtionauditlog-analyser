@@ -531,6 +531,11 @@ public final class LocalAgentAdapter {
     void onLine(Run run, String line) {
         StreamJson.Event event = provider.parse(line);
         long gen = run.generation;
+        if (!(event instanceof StreamJson.Unknown) && run.runningTicket != 0) {
+            boolean text = event instanceof StreamJson.TextDelta
+                    || event instanceof StreamJson.AssistantMessage a && a.text() != null && !a.text().isEmpty();
+            env.post(new SessionEvents.LocalAgentProgressObserved(gen, run.runningTicket, clock.nowMillis(), text));
+        }
         switch (event) {
             case StreamJson.ControlResponse r -> onControlResponse(run, r);
             case StreamJson.ControlRequest r -> onControlRequest(run, r);
@@ -586,6 +591,21 @@ public final class LocalAgentAdapter {
                     changed = a.toolUse() != null ? run.toolUse(a.messageId(), a.toolUse(), a.toolUseId(), a.toolInput())
                             : run.block(a.messageId(), a.text());
                 }
+                if (a.toolUse() != null && a.toolUseId() != null) {
+                    Long call;
+                    synchronized (run) {
+                        call = run.activityCalls.get(a.toolUseId());
+                        if (call == null) {
+                            call = store.add(LocalAgentTranscript.Kind.DETAIL, ActivityText.words(a.toolUse(), a.toolInput()));
+                            run.activityCalls.put(a.toolUseId(), call);
+                        } else call = null; // a replay never increments a tool count twice
+                    }
+                    if (call != null) {
+                        var named = ToolVocabulary.of(a.toolUse());
+                        env.post(new SessionEvents.LocalAgentToolStarted(gen, run.runningTicket, call,
+                                named.toolClass(), named.name(), call, clock.nowMillis()));
+                    }
+                }
                 if (changed) textChanged(run);
             }
             case StreamJson.CompactBoundary c -> env.post(new SessionEvents.LocalAgentNoted(gen, run.runningTicket,
@@ -629,11 +649,16 @@ public final class LocalAgentAdapter {
             // record, so a user event is shown as nothing at all (§4.5)
             case StreamJson.UserMessage u -> {
                 boolean marked = false;
+                java.util.List<SessionEvents.LocalAgentToolFinished> finished = new java.util.ArrayList<>();
                 synchronized (run) {
                     for (var r : u.toolResults().entrySet()) {
                         marked |= run.toolOutcome(r.getKey(), r.getValue() ? "refused" : "✓");
+                        Long call = run.activityCalls.get(r.getKey());
+                        if (call != null && run.finishedActivityCalls.add(call)) finished.add(
+                                new SessionEvents.LocalAgentToolFinished(gen, run.runningTicket, call, r.getValue(), clock.nowMillis()));
                     }
                 }
+                finished.forEach(env::post);
                 if (marked) textChanged(run);
             }
             case StreamJson.ConversationReset c -> { }          // the next init's session id is what the node judges
@@ -1004,6 +1029,8 @@ public final class LocalAgentAdapter {
         final Map<String, Long> ticketByUuid = new ConcurrentHashMap<>();
         final Set<Long> ended = ConcurrentHashMap.newKeySet();
         final Set<String> deniedNoted = ConcurrentHashMap.newKeySet();
+        final Map<String, Long> activityCalls = new LinkedHashMap<>();
+        final Set<Long> finishedActivityCalls = new HashSet<>();
         /** P3: requests waiting for the node's answer, by store reference: {request id, raw input, tool_use_id}. */
         final Map<Long, String[]> pendingPermissions = new LinkedHashMap<>();
         final Map<String, Long> permissionByRequestId = new ConcurrentHashMap<>();
@@ -1068,6 +1095,8 @@ public final class LocalAgentAdapter {
             finals.clear();
             toolLines.clear();
             toolKeys.clear();
+            activityCalls.clear();
+            finishedActivityCalls.clear();
             localOutput = null;
         }
 

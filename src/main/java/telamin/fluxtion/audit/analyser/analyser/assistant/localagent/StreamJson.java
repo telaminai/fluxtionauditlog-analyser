@@ -324,7 +324,7 @@ public final class StreamJson {
             case "hook_response" -> new Hook(str(m.get("hook_event")), false, "success".equals(str(m.get("outcome"))));
             case "status" -> m.containsKey("permissionMode") ? new ModeStatus(str(m.get("permissionMode")))
                     : new Ignored("system/status");
-            case "thinking_tokens", "background_tasks_changed", "commands_changed" -> new Ignored("system/" + sub);
+            case "thinking_tokens", "background_tasks_changed", "commands_changed", "task_progress" -> new Ignored("system/" + sub);
             default -> new Unknown("system/" + sub);
         };
     }
@@ -346,7 +346,7 @@ public final class StreamJson {
                 }
                 yield new Ignored("stream_event/" + t + "/" + (d == null ? "?" : str(d.get("type"))));
             }
-            case "content_block_start", "content_block_stop", "message_delta", "message_stop" ->
+            case "content_block_start", "content_block_stop", "message_delta", "message_stop", "ping" ->
                     new Ignored("stream_event/" + t);
             default -> new Unknown("stream_event/" + t);
         };

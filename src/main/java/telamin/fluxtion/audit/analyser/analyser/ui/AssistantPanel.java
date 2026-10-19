@@ -332,6 +332,7 @@ public final class AssistantPanel extends JPanel {
         composer.add(above, BorderLayout.NORTH);
         composer.add(surface.draftScroll, BorderLayout.CENTER);
         JPanel buttons = new JPanel(new WrapLayout(FlowLayout.RIGHT, 4, 0));
+        buttons.add(surface.activityRow);
         buttons.add(surface.start);
         buttons.add(surface.stop);
         buttons.add(surface.send);

@@ -54,6 +54,16 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class CustomerApiKeysTest {
 
+    @Test
+    void theHostedAssistantActivityHasFourAdditiveReadOnlyFields() {
+        var activity = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ActivityText.context(
+                telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.IDLE,
+                ref -> { throw new AssertionError("idle activity reads no transcript words"); });
+        assertEquals(java.util.Set.of("phase", "currentStep", "secondsSinceLastEvent", "approvalPending"), activity.keySet());
+        assertEquals(java.util.Map.of("phase", "OFF", "currentStep", "", "secondsSinceLastEvent", 0,
+                "approvalPending", false), activity);
+    }
+
     /** {@code ContextSections.SECTIONS} as released in 1.35.1 ({@code main}): the customer's contract. */
     static final Map<String, List<String>> CONTEXT_RELEASED;
     static {

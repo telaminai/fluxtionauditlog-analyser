@@ -268,10 +268,68 @@ class LocalAgentPermissionFrameTest {
             JDialog folder = ClaudeCodeTabFrameTest.awaitDialog(ClaudeCodeTabFrameTest.DIALOG_TITLE);
             onEdt(ClaudeCodeTabFrameTest.findButton(folder, LocalAgentFolderDialog.SAFE_TRUST)::doClick);
             ClaudeCodeTabFrameTest.awaitState(f, s -> "READY".equals(s.phase()), "READY");
+            onEdt(() -> {
+                try {
+                    var reveal = MainFrame.class.getDeclaredMethod("revealAssistant");
+                    reveal.setAccessible(true);
+                    reveal.invoke(f);
+                } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+            });
 
             // turn 1: Escape denies
             send(panel, "Write the DEMO report");
             LocalAgentPermissionDialog d1 = awaitPermission();
+            // M81 A5 owner decision: preserve modality and show no unusable Show action behind it.
+            long pending = ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f, "session"))
+                    .snapshot().permission().pendingRef();
+            onEdt(() -> {
+                assertTrue(assistant.surface().activityLine.getText().startsWith("Needs your approval — "));
+                assertEquals(java.awt.Dialog.ModalityType.APPLICATION_MODAL, d1.getModalityType());
+                assertEquals(1, assistant.surface().activityRow.getComponentCount(), "approval status has no blocked action");
+                try {
+                    var perform = MainFrame.class.getDeclaredMethod("performSessionEffect",
+                            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.class);
+                    perform.setAccessible(true);
+                    perform.invoke(f, new telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowPermissionDialogEffect(
+                            0, 1, pending, 120_000, ToolClass.HOSTED_DESTRUCTIVE, "report"));
+                } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+            });
+            onEdt(() -> {
+                assertSame(d1, f.permissionDialog(pending), "repeating the existing show effect raises the same dialog");
+                assertEquals(1, java.util.Arrays.stream(Window.getWindows())
+                        .filter(w -> w instanceof LocalAgentPermissionDialog && w.isShowing()).count(),
+                        "the repeated show effect never opens a duplicate dialog");
+                var result = render(ex, "context", Map.of("sections", List.of("project")));
+                var projectContext = (Map<?, ?>) ((Map<?, ?>) result.get("context")).get("project");
+                var activity = (Map<?, ?>) projectContext.get("assistant");
+                var state = ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f, "session"))
+                        .snapshot().localAgent();
+                assertEquals(java.util.Set.of("phase", "currentStep", "secondsSinceLastEvent", "approvalPending"), activity.keySet());
+                assertEquals(state.phase(), activity.get("phase"));
+                assertEquals(assistant.surface().activityLine.getText(), activity.get("currentStep"));
+                assertEquals(state.extra().guide().secondsSinceLastEvent(), activity.get("secondsSinceLastEvent"));
+                assertEquals(true, activity.get("approvalPending"));
+                assertTrue(panel.aboutLines().contains(state.toolCallCount() + " tool calls · " + state.turnCount() + " turns"));
+            });
+            java.awt.Point[] stopAt = new java.awt.Point[1];
+            onEdt(() -> {
+                d1.setLocation(f.getX(), f.getY());
+                assertTrue(assistant.surface().stop.isShowing(), "the underlying composer Stop is visible");
+                stopAt[0] = assistant.surface().stop.getLocationOnScreen();
+                stopAt[0].translate(assistant.surface().stop.getWidth() / 2, assistant.surface().stop.getHeight() / 2);
+                assertFalse(d1.getBounds().contains(stopAt[0]), "the native click is outside the modal dialog");
+            });
+            var robot = new java.awt.Robot();
+            robot.mouseMove(stopAt[0].x, stopAt[0].y);
+            robot.mousePress(java.awt.event.InputEvent.BUTTON1_DOWN_MASK);
+            robot.mouseRelease(java.awt.event.InputEvent.BUTTON1_DOWN_MASK);
+            robot.delay(200);
+            robot.waitForIdle();
+            onEdt(() -> {
+                var snapshot = ((SessionDriver) field(f, "session")).snapshot();
+                assertEquals(pending, snapshot.permission().pendingRef(), "native composer click remains blocked by the existing modal");
+                assertEquals(1, snapshot.localAgent().openTicket(), "a blocked native Stop click never interrupts the turn");
+            });
             // ★ owner hands-on test (2026-10-18): the dialog's owner — the window the assistant is in — is brought
             // forward when it opens (witness: drop the bringForward call in showPermissionDialog — nothing recorded)
             onEdt(() -> {

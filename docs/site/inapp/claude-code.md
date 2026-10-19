@@ -132,6 +132,15 @@ When Claude Code proposes a starter, the review and what follows are in
 
 ## Using it
 
+While a turn runs, the composer shows the step Claude Code started — reading, searching, running a command,
+checking the log or answering — with elapsed time after three seconds. Names are shortened and paths redacted.
+After a minute without a stream event, **Keep waiting** dismisses the inactivity cue without stopping anything;
+the clock keeps counting, and only a new event followed by another minute of silence can show the cue again.
+Elapsed time is not proof that the process is alive. While an approval waits, the cue instead says **Needs your
+approval**; answer the existing modal question. There is no Show control behind a dialog that blocks it.
+*⋯ ▸ About this session…* lists tool-call and turn totals.
+`context {sections: ["project"]}` exposes the same activity under `project.assistant`.
+
 - **Send** (or Enter; Shift+Enter is a new line) sends one turn. While Claude is answering, Send is refused — *"Claude is still answering — Stop
   or wait."* — and your draft stays; nothing is queued.
 - **Stop** interrupts the turn. If Claude Code does not acknowledge within 5 s, or the turn has not ended within 15 s,
