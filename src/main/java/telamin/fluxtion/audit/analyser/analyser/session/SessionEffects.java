@@ -21,6 +21,8 @@ public sealed interface SessionEffects {
     record DiscoverDesignEffect(long opId, long generation) implements SessionEffects { }
     /** Present the node's discovered zero/one/many state. No session design is silently replaced. */
     record PresentDesignDiscoveryEffect(long opId, long generation, String file) implements SessionEffects { }
+    /** Render an accepted Follow revision; stale background completions never request this effect. */
+    record PresentDesignRefreshEffect(long opId, long generation, String previousRevision) implements SessionEffects { }
 
     /** Answer the final, EDT-confined report-write check. The adapter acts only on this verdict. */
     record AnswerHostedReportApplyEffect(long opId, String refusal) implements SessionEffects { }

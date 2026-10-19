@@ -12,6 +12,49 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
 
 /** Stub-assistant calls only: no CLI, model or credentials. Run unchanged-main witness before implementation. */
 class M80DesignDiscoveryFrameTest {
+    @Test void anAcceptedJavaFollowReadRefreshesAndRebindsTheVisibleDeclaration(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "real display required");
+        Path root=Files.createDirectories(tmp.resolve("definitions"));
+        String original="import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
+                +"class DEMOBuilder implements FluxtionGraphBuilder {\n void buildGraph(Config cfg) {\n"
+                +" cfg.addNode(new DEMO(), \"a\");\n }\n}\n";
+        Path builder=Files.writeString(root.resolve("DEMOBuilder.java"),original);
+        try(var f=new Frame(tmp)) {
+            onEdt(()->{
+                ((telamin.fluxtion.audit.analyser.analyser.config.AppConfig)field(f.frame,"config")).sourceRoots.add(root.toString());
+                f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();
+            });
+            assertTrue(f.ex.render("open",Map.of("design",builder.toString())).ok());
+            onEdt(()->{
+                ((javax.swing.Timer)field(f.frame,"designFollowTimer")).stop();
+                var result=f.ex.render("spotlight",Map.of("target","source:design:node:a"));
+                assertTrue(result.ok(),result.toMap().toString());
+            });
+            String revised=original.replace(" cfg.addNode", "\n cfg.addNode");
+            Files.writeString(builder,revised);
+            onEdt(()->{
+                try { var poll=MainFrame.class.getDeclaredMethod("pollDesign");poll.setAccessible(true);poll.invoke(f.frame); }
+                catch(ReflectiveOperationException error) { throw new AssertionError(error); }
+            });
+            var accepted=new java.util.concurrent.atomic.AtomicBoolean();
+            long until=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(15);
+            do {
+                onEdt(()->accepted.set(((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver)field(f.frame,"session"))
+                        .processor().designSession.builder().text().equals(revised)));
+                if(accepted.get())break;
+                Thread.sleep(20);
+            } while(System.nanoTime()<until);
+            assertTrue(accepted.get(),"control: the session accepted the changed Java revision");
+            onEdt(()->{});
+            onEdt(()->{
+                var source=(SourcePanel)field(f.frame,"sourcePanel");
+                assertEquals(revised,source.fileView().text(),"an accepted Java follow revision must reach the visible Design pane");
+                assertEquals(5,source.fileView().line(),"the named declaration rebinds after a line is inserted");
+                assertTrue(((SpotlightOverlay)field(f.frame,"spotlight")).isLit(),"a unique named target stays lit");
+                assertTrue(((DesignSourcePanel)source.designComponent()).lineBounds(5).isPresent());
+            });
+        }
+    }
     @Test void readableCandidateAndReadWarningsReachTheDesignPaneAndContext(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(),"real display required");
         Path project=Files.createDirectories(tmp.resolve("DEMO"));
@@ -52,6 +95,42 @@ class M80DesignDiscoveryFrameTest {
             });
         }
     }
+    @Test void nodeAndBeanSynonymsLightTheSameJavaDeclaration(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "real display required");
+        Path root=Files.createDirectories(tmp.resolve("definitions"));
+        Path builder=Files.writeString(root.resolve("DEMOBuilder.java"),
+                "import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
+                +"class DEMOBuilder implements FluxtionGraphBuilder {\n void buildGraph(Config cfg) {\n"
+                +" cfg.addNode(\n  new DEMO(),\n  \"a\");\n cfg.addNode(new Other(), computedName);\n }\n}\n");
+        try(var f=new Frame(tmp)) {
+            onEdt(()->{
+                ((telamin.fluxtion.audit.analyser.analyser.config.AppConfig)field(f.frame,"config")).sourceRoots.add(root.toString());
+                f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();
+            });
+            assertTrue(f.ex.render("open",Map.of("design",builder.toString())).ok());
+            var declaration=f.ex.render("source",Map.of("bean","a"));
+            assertTrue(declaration.ok(),declaration.toMap().toString());
+            assertEquals(4,find(declaration.payload(),"line"),"the topology declaration path lands at the call token");
+            var nodes=(List<?>)find(f.ex.render("context",Map.of("sections",List.of("design"))).payload(),"nodes");
+            assertEquals("a",((Map<?,?>)nodes.getFirst()).get("name"));
+            assertEquals(Boolean.FALSE,((Map<?,?>)nodes.getLast()).get("anchored"));
+            for(String spelling:List.of("node","bean")) onEdt(()->{
+                String target="source:design:"+spelling+":a";
+                var result=f.ex.render("spotlight",Map.of("target",target));
+                assertTrue(result.ok(),"★ T7 both spellings must light the same DESIGN anchor: "+result.toMap());
+                var panel=(SourcePanel)field(f.frame,"sourcePanel");
+                assertEquals(SourcePanel.Mode.DESIGN,field(panel,"mode"));
+                assertEquals(4,panel.fileView().line());
+                assertTrue(((SpotlightOverlay)field(f.frame,"spotlight")).isLit());
+                var design=(DesignSourcePanel)panel.designComponent();
+                var index=(javax.swing.JList<?>)field(design,"beans");
+                assertEquals(2,index.getModel().getSize());
+                assertTrue(index.getModel().getElementAt(1).toString().contains("name not literal"));
+                assertTrue(design.lineBounds(4).isPresent(),"the lit declaration is actually visible");
+            });
+        }
+    }
+
     @Test void aStubFindsTheBuilderInTwoCallsWithoutRefusals(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "real display required");
         Path project=Files.createDirectories(tmp.resolve("DEMO"));

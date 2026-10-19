@@ -43,7 +43,7 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
     public enum Family {
         TAB("tab:<summary|source|graph|topology|reports|assistant>", true),
         DESIGN("source:design", false),
-        DESIGN_BEAN("source:design:bean:<id>", true),
+        DESIGN_BEAN("source:design:bean:<id>|source:design:node:<id>", true),
         DESIGN_LINE("source:design:line:<n>", true),
         JAVA("source:java:<fqn>", true),
         JAVA_LINE("source:java:<fqn>:line:<n>", true),
@@ -138,11 +138,11 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
                     yield new Parsed(new SpotlightTarget(Family.JAVA_LINE, parts[2], name, null, fqn), null);
                 }
                 if ("design".equalsIgnoreCase(rest)) yield ok(Family.DESIGN, null, name);
-                if (rest == null || !rest.toLowerCase(Locale.ROOT).startsWith("design:")) yield unknown("expected source:design[:bean:<id>|:line:<n>]");
+                if (rest == null || !rest.toLowerCase(Locale.ROOT).startsWith("design:")) yield unknown("expected source:design[:bean:<id>|:node:<id>|:line:<n>]");
                 String part = rest.substring(7);
                 yield part.toLowerCase(Locale.ROOT).startsWith("line:")
                         ? oneBased(sub(part, "line", Family.DESIGN_LINE, name, true))
-                        : sub(part, "bean", Family.DESIGN_BEAN, name, false);
+                        : sub(part, part.toLowerCase(Locale.ROOT).startsWith("node:") ? "node" : "bean", Family.DESIGN_BEAN, name, false);
             }
             case "tab" -> member(Family.TAB, rest, TABS, name);
             case "toolbar" -> member(Family.TOOLBAR, rest, TOOLBAR_BUTTONS, name);

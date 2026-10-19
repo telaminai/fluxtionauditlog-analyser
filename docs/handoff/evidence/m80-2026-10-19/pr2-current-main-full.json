@@ -1,0 +1,29 @@
+{
+  "kind": "implementer-verification-not-independent-approval",
+  "base": "e03d2028a941e38c92c6ee59e71a465cad6a5550",
+  "command": "mvn -o -q clean test",
+  "jdk": "21.0.9",
+  "tests": 4334,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 356,
+  "reports": 613,
+  "sourceMappedReports": 613,
+  "orphans": [],
+  "focused": {"tests": 179, "failures": 0, "errors": 0, "skipped": 0},
+  "display": {
+    "sequentialSuites": 6,
+    "tests": 46,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "skippedTest": "StartWorkspaceFrameTest.nativeFileDropOnHeroTextOpensAuditLog",
+    "skipReason": "Desktop did not deliver the native mouse press; same precondition skip on a separate full-class rerun. Not counted as a pass."
+  },
+  "regeneration": {
+    "bothJavaCopiesByteIdentical": true,
+    "graphmlByteIdentical": true,
+    "javaSha256": "9478db0dd0f826f0bb52a375d79e9b728b4c107f993b6ed68c18ea717ead9ca3",
+    "graphmlSha256": "72b7d982e8cd3894218f517455a920a7f1e4bbf18ff791338fed45eee5be3714"
+  }
+}

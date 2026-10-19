@@ -497,3 +497,44 @@ were omitted; the internal failure list and its total are not truncated.
 A failed first read with no loaded XML or builder omits `kind` instead of inferring Spring from a null builder.
 A failed refresh of the same file retains the last good revision and its form. The human zero-file line is short
 plain text. The additive-key check extracts only the brace-matched `echo()` body, not later methods.
+
+PR2 indexes calls only inside the lexical `buildGraph` body. Only the two-argument registration overload with a
+single string-literal second argument yields a named anchor; a string trailing a three-or-more-argument varargs
+registration is not a name. Text blocks used as names stay unanchored. A continued line inside a text block still
+counts toward the next declaration's source line. Constructor locations say `discovered`, not runtime membership.
+Delimiter partners and constructor-type suffixes are indexed once. Argument scanning skips indexed nested
+spans, so deeply nested registrations do not repeatedly rescan every enclosing argument list. A structural
+regression pins that skip and a 5,000-registration fixture checks all locations; no machine-specific time
+threshold is used as a CI gate.
+
+The owner separately approved the exact API metadata delta: advertise the permanent node/bean spotlight synonym,
+add the Java-builder selector sentence, and clarify the existing bean parameter description. No parameter or verb
+is added. `M80DesignApiDeltaTest` keeps all eleven pre-M80 hashes literally and proves that undoing only those edits
+restores them. Exactly the two schema maps, two tool lists and in-process manifest move; the MCP instructions,
+REST manifest and four handoff contexts do not. Historical source-text, graph-restore and hosted-starter delta
+checks first undo this independently pinned later metadata change, retaining their original baseline digests.
+
+Java Follow has a separate completed-observation fact. `DesignSession` accepts or retires that fact and requests
+`PresentDesignRefreshEffect`; the adapter does not predict whether the pre-read generation will still match
+after acceptance. The real-frame witness accepted the new Java revision into session state but still displayed
+the old text before this correction. After the node-owned effect, a named target rebinds to the moved declaration;
+stale or wrong-file completions request no presentation, while an accepted read failure presents its qualification
+and retains the last good revision. The processor and its GraphML are regenerated together, never hand-edited.
+
+PR2's maintained wrong-result witnesses are:
+
+| Boundary | Regression | Wrong result caught |
+|---|---|---|
+| ★T4 literal location | `aWrappedLiteralAnchorsTheCallNotTheNameLine` | Registration points one line below its call token. |
+| ★T5 non-literal names | `nonLiteralAndUnnamedAndVarargRegistrationsNeverInventNames` | A computed/unnamed registration invents a node name. |
+| ★T6 children | `nestedNewExpressionsHaveHonestDiscoveredLocations` | A nested constructor disappears from the discovered locations. |
+| ★T7 permanent synonym | `nodeAndBeanSynonymsLightTheSameJavaDeclaration` | The node spelling fails while the bean spelling lights the declaration. |
+| Approved metadata only | `undoingOnlyTheApprovedMetadataRestoresEveryPreviousHash` | An unrelated argument-description edit moves a historical API digest. |
+| Text-block line accounting | `aTextBlockContinuationCannotMoveTheNextDeclarationOrCreateFakeNodes` | A continued text-block line shifts the next anchor from line 7 to 6. |
+| Accepted Follow presentation | `anAcceptedJavaFollowReadRefreshesAndRebindsTheVisibleDeclaration` | The session accepts edited Java but the visible pane retains the old revision. |
+| Follow supersession | `followPresentationBelongsOnlyToAcceptedReadsIncludingFailures` | A stale observation still requests a presentation. |
+
+The three PR1 scan/XML/additive-key controls remain neighbours; its unchanged-main two-call stub is unchanged.
+The exact metadata-advertisement control additionally rejects losing the advertised node spelling even while
+the parser still accepts it. Input is limited to 2 MiB; this is a lexical location aid, not Java type/overload
+resolution, helper-method analysis, execution evidence or a claim of graph membership.

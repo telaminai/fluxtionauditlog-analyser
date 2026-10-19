@@ -291,6 +291,7 @@ public final class SessionDriver {
         return switch (effect) {
             case SessionEffects.DiscoverDesignEffect ignored -> "discoverDesign";
             case SessionEffects.PresentDesignDiscoveryEffect ignored -> "presentDesignDiscovery";
+            case SessionEffects.PresentDesignRefreshEffect ignored -> "presentDesignRefresh";
             case SessionEffects.AnswerHostedReportApplyEffect ignored -> "answerHostedReportApply";
             case SessionEffects.LoadProfileEffect ignored -> "loadProfile";
             case SessionEffects.PrepareBundleEffect ignored -> "prepareBundle";
