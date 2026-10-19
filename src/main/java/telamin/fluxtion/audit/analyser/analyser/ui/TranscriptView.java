@@ -19,6 +19,7 @@ import javax.swing.text.StyledEditorKit;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
@@ -438,24 +439,32 @@ public final class TranscriptView extends JTextPane {
                 case BLANK -> put(doc, "\n", base(ink, dark), item);
                 case CODE -> renderCode(doc, b.code(), b.language(), item, dark);
                 case TABLE -> {
-                    SimpleAttributeSet m = mono(base(p.codeText(), dark));
-                    StyleConstants.setBackground(m, p.codeBackground());
-                    put(doc, VisibleMarks.show(b.code()) + "\n", m, item);
+                    if (b.table() != null) {
+                        renderTable(doc, b.table(), item, dark, stale, candidates);
+                    } else {
+                        SimpleAttributeSet m = mono(base(p.codeText(), dark));
+                        StyleConstants.setBackground(m, p.codeBackground());
+                        put(doc, VisibleMarks.show(b.code()) + "\n", m, item);
+                    }
                 }
+                case RULE -> put(doc, "─".repeat(monoColumns()) + "\n", mono(base(p.muted(), dark)), item);
                 default -> {
                     SimpleAttributeSet a = base(ink, dark);
                     String prefix = "";
                     switch (b.kind()) {
                         case HEADING -> {
                             StyleConstants.setBold(a, true);
-                            StyleConstants.setFontSize(a, fontSize() + (4 - b.level()) * 2);
+                            // levels 1–3 scale up; 4–6 render like level 3's weight but at the base size (§5.9 gap)
+                            if (b.level() <= 3) StyleConstants.setFontSize(a, fontSize() + (4 - b.level()) * 2);
                         }
                         case BULLET -> prefix = "  ".repeat(b.level()) + (b.level() == 1 ? "• " : b.level() == 2 ? "◦ " : "▪ ");
+                        case TASK_OPEN -> prefix = "  ".repeat(b.level()) + "☐ ";
+                        case TASK_DONE -> prefix = "  ".repeat(b.level()) + "☑ ";
                         case NUMBERED -> prefix = "  ".repeat(b.level()) + b.number() + ". ";
                         case QUOTE -> {
                             // a plain bar and the muted colour: an italic run behind a block glyph lost its letters in
-                            // the system font (seen in the P2a screenshots)
-                            prefix = "| ";
+                            // the system font (seen in the P2a screenshots); nested quotes repeat the bar, capped at 3
+                            prefix = "| ".repeat(Math.max(1, b.level()));
                             StyleConstants.setForeground(a, p.muted());
                         }
                         default -> { }
@@ -477,11 +486,17 @@ public final class TranscriptView extends JTextPane {
 
     private void renderRun(StyledDocument doc, SafeMarkdown.Run r, SimpleAttributeSet around, Item item, boolean dark,
                            boolean stale, int[] candidates) throws BadLocationException {
+        renderRun(doc, r, around, item, dark, stale, candidates, false);
+    }
+
+    private void renderRun(StyledDocument doc, SafeMarkdown.Run r, SimpleAttributeSet around, Item item, boolean dark,
+                           boolean stale, int[] candidates, boolean tableCell) throws BadLocationException {
         TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
         SimpleAttributeSet a = new SimpleAttributeSet(around);
         switch (r.kind()) {
             case STRONG -> StyleConstants.setBold(a, true);
             case EMPHASIS -> StyleConstants.setItalic(a, true);
+            case STRIKE -> StyleConstants.setStrikeThrough(a, true);
             case CODE -> {
                 String code = r.text();
                 if (candidates[0] < MAX_CANDIDATES) {
@@ -500,27 +515,248 @@ public final class TranscriptView extends JTextPane {
                 mono(a);
                 StyleConstants.setBackground(a, p.codeBackground());
                 StyleConstants.setForeground(a, p.codeText());
-                put(doc, VisibleMarks.show(code), a, item);
+                put(doc, inlineText(code, tableCell), a, item);
                 return;
             }
             case LINK, IMAGE -> {
                 if (r.kind() == SafeMarkdown.Kind.IMAGE) {          // never fetched: its words, and the URL as a link
-                    put(doc, VisibleMarks.show(r.text().substring(0, r.text().lastIndexOf(']') + 1)) + " ", a, item);
+                    put(doc, inlineText(r.text().substring(0, r.text().lastIndexOf(']') + 1), tableCell) + " ", a, item);
                 }
                 SimpleAttributeSet link = new SimpleAttributeSet(a);
                 StyleConstants.setUnderline(link, true);
                 StyleConstants.setForeground(link, p.link());
                 link.addAttribute(LINK_ATTR, r.url());
                 String shown = r.kind() == SafeMarkdown.Kind.IMAGE ? r.url() : r.text();
-                put(doc, VisibleMarks.show(shown), link, item);
+                put(doc, inlineText(shown, tableCell), link, item);
                 if (r.kind() == SafeMarkdown.Kind.LINK && !r.text().equals(r.url())) {
-                    put(doc, " (" + VisibleMarks.show(r.url()) + ")", smaller(base(p.muted(), dark)), item);
+                    put(doc, " (" + inlineText(r.url(), tableCell) + ")", smaller(base(p.muted(), dark)), item);
                 }
                 return;
             }
             default -> { }
         }
-        renderProse(doc, r.text(), a, item, stale, candidates);
+        renderProse(doc, r.text(), a, item, stale, candidates, tableCell);
+    }
+
+    private static String inlineText(String text, boolean tableCell) {
+        String shown = VisibleMarks.show(text);
+        // A cell's literal tab is content, not one of the grid's structural tab stops. Copy still uses the source.
+        return tableCell ? shown.replace("\t", "⟨U+0009⟩") : shown;
+    }
+
+    // ---- GFM tables -----------------------------------------------------------------------------------------------
+    // A table's width decision is made fresh at render time from the view's CURRENT width (fitsWidth, below): this
+    // view only re-renders in full on New chat, a trim or a theme change (class javadoc), so a table rendered wide and
+    // then narrowed by a resize keeps its grid until the entry re-renders (a later revision, or one of those three).
+    //
+    // Columns are aligned with Swing paragraph TAB STOPS at PIXEL positions, never by padding with space characters:
+    // a cell holding a glyph that is not one monospace cell wide (✅, ⚠, an em dash, …) has no well-defined "character
+    // count", so counting characters (the first cut, r12) put each row's separator at a different x. A tab stop is
+    // exact regardless of what came before it on that line, so every row's separator and every column's content land
+    // at the SAME x — self-correcting at every column boundary, immune to any one cell's odd-width glyphs.
+
+    /** A grid when it fits the view's current width; otherwise stacked {@code Header: value} records (§5.9 gap). */
+    private void renderTable(StyledDocument doc, SafeMarkdown.Table table, Item item, boolean dark, boolean stale,
+                              int[] candidates) throws BadLocationException {
+        int cols = table.header().size();
+        if (cols == 0) return;
+        FontMetrics plainFm = getFontMetrics(new Font(UiTheme.monoFamily(), Font.PLAIN, fontSize()));
+        TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
+        SimpleAttributeSet plain = mono(base(p.codeText(), dark));
+        SimpleAttributeSet muted = mono(base(p.muted(), dark));
+        SimpleAttributeSet headerAttr = bold(plain);
+        // Run the SAME renderer against a scratch document. This includes URL disclosures, VisibleMarks and
+        // component substitution. Use a private counter: measurement must not consume the answer's chip budget.
+        StyledDocument measuring = new javax.swing.text.DefaultStyledDocument();
+        int[] measuredCandidates = {candidates[0]};
+        int[] colPx = new int[cols];
+        for (int c = 0; c < cols; c++) colPx[c] = cellWidthPx(table.header().get(c), headerAttr, measuring,
+                item, dark, stale, measuredCandidates);
+        for (List<SafeMarkdown.Cell> row : table.rows()) {
+            for (int c = 0; c < cols && c < row.size(); c++) {
+                colPx[c] = Math.max(colPx[c], cellWidthPx(row.get(c), plain, measuring,
+                        item, dark, stale, measuredCandidates));
+            }
+        }
+        int spacePx = Math.max(1, plainFm.stringWidth(" "));
+        int pipePx = Math.max(1, plainFm.stringWidth("│"));
+        int dashPx = Math.max(1, plainFm.stringWidth("─"));
+        int sepRegionPx = spacePx + pipePx + spacePx;      // the full " │ " gap between two columns
+
+        if (!table.rows().isEmpty() && !fitsWidth(colPx, sepRegionPx, (int) textWidth())) {
+            renderStackedTable(doc, table, item, dark, stale, candidates);
+            return;
+        }
+
+        // colStart[c]..colEnd[c] is column c's reserved content width; pipeStart[c] is one space past colEnd[c], where
+        // the next "│" is drawn; colStart[c+1] is one more space past the pipe. Every position is non-decreasing and
+        // every gap between consecutive positions is at least one real character wide, so a tab from any point a row's
+        // actual content happens to reach is always a strictly FORWARD, unambiguous move to the next one.
+        int[] colStart = new int[cols];
+        int[] colEnd = new int[cols];
+        int[] pipeStart = new int[cols];
+        for (int c = 0; c < cols; c++) {
+            colEnd[c] = colStart[c] + colPx[c];
+            if (c < cols - 1) {
+                pipeStart[c] = colEnd[c] + spacePx;
+                colStart[c + 1] = pipeStart[c] + pipePx + spacePx;
+            }
+        }
+        List<javax.swing.text.TabStop> contentStops = new ArrayList<>();
+        List<javax.swing.text.TabStop> ruleStops = new ArrayList<>();
+        for (int c = 0; c < cols; c++) {
+            SafeMarkdown.Align align = table.aligns().get(c);
+            float target = switch (align) {
+                case RIGHT -> colEnd[c];
+                case CENTER -> colStart[c] + colPx[c] / 2f;
+                case LEFT -> colStart[c];
+            };
+            int tabAlign = switch (align) {
+                case RIGHT -> javax.swing.text.TabStop.ALIGN_RIGHT;
+                case CENTER -> javax.swing.text.TabStop.ALIGN_CENTER;
+                case LEFT -> javax.swing.text.TabStop.ALIGN_LEFT;
+            };
+            contentStops.add(new javax.swing.text.TabStop(target, tabAlign, javax.swing.text.TabStop.LEAD_NONE));
+            // the rule row always fills from the column's LEFT edge, whatever the column's own text alignment is
+            ruleStops.add(new javax.swing.text.TabStop(colStart[c], javax.swing.text.TabStop.ALIGN_LEFT,
+                    javax.swing.text.TabStop.LEAD_NONE));
+            if (c < cols - 1) {
+                javax.swing.text.TabStop pipeStop = new javax.swing.text.TabStop(pipeStart[c],
+                        javax.swing.text.TabStop.ALIGN_LEFT, javax.swing.text.TabStop.LEAD_NONE);
+                contentStops.add(pipeStop);     // the SAME pipe position in both sets, so "┼" lands under every "│"
+                ruleStops.add(pipeStop);
+            }
+        }
+        javax.swing.text.TabSet contentTabs =
+                new javax.swing.text.TabSet(contentStops.toArray(new javax.swing.text.TabStop[0]));
+        javax.swing.text.TabSet ruleTabs = new javax.swing.text.TabSet(ruleStops.toArray(new javax.swing.text.TabStop[0]));
+
+        int headerStart = doc.getLength();
+        renderTableContentRow(doc, table.header(), table.aligns(), headerAttr, muted, item, dark, stale, candidates);
+        put(doc, "\n", plain, item);
+        applyTabSet(doc, headerStart, contentTabs);
+
+        int ruleStart = doc.getLength();
+        renderTableRuleRow(doc, colPx, dashPx, muted, item);
+        put(doc, "\n", muted, item);
+        applyTabSet(doc, ruleStart, ruleTabs);
+
+        for (List<SafeMarkdown.Cell> row : table.rows()) {
+            int rowStart = doc.getLength();
+            renderTableContentRow(doc, row, table.aligns(), plain, muted, item, dark, stale, candidates);
+            put(doc, "\n", plain, item);
+            applyTabSet(doc, rowStart, contentTabs);
+        }
+    }
+
+    /**
+     * One header or body row: a TAB to each column's (alignment-specific) pixel stop, the cell's inline runs, then —
+     * for every column but the last — a TAB to the shared pipe stop and a muted {@code │}. Column 0 skips its leading
+     * tab only when it is LEFT-aligned (the paragraph already starts at x=0; tabbing to x=0 from x=0 is never done, to
+     * avoid relying on how a same-position tab resolves).
+     */
+    private void renderTableContentRow(StyledDocument doc, List<SafeMarkdown.Cell> cells, List<SafeMarkdown.Align> aligns,
+                                        SimpleAttributeSet cellAttr, SimpleAttributeSet pipeAttr, Item item, boolean dark,
+                                        boolean stale, int[] candidates) throws BadLocationException {
+        int cols = aligns.size();
+        for (int c = 0; c < cols; c++) {
+            if (!(c == 0 && aligns.get(c) == SafeMarkdown.Align.LEFT)) put(doc, "\t", pipeAttr, item);
+            SafeMarkdown.Cell cell = c < cells.size() ? cells.get(c) : new SafeMarkdown.Cell(List.of());
+            for (SafeMarkdown.Run r : cell.runs()) renderRun(doc, r, cellAttr, item, dark, stale, candidates, true);
+            if (c < cols - 1) {
+                put(doc, "\t", pipeAttr, item);
+                put(doc, "│", pipeAttr, item);
+            }
+        }
+    }
+
+    /** The separator row: {@code ─} filling each column's full pixel width (rounded UP, never short) and a {@code ┼}. */
+    private void renderTableRuleRow(StyledDocument doc, int[] colPx, int dashPx, SimpleAttributeSet muted, Item item)
+            throws BadLocationException {
+        int cols = colPx.length;
+        for (int c = 0; c < cols; c++) {
+            if (c > 0) put(doc, "\t", muted, item);
+            int dashCount = Math.max(1, (int) Math.ceil(colPx[c] / (double) dashPx));
+            put(doc, "─".repeat(dashCount), muted, item);
+            if (c < cols - 1) {
+                put(doc, "\t", muted, item);
+                put(doc, "┼", muted, item);
+            }
+        }
+    }
+
+    /** {@code paragraphStart} is the offset the paragraph containing this row begins at (before its own text). */
+    private static void applyTabSet(StyledDocument doc, int paragraphStart, javax.swing.text.TabSet tabs) {
+        SimpleAttributeSet a = new SimpleAttributeSet();
+        StyleConstants.setTabSet(a, tabs);
+        doc.setParagraphAttributes(paragraphStart, 1, a, false);
+    }
+
+    /** Too narrow for a grid: each row as its own stacked {@code Header: value} lines, a blank line between rows. */
+    private void renderStackedTable(StyledDocument doc, SafeMarkdown.Table table, Item item, boolean dark, boolean stale,
+                                     int[] candidates) throws BadLocationException {
+        TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
+        SimpleAttributeSet plain = mono(base(p.codeText(), dark));
+        SimpleAttributeSet label = bold(plain);
+        int cols = table.header().size();
+        List<List<SafeMarkdown.Cell>> rows = table.rows();
+        for (int r = 0; r < rows.size(); r++) {
+            List<SafeMarkdown.Cell> row = rows.get(r);
+            for (int c = 0; c < cols; c++) {
+                for (SafeMarkdown.Run run : table.header().get(c).runs()) renderRun(doc, run, label, item, dark, stale, candidates, true);
+                put(doc, ": ", plain, item);
+                SafeMarkdown.Cell cell = c < row.size() ? row.get(c) : new SafeMarkdown.Cell(List.of());
+                for (SafeMarkdown.Run run : cell.runs()) renderRun(doc, run, plain, item, dark, stale, candidates, true);
+                put(doc, "\n", plain, item);
+            }
+            if (r < rows.size() - 1) put(doc, "\n", plain, item);
+        }
+    }
+
+    /**
+     * Measure the renderer's final character runs, not the Markdown model. Links include their smaller destination,
+     * images include their caption, controls have already become visible marks, and a chip occupies its button's
+     * preferred width once (its underlying copyable text is not a second painted string).
+     */
+    private int cellWidthPx(SafeMarkdown.Cell cell, SimpleAttributeSet around, StyledDocument measuring,
+                            Item item, boolean dark, boolean stale, int[] candidates) throws BadLocationException {
+        measuring.remove(0, measuring.getLength());
+        for (SafeMarkdown.Run run : cell.runs()) renderRun(measuring, run, around, item, dark, stale, candidates, true);
+        int w = 0;
+        for (int at = 0; at < measuring.getLength();) {
+            Element e = measuring.getCharacterElement(at);
+            int end = Math.min(e.getEndOffset(), measuring.getLength());
+            AttributeSet attributes = e.getAttributes();
+            java.awt.Component component = StyleConstants.getComponent(attributes);
+            w += component == null
+                    ? getFontMetrics(measuring.getFont(attributes)).stringWidth(measuring.getText(at, end - at))
+                    : component.getPreferredSize().width;
+            at = end;
+        }
+        return w;
+    }
+
+    /**
+     * Pure (no {@code Graphics} needed — headlessly testable): would {@code columnWidthsPx} pixels, joined by
+     * {@code sepWidthPx} between columns, fit in {@code availablePx}? Both widths are already real pixel measurements
+     * (from font metrics), not character counts times an assumed per-character width.
+     */
+    static boolean fitsWidth(int[] columnWidthsPx, int sepWidthPx, int availablePx) {
+        long total = 0;
+        for (int w : columnWidthsPx) total += w;
+        if (columnWidthsPx.length > 1) total += (long) sepWidthPx * (columnWidthsPx.length - 1);
+        return total <= availablePx;
+    }
+
+    /** The monospace font's advance width in pixels, at the body size. */
+    private int monoCharWidth() {
+        Font f = new Font(UiTheme.monoFamily(), Font.PLAIN, fontSize());
+        return Math.max(1, getFontMetrics(f).charWidth('0'));
+    }
+
+    /** How many monospace characters fit the view's current text width — used to size a drawn rule. */
+    private int monoColumns() {
+        return Math.max(10, Math.min(120, (int) (textWidth() / monoCharWidth())));
     }
 
     private static final Pattern REFERENCE = Pattern.compile(
@@ -529,6 +765,11 @@ public final class TranscriptView extends JTextPane {
     /** Prose with its chips: {@code record #12}, {@code node riskMonitor}, a quoted chart name — nothing else. */
     private void renderProse(StyledDocument doc, String text, SimpleAttributeSet a, Item item, boolean stale,
                              int[] candidates) throws BadLocationException {
+        renderProse(doc, text, a, item, stale, candidates, false);
+    }
+
+    private void renderProse(StyledDocument doc, String text, SimpleAttributeSet a, Item item, boolean stale,
+                             int[] candidates, boolean tableCell) throws BadLocationException {
         Matcher m = REFERENCE.matcher(text);
         int at = 0;
         while (m.find() && candidates[0] < MAX_CANDIDATES) {
@@ -546,7 +787,7 @@ public final class TranscriptView extends JTextPane {
             } else if (m.group(2) != null) {
                 String id = trimPunctuation(m.group(2));
                 if (chips.isNode(id)) {
-                    put(doc, VisibleMarks.show(text.substring(at, m.start())) + "node ", a, item);
+                    put(doc, inlineText(text.substring(at, m.start()), tableCell) + "node ", a, item);
                     chip(doc, id, "node " + id + " — selects and spotlights the node", item, stale,
                             () -> navigator.revealNode(id));
                     at = m.start(2) + id.length();
@@ -561,12 +802,12 @@ public final class TranscriptView extends JTextPane {
             if (chipLabel == null) continue;
             // a quoted chart name keeps its quotes as text around the chip: every character the model wrote stays
             boolean quoted = m.group(3) != null;
-            put(doc, VisibleMarks.show(text.substring(at, m.start())) + (quoted ? "\"" : ""), a, item);
+            put(doc, inlineText(text.substring(at, m.start()), tableCell) + (quoted ? "\"" : ""), a, item);
             chip(doc, chipLabel, tip, item, stale, go);
             if (quoted) put(doc, "\"", a, item);
             at = m.end();
         }
-        put(doc, VisibleMarks.show(text.substring(at)), a, item);
+        put(doc, inlineText(text.substring(at), tableCell), a, item);
     }
 
     private static String trimPunctuation(String id) {

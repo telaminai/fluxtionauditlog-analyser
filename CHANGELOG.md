@@ -13,6 +13,19 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - An interrupted Claude Code conversation that cannot resume in its changed folder or mode starts a new chat with your last request and a recovery reminder placed, never sent. A CLI-reported missing session falls back once; ordinary failures do not retry. The session now records a start activity clock for the live activity display.
 
 - Restart recovers a Claude Code process stuck starting or stopping, preserving its conversation when it can resume. Start on a healthy session now says it is already running; externally stopped processes name signal 15 or 9, and rate-limit notes explain that they do not block Start or Restart.
+- Transcript tables bound cell and repeated-label expansion, preserving oversized tables as raw text. Pixel widths
+  include displayed link destinations, image captions, visible character disclosures and navigation chips, so grid
+  alignment and narrow-panel stacking match what is actually rendered.
+
+- **The transcript renders Markdown tables, not raw pipes.** A GFM table (a header row plus a valid separator row —
+  `:---`, `---:`, `:---:` or `---` per column) draws as an aligned, bordered monospace grid, with alignment from the
+  separator row and `**bold**`/`` `code` ``/links working inside cells; `\|` stays a literal pipe. When the grid would
+  not fit the panel's current width it stacks each row as `Header: value` lines instead. A pipe-started block with no
+  valid separator row still shows as the literal text it always was. The transcript also now renders headings 4–6
+  (bold, base size), `~~strikethrough~~`, task-list items as `☐`/`☑`, a drawn rule for `---`/`***`/`___` alone on a
+  line, and nested block quotes (capped at three levels). Columns are aligned with pixel-measured tab stops, not
+  padded by character count, so a cell holding a status icon or an em dash no longer pulls that row's separators
+  out of line with the rest of the table; the header's drawn rule now reaches the full width of its longest cell.
 
 - The offline onboarding scorer refuses nonempty answer rows without string `text` instead of silently ignoring their contents. Operator correlation now covers current proposal-row, restart, no-log, profile/setup, external-access and starter choices, verified against actual Java records; unknown fact-bearing operator kinds also void the run. Empty answer captures remain explicitly distinguishable from missing or malformed captures.
 
@@ -21,9 +34,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Added
 
 - Docs: a new page, *The audit log ▸ From a Mongoose server to the analyser*, explains how a Mongoose-hosted processor's audit records reach a `---`-separated file that the analyser opens. It covers two routes: your own `LogRecordListener` passed at boot, and Mongoose's audit capture exported by `svc-admin-web`. It also covers where the audit level comes from. Steps that the Mongoose sources do not settle are marked *To confirm*.
-
-### Fixed
-
 - **Fixed: accepting "this log sits inside the project X — load it?" while Claude Code is running now offers the
   same restart as any other project switch**, instead of applying at once. If you started Claude Code before opening
   a project (so it began in the analyser's private scratch folder), then opened an audit log and said yes to that
