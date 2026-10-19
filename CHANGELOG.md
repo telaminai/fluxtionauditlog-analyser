@@ -8,6 +8,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- M80: Design discovers Spring XML and Java builder definitions under authorised source roots when a project opens or roots change, without relying on generated headers. Context adds kind/files/nodes/source while keeping released keys; a single candidate opens as a read-only glance, and absent or unavailable discovery is stated. Java anchors and the multi-file chooser follow separately.
+- M80 discovery keeps readable candidates when individual files fail and names up to ten failed files, with an
+  omitted count, in the Design pane and context note. Scan-limit exhaustion remains unavailable with a distinct
+  reason. A failed first design read no
+  longer invents a Spring kind, and the empty Design message uses plain, shorter wording.
 - A spotlight source line target may now light a RANGE, not only a single line: `source:java:<fqn>:line:<from>-<to>` and `source:design:line:<from>-<to>` (plain `line:<n>` is unchanged, the range n-n). The range must have its first line at or before its last, and spans at most 200 lines. The cut-out covers the whole range, first line's top to last line's bottom; a range taller than the visible area clips to it and shows the range's start, reported as `partial` in the spotlight reply (as a single tall Java line already was) — a design range may now show partly too, where a single design line still refuses outright unless it is fully on screen. A range whose last line is past the end of the file or design is refused whole, never silently clamped.
 
 ## [1.37.0] - 2026-10-19

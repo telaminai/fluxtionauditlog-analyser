@@ -52,6 +52,7 @@ line, and update this index in the same change.
 | [spec-authoring-session-walkthrough.md](spec-authoring-session-walkthrough.md) | companion to the mode selector (real harness output) | M48 |
 | [spec-authoring-token-lowering.md](spec-authoring-token-lowering.md) | proposed 2026-10-13; Higgins lowering for the authoring loop | M72 |
 | [spec-authoring-journey.md](spec-authoring-journey.md) | draft r2 2026-10-17, reviewed; owner decisions OD-76.1–.19 open; not started | M76 |
+| [spec-design-definitions.md](spec-design-definitions.md) | M80; owner boundaries accepted, three dependent implementation PRs; header discovery gated | M80 |
 
 ## Onboarding and journeys
 
@@ -59,7 +60,7 @@ line, and update this index in the same change.
 |---|---|---|
 | [spec-onboarding-example.md](spec-onboarding-example.md) | M19 in progress; most slices archived | M19 |
 | [spec-project-starter-journey.md](spec-project-starter-journey.md) | analyser half shipped in 1.16.0; producer and download acceptance open | M47, M19.23 |
-| [spec-first-minute.md](spec-first-minute.md) | ACCEPTED r1 (2026-10-18); r6 (two independent reviews, the lead's round 2, the owner's correction and answers), every owner decision accepted; not started | M79 |
+| [spec-first-minute.md](spec-first-minute.md) | ACCEPTED r1 (2026-10-18); r7 (2026-10-19, brought up to date for implementation; adds M79-7, the first philosophy packs, with OD-79.26–.28 open), every earlier owner decision accepted; not started | M79 |
 | [spec-extension-tour.md](spec-extension-tour.md) | specified and unblocked; not started | M67 |
 | [spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md) | accepted v2 (replaced M18); the reference the bootstrap artefacts anchor to | M19; delivery order item 10 |
 | [mongoose-bootstrap-artefacts/](mongoose-bootstrap-artefacts/README.md) | review snapshot of the starter's bootstrap files | delivery order item 10 |

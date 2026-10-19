@@ -59,9 +59,11 @@ public final class DesignWorkspace {
     }
     public View open(String requested) throws IOException {
         Path path = files.get().resolve(requested);
-        if (!path.toString().endsWith(".xml")) throw new IOException("a design must be an XML file");
+        if (!path.toString().endsWith(".xml") && !(path.toString().endsWith(".java") && DesignDiscovery.isBuilder(files.get().read(path))))
+            throw new IOException("a design must be Spring XML or a Java FluxtionGraphBuilder");
         var fact = read(files.get(), path.toString(), true, state.get().generation());
         dispatch.accept(fact);
+        if (fact.builder() != null) return view(fact.builder(), 1, null);
         if (fact.document() == null) {
             if (state.get().document() != null && path.toString().equals(state.get().path())) return view(state.get().document(), 1, null);
             return new View(path.toString(), files.get().read(path), "DESIGN", 1, null, null, fact.error());
@@ -73,7 +75,10 @@ public final class DesignWorkspace {
         try {
             Path resolved = files.resolve(path);
             canonical = resolved.toString();
-            return new DesignEvents.ReadCompleted(resolved.toString(), DesignDocument.parse(resolved.toString(), files.read(resolved)), "", opening, generation);
+            String text = files.read(resolved);
+            if (resolved.toString().endsWith(".java"))
+                return new DesignEvents.ReadCompleted(canonical, null, "", opening, generation, BuilderDocument.parse(canonical, text));
+            return new DesignEvents.ReadCompleted(canonical, DesignDocument.parse(canonical, text), "", opening, generation);
         } catch (IOException | DesignDocument.ParseFailure e) { return new DesignEvents.ReadCompleted(canonical, null, e.getMessage(), opening, generation); }
     }
     public void refreshed(DesignEvents.ReadCompleted fact) { dispatch.accept(fact); }
@@ -117,6 +122,7 @@ public final class DesignWorkspace {
                 line = DesignDocument.lineAt(text, offset);
             }
             if (line > 1 + text.chars().filter(c -> c == '\n').count()) throw new IOException("line exceeds source length");
+            if (!keys.contains("fqn") && DesignDiscovery.isBuilder(text)) return view(BuilderDocument.parse(path.toString(), text), line, null);
             return new View(path.toString(), text, "NODE", line, null, null);
         }
         if (!path.toString().endsWith(".xml")) throw new IOException("source supports XML and Java files");
@@ -142,6 +148,7 @@ public final class DesignWorkspace {
         return view(doc, line, bean);
     }
     public static View view(DesignDocument doc, int line, String bean) { return new View(doc.file(), doc.text(), "DESIGN", line, bean, doc); }
+    public static View view(BuilderDocument doc, int line, String node) { return new View(doc.file(), doc.text(), "DESIGN", line, node, null); }
 
     public ProducerResult diagnostics(String requested) throws IOException {
         long generation = state.get().generation();

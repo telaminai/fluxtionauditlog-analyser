@@ -86,7 +86,7 @@ final class DesignSourcePanel extends JPanel {
         file = view.file();
         rendering = true;
         try {
-            new XmlHighlighter().render(text.getStyledDocument(), view.text());
+            highlight(view.text());
             index.clear();
             if (document != null) {
                 for (String id : document.beanIds()) for (var bean : document.beans(id)) index.addElement(new Anchor(id, bean.line(), id));
@@ -102,10 +102,14 @@ final class DesignSourcePanel extends JPanel {
     String file() { return file; }
     void refresh() {
         int caret = text.getCaretPosition();
-        new XmlHighlighter().render(text.getStyledDocument(), text.getText());
+        highlight(text.getText());
         text.setCaretPosition(Math.min(caret, text.getDocument().getLength()));
     }
     void setWrap(boolean on) { text.setWrap(on); refresh(); }
+    private void highlight(String content) {
+        if (file != null && file.endsWith(".java")) new JavaHighlighter().render(text.getStyledDocument(), content);
+        else new XmlHighlighter().render(text.getStyledDocument(), content);
+    }
     void clear() { document=null; file=null; text.setText(""); index.clear(); status.setText("No session design open."); }
     /** Settle this reveal now; a previous render must not scroll it away after the echo. */
     void revealLine(int line) {
