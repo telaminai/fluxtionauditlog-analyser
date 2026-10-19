@@ -210,14 +210,16 @@ class DocsExternalAccessClaimsTest {
     @DisplayName("★ the CHANGELOG's [Unreleased] describes the shipped header, not the mode selector it replaced")
     void theChangelogReadsCoherently() throws Exception {
         String log = read(Path.of("CHANGELOG.md"));
+        // These lines describe what 1.36.0 shipped. Each release stamps [Unreleased] into a new dated section, so a
+        // window of "the first versioned section" moves on every release (it broke after 1.36.0 and again after
+        // 1.37.0, whose stamp commit CI never runs on). Read from [Unreleased] through the end of the 1.36.0 section,
+        // found by name, so later stamps cannot move it.
         int at = log.indexOf("## [Unreleased]");
-        // The release workflow stamps [Unreleased] into a dated version section at release time, so the lines this
-        // test holds to coherence may now be the start of that just-released section rather than [Unreleased]
-        // itself. Read through the end of the first versioned section after [Unreleased], not just up to it.
-        int firstVersion = log.indexOf("\n## [", at + 1);
-        int afterFirstVersion = firstVersion < 0 ? log.length() : log.indexOf("\n## [", firstVersion + 1);
-        if (afterFirstVersion < 0) afterFirstVersion = log.length();
-        String unreleased = flat(log.substring(at, afterFirstVersion));
+        int shipped = log.indexOf("\n## [1.36.0]", at + 1);
+        assertTrue(shipped > 0, "CHANGELOG has a 1.36.0 section");
+        int afterShipped = log.indexOf("\n## [", shipped + 1);
+        if (afterShipped < 0) afterShipped = log.length();
+        String unreleased = flat(log.substring(at, afterShipped));
         for (String gone : List.of("Choose **Claude Code** at the top of the Assistant tab", "analyser-assistant posture",
                 "Or choose directly", "its switch is shown, disabled", "Profile…", "Claude Code · your plan",
                 "In-app · API key", "the questions need in-process actions",
