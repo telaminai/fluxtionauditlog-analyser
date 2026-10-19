@@ -136,12 +136,20 @@ public class SessionBoundary implements EventLogSource {
      * M74 P2b: a PERSON's switch (open another project, close, create) while a Claude Code process runs is held and the
      * person asked. An assistant's {@code open {project}} is never held; a re-open of the active project is a no-op as
      * before; the analyser's OWN create from an onboarding proposal is never a switch (§5.6 step 7).
+     *
+     * <p>Fix (owner's 1.36.0 report): {@code ADOPT_FOR_OPEN_LOG} — accepting "this log sits inside project X — load
+     * it?" ({@code MainFrame.maybeOfferProject}) — is held too. It was left out because M35.5's rule for it is about a
+     * DIFFERENT question ("does this transition close the open log?" — never, so the log that caused the offer
+     * survives); that rule says nothing about whether a running Claude Code session should be offered a restart, and
+     * the omission meant accepting the offer applied the switch at once, leaving the session bound to whatever
+     * folder it already had (commonly the scratch one, for a session started before any project was open) with no
+     * warning. Witness: {@code LocalAgentSwitchTest.adoptingTheProjectForAnOpenLogIsHeldWhileClaudeCodeRuns}.
      */
     private boolean holds(SessionEvents.OpenProjectRequested event) {
         if (localAgentSession == null || !localAgentSession.processRunning()) return false;
         TransitionKind k = event.kind();
         if (k != TransitionKind.EXPLICIT_SWITCH && k != TransitionKind.CLOSE && k != TransitionKind.CREATE
-                && k != TransitionKind.FORK) return false;
+                && k != TransitionKind.FORK && k != TransitionKind.ADOPT_FOR_OPEN_LOG) return false;
         boolean person = event.audience() != null
                 && event.audience().origin() == SessionEvents.OperationOrigin.PERSON && event.assistantOrigin() == null;
         if (!person) return false;
