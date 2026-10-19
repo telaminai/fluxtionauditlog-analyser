@@ -147,6 +147,14 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M78] ☑ **Quiet assistant panel, with D1 and D2 — released in 1.36.0 (PR #168).**
   ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
+### M80 · Live activity, project build-script trust, restart recovery, and project-sync offers ([spec](spec-assistant-activity-and-project-trust.md), DRAFT r3)
+- [M80] ☐ **Specified** (four owner-approved features, 2026-10-19, OD-80.1–.10): A — a live "current step"/stall
+  cue while a turn runs, additive `context.project.assistant` fields; B — an opt-in, content-pinned, machine-tier
+  pre-allow of the project's own build scripts in Full (narrowly supersedes M74 §5.7's "no Always allow"); C — a
+  Restart that never silently no-ops, preserves the conversation when it can resume, and places a recovery draft
+  when it can't; D — a generalised, debounced watch that offers to open a regenerated graph or a new log for any
+  open project, never the sample or a bundle. 11 PRs sized S/M/L; depends on `fix/assistant-runs-in-project`.
+
 ### M79 · The first minute ([spec](spec-first-minute.md), r6)
 - [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers; r6 the second review, OD-79.20–.25 accepted): the real-run diamond walk autoplays once, its Spring XML beside the topology, three doors, a start page under 40 words; then a recorded, composition-first teaching conversation in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, and later the external teacher kit. 8 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`. No M79 code is in the integration.
 - [M79-1] ☐ The first launch: the `firstMinute` node, the diamond walk autoplayed once, three doors, a start page under 40 words (spec §5; spec under independent review on [#164](https://github.com/telaminai/fluxtionauditlog-analyser/pull/164)).
