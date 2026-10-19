@@ -128,13 +128,14 @@ class EventTypesMinRowsFrameTest {
      * Robot walk of P3, 900x680 dark: the Event types button was laid over "Search:" and the search box vanished. In a
      * narrow Facts column the controls move to a line of their own; the label, the box and the controls never overlap.
      *
-     * <p>INTEG-R11 (owner, 2026-10-19): at 680 px the wrapped search row leaves the column too short for BOTH floors
-     * on Linux's font metrics (2 checklist rows on the CI runner, 3 on macOS), and then the documented give-way order
-     * applies — the records table keeps its three rows and the checklist yields. So at 680 this asserts that order, on
-     * every platform; the three-row checklist floor is asserted at {@value #FITS_BOTH_HEIGHT} px, a height that holds both
-     * floors with the search row wrapped. Witnesses: {@link LogTablePanel#MIN_VISIBLE_ROWS} = 0 fails the order at 680;
-     * {@link EventFilterPanel#MIN_VISIBLE_ROWS} = 0 fails the checklist's floor — at 680 where the column
-     * still holds both floors (macOS), and at {@value #FITS_BOTH_HEIGHT} everywhere (both run, 2026-10-19).
+     * <p>INTEG-R11 (2026-10-19): the Linux failure at 900x680 ("2 of 7 rows") was this test's measurement, not the
+     * product: the column held the checklist's full floor (101 px, a 10 px horizontal scroll bar counted), and three
+     * rows fit its 89 px viewport, but the Linux fonts make the rows 252 px wide in a 191 px viewport, and a row was
+     * counted only if it fitted horizontally too. Rows are now counted by their vertical extent, as the records table's
+     * are. The owner's give-way order is asserted at 680 (the records table keeps three rows; the checklist keeps three
+     * unless it is the one that yielded), and the three-row floor again at {@value #FITS_BOTH_HEIGHT} px. Witnesses:
+     * {@link LogTablePanel#MIN_VISIBLE_ROWS} = 0 fails the order at 680; {@link EventFilterPanel#MIN_VISIBLE_ROWS} = 0
+     * fails the checklist's floor (both run, 2026-10-19).
      */
     @Test
     void aNarrowWindowWrapsTheSearchRowInsteadOfHidingTheBox(@TempDir Path tmp) throws Exception {
@@ -266,6 +267,11 @@ class EventTypesMinRowsFrameTest {
             int visible = 0;
             for (JCheckBox row : rows) {
                 Rectangle r = SwingUtilities.convertRectangle(row.getParent(), row.getBounds(), viewport);
+                // vertical extent only, as for the records table: a long type name scrolls sideways under the list's
+                // horizontal scroll bar (Linux fonts, 900 px: rows 252 px wide in a 191 px viewport), and a row the bar
+                // scrolls is still a visible row (INTEG-R11, diagnosed from the CI runner's numbers)
+                r.x = onScreen.x;
+                r.width = 1;
                 if (onScreen.contains(r)) visible++;
             }
             int expected = Math.min(3, rows.size());
