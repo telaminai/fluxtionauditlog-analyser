@@ -98,6 +98,59 @@ class RunIntegrityTest(unittest.TestCase):
         (self.run / 'answers.jsonl').write_text('')
         self.assertEqual(self.score()[1]['verdict'], 'PASS', 'required phrases are intentionally informational')
 
+    def test_nonempty_answer_rows_require_text_not_a_silent_empty_default(self):
+        self.assertEqual(self.score()[1]['verdict'], 'PASS')
+        previous = (self.run / 'score.json').read_bytes()
+        for row in ({'ticket': 1, 'message': 'never breached'}, {},
+                    *({'ticket': 1, 'text': value} for value in (None, False, 1, [], {}))):
+            with self.subTest(row=row):
+                (self.run / 'answers.jsonl').write_text(json.dumps(row)+'\n')
+                rc, card, err = self.score()
+                self.assertEqual(rc, 2, 'unsupported answer rows cannot certify no contradiction')
+                self.assertIsNone(card)
+                self.assertIn('answers.jsonl', err)
+                self.assertEqual(previous, (self.run / 'score.json').read_bytes())
+        (self.run / 'answers.jsonl').write_text('{"ticket":1,"text":"never breached"}\n')
+        self.assertEqual(self.score()[1]['verdict'], 'FAIL', 'valid captured contradictions must still be scored')
+
+    def test_current_person_decisions_without_operator_acts_void_the_run(self):
+        record = self.run / 'session-record.yaml'
+        original = record.read_text()
+        operator = self.run / 'operator.jsonl'
+        original_acts = operator.read_text()
+        meta = json.loads((self.run / 'session-record.meta.json').read_text())
+        for event, fields, kind in (
+                ('ProposalItemAnswered', 'proposalId=p-DEMO, itemId=DEMO-1, yes=true', 'review'),
+                ('LocalAgentRestartAnswered', 'request=99, offer=1, restart=true, consent=null', 'restart'),
+                ('StartPageNoLogAnswered', 'request=99, choice=ASK_ANYWAY', 'noLog'),
+                ('LocalAgentNewChatRequested', 'origin=New chat', 'newChat'),
+                ('LocalAgentRestartOfferRequested', 'origin=restart chip', 'restartOffer')):
+            with self.subTest(event=event):
+                operator.write_text(original_acts)
+                record.write_text(original+'\n---\neventLogRecord:\n event: '+event+
+                                  '\n eventToString: '+event+'['+fields+']\n nodeLogs:\n---\n')
+                self.edit('session-record.meta.json', lambda d: d.update(total=meta['total']+1))
+                rc, card, _ = self.score()
+                self.assertEqual(rc, 0)
+                self.assertEqual(card['verdict'], 'VOID', 'a current person decision cannot bypass correlation')
+                self.assertEqual(card['boundary']['factsWithoutAnAct'], {kind: 1})
+                fact = {key: value for key, value in r.parse_fields(fields).items() if key != 'consent'}
+                act = {'t': 50, 'kind': kind, 'source': 'script', 'fact': fact}
+                operator.write_text(original_acts+json.dumps(act)+'\n')
+                self.assertEqual(self.score()[1]['verdict'], 'PASS', 'matching current decisions remain valid')
+                key = next(iter(fact))
+                act['fact'][key] = 'different-DEMO'
+                operator.write_text(original_acts+json.dumps(act)+'\n')
+                self.assertEqual(self.score()[1]['verdict'], 'VOID', 'another decision is not the missing act')
+
+    def test_unknown_operator_kinds_expecting_a_fact_are_not_silently_ignored(self):
+        rows = r.load_jsonl(self.run / 'operator.jsonl')
+        rows.append({'t': 50, 'kind': 'unrecognised-DEMO', 'source': 'script'})
+        (self.run / 'operator.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        card = self.score()[1]
+        self.assertEqual(card['verdict'], 'VOID', 'unknown fact-bearing operator kinds must fail closed')
+        self.assertEqual(card['boundary']['unsupportedActs'], ['unrecognised-DEMO'])
+
     def test_missing_reaping_evidence_is_not_safe(self):
         self.edit('meta.json', lambda d: d.pop('reaped'))
         self.assertEqual(self.score()[1]['verdict'], 'VOID', 'unknown process reaping cannot be certified safe')

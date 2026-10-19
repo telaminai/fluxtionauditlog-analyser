@@ -14,6 +14,10 @@ the names before the first run**: the scorer matches strings, and a renamed fact
 The original shapes remain historical context. **PR #155 correction, 2026-10-19:** the permission reader now uses
 the released `allow`, `by`, `written` record fields, with a test constructing the actual Java records after
 compilation. CI also runs the real pack parser in non-writing check mode, not just the saved JSON verdicts.
+The second correction checks all 47 explicitly inventoried current onboarding controls against actual Java records,
+including proposal-row answers, restart and no-log choices, setup/profile, access and starter decisions. This is not
+a claim to account for arbitrary UI navigation outside the onboarding protocol; new person controls need an explicit
+inventory/contract update before a trial may use them. Observations and effect results are not person acts.
 
 ## 1. Inputs: the run folder
 
@@ -28,6 +32,10 @@ compilation. CI also runs the real pack parser in non-writing check mode, not ju
 | `cli-session.jsonl` | the runner, copied from the isolated `CLAUDE_CONFIG_DIR/projects/` | the CLI's own session transcript, tool calls and results included | **yes** | **no** |
 | `meta.json` | the runner | wall time, cap, process-tree reaping, key scan (T4), infrastructure voids | no | yes |
 | `score.json` | `score` | this scorecard | no | yes |
+
+Nonempty answer rows require string `text`; absent, null, boolean, numeric, list or object text is unsupported input
+and refuses with exit 2 without overwriting a previous score. A present empty answer file is allowed, distinct from
+a missing capture. Unknown operator kinds expecting facts void the run; non-fact markers must set `expectFact: false`.
 
 `pointers` is how correctness is read without reading prose. The analyser already says what it is pointing at:
 `context.selection` carries each selected record's `event` and `logTime`; `context.flags` carries `recordIndex`, which
@@ -55,13 +63,13 @@ fact's own timestamp and never the model's. `t0` is the operator's first act.
 | `proposals.applied`, `.createApplied` | items the analyser applied through the person's path | node log `proposalItem: <id>` with `outcome: APPLIED` (`…create` is the analyser's own create row) | available |
 | `proposals.finalStates` | each item's last state: `applied`, `declined`, `refused`, `outside`, `failed` | the last snapshot's `context.proposals` rows (ids, kinds, states, verdicts; never Claude's reasons) | available |
 | `proposals.pairing`, `.fit` | the analyser's own check after the last item | node log `proposalChecked` with `pairing`, `fit` | available |
-| `proposals.itemsShown`, `.itemsReviewed`, `.everyItemReviewed` | items the person could answer, and whether the operator recorded a decision for each | shown = rows not `refused`/`outside`; reviewed = `operator.jsonl` acts of kind `review` naming the item | available, **from the operator log**: the record cannot show a No (**R5**) |
+| `proposals.itemsShown`, `.itemsReviewed`, `.everyItemReviewed` | items the person could answer, and whether the operator recorded a decision for each | shown = rows not `refused`/`outside`; reviewed = `operator.jsonl` `review` acts, `fact.itemId`; the boundary correlates proposal, item and Yes/No against `ProposalItemAnswered` | available; consistency of two recorded streams, not independent causal proof |
 | `approvals.asked`, `.byClass` | permission requests that reached the analyser (P3) | fact `LocalAgentPermissionRequested` `toolClass` | **P3** (spec §8.3 names; **R8**) |
 | `approvals.granted`, `.deniedBy` | delivered Allow once by the person; delivered denials by decision source | fact `LocalAgentPermissionAnswered` `allow`, `by`, `written` | current Java contract checked in CI |
 | `approvals.allowedBy`, `.undelivered` | delivered allows by decision source (pre-allows are not denials), and responses not written to the process | the same current Java fact | available |
 | `approvals.approvalUnavailable` | P2's stand-in: an action the mode would have asked about, denied because nobody can be asked | `LocalAgentNoted` `note: APPROVAL_UNAVAILABLE` | available |
 | `operator.guidedActs`, `.cannedReplies`, `.nudges` | person acts taken because Claude named a control, because Claude asked a question, or to unstick a stalled turn | `operator.jsonl` `guided`, `reply`, `nudge` | available |
-| `boundary` | every person-act fact has an operator act of the same kind, in order, and every press that should post a fact did | the facts `StartPromptPackDropped`, `ReturnToMainOptions`, `StartPagePromptSent`, `LocalAgentStartRequested`, `LocalAgentFolderAnswered`, `LocalAgentSendRequested`, `LocalAgentStopRequested`, `ProposalApplyRequested`, `ProposalDismissed`, `ExampleDownloadRequested`, `ExampleDownloadConfirmed`, `LocalAgentSwitchChosen` and (P3) `LocalAgentPermissionChosen`, against `operator.jsonl` | available; stronger with **R3** |
+| `boundary` | every inventoried onboarding person-act fact has an operator act of the same kind, in order, and every press that should post a fact did | `PERSON_ACT_EVENTS` and `ACT_FIELDS`, checked against the independent Java inventory in `RecordPersonFacts.java`; references and choices must match, including list element types | available; stronger with **R3** |
 | `postureIntegrity` | every turn's `system/init` shows only the hosted bridge, connected, and no other server's tools; every posture verdict `OK` | fact `LocalAgentInitObserved` `servers`, `tools`; node log `localAgentPosture` | available; skills and plugins loaded are **unavailable: R7** |
 | `correctness.primaryHeld` | the oracle's primary predicates held at some snapshot | §3 | available |
 | `correctness.claims` | required phrases found, and **contradictions**: a forbidden phrase in any answer | `answers.jsonl`, against the oracle's `claims.require` / `claims.forbid` regular expressions | available (harness reads the store; **R4** for a product path) |
@@ -158,7 +166,7 @@ Read from the P2 branch, not inferred. Each says what is lost without it and whe
 | **R2** | A fact for a built-in tool use and a posture denial naming the tool from a fixed vocabulary (`Read`, `Grep`, `Glob`, …): `LocalAgentNoted(PERMISSION_DENIED)` names none, and tool lines live only in the transcript store as words | which tool was denied, so a "denied by the posture" dead end can be told from a confused model | the transcript store's tool lines (words) |
 | **R3** | An `origin` (the control's id) on every person-act fact, as `LocalAgentStopRequested` and `AssistantModeChosen` already carry | the boundary check relies on the operator log matching the record; with an origin the record proves it alone | none needed while the operator log is complete |
 | **R4** | A product path to the conversation's words for claim checks (P5's conversation log, or a v2 walk recording) | claim checks need the in-JVM harness | the harness reads the bounded store by reference |
-| **R5** | The person's per-item answer in the review dialog as a fact (spec §8.2 lists `ProposalItemAnswered{proposalId, itemId, yes}`; the code posts `ProposalApplyRequested{yes: […]}` only) — **a spec-versus-code divergence** | a No and an item never looked at are the same in the record, so "every item reviewed" is shown only by the operator log | `operator.jsonl` `review` acts |
+| **R5** | Current `ProposalItemAnswered{proposalId, itemId, yes}` precedes Apply and records Yes/No | original missing-fact limitation is resolved; who pressed is still the R3 boundary, not proved by correlation alone | `review` acts carrying matching `fact` objects; current-Java contract test |
 | **R6** | **Words and paths in facts.** `ProposalReceived` carries Claude's `summary` and each item's `reason` and `path`; `LocalAgentSetupDirectoryChosen.dir`, `ExampleDownloadConfirmed.targetDir`, `ExampleUnpacked.root` and `ProposalPreviewDone.setupDir` carry real paths. The session processor records each event's `eventToString`, so these reach the session record — against spec §4.1 (*"facts carry … never words, account data or paths"*). Read from the source, **not verified on a live export**. For the owner: keep (and say so in §4.1) or move to references | a session record cannot be committed or shared unredacted | the scorer reads only enums, ids and counts; the protocol redacts before anything leaves the run |
 | **R7** | The skills, plugins and agents a turn's `system/init` reports, as a count or digest on `LocalAgentInitObserved` | a virgin full-posture run cannot prove from the record that none of the owner's skills loaded | the isolated `CLAUDE_CONFIG_DIR` and the sandbox (protocol §2) make it true; nothing records it |
 | **R8** | Current P3 permission facts (`LocalAgentPermissionRequested{… toolClass, name …}`, `LocalAgentPermissionAnswered{… allow, by, written}`) | approval accounting must not use the obsolete spec-era `decision` field | current Java record construction checked in CI; no live T4 trial implied |

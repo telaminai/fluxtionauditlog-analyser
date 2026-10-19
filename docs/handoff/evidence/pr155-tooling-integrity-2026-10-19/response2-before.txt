@@ -1,0 +1,191 @@
+FFFFFFFFFFFFF
+======================================================================
+FAIL: test_nonempty_answer_rows_require_text_not_a_silent_empty_default (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_nonempty_answer_rows_require_text_not_a_silent_empty_default) (row={'ticket': 1, 'message': 'never breached'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 109, in test_nonempty_answer_rows_require_text_not_a_silent_empty_default
+    self.assertEqual(rc, 2, 'unsupported answer rows cannot certify no contradiction')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 2 : unsupported answer rows cannot certify no contradiction
+
+======================================================================
+FAIL: test_nonempty_answer_rows_require_text_not_a_silent_empty_default (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_nonempty_answer_rows_require_text_not_a_silent_empty_default) (row={})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 109, in test_nonempty_answer_rows_require_text_not_a_silent_empty_default
+    self.assertEqual(rc, 2, 'unsupported answer rows cannot certify no contradiction')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 2 : unsupported answer rows cannot certify no contradiction
+
+======================================================================
+FAIL: test_nonempty_answer_rows_require_text_not_a_silent_empty_default (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_nonempty_answer_rows_require_text_not_a_silent_empty_default) (row={'ticket': 1, 'text': None})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 111, in test_nonempty_answer_rows_require_text_not_a_silent_empty_default
+    self.assertIn('answers.jsonl', err)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'answers.jsonl' not found in "m74_onboarding_runner: expected string or bytes-like object, got 'NoneType'\n"
+
+======================================================================
+FAIL: test_nonempty_answer_rows_require_text_not_a_silent_empty_default (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_nonempty_answer_rows_require_text_not_a_silent_empty_default) (row={'ticket': 1, 'text': False})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 111, in test_nonempty_answer_rows_require_text_not_a_silent_empty_default
+    self.assertIn('answers.jsonl', err)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'answers.jsonl' not found in "m74_onboarding_runner: expected string or bytes-like object, got 'bool'\n"
+
+======================================================================
+FAIL: test_nonempty_answer_rows_require_text_not_a_silent_empty_default (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_nonempty_answer_rows_require_text_not_a_silent_empty_default) (row={'ticket': 1, 'text': 1})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 111, in test_nonempty_answer_rows_require_text_not_a_silent_empty_default
+    self.assertIn('answers.jsonl', err)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'answers.jsonl' not found in "m74_onboarding_runner: expected string or bytes-like object, got 'int'\n"
+
+======================================================================
+FAIL: test_nonempty_answer_rows_require_text_not_a_silent_empty_default (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_nonempty_answer_rows_require_text_not_a_silent_empty_default) (row={'ticket': 1, 'text': []})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 111, in test_nonempty_answer_rows_require_text_not_a_silent_empty_default
+    self.assertIn('answers.jsonl', err)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'answers.jsonl' not found in "m74_onboarding_runner: expected string or bytes-like object, got 'list'\n"
+
+======================================================================
+FAIL: test_nonempty_answer_rows_require_text_not_a_silent_empty_default (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_nonempty_answer_rows_require_text_not_a_silent_empty_default) (row={'ticket': 1, 'text': {}})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 111, in test_nonempty_answer_rows_require_text_not_a_silent_empty_default
+    self.assertIn('answers.jsonl', err)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'answers.jsonl' not found in "m74_onboarding_runner: expected string or bytes-like object, got 'dict'\n"
+
+======================================================================
+FAIL: test_current_person_decisions_without_operator_acts_void_the_run (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_current_person_decisions_without_operator_acts_void_the_run) (event='ProposalItemAnswered')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 132, in test_current_person_decisions_without_operator_acts_void_the_run
+    self.assertEqual(card['verdict'], 'VOID', 'a current person decision cannot bypass correlation')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'VOID'
+- PASS
++ VOID
+ : a current person decision cannot bypass correlation
+
+======================================================================
+FAIL: test_current_person_decisions_without_operator_acts_void_the_run (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_current_person_decisions_without_operator_acts_void_the_run) (event='LocalAgentRestartAnswered')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 132, in test_current_person_decisions_without_operator_acts_void_the_run
+    self.assertEqual(card['verdict'], 'VOID', 'a current person decision cannot bypass correlation')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'VOID'
+- PASS
++ VOID
+ : a current person decision cannot bypass correlation
+
+======================================================================
+FAIL: test_current_person_decisions_without_operator_acts_void_the_run (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_current_person_decisions_without_operator_acts_void_the_run) (event='StartPageNoLogAnswered')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 132, in test_current_person_decisions_without_operator_acts_void_the_run
+    self.assertEqual(card['verdict'], 'VOID', 'a current person decision cannot bypass correlation')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'VOID'
+- PASS
++ VOID
+ : a current person decision cannot bypass correlation
+
+======================================================================
+FAIL: test_current_person_decisions_without_operator_acts_void_the_run (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_current_person_decisions_without_operator_acts_void_the_run) (event='LocalAgentNewChatRequested')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 132, in test_current_person_decisions_without_operator_acts_void_the_run
+    self.assertEqual(card['verdict'], 'VOID', 'a current person decision cannot bypass correlation')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'VOID'
+- PASS
++ VOID
+ : a current person decision cannot bypass correlation
+
+======================================================================
+FAIL: test_current_person_decisions_without_operator_acts_void_the_run (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_current_person_decisions_without_operator_acts_void_the_run) (event='LocalAgentRestartOfferRequested')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 132, in test_current_person_decisions_without_operator_acts_void_the_run
+    self.assertEqual(card['verdict'], 'VOID', 'a current person decision cannot bypass correlation')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'VOID'
+- PASS
++ VOID
+ : a current person decision cannot bypass correlation
+
+======================================================================
+FAIL: test_unknown_operator_kinds_expecting_a_fact_are_not_silently_ignored (tools.test_m74_onboarding_integrity.RunIntegrityTest.test_unknown_operator_kinds_expecting_a_fact_are_not_silently_ignored)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_integrity.py", line 140, in test_unknown_operator_kinds_expecting_a_fact_are_not_silently_ignored
+    self.assertEqual(card['verdict'], 'VOID', 'unknown fact-bearing operator kinds must fail closed')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'VOID'
+- PASS
++ VOID
+ : unknown fact-bearing operator kinds must fail closed
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.041s
+
+FAILED (failures=13)
+test_current_person_controls_require_ordered_matching_operator_decisions (contracts.CurrentJavaContractTest.test_current_person_controls_require_ordered_matching_operator_decisions) ... FAIL
+
+======================================================================
+FAIL: test_current_person_controls_require_ordered_matching_operator_decisions (contracts.CurrentJavaContractTest.test_current_person_controls_require_ordered_matching_operator_decisions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tools/test_m74_onboarding_contract.py", line 23, in test_current_person_controls_require_ordered_matching_operator_decisions
+    self.assertEqual({rec['event'] for rec in records}, set(r.EVENT_TO_ACT),
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     'every current Java onboarding control must have an explicit operator contract')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Items in the first set but not the second:
+'StarterChosen'
+'StarterMenuRequested'
+'StarterConfigured'
+'StarterGraphOfferAnswered'
+'AssistantProfileChosen'
+'LocalAgentRestartAnswered'
+'AiSetupContinue'
+'AiSetupChoiceMade'
+'AssistantFullProfileAnswered'
+'LocalAgentNewChatRequested'
+'AiSetupFirstRunDismissed'
+'LocalAgentAskAgainRequested'
+'AiSetupAlsoTurnOffChosen'
+'StarterDestinationChosen'
+'AiSetupSuggestedTaken'
+'LocalAgentRestartOfferRequested'
+'StartPageNoLogAnswered'
+'AiSetupRequested'
+'ExternalAccessRequested'
+'AiSetupCancelled'
+'ExternalAccessChosen'
+'ProposalItemAnswered'
+'StarterReviewAnswered'
+'AiSetupBack'
+'AiSetupPostureChosen'
+'AiSetupCopyRequested'
+'RegisterAnswered'
+'ExternalAccessAnswered'
+'LocalAgentSetupDirectoryChosen'
+'AiSetupClientChosen'
+'AiSetupRegisterRequested'
+'AiSetupBuildModeAnswered'
+'AiSetupMoreOptions'
+'AiSetupCheckAgain' : every current Java onboarding control must have an explicit operator contract
+
+----------------------------------------------------------------------
+Ran 1 test in 0.281s
+
+FAILED (failures=1)

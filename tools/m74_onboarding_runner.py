@@ -47,7 +47,7 @@ TRACKS = {
 }
 
 # Person acts: the facts only the person's own controls post (PROTOCOL §6.1). The operator's log must account for every
-# one of them, in order, kind by kind. P3's LocalAgentPermissionChosen is the spec's name (§8.3), not yet code.
+# one of them, in order. These are current SessionEvents records, checked with actual Java instances in CI.
 PERSON_ACT_EVENTS = {
     'dropPack': 'StartPromptPackDropped',
     'returnToMain': 'ReturnToMainOptions',
@@ -62,11 +62,46 @@ PERSON_ACT_EVENTS = {
     'exampleConfirm': 'ExampleDownloadConfirmed',
     'switch': 'LocalAgentSwitchChosen',
     'permission': 'LocalAgentPermissionChosen',
+    'review': 'ProposalItemAnswered',
+    'restart': 'LocalAgentRestartAnswered',
+    'restartOffer': 'LocalAgentRestartOfferRequested',
+    'newChat': 'LocalAgentNewChatRequested',
+    'noLog': 'StartPageNoLogAnswered',
+    'askAgain': 'LocalAgentAskAgainRequested',
+    'setupDirectory': 'LocalAgentSetupDirectoryChosen',
+    'externalAccess': 'ExternalAccessChosen',
+    'profile': 'AssistantProfileChosen',
+    'fullProfile': 'AssistantFullProfileAnswered',
+    'setup': 'AiSetupRequested',
+    'setupChoice': 'AiSetupChoiceMade',
+    'setupPosture': 'AiSetupPostureChosen',
+    'setupClient': 'AiSetupClientChosen',
+    'setupBack': 'AiSetupBack',
+    'setupContinue': 'AiSetupContinue',
+    'setupCancel': 'AiSetupCancelled',
+    'setupDismiss': 'AiSetupFirstRunDismissed',
+    'setupSuggested': 'AiSetupSuggestedTaken',
+    'setupCheck': 'AiSetupCheckAgain',
+    'setupCopy': 'AiSetupCopyRequested',
+    'setupRegister': 'AiSetupRegisterRequested',
+    'setupMore': 'AiSetupMoreOptions',
+    'setupBuildMode': 'AiSetupBuildModeAnswered',
+    'setupTurnOff': 'AiSetupAlsoTurnOffChosen',
+    'accessRequest': 'ExternalAccessRequested',
+    'accessAnswer': 'ExternalAccessAnswered',
+    'registerAnswer': 'RegisterAnswered',
+    'starterMenu': 'StarterMenuRequested',
+    'starterChoice': 'StarterChosen',
+    'starterConfigure': 'StarterConfigured',
+    'starterDestination': 'StarterDestinationChosen',
+    'starterReview': 'StarterReviewAnswered',
+    'starterGraph': 'StarterGraphOfferAnswered',
 }
 EVENT_TO_ACT = {v: k for k, v in PERSON_ACT_EVENTS.items()}
 
 # Stable references and choices the operator must record beside each act. Read from current SessionEvents;
-# never put the subject's free-form words or filesystem paths in this correlation evidence.
+# never copy subject prose or absolute filesystem paths into this correlation evidence. Starter selections are
+# offer-relative identities; folder choices use references. Observations/effect outcomes are NOT person acts.
 ACT_FIELDS = {
     'dropPack': ('packRef',), 'returnToMain': ('origin',),
     'startPage': ('request', 'entryId', 'textRef'), 'start': ('request',),
@@ -75,6 +110,23 @@ ACT_FIELDS = {
     'exampleDownload': ('request', 'packRef', 'entryIndex'),
     'exampleConfirm': ('request', 'yes', 'targetRef'), 'switch': ('request', 'choice'),
     'permission': ('requestRef', 'allow'),
+    'review': ('proposalId', 'itemId', 'yes'),
+    'restart': ('request', 'offer', 'restart'), 'restartOffer': ('origin',), 'newChat': ('origin',),
+    'noLog': ('request', 'choice'), 'askAgain': ('request', 'draftBindings'),
+    'setupDirectory': ('request', 'dirRef', 'verdict'), 'externalAccess': ('generation', 'closeWhileSession'),
+    'profile': ('request', 'profile', 'origin'), 'fullProfile': ('request', 'confirmed'),
+    'setup': ('origin',), 'setupChoice': ('choice',), 'setupPosture': ('posture', 'fullMode'),
+    'setupClient': ('client',), 'setupBack': ('step',), 'setupContinue': ('step', 'keyEntered'),
+    'setupCancel': ('origin',), 'setupDismiss': (), 'setupSuggested': ('suggested',), 'setupCheck': ('check',),
+    'setupCopy': ('what',), 'setupRegister': (), 'setupMore': (),
+    'setupBuildMode': ('offer', 'switchMode'), 'setupTurnOff': ('turnOff',),
+    'accessRequest': ('request', 'on', 'origin'), 'accessAnswer': ('request', 'confirmed'),
+    'registerAnswer': ('request', 'confirmed'), 'starterMenu': ('request',),
+    'starterChoice': ('request', 'idDigest'),
+    'starterConfigure': ('request', 'ok', 'namesRef', 'dirRef', 'referenceGuide'),
+    'starterDestination': ('proposalId', 'itemId', 'dirRef'),
+    'starterReview': ('request', 'open', 'sourceRoots', 'skills', 'graphRef', 'offerDigest', 'designRoot'),
+    'starterGraph': ('request', 'open'),
 }
 
 # Node-log keys that carry a refusal, and how the reason is named (read from the P2 branch's session nodes).
@@ -706,8 +758,10 @@ def boundary_check(acts, records):
         if kind:
             facts.setdefault(kind, []).append(r['seq'])
             fact_stream.append((kind, r['fields']))
-    pressed, act_stream = {}, []
+    pressed, act_stream, unsupported = {}, [], []
     for a in acts:
+        if a.get('expectFact', True) and a.get('kind') not in PERSON_ACT_EVENTS:
+            unsupported.append(a.get('kind'))
         if a.get('kind') in PERSON_ACT_EVENTS and a.get('expectFact', True):
             pressed.setdefault(a['kind'], []).append(a)
             act_stream.append((a['kind'], a.get('fact', {})))
@@ -723,14 +777,25 @@ def boundary_check(acts, records):
             mismatches.append({'index': i, 'kind': kind, 'field': 'fact', 'problem': 'not an object'})
             continue
         for key in sorted(set(ACT_FIELDS[kind]) | set(expected)):
-            if key not in expected or key not in actual or type(expected[key]) is not type(actual[key]) \
-                    or expected[key] != actual[key]:
+            if key not in expected or key not in actual or not same_typed_value(expected[key], actual[key]):
                 mismatches.append({'index': i, 'kind': kind, 'field': key, 'problem': 'missing or different'})
-    return {'ok': not unaccounted and not missing and order_matches and not mismatches,
+    return {'ok': not unaccounted and not missing and order_matches and not mismatches and not unsupported,
             'factsWithoutAnAct': unaccounted, 'actsWithoutAFact': missing,
+            'unsupportedActs': unsupported,
             'orderMatches': order_matches, 'identityMismatches': mismatches,
             'basis': 'ordered operator evidence with matching references/choices; not an independent origin attestation',
             'personActs': {k: len(v) for k, v in facts.items()}}
+
+
+def same_typed_value(left, right):
+    """JSON choices/references compare without Python's nested True == 1 coercion."""
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, list):
+        return len(left) == len(right) and all(same_typed_value(a, b) for a, b in zip(left, right))
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(same_typed_value(left[k], right[k]) for k in left)
+    return left == right
 
 
 def turns(records):
@@ -796,7 +861,7 @@ def proposals(records, final_context, acts):
         states[row.get('state')] = states.get(row.get('state'), 0) + 1
     shown = {row['id'] for row in rows if row.get('kind') != 'createProject' and row.get('state') not in
              ('refused', 'outside')}
-    reviewed = {a['item'] for a in acts if a.get('kind') == 'review'}
+    reviewed = {a.get('fact', {}).get('itemId', a.get('item')) for a in acts if a.get('kind') == 'review'}
     checked = node_values(records, 'proposalChecked')
     return {'offered': len(offered), 'items': items,
             'applied': sum(1 for m in applied if m.get('outcome') == 'APPLIED'
@@ -808,8 +873,8 @@ def proposals(records, final_context, acts):
             'everyItemReviewed': shown <= reviewed,
             'pairing': checked[-1][2].get('pairing') if checked else None,
             'fit': checked[-1][2].get('fit') if checked else None,
-            'personAnswerPerItem': 'unavailable: R5 (ProposalApplyRequested carries only the Yes list; a No and an '
-                                   'unread item look alike in the record) — reviewed is taken from the operator log'}
+            'personAnswerPerItem': 'ProposalItemAnswered carries Yes/No; ordered operator correlation checks '
+                                   'proposalId, itemId and yes (not independent origin attestation)'}
 
 
 def approvals(records):
@@ -914,9 +979,11 @@ def oracle_status(oracle, snapshot, records):
 
 
 def claim_checks(oracle, answers):
+    if any(not isinstance(a, dict) or not isinstance(a.get('text'), str) for a in answers):
+        raise ValueError('answers.jsonl rows must contain a string text field')
     req = [re.compile(x, re.I) for x in oracle.get('claims', {}).get('require', [])]
     forbid = [re.compile(x, re.I) for x in oracle.get('claims', {}).get('forbid', [])]
-    texts = [a.get('text', '') for a in answers]
+    texts = [a['text'] for a in answers]
     return {'requiredFound': [bool(any(r.search(t) for t in texts)) for r in req],
             'contradictions': sum(1 for f in forbid for t in texts if f.search(t)),
             'answersRead': len(texts)}

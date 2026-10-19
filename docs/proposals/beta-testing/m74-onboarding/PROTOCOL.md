@@ -380,6 +380,12 @@ same cell, and its words are kept with the run.
   `{"kind":"permission","fact":{"requestRef":9,"allow":false}}`, or
   `{"kind":"send","fact":{"request":4,"draft":6}}`. Missing/different identities or choices void the run.
   This is a consistency check on the operator's evidence, not independent causal attestation of who pressed.
+  The inventory includes current proposal-row Yes/No, restart answers and chip, New chat, no-log choices,
+  Ask again, setup-folder choices, profile/setup/external-access controls and starter choices. The executable
+  inventory is `RecordPersonFacts.java`, cross-checked against `PERSON_ACT_EVENTS` and `ACT_FIELDS` after compilation.
+  An Apply can publish several row-answer facts before its apply fact: record these in publication order, under
+  `review` acts with `fact: {proposalId, itemId, yes}`, then `apply`. A marker with no corresponding fact (such as
+  an observer snapshot) must explicitly say `expectFact: false`; unknown fact-bearing kinds void the run.
 - **The subject cannot reach the operator.** The operator reads Claude's words only to match a sealed label or a
   trailing question mark; it never parses an instruction, a path or a command out of an answer.
 - **The decision policies use only analyser-shown data.** For T2 that is the review dialog's verdict words; for T4 the
@@ -392,6 +398,9 @@ After every turn end and flow end, the observer (in the same JVM) records a snap
 pointers, the node-log counts of the open log, and `recordSeq`. At the end it exports the session record with its
 completeness counts, the transcript store's answers, and the runner copies the CLI's session transcript from the
 isolated config directory. The observer never changes state.
+Every nonempty `answers.jsonl` row must be an object with a string `text` field; an unsupported row refuses scoring
+with exit 2 and leaves any previous score untouched. A present empty file is intentionally allowed; it is not a
+missing file or an unrecognised answer shape. Empty/absent required phrases remain informational as before.
 
 ---
 
