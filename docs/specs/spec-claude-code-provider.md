@@ -1198,13 +1198,18 @@ the store's words; it decides nothing (rule 9) and is a `JTextPane` over a `Styl
   meets **4.5:1** contrast against its background and the marks **3:1**, computed in the test for both themes. A
   theme change re-styles (the one full re-render besides New chat and a trim).
 - **Safe Markdown for Claude's words** (the person's own turns are shown as typed, plain). A small parser renders a
-  CommonMark subset into styled text: ATX headings (levels 1–3), emphasis and strong, bullet and numbered lists (three
-  levels), block quotes, inline code, and fenced code blocks in the monospace font. **Everything else is literal text**,
-  and three things are refused by construction: **HTML** (a block or inline tag is shown as its characters; there is no
-  HTML renderer to reach), **images** (`![alt](url)` is shown as the text *[image: alt]* and the URL, never fetched),
-  **scripts** (nothing is evaluated). Tables are shown as monospace text. Model text is untrusted data. The parser is
-  linear: a pathological input (64 KB of unclosed emphasis) renders within a bounded time, tested, because it runs
-  again on every streamed revision of the current block.
+  CommonMark subset into styled text: ATX headings (levels 1–6; 4–6 bold at the base size), emphasis, strong and
+  strikethrough, bullet and numbered lists (three levels) including task-list checkboxes (`☐`/`☑`), block quotes
+  (nested, capped at three levels), inline code, fenced code blocks in the monospace font, and thematic breaks (`---`/
+  `***`/`___` alone on a line, drawn as a rule). **Everything else is literal text**, and three things are refused by
+  construction: **HTML** (a block or inline tag is shown as its characters; there is no HTML renderer to reach),
+  **images** (`![alt](url)` is shown as the text *[image: alt]* and the URL, never fetched), **scripts** (nothing is
+  evaluated). A GFM table (a valid header + separator row) renders as a padded monospace grid — header bold, a drawn
+  `─`/`┼` separator, alignment from the separator row, inline Markdown inside cells — or, when the grid would not fit
+  the view's current width, as stacked `Header: value` records; a pipe run with no valid separator row stays the
+  literal raw text it always was. Model text is untrusted data. The parser is linear: a pathological input (64 KB of
+  unclosed emphasis, or of pipe-delimited rows) renders within a bounded time, tested, because it runs again on every
+  streamed revision of the current block.
 - **What is seen is what is copied** (r8, F16). Terminal escape sequences (ESC `[31m` …) are **never interpreted**:
   shown as `␛[31m` and counted in the diagnostics line. C0 and C1 control characters other than newline and tab,
   bidirectional overrides and isolates (U+202A–U+202E, U+2066–U+2069), and zero-width and other format characters are

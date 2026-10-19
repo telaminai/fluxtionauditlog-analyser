@@ -498,4 +498,243 @@ class TranscriptViewTest {
             return null;
         });
     }
+
+    // ---- ★ GFM tables and the other §5.9 gaps -----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("a GFM table (valid separator row) parses into header/body cells with alignment; \\| stays literal")
+    void tableParsing() {
+        var blocks = SafeMarkdown.parse("| Name | Age | Note |\n|:---|---:|:---:|\n| **Bo** | 30 | a\\|b |");
+        var b = blocks.get(0);
+        assertEquals(SafeMarkdown.BlockKind.TABLE, b.kind());
+        assertNotNull(b.table(), "a valid separator row makes a structured table");
+        assertNull(b.code(), "the raw fallback text is unused once structured");
+        var t = b.table();
+        assertEquals(List.of(SafeMarkdown.Align.LEFT, SafeMarkdown.Align.RIGHT, SafeMarkdown.Align.CENTER), t.aligns());
+        assertEquals("Name", t.header().get(0).runs().get(0).text());
+        assertEquals(1, t.rows().size());
+        var row = t.rows().get(0);
+        assertEquals(SafeMarkdown.Kind.STRONG, row.get(0).runs().get(0).kind());
+        assertEquals("Bo", row.get(0).runs().get(0).text());
+        assertEquals("a|b", row.get(2).runs().get(0).text(), "an escaped pipe stays a literal pipe in the cell");
+    }
+
+    @Test
+    @DisplayName("a pipe run with no valid separator row (or a column-count mismatch) stays the raw monospace fallback")
+    void tableFallbackWithoutSeparator() {
+        var noSeparator = SafeMarkdown.parse("| not a table |\n| still not |").get(0);
+        assertNull(noSeparator.table());
+        assertEquals("| not a table |\n| still not |", noSeparator.code());
+
+        var mismatch = SafeMarkdown.parse("| a | b |\n|---|\n| 1 | 2 |").get(0);
+        assertNull(mismatch.table(), "the separator's column count must match the header's");
+    }
+
+    @Test
+    @DisplayName("nested quotes report their depth, capped at 3, stripping every '>' level from the content")
+    void nestedQuotes() {
+        var blocks = SafeMarkdown.parse("> one\n> > two\n> > > > four");
+        assertEquals(1, blocks.get(0).level());
+        assertEquals("one", blocks.get(0).runs().get(0).text());
+        assertEquals(2, blocks.get(1).level());
+        assertEquals("two", blocks.get(1).runs().get(0).text());
+        assertEquals(3, blocks.get(2).level(), "capped at 3");
+        assertEquals("four", blocks.get(2).runs().get(0).text());
+    }
+
+    @Test
+    @DisplayName("headings 4-6, a thematic break, task-list items and strikethrough all parse")
+    void otherGaps() {
+        var blocks = SafeMarkdown.parse("#### Four\n###### Six\n---\n***\n- [ ] todo\n- [x] done\n~~gone~~");
+        assertEquals(SafeMarkdown.BlockKind.HEADING, blocks.get(0).kind());
+        assertEquals(4, blocks.get(0).level());
+        assertEquals(6, blocks.get(1).level());
+        assertEquals(SafeMarkdown.BlockKind.RULE, blocks.get(2).kind());
+        assertEquals(SafeMarkdown.BlockKind.RULE, blocks.get(3).kind());
+        assertEquals(SafeMarkdown.BlockKind.TASK_OPEN, blocks.get(4).kind());
+        assertEquals(SafeMarkdown.BlockKind.TASK_DONE, blocks.get(5).kind());
+        assertEquals(SafeMarkdown.Kind.STRIKE, blocks.get(6).runs().get(0).kind());
+        assertEquals("gone", blocks.get(6).runs().get(0).text());
+    }
+
+    /** ★ like {@code parserIsLinear}: a table-shaped run must not make the parser quadratic. */
+    @Test
+    @DisplayName("★ the table parser handles 64 KB of pipe-delimited rows, and one 64 KB pipe-delimited row, in bounded time")
+    void tableParserIsLinear() {
+        StringBuilder manyRows = new StringBuilder("| a | b |\n|---|---|\n");
+        while (manyRows.length() < 65_536) manyRows.append("| x | y |\n");
+        String oneHugeRow = "| h |\n|---|\n|" + "a|".repeat(32_000);
+        for (String pathological : List.of(manyRows.toString(), oneHugeRow)) {
+            long t0 = System.nanoTime();
+            SafeMarkdown.parse(pathological);
+            long ms = (System.nanoTime() - t0) / 1_000_000;
+            assertTrue(ms < 750, pathological.length() + " chars took " + ms + " ms");
+        }
+    }
+
+    @Test
+    @DisplayName("fitsWidth is a pure width check: column pixel widths + the separator's pixel width against the available pixels")
+    void fitsWidthPure() {
+        assertTrue(TranscriptView.fitsWidth(new int[]{40, 50}, 20, 1000));
+        assertFalse(TranscriptView.fitsWidth(new int[]{4000, 5000}, 20, 1000));
+        // two 50px columns + one 30px separator = 130px
+        assertTrue(TranscriptView.fitsWidth(new int[]{50, 50}, 30, 130));
+        assertFalse(TranscriptView.fitsWidth(new int[]{50, 50}, 30, 129));
+        // a single column has no separator to add
+        assertTrue(TranscriptView.fitsWidth(new int[]{50}, 30, 50));
+        assertFalse(TranscriptView.fitsWidth(new int[]{50}, 30, 49));
+    }
+
+    @Test
+    @DisplayName("a table wide enough for the view renders as a padded monospace grid with inline formatting in cells")
+    void tableGrid() throws Exception {
+        String shown = onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.setSize(900, 400);
+            v.render(List.of(answer("a", "| Name | Score | Role |\n|---|---:|:---:|\n| **Bo** | 9 | lead |\n| Ann | 10 | dev |")));
+            paint(v);
+            return all(v);
+        });
+        assertTrue(shown.contains("Name") && shown.contains("Score") && shown.contains("Role"), shown);
+        assertTrue(shown.contains("─") && shown.contains("┼"), "a drawn grid separator line: " + shown);
+        assertFalse(shown.contains("|---"), "no raw table syntax leaks through: " + shown);
+        assertFalse(shown.contains("**Bo**"), "inline markdown in a cell is interpreted, not shown raw: " + shown);
+        assertTrue(shown.contains("Bo") && shown.contains("Ann") && shown.contains("lead") && shown.contains("dev"), shown);
+    }
+
+    @Test
+    @DisplayName("a table too narrow for the view stacks each row as Header: value lines, a blank line between rows")
+    void tableStacked() throws Exception {
+        String wide = "| Customer Reference | Account Status Code | Last Activity Timestamp |\n|---|---|---|\n"
+                + "| C1 | Active | 2026-01-01 |\n| C2 | Closed | 2025-12-31 |";
+        String shown = onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.setSize(60, 400);
+            v.render(List.of(answer("a", wide)));
+            paint(v);
+            return all(v);
+        });
+        assertTrue(shown.contains("Customer Reference: C1"), shown);
+        assertTrue(shown.contains("Account Status Code: Active"), shown);
+        assertTrue(shown.contains("Last Activity Timestamp: 2026-01-01"), shown);
+        assertTrue(shown.contains("Customer Reference: C2"), shown);
+        assertFalse(shown.contains("┼"), "stacked, not a grid: " + shown);
+    }
+
+    /**
+     * ★ regression: a status-icon column (✅/⚠/❌) or an em dash is not one monospace cell wide, so padding by
+     * CHARACTER COUNT put each row's separator at a different x (reported against c996e731 — 5–15 px off). Pixel
+     * tab stops must land every row's separator before the last column at the identical x, whatever that column's
+     * own glyph widths are.
+     */
+    @Test
+    @DisplayName("★ a table column holding non-monospace glyphs keeps every row's separator pixel-aligned")
+    void tableSeparatorsPixelAlignedWithWideGlyphs() throws Exception {
+        String md = "| Service | Status | Notes |\n|---|---|---|\n"
+                + "| auth | ✅ | wired to controller |\n"
+                + "| cache | ⚠ | — |\n"
+                + "| queue | ❌ | needs review |";
+        record Probe(int totalPipes, List<Double> lastPipeXPerRow) {
+        }
+        Probe probe = onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.setSize(900, 400);
+            v.render(List.of(answer("a", md)));
+            paint(v);
+            String text = all(v);
+            List<Integer> pipeOffsets = new ArrayList<>();
+            for (int i = 0; i < text.length(); i++) if (text.charAt(i) == '│') pipeOffsets.add(i);
+            List<Double> lastPerRow = new ArrayList<>();
+            for (int i = 1; i < pipeOffsets.size(); i += 2) {        // the SECOND (last) of each row's two separators
+                lastPerRow.add(v.modelToView2D(pipeOffsets.get(i)).getX());
+            }
+            return new Probe(pipeOffsets.size(), lastPerRow);
+        });
+        assertEquals(8, probe.totalPipes(), "4 rows (header + 3 body) × 2 separators");
+        assertEquals(4, probe.lastPipeXPerRow().size());
+        double headerX = probe.lastPipeXPerRow().get(0);
+        for (double x : probe.lastPipeXPerRow()) {
+            assertEquals(headerX, x, 0.75,
+                    "the separator before the last column must land at the same pixel column in every row, "
+                            + "whatever the Status glyph's own width is: " + probe.lastPipeXPerRow());
+        }
+    }
+
+    @Test
+    void raggedTablesKeepOnlySuppliedCells() {
+        var table = SafeMarkdown.parse("| a | b | c |\n|---|---|---|\n| x |\n| y | z |").getFirst().table();
+        assertNotNull(table);
+        assertEquals(List.of(1, 2), table.rows().stream().map(List::size).toList(),
+                "missing cells must not be allocated for every row");
+    }
+
+    @Test
+    void tableExpansionBeyondBudgetFallsBackToExactRawText() {
+        for (int n : List.of(128, 4_000)) {
+            // Empty header cells isolate the cell-count bound from the independent repeated-label bound.
+            String raw = "|" + "|".repeat(n) + "\n|" + "---|".repeat(n) + "\n" + "| x |\n".repeat(n).stripTrailing();
+            var block = SafeMarkdown.parse(raw).getFirst();
+            assertTrue(block.table() == null, "a small ragged input must not expand to a rectangular cell matrix");
+            assertEquals(raw, block.code(), "the bounded fallback preserves every character");
+        }
+    }
+
+    @Test
+    void stackedTableCannotMultiplyALongHeaderAcrossShortRows() {
+        String raw = "| " + "long header ".repeat(100) + "|\n|---|\n" + "| x |\n".repeat(100).stripTrailing();
+        var block = SafeMarkdown.parse(raw).getFirst();
+        assertTrue(block.table() == null, "stacked labels must not multiply source text without a bound");
+        assertEquals(raw, block.code());
+    }
+
+    @Test
+    void tableMeasuresDisplayedLinksMarksImagesAndChipsInBothThemes() throws Exception {
+        onEdt(() -> {
+            boolean wasDark = ThemeManager.isDark();
+            try {
+                for (String theme : List.of("Light", "Dark")) {
+                    ThemeManager.apply(theme);
+                    for (String value : List.of("[x](https://example.invalid/destination)",
+                            "![a long image caption](https://example.invalid/image)", "a\u202Eb", "👩\u200D💻", "`demoNode`", "a\tb")) {
+                        TranscriptView v = new TranscriptView();
+                        v.setChips(new TranscriptView.Chips() {
+                            public boolean isRecord(int i) { return false; }
+                            public boolean isNode(String id) { return id.equals("demoNode"); }
+                            public boolean isChart(String id) { return false; }
+                            public long generation() { return 0; }
+                        });
+                        v.setSize(900, 600);
+                        v.render(List.of(answer("a", "| A | B |\n|---|---|\n| " + value + " | ok |\n| y | ok |")));
+                        paint(v);
+                        String shown = all(v);
+                        List<Double> separators = new ArrayList<>();
+                        for (int i = 0; i < shown.length(); i++) {
+                            if (shown.charAt(i) == '│' || shown.charAt(i) == '┼') {
+                                separators.add(v.modelToView2D(i).getX());
+                            }
+                        }
+                        assertEquals(4, separators.size(), "fixture fits as a grid: " + theme + ": " + value);
+                        for (double x : separators) assertEquals(separators.getFirst(), x, .75,
+                                "measure the displayed runs, including components: " + theme + ": " + value + ": " + separators);
+                    }
+                }
+            } finally {
+                ThemeManager.apply(wasDark ? "Dark" : "Light");
+            }
+            return null;
+        });
+    }
+
+    @Test
+    void displayedLinkDestinationsDetermineStackingAtDefaultWidth() throws Exception {
+        onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.setSize(520, 600);
+            String value = "[x](https://example.invalid/" + "destination/".repeat(12) + ")";
+            v.render(List.of(answer("a", "| A | B | C | D |\n|---|---|---|---|\n| " + value + " | b | c | d |")));
+            assertTrue(all(v).contains("A: x (https://"), "displayed destination requires the stacked representation");
+            assertFalse(all(v).contains("┼"), "the raw one-letter link label must not make this look narrow");
+            return null;
+        });
+    }
 }

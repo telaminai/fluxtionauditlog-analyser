@@ -8,8 +8,10 @@ the assistant's words as safe Markdown, and every action as one compact tool lin
 
 Your turns sit on a band marked *You*; Claude's are headed *Claude · unverified* — the full *the model's words, not a
 verified result* is its tooltip and what a screen reader reads. Claude's words are shown as **safe Markdown** — headings, lists, quotes,
-emphasis, inline code and code blocks (lightly tinted for Java, XML, YAML and JSON) — and everything else as its
-characters: HTML is shown as text, an image is *[image: …]* and its address (never fetched), nothing is run. Terminal
+emphasis, strikethrough, task checkboxes (`☐`/`☑`), a drawn rule (`---`), inline code and code blocks (lightly tinted for Java, XML, YAML
+and JSON) — and everything else as its characters: HTML is shown as text, an image is *[image: …]* and its address
+(never fetched), nothing is run. A table renders as an aligned, bordered grid when it fits the panel's width, or as
+stacked *Header: value* lines when it does not — never as raw pipes and dashes. Terminal
 escapes and invisible or direction-reversing characters are shown as marks (`␛[31m`, `⟨U+202E⟩`), so what you see is
 what you copy. Each answer has **Copy** (its words as written, never a tool line; it shows under the pointer or with the keyboard
 focus, and stays shown while the pointer is anywhere over that answer, Copy included) and each code block **Copy code**;
