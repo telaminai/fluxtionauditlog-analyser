@@ -12,7 +12,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   offer, the project became active immediately but the already-running session kept working in its original folder
   with no warning — so its `CLAUDE.md` and `.claude/skills` were never loaded, even though a later Start or New chat
   would have picked them up correctly. Now you get the usual *"Claude Code is in \<old folder\>; restart in \<project\>?"*
-  choice first.
+  choice first. If that log's records also run out of time order, the time-order report now waits until you have
+  answered, instead of opening on top of the restart question.
 - Clarified in the Claude Code docs page, and covered by a new regression test, what was already true of the running
   app otherwise: with your own project open, Claude Code's hosted session works in that project's own folder (never
   the analyser's private scratch folder) once you trust it — only the sample project and an evidence bundle's working
