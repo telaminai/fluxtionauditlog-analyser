@@ -362,6 +362,9 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M69.F4] ☐ Strip reasons beyond three lines (optional).
 - [M69.F5] ☐ The two project-transition report sites carry no control.
 
+### M75 · Document renderer ([spec](spec-document-renderer.md)) — draft r2, 2026-10-17
+- [M75] ☐ One layout, two backends (PDF + a document window) for reports and teaching lessons; owner decisions OD-75.1–.17 first, then P0–P3 (~15–20k lines, four PRs).
+
 ### M71 · Workspace Start — shipped ([spec](completed/spec-workspace-start.md))
 - [M71.F1] ☑ ~~Optional: the tour's instructional sequence, reading width, the template dialog's hierarchy~~ — superseded by M74's unified start page and packs.
 
