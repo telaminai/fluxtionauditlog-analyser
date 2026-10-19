@@ -2592,6 +2592,9 @@ WALKREEL_NOTE = (
 
 # PR175 independent review: failed form, bounded-but-partial discovery, and the exact static/human boundaries.
 CONTROLS += [
+    ('m80-warning-name-cap', J + 'design/DesignDiscovery.java',
+     'String.join(", ", unreadableFiles.subList(0, shown))', 'String.join(", ", unreadableFiles)',
+     'DesignDiscoveryTest#unreadableWarningsShowAtMostTenNamesAndCountTheRest'),
     ('m80-failed-read-no-invented-form', NODE + 'DesignSession.java',
      'if (path == null || document != null || builder != null)', 'if (true)',
      'DesignDiscoverySessionTest#failedDesignReadNeverInventsASpringForm'),

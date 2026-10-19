@@ -7,6 +7,19 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DesignDiscoveryTest {
+    @Test void unreadableWarningsShowAtMostTenNamesAndCountTheRest() {
+        List<String> unreadable=java.util.stream.IntStream.range(0,13).mapToObj(i->"DEMO-"+i+".java").toList();
+        var found=new DesignDiscovery("none",List.of(),"source-scan",unreadable);
+        String warning=found.warning();
+        assertFalse(warning.contains("DEMO-10.java"),"warning disclosure must stop after ten file names");
+        assertEquals("13 files could not be read: "+String.join(", ",unreadable.subList(0,10))+", and 3 more",warning);
+        assertEquals(13,found.unreadableFiles().size(),"only the presentation is capped, not the recorded failures");
+        var ten=new DesignDiscovery("none",List.of(),"source-scan",unreadable.subList(0,10));
+        assertEquals("10 files could not be read: "+String.join(", ",unreadable.subList(0,10)),ten.warning());
+        assertEquals("1 file could not be read: DEMO-0.java",
+                new DesignDiscovery("none",List.of(),"source-scan",unreadable.subList(0,1)).warning());
+        assertEquals("",DesignDiscovery.none().warning());
+    }
     static final String BUILDER="import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
             +"class DEMOBuilder implements FluxtionGraphBuilder { void buildGraph(Config cfg) {} }";
     @Test void scanFindsTheBuilderWithoutAnyGeneratedProcessorOrHeader(@TempDir Path root) throws Exception {

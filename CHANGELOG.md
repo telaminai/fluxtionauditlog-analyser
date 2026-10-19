@@ -6,11 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-- M80 discovery keeps readable candidates when individual files fail and names those files in the Design pane and
-  context note. Scan-limit exhaustion remains unavailable with a distinct reason. A failed first design read no
+- M80 discovery keeps readable candidates when individual files fail and names up to ten failed files, with an
+  omitted count, in the Design pane and context note. Scan-limit exhaustion remains unavailable with a distinct
+  reason. A failed first design read no
   longer invents a Spring kind, and the empty Design message uses plain, shorter wording.
 
 - M80: Design discovers Spring XML and Java builder definitions under authorised source roots when a project opens or roots change, without relying on generated headers. Context adds kind/files/nodes/source while keeping released keys; a single candidate opens as a read-only glance, and absent or unavailable discovery is stated. Java anchors and the multi-file chooser follow separately.
+
+- Docs: deferred M81 project build-script pre-approval after reviewing execution wrappers, shell setup and automatic backgrounding. No script-trust feature ships; existing Bash permission behavior remains unchanged.
 
 - Claude Code now shows the step it starts, elapsed time and a quiet inactivity cue while a turn runs. Keep waiting dismisses that silence episode until a new stream event; approvals show their own cue while keeping the existing modal question, with no blocked Show control. About lists tool/turn totals, and project context exposes the same read-only activity snapshot.
 

@@ -487,10 +487,12 @@ The unchanged-main T10 stub actually made two calls, one refused because no file
 its authorised root was already present. No longer sequence or unnecessary source-root approval is invented.
 
 Independent review at `6c31ef53` refined the per-file policy: unreadable, undecodable and oversized individual
-files are named in the existing `context.design.note` and human Design note, while readable candidates remain
+files are disclosed in the existing `context.design.note` and human Design note, while readable candidates remain
 available. No extra context key is introduced. Source stays `source-scan` when files failed; the note discloses
 that the scan did not establish absence. File/metadata cap exhaustion still clears the list and names its
 specific limit; an inaccessible root or traversal remains unavailable rather than inventing coverage.
+The review's small pre-merge correction caps displayed file names at ten and states `and N more` when others
+were omitted; the internal failure list and its total are not truncated.
 
 A failed first read with no loaded XML or builder omits `kind` instead of inferring Spring from a null builder.
 A failed refresh of the same file retains the last good revision and its form. The human zero-file line is short

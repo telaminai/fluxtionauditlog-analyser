@@ -24,8 +24,10 @@ public record DesignDiscovery(String kind, List<FileRef> files, String source, L
     public static DesignDiscovery unavailable() { return unavailable("an authorised source root or directory could not be scanned"); }
     private static DesignDiscovery unavailable(String reason) { return new DesignDiscovery("none", List.of(), "unavailable: " + reason); }
     public String warning() {
+        int shown = Math.min(10, unreadableFiles.size());
         return unreadableFiles.isEmpty() ? "" : unreadableFiles.size() + (unreadableFiles.size() == 1
-                ? " file could not be read: " : " files could not be read: ") + String.join(", ", unreadableFiles);
+                ? " file could not be read: " : " files could not be read: ") + String.join(", ", unreadableFiles.subList(0, shown))
+                + (shown < unreadableFiles.size() ? ", and " + (unreadableFiles.size() - shown) + " more" : "");
     }
     private static final class ScanLimit extends IOException {
         ScanLimit(String reason) { super(reason); }

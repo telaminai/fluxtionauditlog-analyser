@@ -104,6 +104,10 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ## Assistant
 
+### M81 · Activity, recovery and project outputs ([spec](spec-assistant-activity-and-project-trust.md))
+- [M81.C/A] ☑ Recovery #173 and activity #176 merged to main 2026-10-19 (`5bb43b57`); each independently reviewed at its exact head.
+- [M81.B/D] ◧ B explicitly deferred, draft #184 closed unmerged; D proceeds without B. ▸ [disposition](../handoff/m81-b-deferral.md)
+
 ### Onboard assistant and conversation journeys — released in 1.29.0; acceptance open ([spec](spec-onboard-assistant-journeys.md))
 - [OA-1] ◐ Session-owned live loop — the authorised live-provider run (OA-A2) is unverified.
 - [OA-2] ◐ Docked/pop-out host — native input on a delivering desktop; IME untested.
@@ -140,7 +144,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   `source {text}` (FIX-9) — confirm and close.
 
 ### M80 · Design definitions ([spec](spec-design-definitions.md))
-- [M80-1] ◧ Source-root discovery, additive context and zero/one Design states implemented; verification/review pending. Header discovery remains gated; OD-2–OD-5 accepted by owner.
+- [M80-1] ◧ Source-root discovery/additive context #175 approved at `34acee51`; capped-warning follow-up ▸ [evidence](../handoff/handoff_m80_pr1_2026_10_19.md). Header discovery stays gated; OD-2–OD-5 accepted.
 - [M80-2/3] ☐ Bounded Java anchors/spotlight synonyms, then the multi-file chooser, as separate dependent PRs.
 
 ### M77 · Set up AI — the first-run wizard ([spec](spec-ai-setup-wizard.md), r5; OD-77.1 superseded by M79 OD-79.5)
