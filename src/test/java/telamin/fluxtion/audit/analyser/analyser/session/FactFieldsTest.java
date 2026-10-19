@@ -69,7 +69,8 @@ class FactFieldsTest {
                 "StartPageEffectStarted.what", "ProposalItemFact.kind", "ProposalItemPreviewed.verdict",
                 "ProposalItemPreviewed.refusal", "ProposalItemApplied.outcome", "ProposalChecked.pairing",
                 "ProposalChecked.fit", "ProposalEffectStarted.what", "LocalAgentPermissionRequested.name",
-                "LocalAgentPermissionAnswered.name", "HostedCallPresented.verb", "ExampleDownloadConfirmed.targetProblem",
+                "LocalAgentPermissionAnswered.name", "LocalAgentToolStarted.name", // ToolVocabulary only; never raw tool/input words
+                "HostedCallPresented.verb", "ExampleDownloadConfirmed.targetProblem",
                 "ExampleEffectStarted.what", "ExampleDeadlinePassed.phase",
                 // owner, 2026-10-18: the restart chip's origin, the analyser's own words
                 "LocalAgentRestartOfferRequested.origin",

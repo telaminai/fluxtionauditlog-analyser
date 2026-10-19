@@ -1509,6 +1509,24 @@ public final class SessionEvents {
     /** M81: the requested activity clock's observation; ticket 0 covers the start handshake. */
     public record LocalAgentActivityTick(long generation, long ticket, long atMillis) { }
 
+    /** M81: complete tool-use input observed before execution; words remain in the bounded store. */
+    public record LocalAgentToolStarted(long generation, long ticket, long callRef, ToolClass toolClass,
+                                        String name, long wordsRef, long atMillis) { }
+
+    public record LocalAgentToolFinished(long generation, long ticket, long callRef, boolean isError,
+                                         long atMillis) { }
+
+    /** An actual received stream event, not the analyser's synthetic elapsed tick. */
+    public record LocalAgentProgressObserved(long generation, long ticket, long atMillis, boolean text) {
+        public LocalAgentProgressObserved(long generation, long ticket, long atMillis) {
+            this(generation, ticket, atMillis, false);
+        }
+    }
+
+    public record LocalAgentActivityAcknowledged(long generation, long ticket) { }
+
+
+
     // ---- M74 P2: drafts from the Ask catalogue and the start page (spec §5.5, §5.8, §8.2) -----------------------------
     //
     // Words never travel in these facts: a draft is a transcript reference, a configured source a store reference and a

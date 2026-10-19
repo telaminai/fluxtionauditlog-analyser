@@ -90,6 +90,14 @@ public class LocalAgentSession implements EventLogSource {
     private boolean resumeAttempt;
     private long lastEventAtMillis = -1;
     private long activityAtMillis;
+    private long stepAtMillis = -1;
+    private boolean activityAcknowledged;
+    private boolean answering;
+    private long startedTicket;
+    private int toolCallCount;
+    private int turnCount;
+    private Map<Long, SessionEvents.LocalAgentToolStarted> activityTools = new LinkedHashMap<>();
+    private List<Long> seenActivityCalls = new ArrayList<>();
     public static final String RECOVERY_LINE =
             "This was interrupted part-way. Check what has already changed before continuing.";
     private boolean interruptAcked;
@@ -173,6 +181,7 @@ public class LocalAgentSession implements EventLogSource {
     private boolean folderKept;
     /** M78 D1 (§5.1): a permission dialog is open (localAgentPermission's state), for the header's "needs you". */
     private boolean permissionWaiting;
+    private String permissionName;
     /** M78 D1 (§5.2): the process generation whose first READY appended the PLAN note (0: none yet). */
     private long planNoted;
     private LocalAgentState published = LocalAgentState.IDLE;
@@ -750,6 +759,10 @@ public class LocalAgentSession implements EventLogSource {
     private void beginConversation() {
         long recover = recoveryDraftRef;
         recoveryDraftRef = 0;
+        toolCallCount = 0;
+        turnCount = 0;
+        startedTicket = 0;
+        clearActivity();
         conversation++;
         sessionId = null;
         resumable = false;
@@ -767,7 +780,8 @@ public class LocalAgentSession implements EventLogSource {
     @OnEventHandler
     public boolean onEffectStarted(SessionEvents.LocalAgentEffectStarted e) {
         auditLog.info("localAgentEffect", e.what()).info("generation", e.generation());
-        if (e.generation() == generation && starting() && "activityClock".equals(e.what())) {
+        if (e.generation() == generation && (starting() || openTicket != 0)
+                && lastEventAtMillis < 0 && "activityClock".equals(e.what())) {
             lastEventAtMillis = e.atMillis();
             activityAtMillis = e.atMillis();
             return changed();
@@ -777,9 +791,72 @@ public class LocalAgentSession implements EventLogSource {
 
     @OnEventHandler
     public boolean onActivityTick(SessionEvents.LocalAgentActivityTick e) {
-        if (stale(e.generation(), "LocalAgentActivityTick") || e.ticket() != 0 || !starting()) return false;
+        if (stale(e.generation(), "LocalAgentActivityTick")) return false;
+        if (e.ticket() == 0 ? !starting() : e.ticket() != openTicket || openTicket == 0) return false;
         activityAtMillis = Math.max(activityAtMillis, e.atMillis());
         return changed();
+    }
+
+    @OnEventHandler
+    public boolean onToolStarted(SessionEvents.LocalAgentToolStarted e) {
+        if (stale(e.generation(), "LocalAgentToolStarted") || staleTicket(e.ticket(), "LocalAgentToolStarted")) return false;
+        if (seenActivityCalls.contains(e.callRef())) return false;
+        seenActivityCalls.add(e.callRef());
+        if (seenActivityCalls.size() > 2_000) seenActivityCalls.removeFirst();
+        activityTools.put(e.callRef(), e);
+        if (activityTools.size() > 128) activityTools.remove(activityTools.keySet().iterator().next());
+        toolCallCount = increment(toolCallCount);
+        streamEvent(e.atMillis());
+        stepAtMillis = e.atMillis();
+        answering = false;
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onToolFinished(SessionEvents.LocalAgentToolFinished e) {
+        if (stale(e.generation(), "LocalAgentToolFinished") || staleTicket(e.ticket(), "LocalAgentToolFinished")) return false;
+        if (activityTools.remove(e.callRef()) == null) return false;
+        streamEvent(e.atMillis());
+        stepAtMillis = e.atMillis();
+        answering = false;
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onProgress(SessionEvents.LocalAgentProgressObserved e) {
+        if (stale(e.generation(), "LocalAgentProgressObserved") || staleTicket(e.ticket(), "LocalAgentProgressObserved")) return false;
+        streamEvent(e.atMillis());
+        if (e.text()) {
+            answering = true;
+            if (activityTools.isEmpty()) stepAtMillis = e.atMillis();
+        }
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onActivityAcknowledged(SessionEvents.LocalAgentActivityAcknowledged e) {
+        if (stale(e.generation(), "LocalAgentActivityAcknowledged")
+                || staleTicket(e.ticket(), "LocalAgentActivityAcknowledged")) return false;
+        activityAcknowledged = true;
+        return changed();
+    }
+
+    private void streamEvent(long atMillis) {
+        lastEventAtMillis = Math.max(lastEventAtMillis, atMillis);
+        activityAtMillis = Math.max(activityAtMillis, atMillis);
+        activityAcknowledged = false;
+    }
+
+    private static int increment(int n) { return n == Integer.MAX_VALUE ? n : n + 1; }
+
+    private void clearActivity() {
+        activityTools.clear();
+        seenActivityCalls.clear();
+        answering = false;
+        activityAcknowledged = false;
+        lastEventAtMillis = -1;
+        stepAtMillis = -1;
+        activityAtMillis = 0;
     }
 
     @OnEventHandler
@@ -963,6 +1040,14 @@ public class LocalAgentSession implements EventLogSource {
     public boolean onTurnStarted(SessionEvents.LocalAgentTurnStarted e) {
         if (stale(e.generation(), "LocalAgentTurnStarted") || staleTicket(e.ticket(), "LocalAgentTurnStarted")) return false;
         auditLog.info("localAgentTurnStarted", e.ticket());
+        boolean first = startedTicket != e.ticket();
+        if (first) {
+            startedTicket = e.ticket();
+            turnCount = increment(turnCount);
+            streamEvent(e.atMillis());
+            stepAtMillis = e.atMillis();
+            effects.request(new SessionEffects.StartActivityClockEffect(0L, generation, e.ticket()));
+        }
         // owner, 2026-10-18: the person's turn is stamped with the time the adapter saw it start — the transcript renders it
         boolean stamped = false;
         if (e.atMillis() > 0) {
@@ -979,7 +1064,7 @@ public class LocalAgentSession implements EventLogSource {
         }
         // review M2: a conversation is resumable only once the CLI has started one of its turns — before that it has no
         // transcript, and --resume on it would fail
-        if (resumable) return stamped && changed();
+        if (resumable) return (stamped || first) && changed();
         resumable = true;
         return changed();
     }
@@ -987,6 +1072,7 @@ public class LocalAgentSession implements EventLogSource {
     @OnEventHandler
     public boolean onTextUpdated(SessionEvents.LocalAgentTextUpdated e) {
         if (stale(e.generation(), "LocalAgentTextUpdated") || staleTicket(e.ticket(), "LocalAgentTextUpdated")) return false;
+        streamEvent(e.atMillis());
         for (int i = entries.size() - 1; i >= 0; i--) {
             LocalAgentState.Entry x = entries.get(i);
             if (LocalAgentState.ANSWER.equals(x.kind()) && x.ticket() == e.ticket()) {
@@ -1538,6 +1624,7 @@ public class LocalAgentSession implements EventLogSource {
     }
 
     private void sendTurn(long draft, long request, long logGeneration) {
+        clearActivity();
         ticket++;
         openTicket = ticket;
         openTicketSendRef = draft;
@@ -1853,8 +1940,13 @@ public class LocalAgentSession implements EventLogSource {
      * Called by that node earlier in the same cycle, as {@link #permissionNoted} is; a change re-publishes the state.
      */
     public void permissionWaiting(boolean waiting) {
-        if (waiting == permissionWaiting) return;
+        permissionWaiting(waiting, null);
+    }
+
+    public void permissionWaiting(boolean waiting, String name) {
+        if (waiting == permissionWaiting && java.util.Objects.equals(name, permissionName)) return;
         permissionWaiting = waiting;
+        permissionName = name;
         dirty = true;
     }
 
@@ -1956,11 +2048,51 @@ public class LocalAgentSession implements EventLogSource {
             case "BINDING" -> "Connecting to the analyser's tools…";
             default -> "";
         };
+        long wordsRef = 0;
+        long elapsed = openTicket != 0 ? stepAtMillis : lastEventAtMillis;
+        boolean approval = openTicket != 0 && permissionWaiting;
+        if (openTicket != 0) {
+            if (approval) {
+                step = "Needs your approval — " + (permissionName == null ? "action" : permissionName);
+            } else if (!activityTools.isEmpty()) {
+                var tool = new ArrayList<>(activityTools.values()).getLast();
+                wordsRef = tool.wordsRef();
+                elapsed = tool.atMillis();
+                step = toolStep(tool);
+            } else {
+                step = answering ? "Answering…" : "Thinking…";
+            }
+        }
         int seconds = step.isEmpty() || lastEventAtMillis < 0 ? 0
                 : (int) Math.min(Integer.MAX_VALUE, Math.max(0, activityAtMillis - lastEventAtMillis) / 1_000);
-        if (seconds >= 3) step += " " + seconds / 60 + ":" + String.format(java.util.Locale.ROOT, "%02d", seconds % 60);
+        long stepSeconds = elapsed < 0 ? 0 : Math.max(0, activityAtMillis - elapsed) / 1_000;
+        if (!step.isEmpty() && !approval && stepSeconds >= 3) step += " " + minutes(stepSeconds);
+        boolean stalled = openTicket != 0 && seconds >= 60 && !approval && !activityAcknowledged;
+        String stall = stalled ? "No activity for " + minutes(seconds) + " — still working, or stalled?" : "";
         return new LocalAgentState.Guide(g.primary(), g.instruction(), g.action(), g.refusal(), g.chipWord(), g.banner(),
-                step, seconds);
+                step, seconds, stalled, approval, toolCallCount, turnCount, wordsRef, stall);
+    }
+
+    private static String minutes(long seconds) {
+        return seconds / 60 + ":" + String.format(java.util.Locale.ROOT, "%02d", seconds % 60);
+    }
+
+    private static String toolStep(SessionEvents.LocalAgentToolStarted tool) {
+        if (tool.toolClass() == SessionEvents.ToolClass.BUILT_IN) {
+            return switch (tool.name() == null ? "" : tool.name()) {
+                case "Read" -> tool.wordsRef() != 0 ? "Reading {step}…" : "Reading…";
+                case "Glob", "Grep" -> "Searching…";
+                case "Bash" -> tool.wordsRef() != 0 ? "Running {step}…" : "Running a command…";
+                default -> "Using a tool…";
+            };
+        }
+        if (tool.toolClass() != SessionEvents.ToolClass.HOSTED_DESTRUCTIVE
+                && tool.toolClass() != SessionEvents.ToolClass.HOSTED_OTHER) return "Using a tool…";
+        return switch (tool.name() == null ? "" : tool.name()) {
+            case "report", "screenshot" -> "Writing the report…";
+            case "read", "context", "inspect", "search", "stats", "compare", "trace", "explain", "graph" -> "Checking the log…";
+            default -> "Using the analyser…";
+        };
     }
 
     private static LocalAgentState.Guide guide(LocalAgentState s, String primary, String instruction, String action,

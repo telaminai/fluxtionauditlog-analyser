@@ -5382,6 +5382,10 @@ public final class MainFrame extends JFrame {
             @Override public void newChat() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested("New chat"));
             }
+            @Override public void keepWaiting(long generation, long ticket) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentActivityAcknowledged(
+                        generation, ticket));
+            }
             @Override public void closeExternalAccess(long generation) {
                 // review B2: the person's choice, reported; actionListener decides
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessChosen(
@@ -11046,6 +11050,8 @@ public final class MainFrame extends JFrame {
                 proj.put("note", "your own settings — no project is open");
             }
             out.put("project", proj);
+            if (session != null) proj.put("assistant", telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ActivityText
+                    .context(sessionSnapshot().localAgent(), localAgentStore::text));
             // #73: what this machine has been sent. A recipient could not otherwise find out what bundles they
             // hold — there is no list verb, and an unpacked working copy appears only as a recent LOG path.
             // need.test: up to 25 stat calls, so do not run them for a projection that did not ask. The same
@@ -11930,6 +11936,13 @@ public final class MainFrame extends JFrame {
         var content = PermissionText.of(localAgentStore.permission(ref), e.toolClass(), e.name(), projectRoot());
         SwingUtilities.invokeLater(() -> {
             if (permissionClosed.remove(ref) || session == null) return;   // answered before it could show
+            if (sessionSnapshot().permission().pendingRef() != ref) return;
+            LocalAgentPermissionDialog existing = permissionDialogs.get(ref);
+            if (existing != null && existing.isDisplayable()) {
+                existing.toFront();
+                existing.requestFocusInWindow();
+                return;
+            }
             Window owner = SwingUtilities.getWindowAncestor(localAgentPanel);
             LocalAgentPermissionDialog d = new LocalAgentPermissionDialog(owner == null ? this : owner, content,
                     e.deadlineMs(), new LocalAgentPermissionDialog.Answers() {

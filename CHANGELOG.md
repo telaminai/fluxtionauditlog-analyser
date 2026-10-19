@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Claude Code now shows the step it starts, elapsed time and a quiet inactivity cue while a turn runs. Keep waiting dismisses that silence episode until a new stream event; approvals show their own cue while keeping the existing modal question, with no blocked Show control. About lists tool/turn totals, and project context exposes the same read-only activity snapshot.
+
 - An interrupted Claude Code conversation that cannot resume in its changed folder or mode starts a new chat with your last request and a recovery reminder placed, never sent. A CLI-reported missing session falls back once; ordinary failures do not retry. The session now records a start activity clock for the live activity display.
 
 - Restart recovers a Claude Code process stuck starting or stopping, preserving its conversation when it can resume. Start on a healthy session now says it is already running; externally stopped processes name signal 15 or 9, and rate-limit notes explain that they do not block Start or Restart.

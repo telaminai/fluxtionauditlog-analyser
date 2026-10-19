@@ -85,6 +85,11 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
                 : BundleProvenance.NONE;"""
 
 CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
+    # M81 A review P2: a rendered stall is not evidence that the real button reports its acknowledgement.
+    ('m81-stall-keep-waiting-button-wired', UI + 'LocalAgentPanel.java',
+     '            if (intents != null && rendered != null) intents.keepWaiting(rendered.generation(), rendered.openTicket());',
+     '            // Wrong-result control: the visible button is disconnected.',
+     'LocalAgentActivityFrameTest#stalledGuideButtonsAcknowledgeTheirRenderedScopeAndStop'),
     ("integration-c-source-window", J + 'design/SourceText.java',
      'to = (int) Math.min(Integer.MAX_VALUE, (long) around + request.context());',
      'to = around + request.context();',

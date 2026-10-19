@@ -124,6 +124,21 @@ class AssistantChromeBudgetFrameTest {
             LocalAgentPermissionFrameTest.send(panel, "Write the DEMO report");
             ClaudeCodeTabFrameTest.awaitState(frame, s -> s.openTicket() != 0, "answering");
             measure("running");
+            // ★ M81 A8: removing ActivityText.words' eight-word cap breaks the unchanged ≤15-word ceiling here.
+            onEdt(() -> {
+                var d = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(frame, "session");
+                var s = d.snapshot().localAgent();
+                var words = (telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript)
+                        field(frame, "localAgentStore");
+                long ref = words.add(telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.DETAIL,
+                        telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ActivityText.words("Bash",
+                                "{\"command\":\"a b c d e f g h i j k l m n o p q r s t\"}"));
+                d.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentToolStarted(
+                        s.generation(), s.openTicket(), ref, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ToolClass.BUILT_IN,
+                        "Bash", ref, 1_000));
+                assertTrue(assistant.surface().activityLine.getText().startsWith("Running "));
+            });
+            measure("running-long-script");
 
             // a permission waiting
             latch.countDown();
@@ -204,7 +219,7 @@ class AssistantChromeBudgetFrameTest {
         for (Measured m : measured) {
             int words = switch (m.state()) {
                 case "ready-safe", "ready-full" -> READY_WORDS;
-                case "running", "permission", "answered" -> BUSY_WORDS;
+                case "running", "running-long-script", "permission", "answered" -> BUSY_WORDS;
                 default -> ALERT_WORDS;
             };
             if (m.count().words() > words) over.add(m.state() + " (" + m.theme() + "): " + m.count().describe());
@@ -220,7 +235,7 @@ class AssistantChromeBudgetFrameTest {
             assertTrue(m.width() <= 260, "★ measured DOCKED at 1200×800: the panel is " + m.width() + " px wide");
         }
         assertEquals(List.of(), over, "★ the chrome budget (spec §6)");
-        assertEquals(18, measured.size(), "nine states, in both themes");
+        assertEquals(20, measured.size(), "ten states, in both themes, including the long-script activity");
     }
 
     private void selectAssistantTab() throws Exception {
