@@ -2572,3 +2572,31 @@ CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
 WALKREEL_NOTE = (
     'The reel page is pure (records in, one string out), so its controls are string-level and read oddly; that is '
     'the point -- every one of them is a sentence a recipient either sees or does not.')
+
+# PR #174 review: bounded table expansion and widths from the final displayed runs, not the Markdown source.
+CONTROLS += [
+    ('transcript-table-cell-expansion-bound', UI + 'SafeMarkdown.java',
+     '(bodyRows + 1) * headerCells.size() > MAX_TABLE_CELLS', 'false',
+     'TranscriptViewTest#tableExpansionBeyondBudgetFallsBackToExactRawText'),
+    ('transcript-table-stacked-label-bound', UI + 'SafeMarkdown.java',
+     'bodyRows * labelChars > Math.max(1_024L, 4L * sourceChars)', 'false',
+     'TranscriptViewTest#stackedTableCannotMultiplyALongHeaderAcrossShortRows'),
+    ('transcript-table-sparse-rows', UI + 'SafeMarkdown.java',
+     'for (int c = 0; c < headerCells.size() && c < raw.size(); c++) {\n'
+     '                row.add(new Cell(inline(raw.get(c).strip())));',
+     'for (int c = 0; c < headerCells.size(); c++) {\n'
+     '                row.add(new Cell(inline(c < raw.size() ? raw.get(c).strip() : "")));',
+     'TranscriptViewTest#raggedTablesKeepOnlySuppliedCells'),
+    ('transcript-table-displayed-widths', UI + 'TranscriptView.java',
+     'for (SafeMarkdown.Run run : cell.runs()) renderRun(measuring, run, around, item, dark, stale, candidates, true);',
+     'for (SafeMarkdown.Run run : cell.runs()) put(measuring, run.text(), around, item);',
+     'TranscriptViewTest#tableMeasuresDisplayedLinksMarksImagesAndChipsInBothThemes'),
+    ('transcript-table-chip-width', UI + 'TranscriptView.java',
+     ': component.getPreferredSize().width;',
+     ': getFontMetrics(getFont()).stringWidth(measuring.getText(at, end - at));',
+     'TranscriptViewTest#tableMeasuresDisplayedLinksMarksImagesAndChipsInBothThemes'),
+    ('transcript-table-displayed-width-stacking', UI + 'TranscriptView.java',
+     'if (!table.rows().isEmpty() && !fitsWidth(colPx, sepRegionPx, (int) textWidth())) {',
+     'if (false) {',
+     'TranscriptViewTest#displayedLinkDestinationsDetermineStackingAtDefaultWidth'),
+]

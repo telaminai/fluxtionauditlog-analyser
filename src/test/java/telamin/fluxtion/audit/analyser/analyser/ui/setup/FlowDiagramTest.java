@@ -3,6 +3,8 @@ package telamin.fluxtion.audit.analyser.analyser.ui.setup;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.Test;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState;
@@ -251,6 +253,9 @@ class FlowDiagramTest {
      */
     @Test
     @DisplayName("★ T27: contrast and clipping, light and dark, at 340, 430 and 560 px")
+    // #186: on Linux CI the light 430 px layout overlaps an icon once a theme-switching test runs first (order-
+    // dependent FlatLaf metrics). macOS only until #186 decides real defect vs test isolation (owner, 2026-10-19).
+    @EnabledOnOs(OS.MAC)
     void contrastAndClipping() throws Exception {
         List<String> failures = new ArrayList<>();
         int runs = 0, marks = 0;
