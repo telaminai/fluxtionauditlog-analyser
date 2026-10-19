@@ -41,6 +41,7 @@ import java.util.function.Consumer;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryCompleted;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryRequested;
+import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.FollowReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
@@ -296,6 +297,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.FollowReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
@@ -939,6 +941,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Finished",
                 false),
             new ProcessorDescriptor.Input(
+                "FollowReadCompleted",
+                "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.FollowReadCompleted",
+                false),
+            new ProcessorDescriptor.Input(
                 "FollowSet",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet",
                 false),
@@ -1472,7 +1478,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "e89dbac8fe81e57fefd9cedd7bee698cf533edda99922c4fa05d202450b27fc3",
+              "0d276d1fcedda1fea23c2fd15f681294e4469877a1cc1183ea3424c43c49c3b7",
               null));
 
   @Override
@@ -1652,6 +1658,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof DiscoveryRequested) {
       DiscoveryRequested typedEvent = (DiscoveryRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof FollowReadCompleted) {
+      FollowReadCompleted typedEvent = (FollowReadCompleted) event;
       handleEvent(typedEvent);
     } else if (event instanceof ReadCompleted) {
       ReadCompleted typedEvent = (ReadCompleted) event;
@@ -2283,6 +2292,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(DiscoveryRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(FollowReadCompleted event) {
     processEvent(event);
   }
 
@@ -3328,6 +3342,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "discover", typedEvent);
     designSession.discover(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(FollowReadCompleted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(designSession, "designSession", "followed", typedEvent);
+    designSession.followed(typedEvent);
     afterEvent();
   }
 
@@ -6008,6 +6030,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "discover", typedEvent);
       designSession.discover(typedEvent);
+    } else if (event instanceof FollowReadCompleted) {
+      FollowReadCompleted typedEvent = (FollowReadCompleted) event;
+      auditEvent(typedEvent);
+      auditInvocation(designSession, "designSession", "followed", typedEvent);
+      designSession.followed(typedEvent);
     } else if (event instanceof ReadCompleted) {
       ReadCompleted typedEvent = (ReadCompleted) event;
       auditEvent(typedEvent);

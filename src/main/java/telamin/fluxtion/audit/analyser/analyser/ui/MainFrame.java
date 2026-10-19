@@ -1853,7 +1853,7 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Design read superseded by a newer session or root change; retry the request");
             var before = current.document();
             for (Object fact : prepared.facts()) session().submit(fact);
-            refreshDesignView(before);
+            refreshDesignView(before == null ? null : before.revision());
             var result = finish.apply(prepared);
             if (allowed instanceof RecoveryReadGuard guard) guard.completed(current.generation());
             return result;
@@ -1952,33 +1952,36 @@ public final class MainFrame extends JFrame {
             @Override protected void done() {
                 designReadPending = false;
                 if (!isDisplayable()) return;
-                try {
-                    var before = state.document(); var fact = get();
-                    if (generation != state.generation()) return;
-                    // A log or project effect may have opened a modal event loop while a session cycle is still
-                    // running. Report this background read with post, which queues it after that cycle.
-                    session.post(fact);
-                    SwingUtilities.invokeLater(() -> {
-                        if (isDisplayable() && generation == state.generation()) refreshDesignView(before);
-                    });
-                } catch (Exception e) { status.setText("Design refresh failed: " + e.getMessage()); }
+                telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted fact;
+                try { fact = get(); }
+                catch (Exception e) { fact = new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted(
+                        file, null, "Design refresh failed: " + e.getMessage(), false, generation); }
+                // A log or project effect may have opened a modal event loop while a session cycle is still
+                // running. The node accepts or rejects the posted observation, then requests presentation.
+                session.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.FollowReadCompleted(fact));
             }
         }.execute();
     }
 
-    private void refreshDesignView(telamin.fluxtion.audit.analyser.analyser.design.DesignDocument before) {
+    private void refreshDesignView(String previousRevision) {
         var state = session().processor().designSession; var document = state.document();
         if (state.builder() != null) {
             var builder = state.builder(); var viewed = sourcePanel.fileView();
             if (viewed != null && viewed.file().equals(builder.file()) && !viewed.text().equals(builder.text())) {
-                for (var lit : spotlight.lit()) if (lit.target().startsWith("source:design")) {
-                    spotlight.remove(lit.target()); designWentOut.add(lit.target()); designSpotlightRevisions.remove(lit.target());
+                int line = Math.min(viewed.line(), builder.lines());
+                for (var lit : spotlight.lit()) {
+                    var parsed = SpotlightTarget.parse(lit.target()); if (!parsed.ok()) continue;
+                    boolean out = parsed.target().family() == SpotlightTarget.Family.DESIGN_LINE;
+                    if (parsed.target().family() == SpotlightTarget.Family.DESIGN_BEAN) {
+                        var matches = builder.named(parsed.target().argument()); out = matches.size() != 1;
+                        if (!out) { spotlight.markDesignEdited(lit.target()); line = matches.getFirst().line(); }
+                    }
+                    if (out) { spotlight.remove(lit.target()); designWentOut.add(lit.target()); designSpotlightRevisions.remove(lit.target()); }
                 }
-                int lines = 1 + (int) builder.text().chars().filter(c -> c == '\n').count();
-                sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(builder, Math.min(viewed.line(), lines), null), designNote(), false);
+                sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(builder, line, null), designNote(), false);
             }
         }
-        boolean changed = document != null && (before == null || !before.revision().equals(document.revision()));
+        boolean changed = document != null && !java.util.Objects.equals(previousRevision, document.revision());
         if (changed) {
             for (var lit : spotlight.lit()) {
                 var p = SpotlightTarget.parse(lit.target()); if (!p.ok()) continue;
@@ -4037,11 +4040,13 @@ public final class MainFrame extends JFrame {
                     var state = session().processor().designSession;
                     var before = state.document();
                     if (state.path() != null) designs().refreshed(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.read(designFiles(), state.path(), false, state.generation()));
-                    refreshDesignView(before);
+                    refreshDesignView(before == null ? null : before.revision());
                     var doc = state.document();
                     Integer line = designTargetLine(t);
-                    if (doc != null && line != null) {
-                        sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(doc, line, t.family() == SpotlightTarget.Family.DESIGN_BEAN ? t.argument() : null), designNote(), false);
+                    if (state.revision() != null && line != null) {
+                        String name = t.family() == SpotlightTarget.Family.DESIGN_BEAN ? t.argument() : null;
+                        sourcePanel.showFile(doc != null ? telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(doc, line, name)
+                                : telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(state.builder(), line, name), designNote(), false);
                         selectSideTab("source");
                         validate();
                         sourcePanel.revealDesignLine(line);
@@ -4100,10 +4105,10 @@ public final class MainFrame extends JFrame {
             return switch (t.family()) {
                 case JAVA, JAVA_LINE -> javaSpotlightBounds(t);
                 case DESIGN, DESIGN_BEAN, DESIGN_LINE -> {
-                    var doc = session().processor().designSession.document();
+                    var design = session().processor().designSession;
                     Integer line = designTargetLine(t);
-                    yield doc == null || line == null ? java.util.Optional.empty()
-                            : sourcePanel.designBounds(doc.file(), t.family() == SpotlightTarget.Family.DESIGN ? null : line)
+                    yield design.revision() == null || line == null ? java.util.Optional.empty()
+                            : sourcePanel.designBounds(design.path(), t.family() == SpotlightTarget.Family.DESIGN ? null : line)
                             .flatMap(r -> inOverlay(sourcePanel.designComponent(), r));
                 }
                 case TAB -> {
@@ -4225,16 +4230,17 @@ public final class MainFrame extends JFrame {
      * the design was open and the XML was simply too narrow to show the line.
      */
     private String designNotVisible(SpotlightTarget t) {
-        var doc = session().processor().designSession.document();
-        if (doc == null) return "no session design is open — open {design: <path>} first";
+        var design = session().processor().designSession;
+        if (design.revision() == null) return "no session design is open — open {design: <path>} first";
+        String noun = design.builder() == null ? "bean" : "node";
         if (t.family() == SpotlightTarget.Family.DESIGN_BEAN) {
-            int n = doc.beans(t.argument()).size();
-            if (n == 0) return "no bean '" + t.argument() + "' in " + doc.file() + " (context.design.beans lists them)";
-            if (n > 1) return "bean id '" + t.argument() + "' is declared " + n + " times in " + doc.file()
+            int n = design.namedLines(t.argument()).size();
+            if (n == 0) return "no " + noun + " '" + t.argument() + "' in " + design.path() + (design.builder() == null ? " (context.design.beans lists them)" : " (context.design.nodes lists literal names)");
+            if (n > 1) return noun + " id '" + t.argument() + "' is declared " + n + " times in " + design.path()
                     + "; light it by line with source:design:line:<n>";
         }
-        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && (t.number() < 1 || t.number() > doc.lines()))
-            return "line " + t.number() + " is outside " + doc.file() + " (1–" + doc.lines() + ")";
+        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && (t.number() < 1 || t.number() > design.lines()))
+            return "line " + t.number() + " is outside " + design.path() + " (1–" + design.lines() + ")";
         if (t.family() == SpotlightTarget.Family.DESIGN)
             return "the design is open but its view is not on screen: the Source pane is hidden or too small";
         return "the design is open but that line is not on screen: the Source pane is too small to show it. "
@@ -4242,12 +4248,12 @@ public final class MainFrame extends JFrame {
     }
 
     private Integer designTargetLine(SpotlightTarget target) {
-        var doc = session().processor().designSession.document();
-        if (doc == null) return null;
+        var design = session().processor().designSession;
+        if (design.revision() == null) return null;
         if (target.family() == SpotlightTarget.Family.DESIGN) return 1;
-        if (target.family() == SpotlightTarget.Family.DESIGN_LINE) return target.number() <= doc.lines() ? target.number() : null;
-        var beans = doc.beans(target.argument());
-        return beans.size() == 1 ? beans.getFirst().line() : null;
+        if (target.family() == SpotlightTarget.Family.DESIGN_LINE) return target.number() <= design.lines() ? target.number() : null;
+        var lines = design.namedLines(target.argument());
+        return lines.size() == 1 ? lines.getFirst() : null;
     }
 
     // ---- M64.10: a graph target's chart — the named one, else the selected one -------------------------------
@@ -4566,8 +4572,8 @@ public final class MainFrame extends JFrame {
             spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption());
             if (prepared.containsKey(r.target().name()))
                 javaSpotlightBindings.put(r.target().name(), prepared.get(r.target().name()));
-            if (r.target().name().startsWith("source:design") && session().processor().designSession.document() != null)
-                designSpotlightRevisions.put(r.target().name(), session().processor().designSession.document().revision());
+            if (r.target().name().startsWith("source:design") && session().processor().designSession.revision() != null)
+                designSpotlightRevisions.put(r.target().name(), session().processor().designSession.revision());
         }
         // keep-clear is measured in relightSpotlight alone: litEcho below relights synchronously, before any paint
         SwingUtilities.invokeLater(this::relightSpotlight);     // once the layout the reveal queued has run
@@ -4592,10 +4598,10 @@ public final class MainFrame extends JFrame {
             one.put("n", l.n());
             one.put("target", l.target());
             if (l.caption() != null) one.put("caption", l.caption());
-            if (l.target().startsWith("source:design") && session().processor().designSession.document() != null) {
-                var doc = session().processor().designSession.document();
-                one.put("file", doc.file()); one.put("revision", doc.revision());
-                one.put("captionRevision", designSpotlightRevisions.getOrDefault(l.target(), doc.revision()));
+            if (l.target().startsWith("source:design") && session().processor().designSession.revision() != null) {
+                var design = session().processor().designSession;
+                one.put("file", design.path()); one.put("revision", design.revision());
+                one.put("captionRevision", designSpotlightRevisions.getOrDefault(l.target(), design.revision()));
                 one.put("relationship", "unverified");
             }
             JavaBinding binding = javaSpotlightBindings.get(l.target());
@@ -8975,6 +8981,10 @@ public final class MainFrame extends JFrame {
                                 telamin.fluxtion.audit.analyser.analyser.design.DesignDiscovery.unavailable(), e.generation())); });
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(opId, "discoverDesign");
             }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PresentDesignRefreshEffect e -> {
+                refreshDesignView(e.previousRevision());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(opId, "presentDesignRefresh");
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PresentDesignDiscoveryEffect e -> {
                 SwingUtilities.invokeLater(() -> {
                     var state = session.processor().designSession;
@@ -10023,7 +10033,7 @@ public final class MainFrame extends JFrame {
                 if (slice != null) echo.put("text", slice.echo());
                 if (view.bean() != null) {
                     echo.put("nodeId", view.bean()); echo.put("recordsRelationship", "unverified");
-                    String fqn = view.document().beans(view.bean()).getFirst().attr("class");
+                    String fqn = view.document() == null ? "" : view.document().beans(view.bean()).getFirst().attr("class");
                     if (fqn.isBlank()) {
                         fqn = sourceService.fqnForInstance(view.bean());
                         if (fqn == null && !sourceService.modelRead()) echo.put("classLookup", "processor source not yet read");

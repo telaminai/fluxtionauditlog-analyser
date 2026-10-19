@@ -4,6 +4,8 @@ package telamin.fluxtion.audit.analyser.analyser.design;
 public final class DesignEvents {
     private DesignEvents() { }
     public record ReadRequested(String kind) { }
+    /** A background Follow observation; presentation is requested only after the session accepts this read. */
+    public record FollowReadCompleted(ReadCompleted read) { }
     public record ReadCompleted(String file, DesignDocument document, String error, boolean sessionOpen, long generation,
                                 BuilderDocument builder) {
         public ReadCompleted(String file, DesignDocument document, String error, boolean sessionOpen, long generation) {

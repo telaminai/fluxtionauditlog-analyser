@@ -8,11 +8,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
-- M80: Design discovers Spring XML and Java builder definitions under authorised source roots when a project opens or roots change, without relying on generated headers. Context adds kind/files/nodes/source while keeping released keys; a single candidate opens as a read-only glance, and absent or unavailable discovery is stated. Java anchors and the multi-file chooser follow separately.
+- M80: Design discovers Spring XML and Java builder definitions under authorised source roots when a project opens or roots change, without relying on generated headers. Context adds kind/files/nodes/source while keeping released keys; a single candidate opens as a read-only glance, and absent or unavailable discovery is stated. The multi-file chooser follows separately.
 - M80 discovery keeps readable candidates when individual files fail and names up to ten failed files, with an
   omitted count, in the Design pane and context note. Scan-limit exhaustion remains unavailable with a distinct
   reason. A failed first design read no
   longer invents a Spring kind, and the empty Design message uses plain, shorter wording.
+
+- M80: Java builder designs now index literal `addNode`/`addPublicNode` declarations and show honest unanchored
+  entries for computed names and discovered constructors. `source {bean}` navigates either XML ids or literal Java
+  node names; `source:design:node:<id>` is a permanent synonym of the existing bean spotlight family.
 
 ## [1.37.0] - 2026-10-19
 

@@ -18,6 +18,37 @@ class DesignWorkspaceTest {
         workspace = new DesignWorkspace(() -> files, () -> driver.processor().designSession, driver::submit);
     }
     Path xml(String name, String text) throws Exception { return Files.writeString(project.resolve(name), text); }
+    private static String builder(String registrations) {
+        return "import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
+                + "class DEMOBuilder implements FluxtionGraphBuilder {\n void buildGraph(Config cfg) {\n"
+                + registrations + "\n }\n}\n";
+    }
+    @Test void javaBuilderNamesUseTheExistingSelectorAndRefuseAmbiguity() throws Exception {
+        Path java = xml("DEMOBuilder.java", builder("cfg.addNode(\n new DEMO(), \"a\");"));
+        workspace.open(java.toString());
+        assertEquals(4, workspace.source(Map.of("bean", "a")).line());
+        Files.writeString(java, builder("cfg.addNode(new DEMO(), \"a\");\ncfg.addPublicNode(new Other(), \"a\");"));
+        String reason = assertThrows(java.io.IOException.class, () -> workspace.source(Map.of("bean", "a")),
+                "duplicate literal names must refuse rather than select the first declaration").getMessage();
+        assertTrue(reason.contains("ambiguous builder node 'a'"), reason);
+        assertEquals(1, workspace.source(Map.of("line", 1)).line(), "explicit line navigation stays available");
+    }
+    @Test void aJavaBuilderGlancePreservesAnXmlSessionAndUsesCurrentDisk() throws Exception {
+        Path session = xml("session.xml", "<beans><bean id='session'/></beans>");
+        workspace.open(session.toString());
+        Path java = xml("DEMOBuilder.java", builder("cfg.addNode(new DEMO(), \"a\");"));
+        var glance = workspace.source(Map.of("file", java.toString(), "bean", "a"));
+        assertEquals("DESIGN", glance.mode());
+        assertNotNull(glance.builder());
+        assertEquals(4, glance.line());
+        assertEquals(session.toRealPath().toString(), driver.processor().designSession.path(),
+                "a Java builder glance must not adopt or replace the session's XML design");
+        assertNotNull(driver.processor().designSession.document());
+        Files.writeString(java, builder("\ncfg.addNode(new DEMO(), \"a\");"));
+        assertEquals(5, workspace.source(Map.of("file", java.toString(), "bean", "a")).line(),
+                "each builder glance re-reads the declaration on disk");
+        assertEquals(List.of("session"), driver.processor().designSession.document().beanIds());
+    }
     @Test void producerSnapshotDetectsNewReceiptAndEditedSourceWithoutReopening() throws Exception {
         Path target=Files.createDirectories(project.resolve("target"));
         Path sources=Files.createDirectories(project.resolve("src/main/java"));

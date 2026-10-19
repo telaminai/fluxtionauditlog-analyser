@@ -8,6 +8,37 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DesignDiscoverySessionTest {
+    @Test void followPresentationBelongsOnlyToAcceptedReadsIncludingFailures() {
+        var shown=new ArrayList<telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PresentDesignRefreshEffect>();
+        var driver=new telamin.fluxtion.audit.analyser.analyser.session.SessionDriver(effect->{
+            assertInstanceOf(telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PresentDesignRefreshEffect.class,effect);
+            shown.add((telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PresentDesignRefreshEffect)effect);
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(effect.opId(),"presentDesignRefresh");
+        });
+        var state=driver.processor().designSession;
+        var first=BuilderDocument.parse("DEMO.java","class DEMO {}");
+        driver.submit(new DesignEvents.ReadCompleted(first.file(),null,"",true,state.generation(),first));
+        long old=state.generation();
+        var revised=BuilderDocument.parse("DEMO.java","class DEMO { /* revised */ }");
+        driver.submit(new DesignEvents.FollowReadCompleted(new DesignEvents.ReadCompleted(first.file(),null,"",false,old,revised)));
+        assertEquals(1,shown.size(),"an accepted follow read requests exactly one presentation");
+        assertEquals(state.generation(),shown.getFirst().generation());
+        assertEquals(revised.revision(),state.revision());
+        driver.submit(new DesignEvents.FollowReadCompleted(new DesignEvents.ReadCompleted(first.file(),null,"",false,old,first)));
+        assertEquals(1,shown.size(),"stale follow completion cannot request presentation");
+        assertEquals(revised.revision(),state.revision());
+        driver.submit(new DesignEvents.FollowReadCompleted(new DesignEvents.ReadCompleted("Other.java",null,"",false,state.generation(),first)));
+        assertEquals(1,shown.size(),"another file cannot borrow the current read generation");
+        driver.submit(new DesignEvents.FollowReadCompleted(new DesignEvents.ReadCompleted(first.file(),null,"read failed",false,state.generation())));
+        assertEquals(2,shown.size(),"an accepted failure must present its qualification");
+        assertEquals("read failed",state.error());
+        assertEquals(revised.revision(),state.revision(),"a failed refresh retains the last good revision");
+        old=state.generation();
+        driver.submit(new DesignEvents.Cleared("DEMO"));
+        driver.submit(new DesignEvents.FollowReadCompleted(new DesignEvents.ReadCompleted(first.file(),null,"",false,old,first)));
+        assertEquals(2,shown.size(),"clear retires pending follow presentation");
+        assertNull(state.path());
+    }
     @Test void aFailedRefreshKeepsTheLastGoodJavaFormButANewFailedFileDoesNot() {
         var state=new DesignSession(new OperationGate(),new EffectQueue());
         var builder=BuilderDocument.parse("DEMO.java","class DEMO {}");

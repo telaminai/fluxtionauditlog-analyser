@@ -42,7 +42,11 @@ public final class DesignWorkspace {
     public DesignWorkspace(Supplier<DesignFiles> files, Supplier<? extends State> state, Consumer<Object> dispatch) {
         this.files = files; this.state = state; this.dispatch = dispatch;
     }
-    public record View(String file, String text, String mode, int line, String bean, DesignDocument document, String problem) {
+    public record View(String file, String text, String mode, int line, String bean, DesignDocument document, String problem,
+                       BuilderDocument builder) {
+        public View(String file, String text, String mode, int line, String bean, DesignDocument document, String problem) {
+            this(file, text, mode, line, bean, document, problem, null);
+        }
         public View(String file, String text, String mode, int line, String bean, DesignDocument document) {
             this(file, text, mode, line, bean, document, "");
         }
@@ -115,14 +119,24 @@ public final class DesignWorkspace {
             line = ((Number)n).intValue();
         }
         if (path.toString().endsWith(".java")) {
-            if (keys.contains("bean")) throw new IOException("bean selects XML only");
+            BuilderDocument builder = DesignDiscovery.isBuilder(text) ? BuilderDocument.parse(path.toString(), text) : null;
+            if (keys.contains("bean")) {
+                if (builder == null) throw new IOException("bean selects XML or named Java builder nodes only");
+                String name = str(params.get("bean")); var matches = builder.named(name);
+                if (matches.isEmpty()) throw new IOException("unknown builder node '" + name + "'; non-literal and discovered sites have no name");
+                if (matches.size() > 1) throw new IOException("ambiguous builder node '" + name + "'; use a line");
+                line = matches.getFirst().line();
+            }
             if (keys.contains("method")) {
                 int offset = SourceNavigation.methodDeclOffset(text, str(params.get("method")));
                 if (offset < 0) throw new IOException("method not found: " + params.get("method"));
                 line = DesignDocument.lineAt(text, offset);
             }
             if (line > 1 + text.chars().filter(c -> c == '\n').count()) throw new IOException("line exceeds source length");
-            if (!keys.contains("fqn") && DesignDiscovery.isBuilder(text)) return view(BuilderDocument.parse(path.toString(), text), line, null);
+            if (builder != null && !keys.contains("fqn")) {
+                if (path.toString().equals(state.get().path())) dispatch.accept(new DesignEvents.ReadCompleted(path.toString(), null, "", false, state.get().generation(), builder));
+                return view(builder, line, keys.contains("bean") ? str(params.get("bean")) : null);
+            }
             return new View(path.toString(), text, "NODE", line, null, null);
         }
         if (!path.toString().endsWith(".xml")) throw new IOException("source supports XML and Java files");
@@ -148,7 +162,7 @@ public final class DesignWorkspace {
         return view(doc, line, bean);
     }
     public static View view(DesignDocument doc, int line, String bean) { return new View(doc.file(), doc.text(), "DESIGN", line, bean, doc); }
-    public static View view(BuilderDocument doc, int line, String node) { return new View(doc.file(), doc.text(), "DESIGN", line, node, null); }
+    public static View view(BuilderDocument doc, int line, String node) { return new View(doc.file(), doc.text(), "DESIGN", line, node, null, "", doc); }
 
     public ProducerResult diagnostics(String requested) throws IOException {
         long generation = state.get().generation();

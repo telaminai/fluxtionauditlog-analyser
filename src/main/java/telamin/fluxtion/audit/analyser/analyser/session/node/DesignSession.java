@@ -42,6 +42,12 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
         auditLog.info("designRead", error.isEmpty() ? "loaded" : "unavailable").info("generation", generation);
         return true;
     }
+    @OnEventHandler public boolean followed(DesignEvents.FollowReadCompleted e) {
+        String before = document == null ? null : document.revision();
+        if (!read(e.read())) return false;
+        effects.request(new SessionEffects.PresentDesignRefreshEffect(0, generation, before));
+        return true;
+    }
     @OnEventHandler public boolean result(DesignEvents.ResultReadCompleted e) {
         if (e.generation() != generation) return false;
         result = e.result(); // refusal clears the previous result
@@ -72,6 +78,10 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
         discovery = DesignDiscovery.none(); observedRoots = List.of(); error = ""; resultError = ""; auditLog.info("designSession", "cleared"); }
     public DesignDocument document() { return document; }
     public BuilderDocument builder() { return builder; }
+    public String revision() { return document != null ? document.revision() : builder == null ? null : builder.revision(); }
+    public int lines() { return document != null ? document.lines() : builder == null ? 0 : builder.lines(); }
+    public List<Integer> namedLines(String id) { return document != null ? document.beans(id).stream().map(DesignDocument.Element::line).toList()
+            : builder == null ? List.of() : builder.named(id).stream().map(BuilderDocument.NodeAnchor::line).toList(); }
     public DesignDiscovery discovery() { return discovery; }
     public long discoveryGeneration() { return discoveryGeneration; }
     public String path() { return path; }
@@ -104,8 +114,19 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
         if (path == null || document != null || builder != null)
             m.put("kind", path != null && discovery.files().isEmpty() ? (builder == null ? "spring" : "builder") : discovery.kind());
         if (!discovery.files().isEmpty()) m.put("files", discovery.files().stream().map(f -> Map.of("path", f.path(), "role", f.role())).toList());
-        m.put("nodes", List.of());
+        m.put("nodes", nodesEcho());
         m.put("source", path != null && discovery.files().isEmpty() ? "explicit" : discovery.source());
         return m;
+    }
+    private List<Map<String, Object>> nodesEcho() {
+        List<Map<String, Object>> out = new ArrayList<>();
+        if (builder != null) for (var n : builder.nodes()) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("name", n.name()); row.put("file", builder.file()); row.put("line", n.line()); row.put("anchored", n.anchored());
+            out.add(row);
+        }
+        if (document != null) for (String name : document.beanIds()) for (var bean : document.beans(name))
+            out.add(Map.of("name", name, "file", document.file(), "line", bean.line(), "anchored", true));
+        return List.copyOf(out);
     }
 }

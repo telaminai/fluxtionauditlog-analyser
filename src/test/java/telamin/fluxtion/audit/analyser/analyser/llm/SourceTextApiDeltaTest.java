@@ -31,7 +31,7 @@ class SourceTextApiDeltaTest {
             "McpTools.hostedList", "099c47f18645d90e517b910246cc55287dced8a875abff19716ac973f4038a0b",
             "PromptBuilder.inProcessActionManifest", "2df1e7478f92c76b9bf4eef1f52f225effb09d0c552bb42f8806141d0a58d40d");
 
-    /** The pins after it — {@link WorkModeKeepsTheApiTest#PINNED} holds these now. */
+    /** The pins after source-text and before the separately approved M80 metadata delta. */
     static final Map<String, String> AFTER = Map.of(
             "VerbSchemas.all", "7c0cfc883f7b0dbb52a94f972f4b676d0cdeb7541ae40d30a4096459e5e93772",
             "VerbSchemas.hosted", "e939a7ab31794f339718b9cf03e9d2b31c8257fee288eab5293039f86f5d40ce",
@@ -56,6 +56,7 @@ class SourceTextApiDeltaTest {
 
     @SuppressWarnings("unchecked")
     static Map<String, Object> revertSchemas(Map<String, Object> schemas) {
+        schemas = M80DesignApiDeltaTest.withoutM80(schemas);
         Map<String, Object> out = new LinkedHashMap<>(schemas);
         out.put("source", revertSource((Map<String, Object>) schemas.get("source"), false));
         return out;
@@ -63,6 +64,7 @@ class SourceTextApiDeltaTest {
 
     @SuppressWarnings("unchecked")
     static List<Map<String, Object>> revertTools(List<Map<String, Object>> tools) {
+        tools = M80DesignApiDeltaTest.withoutM80(tools);
         List<Map<String, Object>> out = new ArrayList<>();
         for (Map<String, Object> t : tools) {
             if ((McpTools.PREFIX + "source").equals(t.get("name"))) {
@@ -84,13 +86,14 @@ class SourceTextApiDeltaTest {
         assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(revertSchemas(VerbSchemas.hosted())));
         assertEquals(BEFORE.get("McpTools.list"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.list())));
         assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.hostedList())));
-        String manifest = PromptBuilder.inProcessActionManifest(3);
+        String manifest = M80DesignApiDeltaTest.withoutM80(PromptBuilder.inProcessActionManifest(3));
         String added = "  source {file, bean, line, fqn, method, text} -> ";
         assertTrue(manifest.contains(added), "the in-process manifest lists the parameter");
         assertEquals(BEFORE.get("PromptBuilder.inProcessActionManifest"), WorkModeKeepsTheApiTest.sha(
                 manifest.replace(added, "  source {file, bean, line, fqn, method} -> ")));
         for (var e : AFTER.entrySet()) {
-            assertEquals(e.getValue(), WorkModeKeepsTheApiTest.PINNED.get(e.getKey()), "the pin now: " + e.getKey());
+            assertEquals(e.getValue(), WorkModeKeepsTheApiTest.sha(M80DesignApiDeltaTest.withoutM80(
+                    WorkModeKeepsTheApiTest.surfaces().get(e.getKey()))), "the pin before M80: " + e.getKey());
         }
     }
 

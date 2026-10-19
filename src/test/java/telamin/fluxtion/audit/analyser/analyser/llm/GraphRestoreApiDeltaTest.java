@@ -88,7 +88,7 @@ class GraphRestoreApiDeltaTest {
                 SourceTextApiDeltaTest.revertTools(McpTools.list()))));
         assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(
                 StarterProposeApiDeltaTest.revertTools(SourceTextApiDeltaTest.revertTools(McpTools.hostedList())))));
-        String manifest = PromptBuilder.inProcessActionManifest(3).replace(
+        String manifest = M80DesignApiDeltaTest.withoutM80(PromptBuilder.inProcessActionManifest(3)).replace(
                 "  source {file, bean, line, fqn, method, text} -> ", "  source {file, bean, line, fqn, method} -> ");
         assertTrue(manifest.contains(NEW_MANIFEST), "the in-process manifest says a chart can be restored");
         assertEquals(BEFORE.get("PromptBuilder.inProcessActionManifest"),
