@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.37.0] - 2026-10-19
+
 ### Added
 
 - Claude Code now shows the step it starts, elapsed time and a quiet inactivity cue while a turn runs. Keep waiting dismisses that silence episode until a new stream event; approvals show their own cue while keeping the existing modal question, with no blocked Show control. About lists tool/turn totals, and project context exposes the same read-only activity snapshot.
