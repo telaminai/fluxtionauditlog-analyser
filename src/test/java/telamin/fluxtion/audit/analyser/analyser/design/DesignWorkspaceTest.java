@@ -50,6 +50,26 @@ class DesignWorkspaceTest {
         assertFalse(assertThrows(java.io.IOException.class, () -> restricted.resolve(external.resolve("absent.xml").toString()))
                 .getMessage().contains("source_root"), "missing files must not promise a root will fix them");
     }
+    /**
+     * ★ Owner hands-on test (2026-10-18): {@code source {bean}} with no design open said "a file path is required" for a
+     * graph node. It now says no design is open and how to proceed. Witness: drop the NO_DESIGN check in
+     * {@code DesignWorkspace.source} — the resolver's "a file path is required" comes back.
+     */
+    @Test void beanWithNoDesignOpenSaysSoNotThatAPathIsRequired() throws Exception {
+        String msg = assertThrows(java.io.IOException.class, () -> workspace.source(Map.of("bean", "quotePublisher")))
+                .getMessage();
+        assertEquals(DesignWorkspace.NO_DESIGN, msg);
+        assertFalse(msg.contains("a file path is required"), msg);
+        assertEquals(DesignWorkspace.NO_DESIGN, assertThrows(java.io.IOException.class,
+                () -> workspace.source(Map.of("line", 3))).getMessage(), "{line} alone too");
+        assertTrue(DesignWorkspace.graphNodeHint("quotePublisher", "com.acme.demo.node.Nodes.QuotePublisher")
+                .contains("source {fqn: \"com.acme.demo.node.Nodes.QuotePublisher\"}"));
+        assertTrue(DesignWorkspace.graphNodeHint("x", null).contains("source {fqn:"));
+        // with a design open, {bean} still selects in it
+        Path a = xml("a.xml", "<beans>\n<bean id='quotePublisher'/></beans>");
+        workspace.open(a.toString());
+        assertEquals(2, workspace.source(Map.of("bean", "quotePublisher")).line());
+    }
     @Test void aGlanceAtBDoesNotChangeSessionAAndEveryCallRereads() throws Exception {
         Path a = xml("a.xml", "<beans><bean id='x'/></beans>");
         Path b = xml("b.xml", "<beans>\n\n<bean id='x'/></beans>");

@@ -7,6 +7,17 @@ the analyser → assert) against either `mongoose-stub.py` (no Mongoose needed �
 or a real `~/.mongoose/servers/` directory. `bundle-bench.py` statically preflights a generated M19
 directory or zip before the live keyless run. See [`bench/README.md`](bench/README.md).
 
+## `usability/run.py` — the usability scorecard
+
+Runs the scorecard's eight scripted tasks and three key states against the **built jar**, in a real window at
+1200×800, under an isolated `user.home`, with a stub `claude` and recorded Claude Code streams (no live prompt). It
+writes one JSON result and one Markdown table per run to `target/usability/`; `--record` copies them to
+`docs/usability/`. Method, metric definitions, baseline, budgets and targets: [`docs/usability/scorecard.md`](../docs/usability/scorecard.md).
+
+```bash
+python3 tools/usability/run.py            # needs a display; on Linux: xvfb-run -a python3 tools/usability/run.py
+```
+
 ## `drive-analyser.sh`
 
 Drives a **running** analyser over its localhost REST transport, for scripted UI setup and screenshots.

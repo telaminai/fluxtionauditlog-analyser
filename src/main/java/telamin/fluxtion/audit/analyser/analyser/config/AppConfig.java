@@ -24,7 +24,11 @@ public final class AppConfig {
     public String apiKey = "";                    // cleartext (by decision)
     public final List<String> eventProcessorFqns = new ArrayList<>();
     public final List<ProcessorDeclaration> processorDeclarations = new ArrayList<>();
-    public String selectedEventProcessor = "com.acme.marketmaker.strategy.DemoMarketMakerStrategy";
+    /**
+     * The selected event processor: EMPTY until one is configured (owner decision, 2026-10-18). It defaulted to a
+     * placeholder class no demo or project ships, which the sample project then wrote into its profile.
+     */
+    public String selectedEventProcessor = "";
     public int memoryThresholdMb = 500;
 
     /** Local Maven repositories searched for {@code *-sources.jar} when a class isn't under a source root. */
@@ -44,8 +48,13 @@ public final class AppConfig {
     public final List<String> hiddenColumns = new ArrayList<>(List.of(
             "eventTime", "groupingId", "eventToString", "endTime"));
     public boolean hiddenColumnsSet = false;   // distinguishes "never configured" from "user cleared all"
-    /** Event-type rail panel collapsed — it costs 240px of a window whose job is showing wide records. */
-    public boolean eventFilterCollapsed = false;
+    /**
+     * The Event types checklist collapsed. Default COLLAPSED (usability scorecard, 2026-10-18): shown, its three-row
+     * floor pushed the sample's breach record below the fold at 1200x800. Hiding it is safe because a type filter
+     * stays visible without it — the toggle's "1 of 7" badge and the hidden line under the Records title. A saved
+     * choice wins, so someone who showed the list keeps it shown. Nothing auto-expands it when a filter is applied.
+     */
+    public boolean eventFilterCollapsed = true;
     /** M37: the Project panel (what is in force) collapsed. Default SHOWN — it must be seen once to be looked for later. */
     public boolean projectPanelCollapsed = false;
     /** M37: divider of the west column's vertical split (Event types above, Project below); -1 = never dragged. */
@@ -117,6 +126,70 @@ public final class AppConfig {
      */
     public boolean assistantCreateProjects = false;
 
+    // ---- M74: Claude Code as the Assistant tab's local agent (spec-claude-code-provider.md §5.1) ------------------
+    // EVERY one of these is MACHINE tier only, like assistantCreateProjects: read and written by ConfigStore, never
+    // exported or imported by SettingsShare, never a project-profile key, never carried by a bundle — so a cloned
+    // repository, an imported share or a received bundle cannot start anything (pinned by LocalAgentConsentTest).
+
+    /** <i>Allow the analyser to start Claude Code</i> (OD-74.1): off by default. */
+    public boolean claudeCodeAllowed = false;
+    /** <i>…with my full Claude Code permissions</i> (P1b, OD-74.4): off by default, turned on only through its warning. */
+    public boolean claudeCodeFull = false;
+    /**
+     * The full posture's mode (§5.1): always one of {@code default}, {@code acceptEdits}, {@code auto}, {@code plan}.
+     * {@code ConfigStore} reads anything else — {@code bypassPermissions}, {@code dontAsk}, a typo — as {@code default}
+     * and sets {@link #claudeCodeFullModeReadAsDefault}.
+     */
+    public String claudeCodeFullMode = "default";
+    /** The stored mode was not one the analyser offers, so it reads as {@code default}; Settings says so. Not stored. */
+    public transient boolean claudeCodeFullModeReadAsDefault = false;
+    /** The Claude Code model — its own setting, never {@link #llmModel}. */
+    public String claudeCodeModel = "sonnet";
+    /**
+     * The OPTIONAL Claude Code spend limit, in US dollars (§4.6; owner, 2026-10-17): null — the default — is no limit,
+     * because a session on the person's own Claude plan is bounded by that plan. When set, it caps what this analyser's
+     * Claude Code conversations may spend while it runs (useful with API-key billing). The spend is counted in the
+     * session's memory, so it starts again from zero when the analyser restarts; it is not a lifetime or per-machine
+     * total.
+     */
+    public Double claudeCodeBudgetUsd = null;
+    /** Folders confirmed for Claude Code on this machine for the DEFAULT posture (OD-74.5), by real path. */
+    public final List<String> claudeCodeTrustedFolders = new ArrayList<>();
+    /**
+     * Folders confirmed for the FULL posture (OD-74.12), each {@code <real path>|<digest>} of the folder's settings and
+     * {@code .mcp.json}: a separate trust, bound to content, so a changed hook file is asked about again.
+     */
+    public final List<String> claudeCodeTrustedFullFolders = new ArrayList<>();
+    /**
+     * M74 P2 (OD-74.23): the assistant mode the person last chose on the Assistant tab ({@code IN_APP} or
+     * {@code LOCAL_AGENT}), remembered on THIS MACHINE so a Claude Code user relaunching with no API key is not sent to
+     * the start page's no-AI column. Machine tier, like every {@code assistant.claudeCode*} key: never in a profile, a
+     * share or a bundle.
+     */
+    public String claudeCodeLastMode = "IN_APP";
+
+    /**
+     * M74 UX (owner, 2026-10-17): the assistant profile the person last chose from the four cards ({@code SAFE},
+     * {@code FULL}, {@code IN_APP}, {@code OFF}), or null when none was chosen. Machine tier, like every
+     * {@code assistant.claudeCode*} key (stored as {@code assistant.claudeCode.profile}): never in a profile, a share or a
+     * bundle. The profile in force is read through {@code AssistantProfiles.inForce}, which follows the switches.
+     */
+    public String assistantProfile = null;
+
+    /**
+     * M77 (spec-ai-setup-wizard.md §14.1): the start page's first-run <i>Set up AI</i> block was dismissed (<i>Not now</i>,
+     * or a choice continued from it). Machine tier ({@code assistant.setup.dismissed}): never in a profile, a share or a
+     * bundle.
+     */
+    public boolean assistantSetupDismissed = false;
+
+    /**
+     * M77 (§14.1, review R1-5): the external client the person set up in the wizard ({@code CLAUDE_CODE}, {@code CODEX},
+     * {@code GENERIC}), or null — external access alone is not a client choice. Machine tier
+     * ({@code assistant.setup.client}): never in a profile, a share or a bundle.
+     */
+    public String assistantSetupClient = null;
+
     /**
      * Where THIS PROJECT would like the exchange directory to be — project-relative, no {@code ..}
      * (#21). Project-tier, and it says WHERE, never WHETHER: {@link #assistantExports} stays machine
@@ -176,8 +249,19 @@ public final class AppConfig {
     public final List<DeletedReport> deletedReports = new ArrayList<>();
     /** M69: saved spotlight walks — project-tier, beside reports in the REPORTS category (the M69 walk spec, §3.1). */
     public final List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks = new ArrayList<>();
+    /**
+     * M74 P2b (§6; review P2 N-b): the walk bindings this config's load dropped, in the analyser's words — what the file
+     * held, carried with the config that was read rather than in a static buffer. Never written; the session decides
+     * whether to say them (sessionBoundary, on ProfileApplied).
+     */
+    public final transient List<String> walkBindingNotes = new ArrayList<>();
     /** M69: walks deleted from any project, restorable (see {@link WalkBin}). MACHINE tier, like the report bin. */
     public final List<DeletedWalk> deletedWalks = new ArrayList<>();
+    /**
+     * Owner decision 2026-10-18: chart definitions deleted or replaced in any project, restorable (see {@link ChartBin}).
+     * MACHINE tier, like the report and walk bins: never written to a project profile or an export.
+     */
+    public final List<DeletedChart> deletedCharts = new ArrayList<>();
     /** M38.1: runbook POINTERS — name → project-relative path (never contents). Project-scoped; see {@link Runbooks}. */
     /** M38.1/M43.2: name → pointer (path + optional description). ONE map, because a parallel
      *  description map is two things that can disagree about which runbooks exist. */

@@ -54,6 +54,17 @@ public class OperationGate implements EventLogSource {
     private String inFlightWhat;
     private enum BundleStage { NONE, PREPARING, OPENING }
     private BundleStage bundleStage = BundleStage.NONE;
+    /**
+     * M74 review S1 (P2, 2026-10-17): what a project request superseded, kept until the boundary has decided whether it
+     * HOLDS the request (a person's switch while Claude Code runs). A held request is not yet the newest operation: the
+     * boundary hands it back with {@link #held} in the same dispatch, and this is restored — so an open that was in flight
+     * stays current, and Cancel leaves it untouched. On release the boundary calls {@link #released}, and only then does
+     * the switch become the request results are matched against.
+     */
+    private long priorOpId = -1;
+    private String priorWhat;
+    private BundleStage priorStage = BundleStage.NONE;
+    private long projectOpId = -1;
 
     @Override
     public void setLogger(EventLogger log) {
@@ -62,13 +73,45 @@ public class OperationGate implements EventLogSource {
 
     @OnEventHandler
     public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
+        priorOpId = expectedOpId;
+        priorWhat = inFlightWhat;
+        priorStage = bundleStage;
+        projectOpId = event.opId();
+        adopt(event);
+        auditLog.info("fact", "request").info("opId", event.opId()).info("kind", event.kind().name());
+        return true;
+    }
+
+    private void adopt(SessionEvents.OpenProjectRequested event) {
         expectedOpId = event.opId();
         accepted = true;
         bundleStage = event.kind() == TransitionKind.OPEN_BUNDLE ? BundleStage.PREPARING : BundleStage.NONE;
         inFlightWhat = event.kind() == TransitionKind.OPEN_BUNDLE
                 ? "verifying " + event.profilePath() : null;
-        auditLog.info("fact", "request").info("opId", event.opId()).info("kind", event.kind().name());
-        return true;
+    }
+
+    /**
+     * M74 review S1: the boundary HELD this project request (called in the same dispatch, after this node recorded it). It
+     * supersedes nothing until it is released: what was current before is current again.
+     */
+    public void held(long opId) {
+        if (opId != projectOpId || expectedOpId != opId) return;
+        expectedOpId = priorOpId;
+        inFlightWhat = priorWhat;
+        bundleStage = priorStage;
+        projectOpId = -1;
+        auditLog.info("held", opId).info("expected", expectedOpId);
+    }
+
+    /**
+     * M74 review S1: the person released a held switch (Stop, Keep). It is now the newest request: its result is the one
+     * matched, and it supersedes whatever is in flight — exactly as if it had arrived now.
+     */
+    public void released(SessionEvents.OpenProjectRequested event) {
+        if (inFlightWhat != null) auditLog.info("superseded", inFlightWhat);
+        adopt(event);
+        projectOpId = -1;
+        auditLog.info("fact", "request").info("opId", event.opId()).info("released", event.kind().name());
     }
 
     @OnEventHandler

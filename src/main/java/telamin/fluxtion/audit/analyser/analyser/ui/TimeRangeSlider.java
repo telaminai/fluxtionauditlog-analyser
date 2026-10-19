@@ -44,14 +44,37 @@ public final class TimeRangeSlider extends JComponent {
         edgeScroll = new javax.swing.Timer(40, e -> edgeScrollTick());
         MouseAdapter ma = new MouseAdapter() {
             @Override public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showAskMenu(e);
+                    return;
+                }
                 if (e.getClickCount() == 2) resetToFull(); else pick(e.getX());
             }
             @Override public void mouseDragged(MouseEvent e) { drag(e.getX()); }
-            @Override public void mouseReleased(MouseEvent e) { cancelMouseGesture(); }
+            @Override public void mouseReleased(MouseEvent e) {
+                cancelMouseGesture();
+                if (e.isPopupTrigger()) showAskMenu(e);
+            }
             @Override public void mouseMoved(MouseEvent e) { updateCursor(e.getX()); }
         };
         addMouseListener(ma);
         addMouseMotionListener(ma);
+    }
+
+    /** M74 P2 (§5.5 Q6): the slider's right-click menu is NEW — the Ask catalogue's items for the selected range. */
+    private AskMenus askMenus = AskMenus.NONE;
+
+    public void setAskMenus(AskMenus menus) {
+        this.askMenus = menus == null ? AskMenus.NONE : menus;
+    }
+
+    private void showAskMenu(MouseEvent e) {
+        if (!enabled) return;
+        var items = askMenus.forRange(lo, hi);
+        if (items.isEmpty()) return;
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+        items.forEach(menu::add);
+        menu.show(this, e.getX(), e.getY());
     }
 
     /** Cancel a lost native gesture without changing or publishing the selected time range. */

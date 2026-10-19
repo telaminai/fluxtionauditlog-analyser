@@ -36,6 +36,6 @@ class Issue84BoundaryContractTest {
         assertTrue(source("session/node/ProjectReopenOffer").contains("audience.offersAllowed()"), "permissionIsDecidedInTheNode");
         assertTrue(source("config/ProjectReopen").contains("Origin logOrigin, Origin topologyOrigin"), "originsAreIndependent");
         assertTrue(source("walk/WalkResolver").contains("saved source revision not compared"), "captionDisclosesItsSourceRevisionLimit");
-        assertTrue(Files.readString(Path.of("docs/site/user-guide/assistant.md")).contains("CURRENT does not"), "humanGuideDeclaresTheChosenContract");
+        assertTrue(Files.readString(Path.of("docs/site/teach/spotlights-walks-reels.md")).contains("CURRENT does not"), "humanGuideDeclaresTheChosenContract");
     }
 }

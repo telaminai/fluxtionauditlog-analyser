@@ -117,4 +117,18 @@ class MenuHintsTest {
             assertNotNull(MenuHints.whereIs("File", old, MENUS), "no hint for old File item " + old);
         }
     }
+    /**
+     * ★ Owner feedback (2026-10-17): AI ▸ Posture is "Work mode" for the person; agents' spotlight target
+     * {@code menu:AI:Posture} is external vocabulary and resolves to the new item as an alias, any case. Witness: drop
+     * the ALIASES entry — the old name resolves to nothing (and NamedGraphAndMenuSpotlightFrameTest's lighting fails).
+     */
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("★ the old spotlight name menu:AI:Posture is an alias of AI ▸ Work mode")
+    void theOldPostureNameIsAnAlias() {
+        assertEquals("Work mode", MenuHints.alias("AI", "Posture"));
+        assertEquals("Work mode", MenuHints.alias("ai", " posture "));
+        assertNull(MenuHints.alias("AI", "Work mode"), "the live name needs no alias");
+        assertNull(MenuHints.alias("Project", "Posture"), "an alias belongs to its menu");
+        assertTrue(MenuInventory.labels("AI").contains("Work mode"), "and the alias names a live item");
+    }
 }

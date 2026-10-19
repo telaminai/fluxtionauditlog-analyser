@@ -142,7 +142,7 @@ class AssistantHostFrameTest {
     }
 
     @Test
-    @DisplayName("OA-2: at 1200×800, docked and popped out, Send and Cancel are on screen and a theme switch reaches the window")
+    @DisplayName("OA-2: at 1200×800, docked and popped out, Send (Stop in its slot while busy) is on screen and a theme switch reaches the window")
     void reachableAtTheDefaultSizeAndThemed(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         try (FakeProvider provider = new FakeProvider();
@@ -160,7 +160,9 @@ class AssistantHostFrameTest {
             Window popped = hostOf(f.frame);
             onEdt(() -> {
                 assertTrue(panel(f.frame).sendButton().isShowing());
-                assertTrue(panel(f.frame).cancelButton().isShowing());
+                // M78 D1 (§4.1 item 40): Stop takes Send's slot only while a turn runs — none runs here
+                assertFalse(panel(f.frame).cancelButton().isShowing());
+                assertSame(panel(f.frame).sendButton().getParent(), panel(f.frame).cancelButton().getParent(), "one slot");
             });
             var apply = MainFrame.class.getDeclaredMethod("applyTheme", String.class);
             apply.setAccessible(true);

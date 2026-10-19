@@ -328,6 +328,18 @@ every `instanceId.key` series.
   inside it while the tokenizer scans, and that is all: nothing is decoded, a backslash is a
   character, `"hello"` keeps its quotes, and `prefix "C:\"` closes at its second quote mark. This is
   how every text log has always been read, and it does not change. *(Fixture C17.)*
+- **An entry is one run of writes, not one callback, and a key may repeat inside it.** Fluxtion's writer opens a
+  new `- instanceId: {…}` entry only when the writing node changes, or when invocation tracing starts an invocation
+  (§8). A node that logs in two callbacks with no other node writing between them — `@Initialise` then
+  `@AfterEvent`, say — therefore writes ONE entry with repeated keys:
+  `- pe: { cb: Initialise, n: 1, cb: AfterEvent, n: 2}` (fluxtion-runtime 1.1.2). That is not legal YAML 1.2,
+  which requires the keys of a mapping to be unique, so a strict YAML parser rejects it and a lenient one keeps one
+  value; neither is how this format is read. The analyser keeps every pair, in order, and fails nothing. The record
+  does not say where the first callback ended, so the analyser does not guess: it never splits an entry on a
+  repeated key, because a node may log one key twice in one callback. What follows is that an entry count (the
+  records table's `nodeLogs` column, the steps of a topology walk) counts entries, not callbacks, and that every
+  value surface — series, `read` projections, markers, diffs — takes the **last occurrence in the record**, inside
+  an entry as across entries, so a merged entry and the same writes in separate entries read alike. *(Fixture C34.)*
 
 ### 3a. The quoted-scalar grammar — declared by the reader, never by the text
 
@@ -465,6 +477,13 @@ capitalised simple name is the component's own, and an entry that does not start
 optional `thread`) or the forked pair has no framework keys — a lone `thread` or `annotation` is a
 business key. An entry holding only the run logged no business value. *(Fixture C33.)*
 
+Tracing marks the **dispatch** callbacks only — `@OnEventHandler` and `@OnTrigger` invocations. Lifecycle callbacks
+(`@Initialise`, `@Start`, `@Stop`, `@TearDown`, …), `@AfterTrigger` and `@AfterEvent` never write a trace run, and
+`@AfterEvent` runs on every node at the end of every handled event and lifecycle phase. So *did not run* means *no
+dispatch callback ran*; it says nothing about those callbacks. And a traced build in which any node logs from one
+of them writes entries without `method`, so its records read as untraced and absence there is *may have run* — the
+safe direction, until the record can declare its regime (UP-FLX-11). *(Fixture C34.)*
+
 One case stays ambiguous: a component of a runtime before 1.1.1 that logged its own `annotation` as its
 first key, with a capitalised simple-name value (`annotation: Approved`), reads as trace. The record
 cannot say which; an emitter SHOULD NOT log a key called `annotation` first.
@@ -519,6 +538,7 @@ order, for every fixture.
 | C32 record structure | one structural rule: a payload indented deeper than the fields breaks the record and forges nothing; a closed quoted node-log value's continuation is never the event or a new node; the generator's exported-service record (`@Override` and one signature at column 0) is whole — on the built-in path, the legacy SPI path and a reader declaring the typed grammar |
 | C30 per-node level | a control record setting a node to `WARN` annotates that node on both paths; it stays uncovered |
 | C33 trace annotation | `annotation`, written after `method` by Fluxtion 1.1.1 tracing, is framework data like `thread` and `method` — by position, in the leading trace run only; a lone `annotation`, or one after the run, is a business key and makes nothing look traced |
+| C34 merged entry | one entry is one run of writes by one node, not one callback: repeated keys are every pair in order, never an error or de-duplicated; the entry count counts entries; the last occurrence in the record is the value, so a merged entry reads as separated ones; untraced `@AfterTrigger`/`@AfterEvent` entries keep a record out of the traced regime |
 | C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 
 To check an emitter: write its records to a file, open it in the analyser (or run the fixture

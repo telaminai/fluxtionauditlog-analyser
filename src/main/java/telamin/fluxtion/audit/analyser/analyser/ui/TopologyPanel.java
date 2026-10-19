@@ -45,7 +45,7 @@ public final class TopologyPanel extends JPanel {
     public void setDeclarationOpener(java.util.function.Consumer<String> opener) { declarationOpener = opener; }
 
     private final TopologyCanvas canvas = new TopologyCanvas();
-    private final JLabel status = new JLabel(" ");
+    private final JLabel status = UiText.plain(new JLabel(" "));   // SF-2: names nodes, focuses and files
     private final JButton orientationButton = new JButton("Left→right");
     private final JButton prevStep = new JButton("◀");
     private final JButton nextStep = new JButton("▶");
@@ -115,6 +115,12 @@ public final class TopologyPanel extends JPanel {
 
     /** The nodeLogs of the record the table has selected — the cycle being stepped through. */
     private List<NodeLog> cycle = List.of();
+    /** M74 P2: the Ask catalogue's node items, built by the frame from the registry. */
+    private AskMenus askMenus = AskMenus.NONE;
+
+    public void setAskMenus(AskMenus menus) {
+        this.askMenus = menus == null ? AskMenus.NONE : menus;
+    }
     /** Walks the filtered record sequence and the rows within each record. */
     private StepCursor cursor = StepCursor.over(List.of());
     /** Told when the cursor rolls into a different record, so the table can follow. */
@@ -290,7 +296,7 @@ public final class TopologyPanel extends JPanel {
     private javax.swing.JSlider slider(int min, int max, int value, String tip,
                                        java.util.function.IntConsumer onChange) {
         javax.swing.JSlider s = new javax.swing.JSlider(min, max, value);
-        s.setToolTipText(tip);
+        s.setToolTipText(UiText.tooltip(tip));
         s.setPreferredSize(new java.awt.Dimension(90, s.getPreferredSize().height));
         s.setMaximumSize(new java.awt.Dimension(90, s.getPreferredSize().height));
         s.setFocusable(false);
@@ -525,8 +531,9 @@ public final class TopologyPanel extends JPanel {
         if (!list.isEmpty()) {
             menu.addSeparator();
             for (var f : list) {
-                javax.swing.JMenuItem item = new javax.swing.JMenuItem(f.name() + " (" + f.nodeIds().size() + ")");
-                item.setToolTipText(f.rationale().isBlank() ? null : f.rationale());
+                // SF-2: a focus's name and rationale are profile values — a cloned project's, possibly
+                javax.swing.JMenuItem item = UiText.menuItem(f.name() + " (" + f.nodeIds().size() + ")");
+                item.setToolTipText(f.rationale().isBlank() ? null : UiText.tooltip(f.rationale()));
                 item.addActionListener(e -> {
                     String err = recallFocus(f.name());
                     if (err != null) setStatus(err);
@@ -538,7 +545,7 @@ public final class TopologyPanel extends JPanel {
             javax.swing.JMenu asDefault = new javax.swing.JMenu("Set as project default");
             String current = defaultFocus.get();
             for (var f : list) {
-                javax.swing.JMenuItem item = new javax.swing.JMenuItem(
+                javax.swing.JMenuItem item = UiText.menuItem(
                         f.name().equals(current) ? f.name() + "  \u2713" : f.name());
                 item.setToolTipText("Written to this project's profile: where a colleague opening this "
                         + "topology starts");
@@ -560,7 +567,7 @@ public final class TopologyPanel extends JPanel {
             menu.add(asDefault);
             javax.swing.JMenu delete = new javax.swing.JMenu("Delete");
             for (var f : list) {
-                javax.swing.JMenuItem item = new javax.swing.JMenuItem(f.name());
+                javax.swing.JMenuItem item = UiText.menuItem(f.name());
                 item.addActionListener(e -> {
                     namedFocuses.get().removeIf(x -> x.name().equals(f.name()));
                     focusesChanged.run();
@@ -575,7 +582,7 @@ public final class TopologyPanel extends JPanel {
     }
 
     private javax.swing.JButton crumbButton(String text, int depth) {
-        javax.swing.JButton b = new javax.swing.JButton(text);
+        javax.swing.JButton b = UiText.button(text);     // SF-2: a context's label is a node id or a focus name
         b.setBorderPainted(false);
         b.setContentAreaFilled(false);
         b.setFocusable(false);
@@ -635,7 +642,7 @@ public final class TopologyPanel extends JPanel {
     }
 
     private JButton button(String text, Runnable action) {
-        JButton b = new JButton(text);
+        JButton b = UiText.button(text);
         b.addActionListener(e -> action.run());
         return b;
     }
@@ -1657,6 +1664,17 @@ public final class TopologyPanel extends JPanel {
         if (embeddedSource != null) embeddedSource.setProcessors(lastProcessorFqns, selected);
     }
 
+    /**
+     * Where the graph/source divider goes when the pane appears: half and half the first time (the graph at least 240
+     * wide), after that whatever the user dragged it to — but never so far right that the source pane has no width.
+     * Owner hands-on test (2026-10-18b): in a side column narrower than 240 the divider sat past the right edge, the
+     * pane laid out 0 px wide, and every Java spotlight in the Topology tab was refused as "no longer visible".
+     */
+    static int sourceDivider(int dividerAt, int width) {
+        int at = dividerAt > 0 ? dividerAt : Math.max(240, width / 2);
+        return width > 0 ? Math.min(at, width / 2 + Math.max(0, width / 2 - 240)) : at;
+    }
+
     private void showSourcePane(boolean show) {
         if (embeddedSource == null) return;
         sourceButton.setSelected(show);
@@ -1665,7 +1683,7 @@ public final class TopologyPanel extends JPanel {
             if (graphSplit.getRightComponent() != embeddedSource) {
                 graphSplit.setRightComponent(embeddedSource);
                 // half and half the first time; after that whatever the user dragged it to
-                graphSplit.setDividerLocation(dividerAt > 0 ? dividerAt : Math.max(240, getWidth() / 2));
+                graphSplit.setDividerLocation(sourceDivider(dividerAt, getWidth()));
             }
         } else {
             if (graphSplit.getRightComponent() != null) dividerAt = graphSplit.getDividerLocation();
@@ -1701,7 +1719,7 @@ public final class TopologyPanel extends JPanel {
         JMenu graph = new JMenu("Graph");
         graph.setEnabled(graphTargets != null && !graphable.isEmpty());
         for (KV kv : graphable) {
-            JMenuItem item = new JMenuItem(kv.key() + "  (" + kv.rawValue() + ")");
+            JMenuItem item = UiText.menuItem(kv.key() + "  (" + kv.rawValue() + ")");   // SF-2: the log's key and value
             item.addActionListener(e -> graphTargets.addSeries(null, instanceId, kv.key()));
             graph.add(item);
         }
@@ -1717,6 +1735,23 @@ public final class TopologyPanel extends JPanel {
         filter.setEnabled(filterAction != null);
         filter.addActionListener(e -> filterAction.accept(instanceId));
         menu.add(filter);
+
+        // M74 P2 (§5.5 Q3): the node's question, with the analyser's own coverage reading for the current record
+        int position = 0;
+        var full = fullTopology();
+        if (full != null) {
+            int i = 0;
+            for (var node : full.nodes()) {
+                i++;
+                if (instanceId.equals(node.id())) position = i;
+            }
+        }
+        Boolean logged = cycle.isEmpty() ? null : cycle.stream().anyMatch(n -> instanceId.equals(n.instanceId()));
+        var asks = askMenus.forNode(instanceId, position, logged);
+        if (!asks.isEmpty()) {
+            menu.addSeparator();
+            asks.forEach(menu::add);
+        }
 
         menu.addSeparator();
         JMenuItem copy = new JMenuItem("Copy instance id");

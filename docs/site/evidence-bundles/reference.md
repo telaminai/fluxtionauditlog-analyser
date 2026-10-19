@@ -1,6 +1,6 @@
 # Commands and file format
 
-A bundle is **written by the running analyser** and **read by two headless commands**. Writing needs the live
+A bundle is **written by the running analyser** and **read by three headless commands** (`--verify`, `--unpack`, `--replay-compare`). Writing needs the live
 session, because every refusal is a fact only it holds. Reading needs nothing but the file.
 
 ## Writing: one operation on the analyser

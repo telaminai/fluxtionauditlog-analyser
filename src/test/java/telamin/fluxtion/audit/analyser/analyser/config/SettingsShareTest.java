@@ -79,8 +79,9 @@ class SettingsShareTest {
         assertEquals("Spreads", d.savedGraphs.get(0).name());
         assertEquals("Pick-off", d.savedGraphs.get(1).name());
         assertEquals("askMakerOrder.price − bidMakerOrder.price", d.savedGraphs.get(1).exprs().get(0).expr());
-        assertFalse(d.assistantActionsInProcess);
-        assertTrue(d.assistantActionsRest);
+        // P3: the two assistant switches are machine tier — the target keeps its own (AssistantSwitchesAreMachineTierTest)
+        assertTrue(d.assistantActionsInProcess, "the sender's in-app switch never travels");
+        assertFalse(d.assistantActionsRest, "the sender's External MCP/REST access never travels");
         assertEquals(7, d.maxActionRounds);
         assertEquals(9, d.maxActionsPerReply);
         assertEquals("openai", d.llmProvider);

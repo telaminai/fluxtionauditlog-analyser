@@ -207,6 +207,11 @@ public interface AppControl {
     /** Add a source root; a duplicate is a no-op. Returns false when the path is not a usable root. */
     boolean addSourceRoot(String path);
 
+    /** P5: the open project's root folder — what an assistant's source root must lie inside — or null with none open. */
+    default java.nio.file.Path projectRoot() {
+        return null;
+    }
+
     /** Remove a source root; returns false when it was not configured. */
     boolean removeSourceRoot(String path);
 
@@ -245,6 +250,17 @@ public interface AppControl {
 
     default ActionResult report(java.util.Map<String, Object> params, String resolvedPath) {
         return ActionResult.error("'report' sections are not enabled here");
+    }
+
+    /**
+     * Owner 2026-10-18: {@link #report(java.util.Map, String)} for a hosted call admitted without an approval
+     * ({@code admission}, never null here): it may write only what was judged — the named report as a create, or over
+     * the bound project lifetime, output and complete report revision. The default refuses (nothing is changed).
+     */
+    default ActionResult report(java.util.Map<String, Object> params, String resolvedPath,
+                                telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) {
+        return admission == null ? report(params, resolvedPath)
+                : ActionResult.error("'report' sections are not enabled here");
     }
 
     /**

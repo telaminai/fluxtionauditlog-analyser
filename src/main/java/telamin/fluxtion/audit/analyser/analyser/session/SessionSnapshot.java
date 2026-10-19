@@ -24,6 +24,18 @@ import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
  * @param filterKey      the view filter in force, by identity, so a comparison made under another reads as stale
  * @param logIdentity    M68.5: Follow's verdict about the log FILE ({@code VERIFIED}/{@code UNVERIFIED}/{@code REPLACEMENT}),
  *                       {@code REOPENED} after a replacement, or null before Follow has polled
+ * @param localAgent     M74: the local agent (Claude Code) as localAgentSession decided it — ids and enums only
+ * @param startPage      M74 P2: the start page's prompt as startPagePrompt decided it — its list and its route
+ * @param proposal       M74 P2b: Claude Code's set-up proposal as onboardingProposal decided it
+ * @param example        M74 P2b: a prompt-pack example's download as exampleDownload decided it
+ * @param permission     M74 P3: the permission prompt as localAgentPermission decided it — ids, a class, a vocabulary name
+ * @param profiles       M74 UX: the assistant profile and its overlay, as assistantProfile decided them
+ * @param listener       review B5: the action listener (REST switch, external access, the bridge), as actionListener decided it
+ * @param aiSetup        M77: Set up AI — the wizard, the first-run block, the AI line — as aiSetup decided it
+ * @param recordsView    what the Records view shows and what each filter hides, as recordsView last measured it — null
+ *                       before the first measurement of the open log, and with no log
+ * @param starter        Option 2: the starter catalogue and a starter project being created, as starterProject decided them
+ * @param statusLine     INTEG-R10: which line the status bar states about the log and graph, as statusLine decided it
  */
 public record SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
                               boolean graphOpen, String graphPath, String graphSource, long graphRevision,
@@ -35,7 +47,12 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               String provenance, String provenanceSource, boolean following,
                               String contentSignature, String followReadFailure, boolean evidencePending,
                               WalkPlaybackState walkPlayback, CaptureState capture, AssistantState assistant,
-                              BundleProvenance bundle) {
+                              BundleProvenance bundle, LocalAgentState localAgent, StartPageState startPage,
+                              ProposalState proposal, ExampleDownloadState example, PermissionState permission,
+                              ProfileState profiles, ListenerState listener, long logOpenedAt,
+                              AiSetupState aiSetup,
+                              telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView,
+                              StarterState starter, StatusLineState statusLine) {
 
     /**
      * Independent review R4: immutable in fact, not only by the reference that publishes it. A volatile field cannot make
@@ -48,13 +65,25 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
         if (capture == null) capture = CaptureState.IDLE;
         if (assistant == null) assistant = AssistantState.IDLE;
         if (bundle == null) bundle = BundleProvenance.NONE;
+        if (localAgent == null) localAgent = LocalAgentState.IDLE;
+        if (startPage == null) startPage = StartPageState.IDLE;
+        if (proposal == null) proposal = ProposalState.NONE;
+        if (example == null) example = ExampleDownloadState.IDLE;
+        if (permission == null) permission = PermissionState.NONE;
+        if (profiles == null) profiles = ProfileState.NONE;
+        if (listener == null) listener = ListenerState.NONE;
+        if (aiSetup == null) aiSetup = AiSetupState.IDLE;
+        if (starter == null) starter = StarterState.IDLE;
+        if (statusLine == null) statusLine = StatusLineState.NONE;
     }
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
     public static final SessionSnapshot EMPTY =
             new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null, false, null, null, null, null,
                     null, null, null, null, false, null, null, false, WalkPlaybackState.IDLE, CaptureState.IDLE,
-                    AssistantState.IDLE, BundleProvenance.NONE);
+                    AssistantState.IDLE, BundleProvenance.NONE, LocalAgentState.IDLE, StartPageState.IDLE,
+                    ProposalState.NONE, ExampleDownloadState.IDLE, PermissionState.NONE, ProfileState.NONE,
+                    ListenerState.NONE, 0, AiSetupState.IDLE, null, StarterState.IDLE, StatusLineState.NONE);
 
     static SessionSnapshot of(SessionProcessor p) {
         return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
@@ -72,7 +101,19 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.walkPlayback.state(),             // M69: the showing walk, as walkPlayback decided it
                 p.evidenceCapture.state(),          // evidence bundle capture, as evidenceCapture decided it
                 p.assistantLoop.state(),            // OA-1: the onboard assistant, as assistantLoop decided it
-                p.openBundle.provenance());         // where this session came from, as openBundle decided it
+                p.openBundle.provenance(),          // where this session came from, as openBundle decided it
+                p.localAgentSession.state(),        // M74: the local agent, as localAgentSession decided it
+                p.startPagePrompt.state(),          // M74 P2: the start page's prompt, as startPagePrompt decided it
+                p.onboardingProposal.state(),       // M74 P2b: the set-up proposal, as onboardingProposal decided it
+                p.exampleDownload.state(),          // M74 P2b: an example's download, as exampleDownload decided it
+                p.localAgentPermission.state(),     // M74 P3: the permission prompt, as localAgentPermission decided it
+                p.aiSetup.state(),                  // M74 UX: the assistant profile and its overlay, as aiSetup decided them
+                p.actionListener.state(),           // review B5: the action listener, as actionListener decided it
+                p.openLog.openedAtMillis(),         // final review #12: when the open log was opened (the binding chip)
+                p.aiSetup.setupState(),             // M77: Set up AI, as aiSetup decided it
+                p.recordsView.counts(),             // the Records view's counts, as recordsView measured them
+                p.starterProject.state(),           // Option 2: the starter catalogue and chain, as starterProject decided
+                p.statusLine.state());              // INTEG-R10: the status bar's one line, as statusLine decided it
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */

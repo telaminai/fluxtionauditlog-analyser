@@ -43,6 +43,11 @@ public class AssistantLoop implements EventLogSource {
     private final EffectQueue effects;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
+    /**
+     * M74 §4.1: the assistant mode in force, a JavaBean parent so the generator wires it without changing this node's
+     * constructor. Null only in a processor generated before M74, which never has the local agent: read as in-app.
+     */
+    private AssistantModeChoice assistantMode;
     // Not final: node-local state (a final field is constructor-mapped by the generator).
     private long conversation = 1;
     private long ticket;
@@ -68,12 +73,16 @@ public class AssistantLoop implements EventLogSource {
     private boolean manifestSent;
     private boolean manifestInFlight;
     private boolean docked = true;
+    /** Robot re-walk #1: the tab a reveal took the canvas to from the docked assistant, or "". */
+    private String away = "";
     private boolean frozen;
     private SessionEvents.AssistantRoute route;
     private String basisKey;
     private String basisLabel = "";
     private String reason = "";
     private AssistantState.Answer answer = AssistantState.Answer.NONE;
+    /** M74 P2 (§8.2): each composed draft's binding — the log identity digest and generation it names — by draft id. */
+    private java.util.Map<Long, String[]> bindings = new java.util.LinkedHashMap<>();
     /** The published state, rebuilt only when something changed, so an unrelated snapshot does not copy the entries. */
     private AssistantState published = AssistantState.IDLE;
     private boolean dirty = true;
@@ -90,6 +99,55 @@ public class AssistantLoop implements EventLogSource {
     @Override
     public void setLogger(EventLogger log) {
         this.auditLog = log;
+    }
+
+    public AssistantModeChoice getAssistantMode() {
+        return assistantMode;
+    }
+
+    public void setAssistantMode(AssistantModeChoice assistantMode) {
+        this.assistantMode = assistantMode;
+    }
+
+    /**
+     * The Records view's counts, a JavaBean parent read when the basis is stated: the "About:" line says what the filter
+     * hides ("filtered: 1 event type hidden (RiskBreachEvent), 9 of 10 shown"), not only that a filter is in force (robot
+     * walk of P3, 2026-10-18: asked why records were missing, the assistant answered that nothing was).
+     */
+    private RecordsView recordsView;
+
+    public RecordsView getRecordsView() {
+        return recordsView;
+    }
+
+    public void setRecordsView(RecordsView recordsView) {
+        this.recordsView = recordsView;
+    }
+
+    /**
+     * The counts of the view the basis names were measured after the basis was captured (the measurement answers the
+     * filter change in a cycle of its own): restate the SAME basis with them. A different basis is not this handler's —
+     * the filter, log and project facts decide that — and a frozen conversation keeps the words it was frozen with.
+     */
+    @OnEventHandler
+    public boolean onRecordsViewMeasured(SessionEvents.RecordsViewMeasured e) {
+        if (frozen || basisKey == null || !Objects.equals(basisKeyNow(), basisKey)) return false;
+        String label = basisLabelNow();
+        if (label.equals(basisLabel)) return false;
+        basisLabel = label;
+        return changed();
+    }
+
+    private boolean localAgentMode() {
+        return assistantMode != null && assistantMode.localAgent();
+    }
+
+    /** M74: leaving the in-app assistant ends its turn in progress, in this node — the one-mode rule is a session fact. */
+    @OnEventHandler
+    public boolean onModeChosen(SessionEvents.AssistantModeChosen e) {
+        if (!localAgentMode() || !busy()) return false;
+        end("CANCELLED", "the Assistant tab was switched to Claude Code" + completedActions());
+        return changed();
     }
 
     // ---- requests -------------------------------------------------------------------------------------------------
@@ -118,18 +176,27 @@ public class AssistantLoop implements EventLogSource {
         if (e.request() != 0) answer = new AssistantState.Answer(e.request(), true, "");
         boolean includeManifest = route.actions() && !manifestSent;
         manifestInFlight = includeManifest;
-        boolean includeRecordContext = history.isEmpty();   // the record context rides on a conversation's first question
+        // the record context rides on a conversation's first question — but never on a COMPOSED draft (r8 F4): its words name
+        // the records to read, and the live selection's raw text may be other records than the draft names
+        // review S2: ANY composed draft in the composer counts — known or not (an unknown one is refused before this)
+        boolean composed = !e.draftBindings().isEmpty();
+        boolean includeRecordContext = history.isEmpty() && !composed;
         auditLog.info("assistantTurn", turn).info("ticket", ticket).info("manifest", includeManifest)
                 .info("recordContext", includeRecordContext);
         effects.request(new SessionEffects.PrepareAssistantContextEffect(0L, ticket, e.draft(), includeManifest,
-                includeRecordContext, route.maxActionsPerReply()));
+                includeRecordContext, route.maxActionsPerReply(), boundGeneration(e.draftBindings())));
         return changed();
     }
 
     /** Why this send cannot run, by name, or null. Nothing is sent when it is refused. */
     private String refusal(SessionEvents.AssistantSendRequested e) {
+        if (localAgentMode()) {
+            return "the Assistant tab is on Claude Code: switch it to the in-app assistant to send from here";
+        }
         if (busy()) return "a turn is in progress: wait for it to finish, or Cancel it";
         if (e.draft() <= 0) return "there is no question to send";
+        String stale = staleDraft(e.draftBindings());
+        if (stale != null) return stale;
         if (e.route() == null || !e.route().hasKey()) {
             return "no provider is configured, so nothing was sent: Configure provider, Copy prompt, or Connect a CLI "
                     + "assistant";
@@ -137,6 +204,56 @@ public class AssistantLoop implements EventLogSource {
         if (frozen) {
             return "the workspace changed since this conversation's last turn, so its history describes something that is "
                     + "no longer open: start a New chat to ask about the current workspace";
+        }
+        return null;
+    }
+
+    /**
+     * M74 P2 (§5.5): a draft was composed for the in-app assistant (the pop-up's Yes, a start-page entry). Ignored under
+     * Claude Code, in this node. Its binding is kept for Send, and it is placed — appended, highlighted, never sent.
+     */
+    @OnEventHandler
+    public boolean onDraftComposed(SessionEvents.AssistantDraftComposed e) {
+        if (localAgentMode()) {
+            auditLog.info("noOp", "AssistantDraftComposed").info("reason", "the local agent is the assistant in force");
+            return false;
+        }
+        bindings.put(e.draftRef(), new String[]{e.logIdentity(), Long.toString(e.logGeneration())});
+        while (bindings.size() > 64) bindings.remove(bindings.keySet().iterator().next());
+        auditLog.info("assistantDraft", e.questionId()).info("bound", e.logIdentity() != null)
+                .info("origin", String.valueOf(e.origin()));
+        effects.request(new SessionEffects.PrimeAssistantDraftEffect(0L, e.draftRef(), true,
+                e.logIdentity() != null ? e.logGeneration() : 0));
+        return changed();
+    }
+
+    /**
+     * §5.5 Send, in this node's own handler: a bound draft whose log moved is refused with the same words. Review S2: every
+     * draft the composer holds is checked and ANY stale one refuses; a binding this node does not hold (evicted past the
+     * bound, or placed for the other assistant) is unknown and refused too — never counted as fresh.
+     */
+    /**
+     * Final review #12 (owner decision): the log generation the message's composed drafts were checked against at Send
+     * (a stale one was refused), or 0 when none names a log — told to the model with the prompt, not in the person's words.
+     */
+    private long boundGeneration(java.util.List<Long> draftBindings) {
+        for (long draftBinding : draftBindings) {
+            String[] b = bindings.get(draftBinding);
+            if (b != null && b[0] != null) return Long.parseLong(b[1]);
+        }
+        return 0;
+    }
+
+    private String staleDraft(java.util.List<Long> draftBindings) {
+        boolean open = openLog.isOpen();
+        String now = open ? telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(openLog.logPath()) : null;
+        for (long draftBinding : draftBindings) {
+            String[] b = bindings.get(draftBinding);
+            if (b == null) return LocalAgentSession.UNKNOWN_DRAFT_WORDS_IN_APP;
+            if (b[0] == null) continue;
+            long was = Long.parseLong(b[1]);
+            if (open && b[0].equals(now) && openLog.generation() == was) continue;
+            return LocalAgentSession.staleWords(was, open ? Long.toString(openLog.generation()) : "none open");
         }
         return null;
     }
@@ -160,7 +277,35 @@ public class AssistantLoop implements EventLogSource {
 
     @OnEventHandler
     public boolean onHandoffRequested(SessionEvents.AssistantHandoffRequested e) {
+        if (localAgentMode()) {               // M74 §4.1: ignored in this node, not only hidden in the UI
+            auditLog.info("noOp", "AssistantHandoffRequested").info("reason", "the local agent is the assistant in force");
+            return false;
+        }
         fresh("a fresh conversation about the evidence on screen; the demonstration's dialogue is not part of it");
+        return changed();
+    }
+
+    // ---- robot re-walk #1 (2026-10-18): pointing at the evidence never takes the person away from the answer -------
+
+    /**
+     * A reveal (the assistant pointing at something on another tab) took the canvas from the DOCKED assistant. What it
+     * points at stays in view (the person asked to be shown it), and the canvas offers one way back — "↩ Back to the
+     * answer" — until the assistant's tab shows again. Popped out, the answer never moved, so nothing is offered.
+     */
+    @OnEventHandler
+    public boolean onCanvasLeftAssistant(SessionEvents.CanvasLeftAssistant e) {
+        String tab = e.shown() == null ? "" : e.shown();
+        if (!docked || tab.isBlank() || tab.equals(away)) return false;
+        away = tab;
+        auditLog.info("assistantAway", tab);
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onAssistantTabShown(SessionEvents.AssistantTabShown e) {
+        if (away.isEmpty()) return false;
+        away = "";
+        auditLog.info("assistantAway", "BACK").info("origin", String.valueOf(e.origin()));
         return changed();
     }
 
@@ -168,6 +313,7 @@ public class AssistantLoop implements EventLogSource {
     public boolean onHostRequested(SessionEvents.AssistantHostRequested e) {
         if (e.docked() == docked) return false;
         docked = e.docked();
+        away = "";                                 // the answer moves with the panel: it is never behind a tab now
         auditLog.info("assistantHost", docked ? "docked" : "window").info("origin", String.valueOf(e.origin()));
         effects.request(new SessionEffects.ShowAssistantHostEffect(0L, docked));
         return changed();
@@ -189,6 +335,7 @@ public class AssistantLoop implements EventLogSource {
     public boolean onHostShown(SessionEvents.AssistantHostShown e) {
         if (e.ok()) return false;
         docked = e.docked();                       // what the frame could actually do
+        if (!docked) away = "";
         reason = e.reason();
         return changed();
     }
@@ -198,6 +345,16 @@ public class AssistantLoop implements EventLogSource {
         if (stale(e.ticket(), "PREPARING", "AssistantContextPrepared")) return false;
         if (manifestInFlight) manifestSent = true;
         manifestInFlight = false;
+        // owner, 2026-10-18: the person's question is stamped with the time the adapter prepared it — the transcript renders it
+        if (e.atMillis() > 0) {
+            for (int i = entries.size() - 1; i >= 0; i--) {
+                AssistantState.Entry x = entries.get(i);
+                if (AssistantState.USER.equals(x.kind()) && x.turn() == turn) {
+                    if (x.atMillis() == 0) entries.set(i, x.at(e.atMillis()));
+                    break;
+                }
+            }
+        }
         entries.add(new AssistantState.Entry(e.prompt(), AssistantState.PROMPT, turn, "", "", "", 0));
         history.add(new SessionEffects.HistoryMessage("user", "TEXT", List.of(e.prompt())));
         nextRound();
@@ -218,7 +375,7 @@ public class AssistantLoop implements EventLogSource {
             auditLog.info("staleFact", "AssistantCompletionReceived").info("round", e.round()).info("current", round);
             return false;
         }
-        entries.add(new AssistantState.Entry(e.reply(), AssistantState.ANSWER, turn, "ACCEPTED", "", "", 0));
+        entries.add(new AssistantState.Entry(e.reply(), AssistantState.ANSWER, turn, "ACCEPTED", "", "", 0, e.atMillis()));
         history.add(new SessionEffects.HistoryMessage("assistant", "TEXT", List.of(e.reply())));
         pending = new ArrayDeque<>(e.actions());
         roundResults = new ArrayList<>();
@@ -624,6 +781,11 @@ public class AssistantLoop implements EventLogSource {
         return "PREPARING".equals(phase) || "REQUESTING".equals(phase) || "RUNNING_ACTION".equals(phase);
     }
 
+    /** M74 UX: a turn is in progress (read by assistantProfile, downstream: a profile is never applied mid-turn). */
+    public boolean turnInProgress() {
+        return busy();
+    }
+
     private boolean owns(SessionEvents.AssistantActionOrigin origin) {
         return origin != null && "RUNNING_ACTION".equals(phase)
                 && origin.ticket() == ticket && origin.action() == runningAction;
@@ -652,7 +814,26 @@ public class AssistantLoop implements EventLogSource {
         String project = activeProject.isActive() ? "project " + activeProject.name() : "no project";
         String log = openLog.isOpen() ? "log " + fileName(openLog.logPath()) + " (#" + openLog.generation() + ")" : "no log";
         String graph = openGraph.isOpen() ? "graph " + fileName(openGraph.graphPath()) : "no graph";
-        return project + " · " + log + " · " + graph + (viewKey == null ? " · all records" : " · filtered view");
+        return project + " · " + log + " · " + graph + viewLabel();
+    }
+
+    /** What the view shows and what hides the rest, from the Records view's counts (no search words: spec §4.1). */
+    private String viewLabel() {
+        var c = recordsView == null || !openLog.isOpen() ? null : recordsView.counts();
+        if (c == null) return viewKey == null ? " · all records" : " · filtered view";
+        if (!c.anyHidden()) return " · all " + c.total() + " records shown";
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        if (c.typesFiltered() && c.hiddenByTypes() > 0) {
+            java.util.List<String> off = c.types().stream().filter(t -> !t.selected())
+                    .map(t -> t.type().isEmpty() ? "(none)" : t.type()).toList();
+            String names = String.join(", ", off.subList(0, Math.min(3, off.size())))
+                    + (off.size() > 3 ? " +" + (off.size() - 3) + " more" : "");
+            parts.add(off.size() + (off.size() == 1 ? " event type" : " event types") + " hidden (" + names + ")");
+        }
+        if (c.searching() && c.hiddenByText() > 0) parts.add("a search hides " + c.hiddenByText());
+        if (c.timeBounded() && c.hiddenByTime() > 0) parts.add("the time range hides " + c.hiddenByTime());
+        if (c.flaggedOnly() && c.hiddenByFlags() > 0) parts.add("flagged only hides " + c.hiddenByFlags());
+        return " · filtered: " + String.join(", ", parts) + ", " + c.shown() + " of " + c.total() + " shown";
     }
 
     private static String fileName(String path) {
@@ -670,9 +851,22 @@ public class AssistantLoop implements EventLogSource {
     public AssistantState state() {
         if (dirty) {
             published = new AssistantState(conversation, ticket, phase, round, actionsRun, runningVerb, entries, docked,
-                    frozen, basisLabel, reason, answer);
+                    frozen, basisLabel, reason, answer, away, chipWord(phase));
             dirty = false;
         }
         return published;
+    }
+
+    /**
+     * M78 D2 (spec-quiet-assistant-panel.md §5.1, OD-Q.12): the in-app assistant's word on the panel's mode chip — the
+     * same closed set as Claude Code's: "answering…" while a turn is in progress, nothing otherwise (a turn's end, a
+     * cancel or a failure is the transcript's note; the in-app assistant has no process to stop or permission to ask).
+     */
+    public static String chipWord(String phase) {
+        return switch (phase == null ? "" : phase) {
+            case "PREPARING", "REQUESTING", "RUNNING_ACTION" ->
+                    telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.Guide.CHIP_ANSWERING;
+            default -> telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.Guide.CHIP_READY;
+        };
     }
 }

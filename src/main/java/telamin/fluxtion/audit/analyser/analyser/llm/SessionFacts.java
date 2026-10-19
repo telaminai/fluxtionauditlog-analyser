@@ -46,6 +46,18 @@ public record SessionFacts(LogFileInfo file, String eventProcessorFqn, List<Path
         return new SessionFacts(file, eventProcessorFqn, List.copyOf(roots), types, files);
     }
 
+    /**
+     * {@code context.processors[].from}: where a candidate processor came from. A configured or SELECTED class is a
+     * settings value — the project's, or your own with no project — and only a class found by scanning a source root is
+     * "discovered under a root". Owner hands-on test (2026-10-18): the selected class was reported as discovered with no
+     * root configured at all, because the selection was not counted as configured.
+     */
+    public static String processorFrom(String fqn, java.util.Collection<String> configured, String selected,
+                                       boolean hasProject) {
+        boolean fromSettings = configured.contains(fqn) || (fqn != null && fqn.equals(selected));
+        return fromSettings ? (hasProject ? "project" : "own settings") : "discovered under a root";
+    }
+
     /** Declared intent is not evidence of a generated class, loaded topology, or observed execution. */
     public static List<Map<String, Object>> processorDeclarations(
             List<telamin.fluxtion.audit.analyser.analyser.config.ProcessorDeclaration> declarations) {

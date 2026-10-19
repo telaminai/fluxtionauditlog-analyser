@@ -28,12 +28,29 @@ public final class McpTools {
 
     /** Read-only data operations; source additionally changes the transient navigation view. */
     static final Set<String> READ_ONLY = Set.of("aggregate", "read", "context", "coverage", "series", "source");
+    // (propose is not read-only — it records an offer — and not destructive: annotations() reports it so)
 
     /** One MCP tool descriptor per verb, in {@code VerbSchemas} order. */
-    @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> list() {
+        return list(VerbSchemas.all());
+    }
+
+    /** M74 P2: the hosted bridge's tools — {@code VerbSchemas.hosted()}, which adds {@code propose} (§8.2 (a)). */
+    public static List<Map<String, Object>> hostedList() {
+        return list(VerbSchemas.hosted());
+    }
+
+    /** The verb behind a hosted tool name: {@link #verbFor} plus {@code propose}. */
+    public static String hostedVerbFor(String toolName) {
+        if (toolName == null || !toolName.startsWith(PREFIX)) return null;
+        String verb = toolName.substring(PREFIX.length());
+        return VerbSchemas.hosted().containsKey(verb) ? verb : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> list(Map<String, Object> schemas) {
         List<Map<String, Object>> tools = new ArrayList<>();
-        for (Map.Entry<String, Object> e : VerbSchemas.all().entrySet()) {
+        for (Map.Entry<String, Object> e : schemas.entrySet()) {
             String verb = e.getKey();
             Map<String, Object> inputSchema = new LinkedHashMap<>((Map<String, Object>) e.getValue());
             Object description = inputSchema.remove("description");   // schema → tool description
@@ -82,6 +99,375 @@ public final class McpTools {
     public static java.util.Set<String> destructiveVerbs() {
         return DESTRUCTIVE;
     }
+
+    /**
+     * M74 P3 (spec §5.7): what a destructive verb changes, in the analyser's own words — the one line the permission
+     * dialog shows beside the call's input, so the person knows what Allow once lets happen.
+     */
+    public static String destructiveRationale(String verb) {
+        return switch (verb == null ? "" : verb) {
+            case "open" -> "open replaces the loaded log or project (what is open now is closed)";
+            case "source_root" -> "source_root changes the configured source roots, saved in your settings — the folders "
+                    + "the analyser reads source from";
+            case "screenshot" -> "screenshot writes an image file in the exchange directory";
+            case "report" -> "report builds or replaces a named report in the project, or writes a file in the exchange "
+                    + "directory";
+            case "walk" -> "walk saves, replaces, renames, plays or deletes a saved walk, or records one as a page in the "
+                    + "exchange directory";
+            case "import" -> "import borrows charts, reports or walks from an evidence bundle into the open project";
+            case "graph" -> "graph deletes, renames, restores or replaces a saved chart's definition (the old definition "
+                    + "can be restored)";
+            default -> "this verb changes what is open or writes files";
+        };
+    }
+
+    /**
+     * Review M74 usability #10 (2026-10-17), verified against the code that performs each call: what a hosted call of an
+     * ASKED verb does, judged from its own parameters — the ONE classification the adapter (whether to ask) and the
+     * action server (whether a grant is needed) share.
+     *
+     * <ul>
+     *   <li>{@code NON_MUTATING} — exactly these, and only with no other field: {@code walk {name, play: true, step?}}
+     *       (posts a play request; {@code WalkVerb.play} saves nothing), {@code walk {end: true}} (ends the showing walk),
+     *       {@code walk {restore: true}} and {@code report {restore: true}} (list the bins). They change what is SHOWN,
+     *       as the pre-allowed render verbs do, and nothing stored.</li>
+     *   <li>{@code WRITES_FILE} — the calls that go through the exchange-folder guard ({@code ActionExecutor
+     *       .guardedPath}): every {@code screenshot}; {@code walk {reel}}; {@code report {bundle}}; a named report with a
+     *       {@code path}; the single-record report (always a file).</li>
+     *   <li>{@code CHANGES} — everything else: save, replace, rename, delete, restore by name, {@code open},
+     *       {@code import}, {@code source_root}. These are always asked.</li>
+     * </ul>
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind hostedCallKind(String verb,
+                                                                                                             Object params) {
+        return hostedCallKind(verb, params, null);
+    }
+
+    /**
+     * Owner decision 2026-10-18: which charts exist now, open or saved — what a {@code graph} call's classification needs
+     * to tell a call that CREATES a chart from one that replaces an existing chart's definition. Absent (null), every
+     * name is taken to exist, so every definition-setting call is asked (fail-closed).
+     */
+    @FunctionalInterface
+    public interface ChartState {
+        /** Whether a chart called {@code name} exists now, open or saved. */
+        boolean holds(String name);
+    }
+
+    /**
+     * {@link #hostedCallKind(String, Object)} with the charts that exist now. For {@code graph} (owner decision
+     * 2026-10-18), judged from {@link VerbOperations#graph}, the executor's own choice:
+     *
+     * <ul>
+     *   <li>{@code NON_MUTATING} — {@code {restore: true}} (lists the chart bin).</li>
+     *   <li>{@code PRE_ALLOWED} — showing, reopening, re-extracting or closing a chart ({@code SHOW}, {@code CLOSE}: the
+     *       definition is kept), and an {@code EDIT} that CREATES a chart: {@code newTab: true} (the executor refuses a
+     *       taken name), no {@code name} (the executor adds a new chart), or a {@code name} no chart holds now — which
+     *       the server then runs as {@code newTab: true}
+     *       ({@link #hostedConstrained}), so a chart created meanwhile is refused rather than replaced.</li>
+     *   <li>{@code CHANGES} — everything else: a delete, a rename, a restore by name or id, and every {@code EDIT} of
+     *       an existing chart — a re-sent notes, series, guides or
+     *       bands set, {@code clearNotes}, a style or a pin. Each is asked; the previous definition is kept in the bin.</li>
+     * </ul>
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind hostedCallKind(String verb,
+                                                                                                             Object params,
+                                                                                                             ChartState charts) {
+        return hostedCallKind(verb, params, charts, null);
+    }
+
+    /**
+     * Owner, 2026-10-18: what the hosted session's {@code open} may do without asking — the session's REAL project folder
+     * and whether it runs Full Claude Code, as observed for the call's own generation. Null: unknown, so every
+     * {@code open} is asked (fail-closed). The external REST and MCP clients never have one: this is only ever judged
+     * for a hosted call.
+     */
+    public record OpenScope(java.nio.file.Path projectRoot, boolean full, java.nio.file.Path sampleRoot, long generation,
+                            ReportState reports) {
+        /** The session's project folder only — no analyser-owned project is active. */
+        public OpenScope(java.nio.file.Path projectRoot, boolean full) {
+            this(projectRoot, full, null);
+        }
+
+        /** No report state: every {@code report} call is judged as before (owner 2026-10-18's pre-allow needs one). */
+        public OpenScope(java.nio.file.Path projectRoot, boolean full, java.nio.file.Path sampleRoot) {
+            this(projectRoot, full, sampleRoot, 0, null);
+        }
+    }
+
+    /**
+     * Owner 2026-10-18: what a hosted {@code report} call's classification needs, observed when the call is judged — the
+     * ACTIVE project (whose profile stores its reports), the reports it holds, the session's own writes and where a
+     * {@code path} would land. Absent (null) or unknown, every call is asked as before (fail-closed).
+     */
+    public interface ReportState {
+        /** One coherent observation. The frame overrides this to read everything in one EDT turn. */
+        default ReportObservation observe(long generation, String name, String path) {
+            String revision = revision(name);
+            return new ReportObservation(projectRoot(), 0, holds(name), revision,
+                    sessionWrote(generation, name, revision), path == null ? null : resolveOutput(path));
+        }
+        /** The active project's root, or null: no project is active, and no report is written "inside" one. */
+        java.nio.file.Path projectRoot();
+
+        /** Whether a report called {@code name} exists now. */
+        boolean holds(String name);
+
+        /** Digest of the complete persisted definition, or null when absent. Authoring time is display-only. */
+        String revision(String name);
+
+        /**
+         * Whether hosted generation {@code generation} wrote report {@code name} without an approval and left it carrying
+         * {@code revision} in this project lifetime (the session's record, {@code PermissionState.sessionWrote}).
+         */
+        boolean sessionWrote(long generation, String name, String revision);
+
+        /** Where a verb-supplied {@code path} would be written (the exchange guard's own resolution), or null if refused. */
+        java.nio.file.Path resolveOutput(String path);
+    }
+
+    /** The frame observes these together on the EDT, including the node-owned project lifetime. */
+    public record ReportObservation(java.nio.file.Path root, long projectGeneration, boolean exists,
+                                    String revision, boolean owned, java.nio.file.Path output) { }
+
+    /** Bound capability: project lifetime, exact request, complete report revision and canonical new output. */
+    public record ReportAdmission(String name, String expectRevision, String projectRoot, long projectGeneration,
+                                  long generation, String output, String inputDigest) {
+        /** Whether the call writes a report into the project's profile, not only a file. */
+        public boolean writesReport() {
+            return name != null;
+        }
+    }
+
+    /** The {@code open} keys a pre-allowed call may carry: a log and its GraphML, nothing else. */
+    static final Set<String> IN_PROJECT_OPEN_KEYS = Set.of("log", "graphml");
+
+    /**
+     * {@link #hostedCallKind(String, Object, ChartState)} with the hosted session's {@code scope}. Owner, 2026-10-18 (the
+     * live authoring run): in FULL Claude Code, an {@code open} of only a {@code log} and/or {@code graphml} whose REAL
+     * paths (links resolved) are existing files inside the session's real project folder is {@code PRE_ALLOWED} — it
+     * opens the project's own evidence. Everything else stays {@code CHANGES} and is asked: a project switch or close,
+     * follow, a bundle, a create, any other key, a relative or {@code ~} path, a path outside the folder or one that
+     * leads out through a link, and every {@code open} under Safe analysis.
+     *
+     * <p>Owner hands-on test, 2026-10-18: the analyser's OWN sample project works in a scratch folder (OD-74.22), so its
+     * log and GraphML were never "inside the project folder" and every open of them was asked. While the sample is the
+     * ACTIVE project, {@link OpenScope#sampleRoot()} is its real root, and a file inside it qualifies by the same
+     * real-path checks — still Full only, still log and GraphML only.
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind hostedCallKind(String verb,
+                                                                                                             Object params,
+                                                                                                             ChartState charts,
+                                                                                                             OpenScope scope) {
+        Map<?, ?> p = params instanceof Map<?, ?> m ? m : Map.of();
+        String v = verb == null ? "" : verb;
+        switch (v) {
+            case "open" -> {
+                if (openInProject(p, scope)) return preAllowed();
+            }
+            case "graph" -> {
+                return switch (graphCall(p, charts)) {
+                    case LIST -> nonMutating();
+                    case SHOW, CREATE_NEW_TAB, CREATE_FREE_NAME -> preAllowed();
+                    case CHANGES -> telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.CHANGES;
+                };
+            }
+            case "walk" -> {
+                if (p.containsKey("reel")) return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.WRITES_FILE;
+                if (Boolean.TRUE.equals(p.get("play")) && Set.of("play", "name", "step").containsAll(keys(p))) return nonMutating();
+                if (Boolean.TRUE.equals(p.get("end")) && keys(p).equals(Set.of("end"))) return nonMutating();
+                if (Boolean.TRUE.equals(p.get("restore")) && keys(p).equals(Set.of("restore"))) return nonMutating();
+            }
+            case "report" -> {
+                // owner 2026-10-18: Full's write of a NEW report (or this session's own) inside the active project
+                if (reportInProject(p, scope) != null) return preAllowed();
+                // final review #2: the operation is VerbOperations.report's — the executor's and the dialog's choice
+                VerbOperations.ReportOp op = VerbOperations.report(p).op();
+                if (op == VerbOperations.ReportOp.LIST_DELETED) return nonMutating();
+                if (p.containsKey("bundle")) return writesFile();
+                if (op == VerbOperations.ReportOp.FINDING || p.get("path") != null) return writesFile();
+            }
+            case "screenshot" -> {
+                return writesFile();
+            }
+            default -> { }
+        }
+        return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.CHANGES;
+    }
+
+    /** Whether a hosted {@code open} only opens the project's own files (see {@link #hostedCallKind(String, Object, ChartState, OpenScope)}). */
+    static boolean openInProject(Map<?, ?> p, OpenScope scope) {
+        if (scope == null || !scope.full() || scope.projectRoot() == null) return false;
+        if (p.isEmpty() || !IN_PROJECT_OPEN_KEYS.containsAll(keys(p))) return false;
+        if (VerbOperations.open(p) != VerbOperations.OpenOp.FILES) return false;
+        java.util.List<java.nio.file.Path> roots = new java.util.ArrayList<>();
+        for (java.nio.file.Path r : new java.nio.file.Path[]{scope.projectRoot(), scope.sampleRoot()}) {
+            if (r == null) continue;
+            try {
+                roots.add(r.toRealPath());
+            } catch (java.io.IOException | RuntimeException e) {
+                // a root that does not resolve allows nothing
+            }
+        }
+        if (roots.isEmpty()) return false;
+        for (Object value : p.values()) {
+            if (!(value instanceof String s) || s.isBlank() || s.startsWith("~")) return false;
+            try {
+                java.nio.file.Path given = java.nio.file.Path.of(s);
+                if (!given.isAbsolute()) return false;
+                java.nio.file.Path real = given.toRealPath();
+                if (roots.stream().noneMatch(real::startsWith) || !java.nio.file.Files.isRegularFile(real)) return false;
+            } catch (java.io.IOException | RuntimeException e) {
+                return false;                     // missing, unreadable or not a path: asked
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Owner 2026-10-18: whether a hosted {@code report} call only writes something NEW inside the active project, in FULL
+     * Claude Code — and if so the {@link ReportAdmission} the server runs it under; null (asked, as before) otherwise.
+     *
+     * <ul>
+     *   <li>A build ({@code VerbOperations.ReportOp.BUILD}) of a report no report holds the name of (a create), or of a
+     *       report this session wrote without an approval that still carries the complete revision of that write (an
+     *       update of its own report — adding a section, retitling it).</li>
+     *   <li>The single-record finding and a CSV export, which write only a file.</li>
+     *   <li>Any {@code path} must resolve, through the exchange guard, to a file that does not exist yet, whose nearest
+     *       existing folder's REAL path (links resolved) is inside the active project's real root.</li>
+     * </ul>
+     * Everything else stays as before: a delete, a rename, a restore, a bundle, any write over an existing report the
+     * session did not make, any path outside the project or over an existing file, no active project, and every call in
+     * Safe analysis or from an external client (which never has a scope).
+     */
+    public static ReportAdmission reportInProject(Map<?, ?> p, OpenScope scope) {
+        if (scope == null || !scope.full() || scope.reports() == null || scope.generation() <= 0) return null;
+        ReportState reports = scope.reports();
+        String name = reportName(p.get("name"));
+        Object path = p.get("path");
+        if (path != null && (!(path instanceof String s) || s.isBlank())) return null;
+        ReportObservation observed;
+        java.nio.file.Path root;
+        try {
+            observed = reports.observe(scope.generation(), name, (String) path);
+            java.nio.file.Path r = observed.root();
+            if (r == null) return null;
+            root = r.toRealPath();
+        } catch (java.io.IOException | RuntimeException e) {
+            return null;
+        }
+        VerbOperations.Chosen<VerbOperations.ReportOp> chosen = VerbOperations.report(p);
+        if (!chosen.ok()) return null;
+        VerbOperations.ReportOp op = chosen.op();
+        if (op != VerbOperations.ReportOp.BUILD && op != VerbOperations.ReportOp.FINDING
+                && op != VerbOperations.ReportOp.CSV) {
+            return null;
+        }
+        String output = path == null ? null : newFileInside(observed.output(), root);
+        if (path != null && output == null) return null;
+        if (op != VerbOperations.ReportOp.BUILD && path == null) return null;
+        if (op == VerbOperations.ReportOp.BUILD && observed.exists()
+                && (observed.revision() == null || !observed.owned())) return null;
+        return new ReportAdmission(op == VerbOperations.ReportOp.BUILD ? name : null,
+                op == VerbOperations.ReportOp.BUILD && observed.exists() ? observed.revision() : null,
+                root.toString(), observed.projectGeneration(), scope.generation(), output,
+                telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.digest(p));
+    }
+
+    /** The name a build writes, as the report's own record normalises it ({@code ReportSpec}): trimmed, "report" if blank. */
+    static String reportName(Object name) {
+        String s = name == null ? null : name.toString();
+        return s == null || s.isBlank() ? "report" : s.trim();
+    }
+
+    /** Whether {@code path} lands on a file that does not exist, under a folder whose real path is inside {@code root}. */
+    public static String newFileInside(java.nio.file.Path out, java.nio.file.Path root) {
+        try {
+            if (out == null || root == null || java.nio.file.Files.exists(out, java.nio.file.LinkOption.NOFOLLOW_LINKS)) return null;
+            out = out.toAbsolutePath().normalize();
+            java.nio.file.Path ancestor = out.getParent();
+            while (ancestor != null && !java.nio.file.Files.exists(ancestor)) ancestor = ancestor.getParent();
+            if (ancestor == null || !ancestor.toRealPath().startsWith(root.toRealPath())) return null;
+            return ancestor.toRealPath().resolve(ancestor.relativize(out)).normalize().toString();
+        } catch (java.io.IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** A hosted {@code graph} call, judged: the one judgement the kind and the server's constraint share. */
+    enum GraphCall { LIST, SHOW, CREATE_NEW_TAB, CREATE_FREE_NAME, CHANGES }
+
+    static GraphCall graphCall(Map<?, ?> p, ChartState charts) {
+        VerbOperations.Chosen<VerbOperations.GraphOp> chosen = VerbOperations.graph(p);
+        if (!chosen.ok()) return GraphCall.CHANGES;
+        return switch (chosen.op()) {
+            case LIST_DELETED -> GraphCall.LIST;
+            case SHOW, CLOSE -> GraphCall.SHOW;
+            case EDIT -> {
+                if (Boolean.TRUE.equals(p.get("newTab"))) yield GraphCall.CREATE_NEW_TAB;
+                Object name = p.get("name");
+                // no name: the executor adds a new chart (graphForAction(null, …)); the server runs it as newTab anyway
+                if (name == null) yield GraphCall.CREATE_FREE_NAME;
+                if (name instanceof String n && !n.isBlank() && charts != null && !charts.holds(n.trim())) {
+                    yield GraphCall.CREATE_FREE_NAME;
+                }
+                yield GraphCall.CHANGES;
+            }
+            default -> GraphCall.CHANGES;
+        };
+    }
+
+    /**
+     * Owner decision 2026-10-18: the input the server dispatches for a hosted call it admitted. A {@code graph} call
+     * admitted without the person's approval because its {@code name} was free runs as {@code newTab: true}, so the
+     * executor refuses it if a chart of that name appeared meanwhile — it creates, or changes nothing; it never replaces.
+     * Every other call is dispatched exactly as sent.
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> hostedConstrained(String verb, Map<String, Object> params, ChartState charts) {
+        if (!"graph".equals(verb) || params == null || graphCall(params, charts) != GraphCall.CREATE_FREE_NAME) return params;
+        Map<String, Object> out = new LinkedHashMap<>(params);
+        out.put("newTab", Boolean.TRUE);
+        return out;
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind preAllowed() {
+        return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED;
+    }
+
+    private static Set<String> keys(Map<?, ?> p) {
+        Set<String> out = new java.util.HashSet<>();
+        for (Object k : p.keySet()) out.add(String.valueOf(k));
+        return out;
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind nonMutating() {
+        return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.NON_MUTATING;
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind writesFile() {
+        return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.WRITES_FILE;
+    }
+
+    /**
+     * M74 review H5: the verbs the analyser's own Claude Code session (the hosted bridge) may call without asking, BY
+     * NAME — an allow-list, never "every verb minus the destructive ones". The one definition: {@code LocalAgentPosture}
+     * (the command line and the posture check) and {@code ActionServer} (the server-side admission) both read it, so a
+     * verb added to {@code VerbSchemas} stays hidden and refused for the hosted bridge until it is listed here. (It lives
+     * here, not in the session package, because a persisting package may not name the overlay verb, D-SP4.)
+     */
+    public static final java.util.List<String> HOSTED_PRE_ALLOWED = java.util.List.of("read", "aggregate", "series",
+            "context", "coverage", "source", "filter", "goto", "flag", "topology", "spotlight",
+            // M74 P2 (§5.6): non-destructive — it only records an offer; the person answers and the analyser applies
+            "propose");
+
+    /**
+     * Owner decision 2026-10-18: the hosted verbs judged CALL BY CALL ({@link #hostedCallKind(String, Object, ChartState)})
+     * — {@code graph}, whose create and show calls are pre-allowed and whose delete, rename, restore and replacement of an
+     * existing chart's definition are asked. Visible in every posture; named in {@code --allowedTools} only where the
+     * mode never asks, and there the server refuses the calls that would need an approval (none can be given).
+     */
+    public static final java.util.List<String> HOSTED_PER_CALL = java.util.List.of("graph");
 
     /**
      * Read-only hint on the query verbs only. The render verbs change what the UI shows, so they are not

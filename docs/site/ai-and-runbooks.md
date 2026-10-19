@@ -1,7 +1,7 @@
 # Runbooks, glossary and saved analyses — how an AI uses them
 
 A project profile carries three things an AI acts on: **runbook pointers**, a **glossary** pointer and
-**saved analyses** (*User guide ▸ Portable context*). This page is the operating manual for the AI side:
+**saved analyses** ([Portable context](user-guide/projects.md#portable-context-what-the-team-knows)). This page is the operating manual for the AI side:
 how the in-app assistant or an LLM connected over MCP **finds** them, **uses** them, and **creates or
 updates** them — and the one thing it never does.
 
@@ -32,7 +32,7 @@ in it. The pointer lives in a committed file, so it goes through the same review
 
 ## Finding them — `context`
 
-Both agents read the same payload: the in-app assistant through its in-process actions, an external LLM
+Both agents read the same payload: the in-app assistant through its own actions (*Let the in-app assistant change the views as it answers*), an external LLM
 through `analyser_context`. With a project open it carries:
 
 ```json
@@ -131,8 +131,8 @@ sequenceDiagram
 1. Read `context.runbooks`; pick the pointer by name.
 2. **Read the file yourself** — `resolved` is the path on this machine — with your file tools.
 3. Do what it says with your own tools or through the deployment side's own MCP surface. Nothing in the
-   analyser will do it for you, by design (the analyser gains no server-side code; see *The build-with-AI
-   loop*).
+   analyser will do it for you, by design (the analyser gains no server-side code; see
+   [Build with Claude](build/index.md)).
 
 A prompt that uses this well:
 
@@ -142,7 +142,7 @@ A prompt that uses this well:
 ## Using the glossary
 
 The glossary is the **one** pointed-at file whose contents the analyser reads — a glossary is read, a
-runbook is acted on. The in-app assistant gets its text **first** in every *Explain* prompt, framed as
+runbook is acted on. The in-app assistant gets its text **first** in every question it is asked (*Ask*), framed as
 reference text (not an instruction), so `live` is read the way this system means it. An external LLM
 gets the same text as `context.vocabulary.text`, capped at 16 000 characters with truncation announced.
 An agent that does not use the built-in prompt should put it first too.
@@ -224,18 +224,19 @@ questions about it. That is deliberate: if the served description came from the 
 would silently change what the analyser reports about your project, with nobody having declared it. The
 file suggests; you declare.
 
-## What this session is for — posture, and the mode-selector record
+## What this session is for — work mode, and the mode-selector record
 
 Two more items on the *AI* menu are not pointers. They are **session state that you and the AI client both
 see** — the client reads them in `context.handoff`, you read them as rows in the
 [Project panel](user-guide/project-panel.md) — and either of you can set them.
 
-**AI ▸ Posture.** An assistant works differently when you are *investigating* a system than when you are
-*building* one, and that intent changes before any file does (*"let's build something new"*). Posture says
-which: *Research / support* or *Authoring / deploy*. Left on *Derived*, the analyser guesses — a project open
-reads as authoring, otherwise research — and **says it is only a guess**. Pick one to set it; a client sets it
-with `open {posture: "authoring"}`. The Project panel names who set it and, when the two disagree, what the
-guess would have been.
+**AI ▸ Work mode.** An assistant works differently when you are *investigating* a system than when you are
+*building* one, and that intent changes before any file does (*"let's build something new"*). The work mode
+says which: **Investigate** or **Build**. Left on **Guess from what is open**, the analyser guesses — a project
+open reads as Build, otherwise Investigate — and **says it is only a guess**. Pick one to set it. A client sets
+it with `open {posture: "authoring"}` and reads it as `context.handoff.posture` (`research` or `authoring`;
+shown as Work mode in the app). The Project panel names who set it and, when the two disagree, what the guess
+would have been.
 
 **AI ▸ Place mode-selector record…** The *authoring mode selector* is a small tool, run **outside** the
 analyser before any authoring starts. It decides whether the components you need already exist in a catalogue
@@ -245,28 +246,21 @@ figures the catalogue already resolved, and what is left to author. This item re
 record on the canvas; a client does the same with `open {record: {…}}`. The analyser **never runs the
 selector and does not check the record** — it carries it, attributed to whoever placed it. A malformed file is
 refused whole, with the reason. *AI ▸ Clear mode-selector record* removes it; a client uses
-`open {close: "handoff"}`, which also returns the posture to *Derived*.
+`open {close: "handoff"}`, which also returns the work mode to *Guess from what is open*.
 
 Both belong to the **session**: a project switch clears them, and nothing is written to the project profile.
 If you are not authoring a processor with an assistant, you can ignore both.
 
 ## Is an AI client reaching this window?
 
-The status bar carries a light that answers exactly that:
-
-| Light | Means |
-|---|---|
-| **MCP ready** (green) | this window is serving — an AI client pointed here reaches *this* log |
-| **MCP elsewhere** (amber) | **another analyser window owns the endpoint**; a client using it is reading that window's log, not this one |
-| **MCP starting** (amber) | enabled, but no live endpoint published yet |
-| **MCP off** (grey) | the local transport is off — a choice, not a fault |
-
-If the window that owns the endpoint **closes**, a window whose transport is on takes the endpoint back within a few
-seconds and its light returns to **MCP ready** — a live owner is never displaced, so two windows cannot fight over it.
+The status bar carries a light that answers exactly that: **MCP ready** means this window is serving, and **MCP
+elsewhere** means another analyser window owns the endpoint, so a client is reading that window's log.
+[Troubleshooting ▸ Which window is serving](diagnose/troubleshooting.md#which-window-is-serving) has every state.
 
 *Ready* is not *connected*. This window being reachable and a client actually talking to it are two
 different facts: the first is true continuously, the second only at the moment you measure it. If you
-want the second, *AI ▸ Connect an AI client…* runs a real probe and tells you when it ran.
+want the second, *AI ▸ Set up AI…* ▸ *Your own AI client* says when a client with this window's key reached it (and
+its *Check connection* runs a bridge probe and says what it found).
 
 ## Write runbooks in the skill shape
 
@@ -285,9 +279,9 @@ description: Restart the quote service after a config change; when to use, what 
 Two things follow. A runbook pointer can target a skill file directly — `runbook.0.path=.claude/skills/restart/SKILL.md`
 — so one file is both the team's runbook and a Claude Code skill, and any harness that reads that shape gets
 it too. And the `description` is what lets a model decide *which* runbook is relevant before opening any
-of them; a planned slice (M38.8) surfaces it in `context.runbooks[]` as `runbook.N.description`, so
-runbooks written this way today need no rewriting then. Nothing in the analyser parses the frontmatter;
-the convention just makes the two worlds the same file.
+of them; it is surfaced in `context.runbooks[]` as `runbook.N.description`
+([The description, and where it comes from](#the-description-and-where-it-comes-from)). The analyser reads the frontmatter only to prefill the
+Add dialog; what it stores and serves is what you confirm. The convention just makes the two worlds the same file.
 
 ## What the analyser will refuse
 

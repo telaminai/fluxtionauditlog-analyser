@@ -44,7 +44,12 @@ public final class SessionEvents {
      */
     public record OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
                                        AssistantActionOrigin assistantOrigin, ProjectAudience audience,
-                                       CreateRequest create) {
+                                       CreateRequest create, long starterRequest) {
+        /** Only the starter adapter supplies a correlation; external/client project opens never do. */
+        public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
+                                    AssistantActionOrigin assistantOrigin, ProjectAudience audience, CreateRequest create) {
+            this(opId, profilePath, kind, source, assistantOrigin, audience, create, 0);
+        }
         /** Every kind but {@link TransitionKind#CREATE}: there is nothing observed to carry. */
         public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
                                     AssistantActionOrigin assistantOrigin, ProjectAudience audience) {
@@ -252,9 +257,20 @@ public final class SessionEvents {
      */
     public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
                             int sampled, int total, String mostVerboseLevel, String provenanceSource,
-                            boolean followable, int nodeLogsWithheld) implements Result {
+                            boolean followable, int nodeLogsWithheld, long openedAtMillis) implements Result {
         public LogOpened {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /**
+         * Final review #12: {@code openedAtMillis} — when the adapter opened it (epoch millis; 0 unknown) — is what the
+         * composer's binding chip says in place of the log generation ("this log · opened HH:MM").
+         */
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel, String provenanceSource, boolean followable,
+                         int nodeLogsWithheld) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel, provenanceSource, followable,
+                    nodeLogsWithheld, 0);
         }
 
         /** UPS-1: no sampled record withheld its node logs (the count is drawn by the same sample as the ids). */
@@ -358,7 +374,18 @@ public final class SessionEvents {
     }
 
     /** The profile's settings are now genuinely in force. This is the authoritative fact. */
-    public record ProfileApplied(long opId, String profilePath, String name) implements Result {
+    public record ProfileApplied(long opId, String profilePath, String name, java.util.List<String> droppedBindings)
+            implements Result {
+        /**
+         * {@code droppedBindings} (M74 P2b §6; review P2 N-b): the walk bindings the load dropped, in the analyser's words
+         * with paths removed — sessionBoundary says them.
+         */
+        public ProfileApplied {
+            droppedBindings = droppedBindings == null ? java.util.List.of() : java.util.List.copyOf(droppedBindings);
+        }
+        public ProfileApplied(long opId, String profilePath, String name) {
+            this(opId, profilePath, name, java.util.List.of());
+        }
     }
 
     /** The pre-project settings are back in force after a {@link TransitionKind#CLOSE}. */
@@ -468,6 +495,34 @@ public final class SessionEvents {
      */
     public record ViewFilterChanged(String filterKey, AssistantActionOrigin assistantOrigin) {
         public ViewFilterChanged(String filterKey) { this(filterKey, null); }
+    }
+
+    // ---------------------------------------------------------------- the records view (what is shown, what is hidden)
+
+    /**
+     * The Records view of {@code generation} is installed: its store, its filter and its row filter are in place, so
+     * it can be measured. Posted once per log, at the end of the load; {@code RecordsView} asks for the first
+     * measurement on it, because a new log opened under the same (unconstrained) filter changes no filter key.
+     */
+    public record RecordsViewInstalled(long generation) {
+    }
+
+    /**
+     * The person flagged or unflagged records, or turned "flagged only" on or off. {@code flaggedOnly} is the
+     * constraint now in force and {@code flagged} how many records carry a flag. {@code RecordsView} decides whether
+     * the view must be measured again: a flag changes what is shown only while "flagged only" is on.
+     */
+    public record RecordFlagsChanged(long generation, boolean flaggedOnly, int flagged) {
+    }
+
+    /**
+     * The answer to {@code MeasureRecordsViewEffect}: the records view of {@code generation} as it stands. {@code counts}
+     * names the search text by reference and carries the log's own event-type names. It is null when the adapter had no installed view of that generation to
+     * measure — a refusal the node records, never a zero.
+     */
+    public record RecordsViewMeasured(long opId, long generation,
+                                      telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts counts)
+            implements Result {
     }
 
     /**
@@ -652,8 +707,28 @@ public final class SessionEvents {
         }
     }
 
-    /** Send pressed: the draft is transcript entry {@code draft}; {@code request} correlates the answer (0 = none). */
-    public record AssistantSendRequested(long request, long draft, AssistantRoute route) {
+    /**
+     * Send pressed: the draft is transcript entry {@code draft}; {@code request} correlates the answer (0 = none).
+     * {@code draftBindings} (M74 P2, §8.2; review S2): every {@link AssistantDraftComposed} draft the composer still holds,
+     * possibly none — the node compares each binding with the open log, refuses if any is stale or unknown, and a composed
+     * draft never carries the live selection's record text.
+     */
+    public record AssistantSendRequested(long request, long draft, AssistantRoute route, java.util.List<Long> draftBindings) {
+        public AssistantSendRequested {
+            draftBindings = bindings(draftBindings);
+        }
+        public AssistantSendRequested(long request, long draft, AssistantRoute route, long draftBinding) {
+            this(request, draft, route, draftBinding == 0 ? java.util.List.of() : java.util.List.of(draftBinding));
+        }
+        public AssistantSendRequested(long request, long draft, AssistantRoute route) {
+            this(request, draft, route, java.util.List.of());
+        }
+    }
+
+    /** The composer's bindings as a fact: no nulls, no zero ids, immutable. */
+    static java.util.List<Long> bindings(java.util.List<Long> in) {
+        if (in == null) return java.util.List.of();
+        return in.stream().filter(java.util.Objects::nonNull).filter(b -> b != 0).toList();
     }
 
     /** Cancel pressed, or the application is exiting. */
@@ -662,6 +737,18 @@ public final class SessionEvents {
 
     /** New chat: invalidate any pending turn, then start an empty conversation. */
     public record AssistantNewChatRequested(String reason) {
+    }
+
+    /**
+     * Robot re-walk #1 (2026-10-18): pointing at something on screen took the canvas away from the DOCKED assistant's
+     * tab, to tab {@code shown} ("Topology") — an observation of what the reveal did, posted by the frame. The answer the
+     * person was reading is now behind another tab; {@code assistantLoop} decides what the canvas says about it.
+     */
+    public record CanvasLeftAssistant(String shown) {
+    }
+
+    /** The canvas shows the docked assistant's tab again (the person chose it, or "↩ Back to the answer" did). */
+    public record AssistantTabShown(String origin) {
     }
 
     /** Dock ({@code docked} true) or pop out the assistant. Presentation only. */
@@ -684,7 +771,11 @@ public final class SessionEvents {
     }
 
     /** The first-turn content was composed as transcript entry {@code prompt} (hidden), for {@code ticket}. */
-    public record AssistantContextPrepared(long ticket, long prompt) {
+    public record AssistantContextPrepared(long ticket, long prompt, long atMillis) {
+        /** No time observed. Owner, 2026-10-18: {@code atMillis} is when the adapter prepared the question (0: unknown). */
+        public AssistantContextPrepared(long ticket, long prompt) {
+            this(ticket, prompt, 0);
+        }
     }
 
     /** The context could not be assembled; nothing was sent. */
@@ -695,9 +786,15 @@ public final class SessionEvents {
      * The provider replied in {@code round}: the reply is transcript entry {@code reply}, and the {@code analyser-action}
      * blocks found in it are entries {@code actions}, in order. The node decides which of them run.
      */
-    public record AssistantCompletionReceived(long ticket, int round, long reply, java.util.List<Long> actions) {
+    public record AssistantCompletionReceived(long ticket, int round, long reply, java.util.List<Long> actions,
+                                              long atMillis) {
         public AssistantCompletionReceived {
             actions = java.util.List.copyOf(actions == null ? java.util.List.of() : actions);
+        }
+
+        /** No time observed. Owner, 2026-10-18: {@code atMillis} is when the reply arrived (0: unknown). */
+        public AssistantCompletionReceived(long ticket, int round, long reply, java.util.List<Long> actions) {
+            this(ticket, round, reply, actions, 0);
         }
     }
 
@@ -720,4 +817,1224 @@ public final class SessionEvents {
 
     /** An accepted load failed during its final frame apply; no assistant continuation may use its partial view. */
     public record AssistantOpenApplyFailed(long opId, AssistantActionOrigin assistantOrigin) { }
+
+    // ---- M74: the local agent (Claude Code), decided by the localAgentSession node, performed by LocalAgentAdapter ----
+    //
+    // Facts carry ids, a process generation, a turn ticket and enums: never the words of a turn, account data or a path.
+    // Words live in the bounded LocalAgentTranscript and are named here by reference (spec §4.1).
+
+    /** The person chose an assistant mode on the Assistant tab. */
+    public record AssistantModeChosen(AssistantMode mode, String origin) {
+    }
+
+    // ---- M74 UX (owner, 2026-10-17): the assistant profile, decided by the assistantProfile node --------------------
+    //
+    // Enums and ids only: the overlay's details (an API key, a model, a mode) stay in the overlay and are written to this
+    // machine's settings by ApplyAssistantProfileEffect's performer; no fact carries them.
+
+    /**
+     * The profile in force on this machine, as the frame observes its settings — at session start and after every
+     * settings change (the overlay's Apply, Settings ▸ Assistant). {@link AssistantProfile#NONE}: nothing is chosen.
+     */
+    public record AssistantProfileObserved(AssistantProfile profile) {
+    }
+
+    /**
+     * M77 (spec-ai-setup-wizard.md §8.3, review R1-14): which surface asked for a profile — the Set up AI wizard, the
+     * Assistant ▾ quick switch, or Settings. The Full guard reads the surface that asked: the wizard's {@code open} for
+     * {@link #SETUP}, nothing for {@link #MENU}, whose confirmation is the whole interaction. (M77-4 retired the profile
+     * cards, and their origin with them.)
+     */
+    public enum ProfileOrigin { SETUP, MENU, SETTINGS }
+
+    /** The person chose a profile (the wizard's Apply, a quick-switch item): the node decides whether it applies now. */
+    public record AssistantProfileChosen(long request, AssistantProfile profile, ProfileOrigin origin) {
+        public AssistantProfileChosen {
+            origin = origin == null ? ProfileOrigin.MENU : origin;
+        }
+
+        /** A quick-switch press (the Assistant ▾ menu). */
+        public AssistantProfileChosen(long request, AssistantProfile profile) {
+            this(request, profile, ProfileOrigin.MENU);
+        }
+    }
+
+    /**
+     * Review PR151 F4 (owner, 2026-10-18): the person's answer to {@code ConfirmFullProfileEffect{request}} — the full
+     * warning, as Settings ▸ Assistant shows it; {@code confirmed} only on an explicit press of <i>Turn on full Claude
+     * Code</i> (Cancel, Escape and closing the window are not).
+     */
+    public record AssistantFullProfileAnswered(long request, boolean confirmed) {
+    }
+
+    /** Answers {@code ApplyAssistantProfileEffect}: the settings were written ({@code ok}) and the consent re-reported. */
+    public record AssistantProfileApplied(long opId, long request, AssistantProfile profile, boolean ok, String reason,
+                                          ProfileOrigin origin) implements Result {
+        public AssistantProfileApplied {
+            origin = origin == null ? ProfileOrigin.MENU : origin;
+        }
+
+        /** An Apply the quick switch asked for. */
+        public AssistantProfileApplied(long opId, long request, AssistantProfile profile, boolean ok, String reason) {
+            this(opId, request, profile, ok, reason, ProfileOrigin.MENU);
+        }
+    }
+
+    /** Answers {@code ChooseAssistantModeEffect}: the mode the node asked for was chosen. */
+    public record AssistantProfilesShown(long opId) implements Result {
+    }
+
+    // ---- M77 (spec-ai-setup-wizard.md §8.3): Set up AI, decided by the aiSetup node ---------------------------------
+    //
+    // Enums, ids and times only: never a path, a key, raw CLI output, an e-mail or an organisation (S7).
+
+    /** The person asked for Set up AI (a menu item, the start page's link, Settings' button). */
+    public record AiSetupRequested(AiSetupState.Origin origin) {
+    }
+
+    /**
+     * Reported once at start-up with the other start-up facts: the two machine-tier keys of M77 and whether this process
+     * was started with {@code --rest} (an agent drives it; nobody at the screen — review R1-16 a, b).
+     */
+    public record AiSetupStartupObserved(boolean dismissed, AiSetupState.Client client, boolean restLaunch) {
+    }
+
+    /** Screen 1 (or the first-run block): the person picked a choice. Picking applies nothing. */
+    public record AiSetupChoiceMade(AiSetupState.Choice choice) {
+    }
+
+    /** Screen 2a: the Safe / Full sub-choice, and Full's mode. */
+    public record AiSetupPostureChosen(AiSetupState.Posture posture, String fullMode) {
+    }
+
+    /** Screen 2b: which external client (M77-3). */
+    public record AiSetupClientChosen(AiSetupState.Client client) {
+    }
+
+    /** Back, pressed on {@code step}; a press on a screen that is no longer current is stale. */
+    public record AiSetupBack(AiSetupState.Step step) {
+    }
+
+    /**
+     * Continue (or Finish) pressed on {@code step}. {@code keyEntered}: on Other options, whether the key field holds
+     * text — never the text; the details reach the settings through the Apply performer, as the cards' do.
+     */
+    public record AiSetupContinue(AiSetupState.Step step, boolean keyEntered) {
+        public AiSetupContinue(AiSetupState.Step step) {
+            this(step, false);
+        }
+    }
+
+    /** Cancel, Escape or the window's close, on any screen before the Summary (or Done on it). */
+    public record AiSetupCancelled(String origin) {
+    }
+
+    /** The first-run block's <i>Not now</i>. */
+    public record AiSetupFirstRunDismissed() {
+    }
+
+    /** The Summary's suggested first action was pressed (§6.4). */
+    public record AiSetupSuggestedTaken(AiSetupState.Suggested suggested) {
+    }
+
+    /** <i>Check again</i> on one check. */
+    public record AiSetupCheckAgain(AiSetupState.CheckKind check) {
+    }
+
+    /** What the resolver says about Codex (file existence only; nothing run). Claude's is in StartPageAvailability. */
+    public record AiClientsObserved(boolean codexFound, boolean launcher) {
+        /** The shape before M77-3: a launcher assumed (the client path was today's dialog then). */
+        public AiClientsObserved(boolean codexFound) {
+            this(codexFound, true);
+        }
+    }
+
+    /** How {@code claude --version} went. */
+    public enum ProbeOutcome { FOUND, NOT_FOUND, DID_NOT_RUN, TIMED_OUT }
+
+    /**
+     * {@code claude --version} for probe {@code probe}: the outcome, the version's digits, and where {@code claude} is,
+     * by reference into the frame's store (never the path).
+     */
+    public record ClaudeObserved(long probe, ProbeOutcome outcome, String version, long pathRef) {
+    }
+
+    /** How {@code claude auth status --json} went: the JSON was read, or it could not be told. */
+    public enum AuthOutcome { READ, UNREADABLE, TIMED_OUT, DID_NOT_RUN }
+
+    /**
+     * {@code claude auth status --json} for probe {@code probe}, parsed at the boundary (§8.6): ONLY {@code loggedIn},
+     * {@code authMethod}, {@code subscriptionType} and {@code apiKeySource}, each as an enum. The rest — an e-mail, an
+     * organisation — never leaves the parser.
+     */
+    public record ClaudeAuthObserved(long probe, AuthOutcome outcome, boolean loggedIn, AiSetupState.Method method,
+                                     AiSetupState.Plan plan, AiSetupState.KeySource keySource) {
+    }
+
+    /** Answered at once by each of aiSetup's effects whose outcome arrives later (or is the window itself). */
+    public record AiSetupEffectStarted(long opId, String what) implements Result {
+    }
+
+    // ---- M77-3 (spec-ai-setup-wizard.md §6.3, §8.3, §9): the external client path ---------------------------------
+
+    /** Which door asked to turn External MCP/REST access on or off (§9.2): every one is decided by actionListener. */
+    public enum AccessOrigin { SETUP, MENU, SETTINGS, MCP_DIALOG }
+
+    /**
+     * The person asked to turn External MCP/REST access on or off, at {@code origin} (the wizard's switch, the AI menu's
+     * checkbox, Settings ▸ Assistant on save, the client dialog). {@code actionListener} decides: on asks for the
+     * confirmation first; off is applied at once. {@code request} is minted by the door.
+     */
+    public record ExternalAccessRequested(long request, boolean on, AccessOrigin origin) {
+        public ExternalAccessRequested {
+            origin = origin == null ? AccessOrigin.MENU : origin;
+        }
+    }
+
+    /** The person's answer to {@code ConfirmExternalAccessEffect{request}}: confirmed only on <i>Turn on access</i>. */
+    public record ExternalAccessAnswered(long request, boolean confirmed) {
+    }
+
+    /** What the 5 s readiness poll says (posted on change): the observation that feeds the MCP light. */
+    public enum McpReadiness { OFF, STARTING, READY, OTHER_INSTANCE }
+
+    public record McpReadinessObserved(McpReadiness status) {
+        public McpReadinessObserved {
+            status = status == null ? McpReadiness.OFF : status;
+        }
+    }
+
+    /** What the client's own CLI says of the registration named fluxtion-analyser (the client classes' enums). */
+    public enum RegistrationOutcome { PRESENT, ABSENT, INDETERMINATE }
+
+    /** {@code mcp get} for probe {@code probe} — run only on <i>Check registration</i>. */
+    public record McpRegistrationObserved(long probe, AiSetupState.Client client, RegistrationOutcome status) {
+    }
+
+    /** {@code ProbeBridgeEffect{probe}}'s answer: the bridge check's status (the probe's own, never its detail text). */
+    public record BridgeObserved(long probe, AiSetupState.Bridge status) {
+    }
+
+    /** The person's answer to {@code ConfirmRegisterEffect{request}}: confirmed only on <i>Register</i>. */
+    public record RegisterAnswered(long request, boolean confirmed) {
+    }
+
+    /** The confirmed registration ran: the client's CLI said it succeeded ({@code ok}) or not. */
+    public record McpRegistrationChanged(long request, AiSetupState.Client client, boolean ok) {
+    }
+
+    /**
+     * The action server saw the first counted {@code /action} after watch {@code watch} was armed (§9.4): at {@code at}
+     * (epoch millis), with the client's self-reported name by reference ({@code labelRef}, 0 for none; OD-77.8 — a
+     * display label, never trusted).
+     */
+    public record ExternalClientSeen(long watch, long at, long labelRef) {
+    }
+
+    /** The live check's 2-minute tip is due for watch {@code watch} (time is a fact, never a Swing timer that decides). */
+    public record AiSetupTimerFired(long watch) {
+    }
+
+    /** What a Copy button on Screen 2b or the Summary copies. */
+    public enum CopyWhat { REGISTER_COMMAND, GENERIC_CONFIG, LIVE_QUESTION, FIRST_QUESTION }
+
+    /** A Copy button was pressed on Screen 2b (or the Summary): the node decides what it means for the step. */
+    public record AiSetupCopyRequested(CopyWhat what) {
+    }
+
+    /** <i>Register for me…</i> (or <i>Replace…</i>) was pressed on Screen 2b. */
+    public record AiSetupRegisterRequested() {
+    }
+
+    /** <i>More options…</i> on Screen 2b: today's client dialog, for what the wizard does not do (OD-77.12). */
+    public record AiSetupMoreOptions() {
+    }
+
+    /**
+     * Owner decision 2026-10-18: the person's answer to {@code aiSetup}'s Build-mode offer (Full Claude Code in force in
+     * {@code default}, and Start building pressed) — {@code switchMode}: Switch, which writes {@code acceptEdits} and
+     * restarts in a new chat; false: Keep asking, which changes nothing. For an offer that is no longer open it is stale.
+     */
+    public record AiSetupBuildModeAnswered(long offer, boolean switchMode) {
+    }
+
+    /** OD-77.5: the box "Also turn off External MCP/REST access" under No AI, ticked or not. */
+    public record AiSetupAlsoTurnOffChosen(boolean turnOff) {
+    }
+
+    /**
+     * What the person's machine says about starting Claude Code now, observed by the frame when Start or Send is
+     * asked for. The node combines these; the frame decides none of them.
+     *
+     * @param allowed             the raw {@code assistant.claudeCode} switch (machine tier)
+     * @param folderConfirmed     the working directory is confirmed on this machine for the DEFAULT posture (or is the
+     *                            analyser's own scratch)
+     * @param bundleWorkingCopy   the working directory lies in an evidence-bundle working copy
+     * @param postureRef          a digest of the posture (kind, mode, directory, note, pre-allow list) — an id
+     * @param budgetMicros        the session spend limit, in millionths of a US dollar; 0 when none is set (owner,
+     *                            2026-10-17: optional, off by default)
+     * @param folder              whether the working directory may be used at all (review M4, S10)
+     * @param full                the raw {@code assistant.claudeCode.full} switch (machine tier, P1b)
+     * @param fullMode            the full posture's mode, already normalised by {@code ConfigStore} (never bypass, never
+     *                            dontAsk)
+     * @param fullFolderConfirmed a FULL-posture trust record exists for the folder AND its digest equals the digest of
+     *                            the folder's files Start would load (OD-74.12, review H6); the scratch folder counts,
+     *                            holding nothing to run
+     * @param model               the configured Claude Code model, normalised (blank means the default); null when not
+     *                            observed — owner, 2026-10-18: a change of it while a session runs is offered as a
+     *                            restart, where it used to take effect silently only at the next Start
+     * @param folderRef           a digest of the real working folder (never the path); null when not observed — tells a
+     *                            folder change apart from a change of the posture's kind or mode
+     */
+    public record LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
+                                    String postureRef, long budgetMicros, FolderVerdict folder, boolean full,
+                                    LocalAgentPosture.FullMode fullMode, boolean fullFolderConfirmed, String model,
+                                    String folderRef) {
+        /** The shape before the restart offer (owner, 2026-10-18): neither the model nor the folder observed. */
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
+                                 String postureRef, long budgetMicros, FolderVerdict folder, boolean full,
+                                 LocalAgentPosture.FullMode fullMode, boolean fullFolderConfirmed) {
+            this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, folder, full, fullMode,
+                    fullFolderConfirmed, null, null);
+        }
+
+        /** The default posture, with a folder verdict. */
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
+                                 String postureRef, long budgetMicros, FolderVerdict folder) {
+            this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, folder, false, null, false);
+        }
+
+        /** A folder that has been checked and may be used, in the default posture. */
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
+                                 String postureRef, long budgetMicros) {
+            this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, FolderVerdict.OK);
+        }
+
+        public LocalAgentConsent {
+            folder = folder == null ? FolderVerdict.UNAVAILABLE : folder;
+            fullMode = fullMode == null ? LocalAgentPosture.FullMode.DEFAULT : fullMode;
+        }
+
+        /** The posture a start under this consent runs in. */
+        public LocalAgentPosture posture() {
+            return full ? LocalAgentPosture.full(fullMode) : LocalAgentPosture.ANALYSER_ASSISTANT;
+        }
+
+        /** Whether the folder is confirmed for the posture in force (the two trusts are separate, OD-74.12). */
+        public boolean confirmedForPosture() {
+            return full ? fullFolderConfirmed : folderConfirmed;
+        }
+    }
+
+    /**
+     * Whether a working directory may be given to the local agent at all, observed by the frame (review M4, S10).
+     * {@code EXPOSES_SECRETS}: it is, or contains, the home directory, {@code ~/.fluxtion-analyser} (the endpoint files
+     * with the REST token and the hosted credential) or {@code ~/.claude}, or lies inside one of the last two — Read and
+     * Grep confined to it would still reach credentials. {@code UNAVAILABLE}: there is no folder (the private scratch
+     * folder could not be made).
+     */
+    public enum FolderVerdict { OK, EXPOSES_SECRETS, UNAVAILABLE }
+
+    /** Start pressed: the one way a process is started (warm start was cut by the owner, 2026-10-17). */
+    public record LocalAgentStartRequested(long request, LocalAgentConsent consent) {
+    }
+
+    /** How a draft reads as a command, classified by the provider's table (§5.4); the node decides what follows. */
+    public enum SlashClass {
+        /** Not a command: ordinary words. */
+        TEXT,
+        /** A classified command that is sent as a turn. */
+        PASS,
+        /** {@code /clear} and its aliases: never sent; New chat is offered instead. */
+        NEW_CHAT,
+        /** A classified command that would change the posture, the session's identity or act outside it. */
+        BLOCK,
+        /** A command name the table does not classify: refused, as an unknown tool would be. */
+        UNCLASSIFIED,
+        /** A terminal shortcut ({@code !} or {@code #} first): refused. An {@code @path} mention is not one (owner, 2026-10-16). */
+        SHORTCUT
+    }
+
+    /**
+     * Send pressed under the local agent: the draft is transcript entry {@code draft}. {@code command} is the command's
+     * canonical name when the CLI or the table knows it, else null — CLI vocabulary, never the person's words.
+     */
+    public record LocalAgentSendRequested(long request, long draft, SlashClass slash, String command,
+                                          LocalAgentConsent consent, java.util.List<Long> draftBindings) {
+        /** M74 P2 (§8.2; review S2): {@code draftBindings} is every composed draft the composer still holds, possibly none. */
+        public LocalAgentSendRequested {
+            draftBindings = bindings(draftBindings);
+        }
+        public LocalAgentSendRequested(long request, long draft, SlashClass slash, String command,
+                                       LocalAgentConsent consent, long draftBinding) {
+            this(request, draft, slash, command, consent,
+                    draftBinding == 0 ? java.util.List.of() : java.util.List.of(draftBinding));
+        }
+        public LocalAgentSendRequested(long request, long draft, SlashClass slash, String command,
+                                       LocalAgentConsent consent) {
+            this(request, draft, slash, command, consent, java.util.List.of());
+        }
+    }
+
+    /**
+     * Settings were applied by the person (review finding 4): what the machine now says about starting Claude Code.
+     * The node decides whether the running session still has the consent and the posture it was started under.
+     */
+    public record LocalAgentConsentChanged(LocalAgentConsent consent) {
+    }
+
+    /** Stop pressed: interrupt the one open turn. */
+    public record LocalAgentStopRequested(String origin) {
+    }
+
+    /**
+     * Owner, 2026-10-18: the person's answer to the restart offer {@code offer} ({@code LocalAgentState.Restart}) —
+     * {@code restart} for <i>Restart now</i>, false for <i>Later</i>. {@code request} is the frame's id for the Start a
+     * restart may need (a folder confirmation answers it); {@code consent} is what the machine says NOW. The node decides
+     * whether the offer still stands and what Yes does.
+     */
+    public record LocalAgentRestartAnswered(long request, long offer, boolean restart, LocalAgentConsent consent) {
+    }
+
+    /** Owner, 2026-10-18: the person clicked the "settings changed — restart to apply" chip: show the offer again. */
+    public record LocalAgentRestartOfferRequested(String origin) {
+    }
+
+    /** New chat under the local agent: end any process, and the next Start begins a new conversation id. */
+    public record LocalAgentNewChatRequested(String origin) {
+    }
+
+    /**
+     * Review M8: the person answered the folder confirmation the node asked for with
+     * {@code ConfirmLocalAgentFolderEffect{request}}. {@code consent} is what the machine says NOW (observed after the
+     * answer); {@code contentUnchanged} says whether the files the full-posture dialog named still read as they did
+     * when it was shown (always true for the default posture). The node decides whether the answer still applies, and
+     * asks for the trust record and the start.
+     */
+    public record LocalAgentFolderAnswered(long request, boolean yes, boolean contentUnchanged, LocalAgentConsent consent) {
+    }
+
+    /**
+     * Review H4: the answer to {@code ServeHostedBridgeEffect} — whether a listener the hosted bridge can reach is up for
+     * {@code generation} ({@code hostedOnly}: it serves only hosted credentials and published no well-known file).
+     */
+    public record LocalAgentBridgeServed(long opId, long generation, boolean listening, boolean hostedOnly, String endpoint)
+            implements Result {
+        /** Review B5: {@code endpoint} — the loopback address it listens on (never a token), or null. */
+        public LocalAgentBridgeServed(long opId, long generation, boolean listening, boolean hostedOnly) {
+            this(opId, generation, listening, hostedOnly, null);
+        }
+    }
+
+    /**
+     * Review B5 (2026-10-17): the person's REST switch (Settings ▸ Assistant ▸ external MCP / REST access), as the frame
+     * observes it at start-up and after a Settings change; actionListener decides what it means for the listener.
+     */
+    public record RestSwitchObserved(boolean on) {
+    }
+
+    /**
+     * Review B2 (2026-10-17): the person's answer to "Close external access while this session runs", for the Claude
+     * Code session of {@code generation}; actionListener decides.
+     */
+    public record ExternalAccessChosen(long generation, boolean closeWhileSession) {
+    }
+
+    /**
+     * Review B5: what a {@link SessionEffects.ConfigureActionListenerEffect} did — up or not, open to external clients or
+     * not, the loopback {@code endpoint} (never a token), or why it could not start ({@code failure}, the analyser's
+     * words with paths removed).
+     */
+    public record ActionListenerConfigured(long opId, boolean listening, boolean external, String endpoint, String failure)
+            implements Result {
+    }
+
+    /**
+     * Review M6: the hosted bridge presented a live credential of {@code generation}; call {@code call} waits for the
+     * session's verdict, decided on the session's thread in its order — never from a snapshot on the HTTP thread.
+     */
+    public record LocalAgentCallAdmissionRequested(long call, long generation, String verb) {
+        /**
+         * Scorecard R1: the verb the call names, as the hosted vocabulary knows it ({@code McpTools.hostedVerbFor}), or
+         * null when it names none — never the call's input. The turn it belongs to is the node's (it records the open
+         * ticket beside its verdict).
+         */
+        public LocalAgentCallAdmissionRequested(long call, long generation) {
+            this(call, generation, null);
+        }
+    }
+
+    /**
+     * Scorecard R1: the action server refused a hosted call itself, before asking the session — {@code graph {delete}},
+     * a verb that is neither pre-allowed nor askable, a malformed body, an unknown or revoked credential. {@code verb} is
+     * the hosted vocabulary's or null; {@code reason} is a code: {@code GRAPH_DELETE}, {@code NOT_LISTED},
+     * {@code BAD_CREDENTIAL}.
+     */
+    public record HostedCallRefusedByServer(long generation, String verb, String reason) {
+    }
+
+    /**
+     * Owner, 2026-10-18: the action server ran a hosted {@code report} call that wrote a report of the active project
+     * WITHOUT the person's approval (Full Claude Code's in-project create, or an update of a report this session wrote).
+     * {@code localAgentPermission} records it for {@code generation}: a later call updating that report — while it still
+     * carries the complete revision of this write in the same project lifetime — is the session's own.
+     * The internal write receipt supplies the project/lifetime/name ownership key and revision. The fact carries
+     * digests only (spec §4.1), never the key's paths or the report's prose.
+     */
+    public record HostedReportWritten(long generation, String nameDigest, String identity) {
+        /** The fact from the actual write, not a later observation of the mutable report. */
+        public static HostedReportWritten of(long generation, String ownerKey, String revision) {
+            return new HostedReportWritten(generation, LocalAgentPosture.digest(ownerKey),
+                    revision == null ? null : identity(ownerKey, revision));
+        }
+
+        /** The digest of a project-bound ownership key and the complete persisted revision. */
+        public static String identity(String ownerKey, String revision) {
+            return LocalAgentPosture.digest(ownerKey + "\u0000" + revision);
+        }
+    }
+
+    /** Final report-write observation. Only digests enter the session record, never paths or report prose. */
+    public record HostedReportApplyRequested(long opId, long generation, long projectGeneration,
+                                             String expectedRootDigest, String actualRootDigest, String expectedOutput,
+                                             String actualOutput, String expectedInput, String actualInput,
+                                             String nameDigest, String expectedRevision, String actualRevision,
+                                             boolean exists) { }
+
+    /** Answered at once by every local-agent effect whose outcome arrives later. */
+    public record LocalAgentEffectStarted(long opId, long generation, String what) implements Result {
+    }
+
+    /** Why a spawn did not produce a process. */
+    public enum SpawnFailure { NONE, NOT_FOUND, LAUNCHER_UNAVAILABLE, LOCKED, ENDPOINT_FAILED, LAUNCH_FAILED,
+        /** This analyser's own previous process for the conversation had not finished stopping (review M3). */
+        PREVIOUS_STILL_STOPPING,
+        /** The Claude Code model setting is not a model name (review S7). */
+        INVALID_MODEL,
+        /** The working directory at spawn is not the one the posture was decided for (review M7). */
+        FOLDER_CHANGED,
+        /** Review B7: in the full posture, the folder's full trust digest at spawn is not one the person confirmed. */
+        TRUST_CHANGED,
+        /**
+         * Authoring walk (2026-10-18): in the full posture, no record names the folder at all — it was never trusted, so
+         * nothing "changed"; the next Start asks about it.
+         */
+        TRUST_NEEDED }
+
+    /** The process for {@code generation} started ({@code failure} NONE), or did not; {@code detailRef} names the words. */
+    public record LocalAgentSpawned(long generation, SpawnFailure failure, long detailRef) {
+    }
+
+    /**
+     * The {@code initialize} control request answered. Only what the handshake needs: whether the CLI is logged in
+     * (decided from {@code tokenSource}, {@code subscriptionType} and {@code apiKeySource}, read at the parse boundary
+     * — the account's e-mail and organisation are never read), the permission mode it reports, and the header's
+     * reference.
+     */
+    public record LocalAgentInitialized(long generation, boolean loggedIn, String permissionMode, long headerRef,
+                                        Billing billing) {
+        public LocalAgentInitialized {
+            billing = billing == null ? Billing.UNKNOWN : billing;
+        }
+
+        public LocalAgentInitialized(long generation, boolean loggedIn, String permissionMode, long headerRef) {
+            this(generation, loggedIn, permissionMode, headerRef, Billing.UNKNOWN);
+        }
+    }
+
+    /**
+     * How a local-agent session is paid for, as an enum read from {@code initialize.account} at the parse boundary
+     * ({@code subscriptionType} present: a Claude plan; {@code apiKeySource}: an API key). Never the source's or the
+     * plan's value: those are header words in the store. It decides only whether a dollar figure means anything (owner,
+     * 2026-10-17).
+     */
+    public enum Billing { SUBSCRIPTION, API_KEY, UNKNOWN }
+
+    /**
+     * One {@code mcp_status} answer. {@code servers} are the configured server names; {@code hostedStatus} is the
+     * hosted bridge's status ({@code connected}, {@code pending}, {@code failed}, or null when it is absent);
+     * {@code hostedNonce} is what follows {@code +bind.} in its {@code serverInfo.version}, or null when there is no
+     * {@code +bind.} — an older bridge. The nonce arrives as {@code LocalAgentPosture.digest}, so the record never holds it.
+     */
+    public record LocalAgentStatusObserved(long generation, long elapsedMs, java.util.List<String> servers,
+                                           String hostedStatus, String hostedNonceDigest) {
+        public LocalAgentStatusObserved {
+            servers = java.util.List.copyOf(servers == null ? java.util.List.of() : servers);
+        }
+    }
+
+    /** 35 s have passed since the spawn of {@code generation}; the node decides whether that ends it. */
+    public record LocalAgentStartDeadline(long generation) {
+    }
+
+    /**
+     * A turn's {@code system/init}: what the CLI says the session is running with. {@code servers} are
+     * {@code name:status}; {@code sessionDigest} is {@code LocalAgentPosture.digest} of the session id the CLI reports,
+     * compared with the node's own: the id itself never enters the record.
+     */
+    public record LocalAgentInitObserved(long generation, long ticket, String sessionDigest, String permissionMode,
+                                         java.util.List<String> tools, java.util.List<String> servers,
+                                         java.util.List<String> capabilities, long headerRef,
+                                         java.util.List<String> skills, java.util.List<String> plugins) {
+        /**
+         * Scorecard R7: {@code skills} and {@code plugins} are the NAMES the turn's {@code system/init} reports (a plugin's
+         * name only, never its path), so the record says what loaded — the person's own configuration, as the server
+         * names already are; never their contents.
+         */
+        public LocalAgentInitObserved {
+            tools = java.util.List.copyOf(tools == null ? java.util.List.of() : tools);
+            servers = java.util.List.copyOf(servers == null ? java.util.List.of() : servers);
+            capabilities = java.util.List.copyOf(capabilities == null ? java.util.List.of() : capabilities);
+            skills = java.util.List.copyOf(skills == null ? java.util.List.of() : skills);
+            plugins = java.util.List.copyOf(plugins == null ? java.util.List.of() : plugins);
+        }
+
+        public LocalAgentInitObserved(long generation, long ticket, String sessionDigest, String permissionMode,
+                                      java.util.List<String> tools, java.util.List<String> servers,
+                                      java.util.List<String> capabilities, long headerRef) {
+            this(generation, ticket, sessionDigest, permissionMode, tools, servers, capabilities, headerRef, null, null);
+        }
+    }
+
+    /** The CLI's lifecycle for the turn's own uuid reached {@code started}. */
+    public record LocalAgentTurnStarted(long generation, long ticket, long atMillis) {
+        /** No time observed. Owner, 2026-10-18: {@code atMillis} is when the adapter saw the turn start (0: unknown). */
+        public LocalAgentTurnStarted(long generation, long ticket) {
+            this(generation, ticket, 0);
+        }
+    }
+
+    /**
+     * The answer text of {@code ticket} is transcript entry {@code textRef}, now at {@code revision} (coalesced);
+     * {@code atMillis} is when the adapter observed this revision (0: unknown) — the first one is the answer's time.
+     */
+    public record LocalAgentTextUpdated(long generation, long ticket, long textRef, long revision, long atMillis) {
+        public LocalAgentTextUpdated(long generation, long ticket, long textRef, long revision) {
+            this(generation, ticket, textRef, revision, 0);
+        }
+    }
+
+    /** What a turn's end was. */
+    public enum TurnOutcome { COMPLETED, CANCELLED, ERROR, BUDGET, PROCESS_EXIT }
+
+    /** The first end signal of {@code ticket}: lifecycle completed/cancelled, its {@code result}, or process exit. */
+    public record LocalAgentTurnEnded(long generation, long ticket, TurnOutcome outcome) {
+    }
+
+    /** A {@code result}'s {@code total_cost_usd}, a running total for the SESSION (it survives resume), in micro-USD. */
+    public record LocalAgentCostObserved(long generation, long totalCostMicros, long ticket, long durationMs) {
+        /** No turn named: only the running total. */
+        public LocalAgentCostObserved(long generation, long totalCostMicros) {
+            this(generation, totalCostMicros, 0, -1);
+        }
+    }
+
+    /** Something the stream said that the person should see as a status line. */
+    public enum AgentNote { COMPACTED, RATE_LIMITED, AUTH_FAILED, PERMISSION_DENIED,
+        /**
+         * A request the mode would ASK the person about, denied because nobody can be asked: {@code --permission-prompts
+         * none} (P1b, P2) reports it as {@code decision_reason_type:"asyncAgent"} (PB-1).
+         */
+        APPROVAL_UNAVAILABLE }
+
+    /** {@code note} happened in {@code ticket}; {@code epochSeconds} is a rate limit's reset time, else 0. */
+    public record LocalAgentNoted(long generation, long ticket, AgentNote note, long epochSeconds, String tool) {
+        /**
+         * Scorecard R2: {@code tool} names the tool a denial was about from a fixed vocabulary ({@code ToolVocabulary.word}:
+         * {@code Read}, {@code Bash}, {@code analyser_report}, {@code other-mcp}, …), or null for a note about none.
+         */
+        public LocalAgentNoted(long generation, long ticket, AgentNote note, long epochSeconds) {
+            this(generation, ticket, note, epochSeconds, null);
+        }
+    }
+
+    /** The CLI's hook vocabulary, as {@code system/hook_*} names it; anything else is {@link #OTHER}. */
+    public enum HookEvent { SessionStart, SessionEnd, UserPromptSubmit, PreToolUse, PostToolUse, Notification, Stop,
+        SubagentStop, PreCompact, OTHER;
+
+        /** The event a {@code hook_event} name reports, never the name itself when it is not in the vocabulary. */
+        public static HookEvent of(String name) {
+            if (name != null) for (HookEvent e : values()) if (e != OTHER && e.name().equals(name)) return e;
+            return OTHER;
+        }
+    }
+
+    /** A hook's progress: {@code hook_started}, or {@code hook_response} with {@code outcome} success or not. */
+    public enum HookOutcome { STARTED, OK, FAILED }
+
+    /**
+     * A hook ran (P1b §8.1). Only its event and outcome: the hook's output, stdout and stderr are never read at the
+     * parse boundary (PB hook shapes), so they cannot reach a fact, the store or the snapshot. {@code ticket} is the
+     * turn it ran in, 0 for {@code SessionStart} at spawn.
+     */
+    public record LocalAgentHookObserved(long generation, long ticket, HookEvent event, HookOutcome outcome) {
+    }
+
+    /**
+     * {@code system/status} reported {@code permissionMode} in the middle of a session (review finding 2): a mode change
+     * between turns' {@code system/init}s. The node checks it against the posture and kills at once on a mismatch.
+     */
+    public record LocalAgentModeObserved(long generation, long ticket, String permissionMode) {
+    }
+
+    /** The interrupt for {@code ticket} was acknowledged by a {@code control_response}. */
+    public record LocalAgentInterruptAcked(long generation, long ticket) {
+    }
+
+    /** Which Stop deadline passed: no acknowledgement in 5 s, or no end in 15 s. */
+    public enum StopDeadline { ACK, END }
+
+    /** A Stop deadline for {@code ticket} passed; the node decides whether the process tree is killed. */
+    public record LocalAgentStopDeadline(long generation, long ticket, StopDeadline which) {
+    }
+
+    /** The process of {@code generation} exited with {@code code}; {@code stderrRef} names its redacted last line. */
+    public record LocalAgentExited(long generation, int code, long stderrRef) {
+    }
+
+    // ---- M74 P2: drafts from the Ask catalogue and the start page (spec §5.5, §5.8, §8.2) -----------------------------
+    //
+    // Words never travel in these facts: a draft is a transcript reference, a configured source a store reference and a
+    // words-free shape, a flow's result references. Each is recorded in the session audit record as it is.
+
+    /**
+     * A draft was composed for Claude Code (the pop-up's Yes, a journey handoff, a start-page entry): transcript entry
+     * {@code draftRef} of the local agent's store. {@code questionId} is an {@code AskCatalogue} id, or {@code JOURNEY},
+     * {@code START_PAGE}, {@code FREE_TEXT}, {@code CONFIGURED}. {@code logIdentity} (a digest) and {@code logGeneration}
+     * bind it to the log it names, null and 0 for an unbound draft. {@code consent} is what the machine says now, so the
+     * node arms Start only when Start would be accepted (r8 F2).
+     */
+    public record LocalAgentDraftComposed(long draftRef, String questionId, String logIdentity, long logGeneration,
+                                          LocalAgentConsent consent, String origin) {
+    }
+
+    /** The same for the in-app assistant: entry {@code draftRef} of the in-app transcript. */
+    public record AssistantDraftComposed(long draftRef, String questionId, String logIdentity, long logGeneration,
+                                         String origin) {
+    }
+
+    /**
+     * Robot walkthrough #1 (2026-10-18): a question was composed (an Ask from a record, a chart, the topology) while NO
+     * assistant is chosen — reported instead of a draft for the assistant the mode silently defaults to. Its words are in
+     * the frame's store under {@code draftRef}, never here. {@code assistantProfile} holds it, unbound, and asks for it to
+     * be placed for the assistant the person applies; the node in force then binds it.
+     */
+    public record AssistantDraftPending(long draftRef, String questionId, String origin) {
+    }
+
+    /**
+     * Robot walkthrough #1: the person pressed "Ask again for Claude Code" on a refusal that the composer holds a question
+     * drafted for the other assistant. {@code draftBindings} is every composed draft the composer holds.
+     */
+    public record LocalAgentAskAgainRequested(long request, java.util.List<Long> draftBindings) {
+        public LocalAgentAskAgainRequested {
+            draftBindings = java.util.List.copyOf(draftBindings == null ? java.util.List.of() : draftBindings);
+        }
+    }
+
+    /** A prime effect was performed: the draft is in the composer (or {@code ok} false and why). */
+    public record DraftPlaced(long opId, long draftRef, boolean ok, String reason) implements Result {
+    }
+
+    /**
+     * What can answer on the start page, observed by the frame (OD-74.23): the switch, whether the resolver finds
+     * {@code claude} (a file check, nothing run), whether the in-app assistant has a provider that can answer, and whether
+     * in-process actions are on (the catalogue needs them in-app, r8 F4). M77-4: and whether an in-app API key is stored
+     * at all ({@code inAppKeyStored}) — under Off nothing can answer though a key may be stored, and the quick switch's
+     * In-app needs a key, not an answer, to apply (§14.3). Never the key itself.
+     */
+    public record StartPageAvailability(boolean claudeCodeAllowed, boolean claudeCodeFound, boolean inAppCanAnswer,
+                                        boolean inProcessActions, boolean inAppKeyStored) {
+        /** The shape before M77-4: a key is taken to be stored exactly when the in-app assistant can answer. */
+        public StartPageAvailability(boolean claudeCodeAllowed, boolean claudeCodeFound, boolean inAppCanAnswer,
+                                     boolean inProcessActions) {
+            this(claudeCodeAllowed, claudeCodeFound, inAppCanAnswer, inProcessActions, inAppCanAnswer);
+        }
+    }
+
+    /**
+     * The start page's button was pressed (§5.8): the person's act. {@code entryId} is a built-in id ({@code S1}…) or
+     * {@code NONE} (free text alone).
+     * {@code textRef} is the box's words in the start page's store, 0 when empty. {@code workspaceOpen}: a workspace is
+     * behind the page (Help ▸ Start page), so the docked tab can be revealed; with none the assistant pops out (OD-74.21).
+     * Robot re-walk #3: {@code aboutEvidence} — the box's words read as being about evidence (the frame's word check;
+     * the words never travel); {@code noLogAcknowledged} — the person already chose to ask it with no log open (Ask
+     * anyway), or a log was opened for it, so it is never held again.
+     */
+    public record StartPagePromptSent(long request, String entryId, long textRef,
+                                      LocalAgentConsent consent, boolean claudeCodeFound, boolean inAppCanAnswer,
+                                      boolean inProcessActions, boolean workspaceOpen, boolean aboutEvidence,
+                                      boolean noLogAcknowledged) {
+
+        /** The shape before robot re-walk #3: not read as evidence, so never held for want of a log. */
+        public StartPagePromptSent(long request, String entryId, long textRef, LocalAgentConsent consent,
+                                   boolean claudeCodeFound, boolean inAppCanAnswer, boolean inProcessActions,
+                                   boolean workspaceOpen) {
+            this(request, entryId, textRef, consent, claudeCodeFound, inAppCanAnswer, inProcessActions, workspaceOpen,
+                    false, false);
+        }
+    }
+
+    /** Robot re-walk #3: what the person chose on the start page's "No log is open" line. */
+    public enum NoLogChoice { OPEN_SAMPLE, OPEN_LOG, ASK_ANYWAY }
+
+    /** The person pressed one of the "No log is open" line's actions for held press {@code request}. */
+    public record StartPageNoLogAnswered(long request, NoLogChoice choice) {
+    }
+
+    /** How a start-page flow ended. */
+    public enum FlowOutcome { DONE, CANCELLED, REFUSED, FAILED }
+
+    /**
+     * A start-page flow ended (the chooser and load of S5, the chooser and verification of S3, the catalogue fetch of S4).
+     * {@code logGeneration} is the log it opened (S5, S3), {@code bundleNameRef} the verified bundle's file name and
+     * {@code templateNamesRef} the fetched names, each in the start page's store (0 when none; for S4, 0 = unreachable).
+     */
+    public record StartPageFlowDone(long request, FlowOutcome outcome, long logGeneration, long bundleNameRef,
+                                    long templateNamesRef) {
+    }
+
+    /**
+     * The person dropped a Markdown prompt pack on the start page (owner request 2026-10-17, §5.8): {@code packRef} names
+     * the parsed pack in the frame's session-only store (0 when refused), or {@code refusal} and {@code refusalLine} say
+     * why it was not used — a code and a line, never the file's words. Nothing of it is ever persisted.
+     */
+    public record StartPromptPackDropped(long packRef,
+                                         telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Cause refusal,
+                                         int refusalLine) {
+    }
+
+    /** "← Return to main options": the built-in list again. */
+    public record ReturnToMainOptions(String origin) {
+    }
+
+    /** Answered at once by each start-page effect whose outcome arrives later (or never: a fallback shown). */
+    public record StartPageEffectStarted(long opId, long request, String what) implements Result {
+    }
+
+    // ---- M74 P2b: propose onboarding (spec §5.6, OD-74.13) ------------------------------------------------------------
+
+    /**
+     * One proposed item as the dispatcher received it: Claude's KIND, and its path, class name and reason by REFERENCE
+     * into the transcript store (0 = absent) with digests to compare them by — never the words themselves, which the
+     * session record would otherwise carry (spec §4.1; scorecard R6). Also what was observed about the fields' lengths and
+     * the class name's form. The node decides every item-level refusal from these.
+     */
+    public record ProposalItemFact(String kind, long pathRef, String pathDigest, long classNameRef, String classNameDigest,
+                                   long reasonRef, boolean tooLong, boolean classNameMalformed, long starterRef,
+                                   String starterDigest, long artifactRef, long groupRef, long basePackageRef,
+                                   boolean namesMalformed) {
+        /** An item that names no starter (every kind but {@code starter}). */
+        public ProposalItemFact(String kind, long pathRef, String pathDigest, long classNameRef, String classNameDigest,
+                                long reasonRef, boolean tooLong, boolean classNameMalformed) {
+            this(kind, pathRef, pathDigest, classNameRef, classNameDigest, reasonRef, tooLong, classNameMalformed, 0, null,
+                    0, 0, 0, false);
+        }
+
+        /** Option 2: whether the item names a starter id (by reference, as Claude's words always are). */
+        public boolean hasStarter() {
+            return starterRef != 0;
+        }
+
+        public boolean hasPath() {
+            return pathRef != 0;
+        }
+
+        public boolean hasClassName() {
+            return classNameRef != 0;
+        }
+
+        public boolean hasReason() {
+            return reasonRef != 0;
+        }
+    }
+
+    /**
+     * A hosted {@code propose} call whose shape passed, posted on the session thread by the dispatcher's
+     * {@code propose} case for the admitted {@code generation}. The node records the offer and answers in
+     * {@code ProposalState.answer(request)}; it changes NOTHING but the preview it asks for.
+     */
+    public record ProposalReceived(long request, long generation, long summaryRef, java.util.List<ProposalItemFact> items) {
+        public ProposalReceived {
+            items = java.util.List.copyOf(items == null ? java.util.List.of() : items);
+        }
+    }
+
+    /**
+     * The analyser's own read-only check of one item (§5.6 step 5): its verdict word ({@code PAIRED}, {@code FITS},
+     * {@code READABLE}, {@code DIRECTORY}, {@code MARKDOWN}, {@code UNKNOWN}, …), whether it lies {@code outside} the set-up
+     * directory after resolving links, and a refusal code ({@code NOT_FOUND}, {@code WRONG_TYPE}) or null.
+     */
+    public record ProposalItemPreviewed(String proposalId, String itemId, String verdict, boolean outside, String refusal) {
+    }
+
+    /**
+     * Every item was checked: the set-up directory as the session uses it — by reference ({@code setupDirRef}, the frame
+     * resolves it) and shown as {@code …/name} — and whether it already holds a project.
+     */
+    public record ProposalPreviewDone(String proposalId, long setupDirRef, String setupDirShown, boolean projectExists) {
+    }
+
+    /**
+     * Scorecard R5 (spec §8.2): the person's answer to ONE row of the review dialog — Yes or No, for each row they could
+     * answer, the create row's id being {@code create} — posted before {@link ProposalApplyRequested}. So the record tells
+     * a No from a row never looked at.
+     */
+    public record ProposalItemAnswered(String proposalId, String itemId, boolean yes) {
+    }
+
+    /** The person's Apply chosen: the items answered Yes (all others are No), and the analyser's own create row. */
+    public record ProposalApplyRequested(String proposalId, java.util.List<String> yes, boolean createProject) {
+        public ProposalApplyRequested {
+            yes = java.util.List.copyOf(yes == null ? java.util.List.of() : yes);
+        }
+    }
+
+    /** The person closed the banner without applying: every pending item is declined. */
+    public record ProposalDismissed(String proposalId) {
+    }
+
+    /**
+     * What applying one item through the person's own path did: {@code outcome} {@code APPLIED}, {@code REFUSED} (the path's
+     * own gate, said in its words) or {@code FAILED}. The id {@code create} is the analyser's own create row.
+     */
+    public record ProposalItemApplied(long opId, String proposalId, String itemId, String outcome, String why)
+            implements Result {
+    }
+
+    /** The analyser's own verdicts after the last item (§5.6 step 8). */
+    public record ProposalChecked(long opId, String proposalId, String pairing, String fit) implements Result {
+    }
+
+    /** Answered at once by a proposal effect whose outcome arrives later. */
+    public record ProposalEffectStarted(long opId, String proposalId, String what) implements Result {
+    }
+
+    // ---- Option 2 (owner, 2026-10-18): a project from one of the analyser's starter templates ----------------------------
+    //
+    // starterProject decides every step (rule 9); the frame reads the catalogue and the template files, downloads,
+    // vendors the skills, discovers, asks and opens, and reports each as one of these facts. Catalogue words are not a
+    // model's, but they are the network's: the node holds digests, vocabulary words and references, never a name.
+
+    /**
+     * The starter catalogue was read (or could not be): {@code entriesRef} names the frame's copy of the entries (0 when
+     * unreachable); per entry, in the catalogue's order, the digest of its id ({@code LocalAgentPosture.digest}) and its
+     * authoring, host, mode and key need — vocabulary words, which the node orders and recommends by.
+     */
+    public record StarterCatalogueObserved(long request, boolean reachable, long entriesRef,
+                                           java.util.List<StarterFacts> entries) {
+        public StarterCatalogueObserved {
+            entries = java.util.List.copyOf(entries == null ? java.util.List.of() : entries);
+        }
+    }
+
+    /** One catalogue entry as the node holds it: its id's digest and four vocabulary words. */
+    public record StarterFacts(String idDigest, String authoring, String host, String mode, String keyNeed) {
+    }
+
+    /** The person's Project ▸ New project from template… — the same chain as a proposal's starter, from its picker. */
+    public record StarterMenuRequested(long request) {
+    }
+
+    /** The menu's picker answered: the chosen entry's id digest, or null when cancelled. */
+    public record StarterChosen(long request, String idDigest) {
+    }
+
+    /**
+     * The template file was read for {@code request}: its identity defaults by reference ({@code defaultsRef}, the frame
+     * holds them), its authoring word, whether a Fluxtion key file is on this machine, or the analyser's words for why it
+     * could not be read.
+     */
+    public record StarterDefaultsObserved(long opId, long request, boolean ok, long defaultsRef, String authoring,
+                                          boolean keyPresent, String failure) implements Result {
+    }
+
+    /**
+     * The menu's own form answered (Download and open, or Cancel): the names and the folder by reference, and whether the
+     * optional authoring-guide links were asked for.
+     */
+    public record StarterConfigured(long request, boolean ok, long namesRef, long dirRef, String dirShown,
+                                    boolean referenceGuide) {
+    }
+
+    /**
+     * The person chose the starter row's folder in the review ({@code Choose…}): its absolute path by reference
+     * ({@code 0} when cancelled) and shown as {@code …/name}. Claude never names it.
+     */
+    public record StarterDestinationChosen(String proposalId, String itemId, long dirRef, String dirShown) {
+    }
+
+    /**
+     * What the folder is, observed: {@code ABSENT} (its parent exists), {@code EMPTY}, {@code NOT_EMPTY},
+     * {@code NOT_A_DIRECTORY}, {@code NO_PARENT}, {@code NOT_ABSOLUTE} or {@code SECRET_FOLDER} (the home folder or a
+     * credential folder, or one holding it). Only the first two can receive a starter.
+     */
+    public record StarterDirectoryObserved(long opId, long request, long dirRef, String dirShown, String verdict)
+            implements Result {
+    }
+
+    /** The starter was downloaded from the configured origin and unpacked: its root by reference, whether it has a profile. */
+    public record StarterInstalled(long request, long rootRef, String rootShown, boolean profilePresent, long commandsRef) {
+    }
+
+    /** The download or the unpack failed, in the analyser's words (paths shown as …/name). */
+    public record StarterInstallFailed(long request, String why) {
+    }
+
+    /**
+     * The project's skills were written under {@code .claude/skills/}: the skill names written, those kept because a file
+     * was already there (never overwritten), each written file's sha-256 prefix, or the refusal (a resource that does not
+     * match its pinned digest refuses the whole set, before anything is written).
+     */
+    public record SkillsVendored(long request, java.util.List<String> written, java.util.List<String> kept,
+                                 java.util.List<String> digests, String refusal) {
+        public SkillsVendored {
+            written = java.util.List.copyOf(written == null ? java.util.List.of() : written);
+            kept = java.util.List.copyOf(kept == null ? java.util.List.of() : kept);
+            digests = java.util.List.copyOf(digests == null ? java.util.List.of() : digests);
+        }
+    }
+
+    /**
+     * Day-two discovery ran in the new project: the offer by reference ({@code offerRef}) and its digest, what it
+     * counted, and whether the starter shipped a profile.
+     */
+    public record StarterDiscoveryObserved(long request, String offerDigest, long offerRef, boolean profilePresent,
+                                           int roots, int skills, int graphs) {
+    }
+
+    /**
+     * The person answered the ONE combined review: whether to open the project, the source roots and skills chosen from
+     * the offer (relative identities, as M73's selection), the graph chosen (by reference, 0 for none), the digest of
+     * the offer they saw, and whether the Spring design's folder is added as a source root (so the design opens).
+     */
+    public record StarterReviewAnswered(long request, boolean open, java.util.List<String> sourceRoots,
+                                        java.util.List<String> skills, long graphRef, String offerDigest,
+                                        boolean designRoot) {
+        /** An answer with the design folder's row at No (or not offered). */
+        public StarterReviewAnswered(long request, boolean open, java.util.List<String> sourceRoots,
+                                     java.util.List<String> skills, long graphRef, String offerDigest) {
+            this(request, open, sourceRoots, skills, graphRef, offerDigest, false);
+        }
+
+        public StarterReviewAnswered {
+            sourceRoots = java.util.List.copyOf(sourceRoots == null ? java.util.List.of() : sourceRoots);
+            skills = java.util.List.copyOf(skills == null ? java.util.List.of() : skills);
+        }
+    }
+
+    /** The project open (or create) through the person's own path returned: ok, or the analyser's words for why not. */
+    public record StarterProjectOpened(long request, boolean ok, String why) {
+    }
+
+    /** The Spring design (M66) was opened at once, or why not (no design in the starter, a read that failed). */
+    public record StarterDesignOpened(long request, boolean ok, String why) {
+    }
+
+    /** The armed GraphML watch saw the first build's graph: its path by reference, shown as …/name. */
+    public record StarterGraphmlAppeared(long request, long pathRef, String shown) {
+    }
+
+    /** The person answered the after-build offer: open the graph (and pair it with the logs) or not now. */
+    public record StarterGraphOfferAnswered(long request, boolean open) {
+    }
+
+    /** Cancellation stopped the watch; already downloaded files were left untouched. */
+    public record StarterCancelled(long opId, long request) implements Result { }
+
+    /** Answered at once by a starter effect whose outcome arrives later. */
+    public record StarterEffectStarted(long opId, long request, String what) implements Result {
+    }
+
+    /**
+     * The person chose (or cancelled) the set-up directory (§5.6 step 1): its real path by reference ({@code dirRef}; 0
+     * when cancelled) and shown as {@code …/name}, and the folder verdict computed as for Start. Held for this analyser
+     * run only; it is not a project. (R6: no absolute path in a fact.)
+     */
+    public record LocalAgentSetupDirectoryChosen(long request, long dirRef, String dirShown, FolderVerdict verdict) {
+        public boolean cancelled() {
+            return dirRef == 0;
+        }
+    }
+
+    // ---- M74 P2b: a project switch while Claude Code runs (the simplified Move, owner 2026-10-17) ---------------------
+
+    /** What the person chose in the switch offer: stop and get Start ready in the new project, keep it running, cancel. */
+    public enum SwitchChoice { STOP_AND_ARM, KEEP, CANCEL }
+
+    public record LocalAgentSwitchChosen(long request, SwitchChoice choice) {
+    }
+
+    /**
+     * §5.2 the diagnostics line (P2): counts the adapter observed for {@code generation}, posted at a turn's end and at
+     * initialize only when one changed. Never a person's line: command names come from {@code initialize.commands}.
+     */
+    public record LocalAgentDiagnostics(long generation, int unknownEvents, int unclassifiedCommands, int droppedLines) {
+    }
+
+    // ---- M74 P3: permission prompts in the analyser (spec §5.7, §8.3; OD-74.16, OD-74.17) ------------------------------
+    //
+    // A request's words (the tool's name, its server, its input) live in the bounded LocalAgentTranscript; these facts
+    // carry the store reference, the tool's CLASS, a verb or built-in name from a fixed vocabulary, and digests.
+
+    /** What kind of tool a {@code can_use_tool} names — the class the policy of OD-74.16 is decided on (§5.7). */
+    public enum ToolClass {
+        /**
+         * One of the analyser's hosted ASKED verbs: the destructive ones ({@code open, source_root, screenshot, report,
+         * walk, import}) and, since 2026-10-18, {@code graph}, judged call by call.
+         */
+        HOSTED_DESTRUCTIVE,
+        /** Another hosted verb — pre-allowed, so a request for it is an anomaly. */
+        HOSTED_OTHER,
+        /** A tool of the person's own {@code fluxtion-analyser} registration: never this analyser. */
+        PERSONS_ANALYSER_REGISTRATION,
+        /** One of the CLI's own tools (Bash, Edit, Write, WebFetch, …), named from the CLI's fixed vocabulary. */
+        BUILT_IN,
+        /** A tool of one of the person's own MCP servers. */
+        OTHER_MCP,
+        /** Anything else. */
+        UNKNOWN
+    }
+
+    /** Who decided a permission request's answer (§5.7 *Audit*). */
+    /**
+     * Who decided. {@code NON_MUTATING} (review M74 usability #10b, a refinement of OD-74.16): the analyser allowed, without
+     * a dialog, a sub-action of an asked verb that changes nothing ({@code walk {play}}, {@code walk {end}}, the bins'
+     * listings) — only ever for {@link HostedCallKind#NON_MUTATING}, and the server re-checks the call itself.
+     */
+    public enum PermissionBy { PERSON, TIMEOUT, STOP, POLICY, BUSY, TOO_LARGE, CANCELLED, NON_MUTATING, PRE_ALLOWED }
+
+    /**
+     * Review M74 usability #10 (2026-10-17): what a hosted call of an asked verb does, classified by the adapter from the
+     * input it holds ({@code McpTools.hostedCallKind}) — never its words. {@code NON_MUTATING}: a sub-action that changes
+     * nothing stored (playing or ending a walk, listing a bin); {@code WRITES_FILE}: it writes a file in the exchange
+     * folder (a screenshot, a report's PDF or CSV, a bundle, a walk's reel); {@code PRE_ALLOWED} (owner decision
+     * 2026-10-18): a call of a verb judged call by call ({@code graph}) that the pre-allow list covers — it creates a new
+     * chart or changes only the view, never an existing chart's stored definition; {@code CHANGES}: everything else.
+     */
+    public enum HostedCallKind { CHANGES, NON_MUTATING, WRITES_FILE, PRE_ALLOWED }
+
+    /**
+     * Review M74 usability #10a: whether the assistant's file exchange (Settings ▸ Assistant) is on — the frame's
+     * observation, so {@code localAgentPermission} never asks the person about a write the settings would refuse.
+     */
+    public record AssistantFileExchangeObserved(boolean on) {
+    }
+
+    /**
+     * The adapter observed a {@code can_use_tool} for {@code generation}'s turn {@code ticket}. {@code requestRef} names the
+     * request in the store (its words and the CLI's request id stay in the adapter); {@code name} is the hosted verb (for
+     * a hosted class) or the built-in's name (for {@code BUILT_IN}) from a fixed vocabulary, else null.
+     * {@code inputDigest} and {@code toolUseIdDigest} are {@code CanonicalJson.digest} of the input and
+     * {@code LocalAgentPosture.digest} of the id; {@code showable} says whether the input can be shown in full (§5.7: at
+     * most 64 KB canonical, 32 levels, JSON).
+     */
+    public record LocalAgentPermissionRequested(long generation, long ticket, long requestRef, ToolClass toolClass,
+                                                String name, String inputDigest, String toolUseIdDigest,
+                                                boolean showable, HostedCallKind kind) {
+        /** A request whose call has not been classified: it changes something, as every asked call did before #10. */
+        public LocalAgentPermissionRequested(long generation, long ticket, long requestRef, ToolClass toolClass,
+                                             String name, String inputDigest, String toolUseIdDigest, boolean showable) {
+            this(generation, ticket, requestRef, toolClass, name, inputDigest, toolUseIdDigest, showable,
+                    HostedCallKind.CHANGES);
+        }
+
+        public HostedCallKind kind() {
+            return kind == null ? HostedCallKind.CHANGES : kind;
+        }
+    }
+
+    /**
+     * Scorecard R8: the answer the adapter WROTE to the CLI for {@code requestRef} — the result of
+     * {@code AnswerPermissionEffect}, so the session record holds every answer as a fact: the turn, the class, the
+     * vocabulary name, the decision and who decided it. {@code written} false: the process was gone.
+     */
+    public record LocalAgentPermissionAnswered(long opId, long generation, long ticket, long requestRef, ToolClass toolClass,
+                                               String name, boolean allow, PermissionBy by, boolean written)
+            implements Result {
+    }
+
+    /** The person pressed a button of the dialog for {@code requestRef} (closing it is Deny). */
+    public record LocalAgentPermissionChosen(long requestRef, boolean allow) {
+    }
+
+    /** The adapter's clock: {@code deadlineMs} have passed since the dialog for {@code requestRef} was asked for. */
+    public record LocalAgentPermissionDeadline(long generation, long requestRef) {
+    }
+
+    /** The CLI withdrew request {@code requestRef} itself ({@code control_cancel_request}, P3-2). */
+    public record LocalAgentPermissionCancelled(long generation, long requestRef) {
+    }
+
+    /** The adapter's clock: 60 s have passed since grant {@code grantId} was issued (OD-74.17). */
+    public record LocalAgentGrantExpired(long generation, long grantId) {
+    }
+
+    /**
+     * OD-74.17: the hosted bridge presented a call of a hosted DESTRUCTIVE verb with this generation's credential. Call
+     * {@code call} waits (bounded) for the session's verdict, which consumes the one matching unconsumed grant or refuses
+     * — decided on the session's thread, in its order, never on the HTTP thread. {@code inputDigest} is
+     * {@code CanonicalJson.digest} of the call's params; {@code toolUseIdDigest} is the digest of the
+     * {@code claudecode/toolUseId} the bridge forwarded (P3-3), or null.
+     */
+    public record HostedCallPresented(long call, long generation, String verb, String inputDigest, String toolUseIdDigest) {
+    }
+
+    /**
+     * Holistic review B4 (2026-10-17): hosted call {@code call} stopped waiting for the session's verdict (its bounded
+     * wait passed) and the server refused it. The session may still admit it afterwards — consuming a grant for a call
+     * that never ran — so this fact says so, and {@code localAgentPermission} voids what that admission consumed.
+     */
+    public record HostedCallAbandoned(long call, long generation) {
+    }
+
+    // ---- M74 P2b: prompt-pack example entries (owner request 2026-10-17) -----------------------------------------------
+
+    /**
+     * The person pressed an example entry's own Download button: the entry's parsed source, from the pack the node holds.
+     * Nothing was fetched on the drop or on choosing; the node decides each step from here.
+     */
+    public record ExampleDownloadRequested(long request, long packRef, int entryIndex,
+                                           telamin.fluxtion.audit.analyser.analyser.assistant.ExampleSource source) {
+    }
+
+    /**
+     * The person answered the confirmation that showed the exact URL, the publisher, the pinned commit and the target
+     * folder: {@code yes}, the folder chosen ({@code targetDir}, real path) and what was observed about it
+     * ({@code targetProblem}: null, {@code EXISTS_NOT_EMPTY}, {@code NOT_A_DIRECTORY}, {@code NO_PARENT}).
+     */
+    public record ExampleDownloadConfirmed(long request, boolean yes, long targetRef, String targetShown,
+                                           String targetProblem) {
+    }
+
+    /**
+     * The archive arrived (or did not): {@code bytesRef} names the bytes in the frame's store (never in a fact), with
+     * their SHA-256 and size as observed; or {@code failure} in words. The node verifies the digest before any unpack.
+     */
+    public record ExampleFetched(long request, boolean ok, long bytesRef, String sha256, long size, String failure) {
+    }
+
+    /** The unpack through the template archive machinery: the project root it made, or why not. */
+    public record ExampleUnpacked(long request, boolean ok, long rootRef, String rootShown, String failure,
+                                  java.util.List<String> runnable) {
+        /**
+         * Owner follow-up (2026-10-18): {@code runnable} — the files the unpack gave an executable bit, relative to the
+         * project root (an observation; {@code exampleDownload} decides the words). Empty: none.
+         */
+        public ExampleUnpacked {
+            runnable = java.util.List.copyOf(runnable == null ? java.util.List.of() : runnable);
+        }
+
+        public ExampleUnpacked(long request, boolean ok, long rootRef, String rootShown, String failure) {
+            this(request, ok, rootRef, rootShown, failure, java.util.List.of());
+        }
+    }
+
+    /** Answered at once by each example effect. */
+    public record ExampleEffectStarted(long opId, long request, String what) implements Result {
+    }
+
+    /** Review S7: the deadline a {@link SessionEffects.StartExampleClockEffect} started has passed. */
+    public record ExampleDeadlinePassed(long request, String phase) {
+    }
 }

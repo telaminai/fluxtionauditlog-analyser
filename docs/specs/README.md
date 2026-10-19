@@ -28,6 +28,7 @@ line, and update this index in the same change.
 | [spec-evidence-integrity.md](spec-evidence-integrity.md) | analyser half shipped (1.21.0, 1.23.0); the producer half D-E9 is open | completed ▸ M68; MA-2/MA-7 |
 | [spec-evidence-bundle-replay.md](spec-evidence-bundle-replay.md) | released in 1.28.0; whole-feature review (PR #70) and an owner question open | M70 |
 | [spec-shared-evidence-canvas.md](spec-shared-evidence-canvas.md) | thesis; no independent read yet | M48.17 |
+| [spec-document-renderer.md](spec-document-renderer.md) | draft r2 2026-10-17, independently reviewed; owner decisions open | M75 |
 
 ## Assistant
 
@@ -35,6 +36,8 @@ line, and update this index in the same change.
 |---|---|---|
 | [spec-onboard-assistant-journeys.md](spec-onboard-assistant-journeys.md) | released in 1.29.0; acceptance open | Onboard assistant and conversation journeys |
 | [spec-assistant-actions-mcp.md](spec-assistant-actions-mcp.md) | M13.1–13.4 shipped; only M13.5 open | M13 |
+| [spec-ai-setup-wizard.md](spec-ai-setup-wizard.md) | ACCEPTED r5 (2026-10-18); OD-77.1 superseded by M79 OD-79.5; M77-1–5 built (PRs #157, #159, #161, #162, #165), in the 2026-10-18 integration; not released | M77 |
+| [spec-quiet-assistant-panel.md](spec-quiet-assistant-panel.md) | ACCEPTED (2026-10-18), all 12 owner decisions accepted; D1 (#163) and D2 (#166) built, in the 2026-10-18 integration; not released | M78 |
 
 ## Authoring
 
@@ -47,6 +50,7 @@ line, and update this index in the same change.
 | [spec-authoring-mode-selector.md](spec-authoring-mode-selector.md) | proposed; M48.7 built | M48 |
 | [spec-authoring-session-walkthrough.md](spec-authoring-session-walkthrough.md) | companion to the mode selector (real harness output) | M48 |
 | [spec-authoring-token-lowering.md](spec-authoring-token-lowering.md) | proposed 2026-10-13; Higgins lowering for the authoring loop | M72 |
+| [spec-authoring-journey.md](spec-authoring-journey.md) | draft r2 2026-10-17, reviewed; owner decisions OD-76.1–.19 open; not started | M76 |
 
 ## Onboarding and journeys
 
@@ -54,6 +58,7 @@ line, and update this index in the same change.
 |---|---|---|
 | [spec-onboarding-example.md](spec-onboarding-example.md) | M19 in progress; most slices archived | M19 |
 | [spec-project-starter-journey.md](spec-project-starter-journey.md) | analyser half shipped in 1.16.0; producer and download acceptance open | M47, M19.23 |
+| [spec-first-minute.md](spec-first-minute.md) | ACCEPTED r1 (2026-10-18); r6 (two independent reviews, the lead's round 2, the owner's correction and answers), every owner decision accepted; not started | M79 |
 | [spec-extension-tour.md](spec-extension-tour.md) | specified and unblocked; not started | M67 |
 | [spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md) | accepted v2 (replaced M18); the reference the bootstrap artefacts anchor to | M19; delivery order item 10 |
 | [mongoose-bootstrap-artefacts/](mongoose-bootstrap-artefacts/README.md) | review snapshot of the starter's bootstrap files | delivery order item 10 |

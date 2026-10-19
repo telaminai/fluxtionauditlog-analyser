@@ -395,6 +395,62 @@ class FormatConformanceTest {
                 "the forked run: thread, forkedExecution, asyncMethod, annotation");
     }
 
+    /**
+     * C34 — one {@code nodeLogs} entry is one RUN of writes by one node, not one callback. Read from fluxtion-runtime
+     * 1.1.2 {@code LogRecord.addSourceId}: a new {@code - id: {} entry opens only when the logging node changes, or when
+     * {@code addTrace} (invocation tracing) starts one. So a node that logs in two callbacks with no other node between
+     * them writes ONE entry with repeated keys, and the record cannot say where the first callback ended. The reader
+     * keeps every pair in order; nothing recovers the boundary, and nothing may invent one (splitting on a repeated key
+     * would also split a node that logs one key twice in one callback).
+     */
+    @Test
+    void c34_aMergedEntryKeepsEveryPairInOrder_andReadsAsTheSeparatedEntriesDo() throws IOException {
+        LogStore s = bothPathsAgree("c34-merged-entry.yaml");
+        assertEquals(3, s.size());
+        LogRecord init = s.record(1);
+        assertEquals(6, init.nodeLogsCount(), "entries, not callbacks: seven callbacks logged, pe's two share one entry");
+        var pe = init.nodeLogs().get(2);
+        assertEquals("pe", pe.instanceId());
+        assertEquals(List.of("cb=Initialise", "n=1", "cb=AfterEvent", "n=2"),
+                pe.entries().stream().map(kv -> kv.key() + "=" + kv.rawValue()).toList(),
+                "a repeated key is neither an error nor de-duplicated: every pair, in the producer's order");
+        assertEquals(List.of("Initialise", "AfterEvent"), pe.all("cb").stream().map(kv -> kv.rawValue()).toList());
+        assertEquals(0, AuditTrace.traceEntryCount(pe.entries()), "an untraced callback writes no trace run");
+
+        // The merged pe and the separated pc logged the same thing; every value surface must say so.
+        var mergedPe = new telamin.fluxtion.audit.analyser.analyser.graph.GraphKey("pe", "n");
+        var separatePc = new telamin.fluxtion.audit.analyser.analyser.graph.GraphKey("pc", "n");
+        assertEquals("2", telamin.fluxtion.audit.analyser.analyser.graph.SeriesExtractor
+                .lastMatching(init.nodeLogs(), mergedPe).rawValue(), "last occurrence in the record, inside an entry too");
+        assertEquals("2", telamin.fluxtion.audit.analyser.analyser.graph.SeriesExtractor
+                .lastMatching(init.nodeLogs(), separatePc).rawValue());
+        assertEquals(3L, points(s, "pe.n"), "one point per record, not one per pair");
+        assertEquals(points(s, "pc.n"), points(s, "pe.n"));
+        @SuppressWarnings("unchecked")
+        var values = (Map<String, Object>) ((List<Map<String, Object>>) telamin.fluxtion.audit.analyser.analyser.llm.ReadService
+                .read(s.index().snapshot(), Map.of("recordIndex", 1, "count", 1,
+                        "fields", List.of("pe.cb", "pe.n", "pc.cb", "pc.n")), s::rawText, s::record)
+                .get("records")).get(0).get("values");
+        assertEquals(Map.of("pe.cb", "AfterEvent", "pe.n", "2", "pc.cb", "AfterEvent", "pc.n", "2"), values,
+                "read's projection: the merged and the separated node read alike");
+
+        // Wrong-result witness: the fixture discriminates. A reader that took the FIRST value of a repeated key in an
+        // entry reads pe.n as 1 while pc.n reads 2 — the same two callbacks giving two answers by adjacency alone.
+        String firstWins = pe.entries().stream().filter(kv -> "n".equals(kv.key())).findFirst().orElseThrow().rawValue();
+        assertNotEquals(values.get("pe.n"), firstWins, "a first-occurrence reading would be wrong here, and visibly");
+
+        // The control record setAuditLogProcessor dispatches before init carries an @AfterEvent line from every node.
+        assertEquals(List.of("pe", "pc", "pb", "pa"),
+                s.record(0).nodeLogs().stream().map(n -> n.instanceId()).toList());
+
+        // @AfterTrigger and @AfterEvent are never traced, so a traced build's event record keeps entries without
+        // `method`. It stays out of the traced regime: absence there is "may have run", the safe direction.
+        LogRecord event = s.record(2);
+        assertEquals(3, AuditTrace.traceEntryCount(event.nodeLogs().get(0).entries()), "the dispatch callbacks are traced");
+        assertFalse(AuditTrace.tracesEveryInvocation(event),
+                "untraced @AfterTrigger/@AfterEvent entries must not be read as a complete list of what ran");
+    }
+
     @Test
     void c13_anExportedCallIsDimensionedByItsCallback() throws IOException {
         LogStore s = bothPathsAgree("c13-exported-call.yaml");
@@ -628,7 +684,7 @@ class FormatConformanceTest {
                     "c23-marker-values.yaml", "c24-unterminated-marker.yaml", "c25-marker-declaring-zero.yaml",
                     "c26-two-empty-segments.yaml", "c27-whitespace-only.yaml", "c28-zero-bytes.yaml",
                     "c29-no-record-key.yaml", "c30-per-node-level.yaml", "c31-broken-value.yaml",
-                    "c32-record-structure.yaml", "c33-trace-annotation.yaml"), names,
+                    "c32-record-structure.yaml", "c33-trace-annotation.yaml", "c34-merged-entry.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);

@@ -61,9 +61,22 @@ public final class RestEndpointFile {
      * endpoint or the new one — never an empty/partial token file.
      */
     public void write(String url, String token) throws IOException {
+        writeHosted(url, token, null, null);
+    }
+
+    /**
+     * M74 §4.2: the PER-INSTANCE endpoint file of one local-agent spawn — the REST URL and token, plus the binding
+     * {@code nonce} and the generation's {@code hosted} credential. Only this file carries the credential; the
+     * well-known file never does. Written the same way (mode 600, complete before it is visible).
+     */
+    public void writeHosted(String url, String token, String nonce, String hosted) throws IOException {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("url", url);
-        m.put("token", token);
+        // M74 review finding 6: the per-instance hosted file carries only what the hosted bridge needs — the URL, the
+        // nonce and its own credential — never the shared REST token (null here), which is worth more to anyone reading it
+        if (token != null) m.put("token", token);
+        if (nonce != null) m.put("nonce", nonce);
+        if (hosted != null) m.put("hosted", hosted);
         m.put("pid", ProcessHandle.current().pid());
         m.put("startedAt", Instant.now().toString());
 
@@ -95,11 +108,15 @@ public final class RestEndpointFile {
             if (!(Json.parse(Files.readString(path, StandardCharsets.UTF_8)) instanceof Map<?, ?> m)) return null;
             Object url = m.get("url");
             Object token = m.get("token");
-            if (url == null || token == null) return null;
+            Object hostedCredential = m.get("hosted");
+            if (url == null || (token == null && hostedCredential == null)) return null;
             long pid = m.get("pid") instanceof Number n ? n.longValue() : -1;
             Object startedAt = m.get("startedAt");
-            return new Endpoint(url.toString(), token.toString(), pid,
-                    startedAt == null ? null : startedAt.toString());
+            Object nonce = m.get("nonce");
+            Object hosted = m.get("hosted");
+            return new Endpoint(url.toString(), token == null ? null : token.toString(), pid,
+                    startedAt == null ? null : startedAt.toString(), nonce == null ? null : nonce.toString(),
+                    hosted == null ? null : hosted.toString());
         } catch (IOException | RuntimeException e) {
             return null;   // a half-written or corrupt file reads as "no endpoint", never throws at a caller
         }
@@ -125,8 +142,29 @@ public final class RestEndpointFile {
         if (e != null && e.pid() == ProcessHandle.current().pid()) delete();
     }
 
+    private static final java.util.concurrent.atomic.AtomicBoolean EXIT_HOOK = new java.util.concurrent.atomic.AtomicBoolean();
+
+    /**
+     * Once per JVM: at exit, remove the well-known endpoint file if THIS process published it. The window's close already
+     * does so ({@code MainFrame.finishExit}); this covers a quit that never closes the window — the application menu's
+     * Quit on macOS, a {@code SIGTERM}, an {@code exit} elsewhere. A crash or {@code kill -9} still strands the file, which
+     * is why every reader checks {@link Endpoint#alive()}. The home is read when the hook RUNS, and the pid check means it
+     * never removes another analyser's endpoint. Returns whether this call installed the hook.
+     */
+    public static boolean removeOwnedOnJvmExit() {
+        if (!EXIT_HOOK.compareAndSet(false, true)) return false;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> wellKnown().deleteIfOwnedByThisProcess(),
+                "analyser-rest-endpoint-cleanup"));
+        return true;
+    }
+
     /** One published endpoint. {@link #alive()} guards against a file stranded by a crash. */
-    public record Endpoint(String url, String token, long pid, String startedAt) {
+    public record Endpoint(String url, String token, long pid, String startedAt, String nonce, String hosted) {
+
+        /** An endpoint of the well-known file: no nonce, no hosted credential. */
+        public Endpoint(String url, String token, long pid, String startedAt) {
+            this(url, token, pid, startedAt, null, null);
+        }
 
         /** True if the publishing process is still running — the portable {@code kill -0}. */
         public boolean alive() {

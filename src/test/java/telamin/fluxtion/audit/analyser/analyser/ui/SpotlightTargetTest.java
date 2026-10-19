@@ -178,7 +178,7 @@ class SpotlightTargetTest {
         assertEquals(SpotlightTarget.Family.MENU_ITEM, item.family());
         assertEquals("Project", item.menuName());
         assertEquals("New project from template…", item.menuItem());
-        assertEquals(SpotlightTarget.Family.MENU_ITEM, SpotlightTarget.parse("menu:AI:Connect an AI client…").target().family());
+        assertEquals(SpotlightTarget.Family.MENU_ITEM, SpotlightTarget.parse("menu:AI:Set up AI…").target().family());
         assertFalse(SpotlightTarget.parse("menu:").ok());
     }
 

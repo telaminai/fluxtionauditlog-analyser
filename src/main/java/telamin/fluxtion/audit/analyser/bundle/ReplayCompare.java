@@ -34,11 +34,14 @@ public final class ReplayCompare {
     }
 
     /** Where and when a cycle ran, never what it computed: the only lines a replay may differ in. */
-    static final Pattern EXCEPTED = Pattern.compile("^\\s*(endTime|thread):.*$");
+    public static final java.util.List<String> EXCEPTED_FIELDS = java.util.List.of("endTime", "thread");
+    /** The line form of {@link #EXCEPTED_FIELDS}; {@code analyser --help} names each field (MainArgsTest holds it). */
+    static final Pattern EXCEPTED = Pattern.compile("^\\s*(" + String.join("|", EXCEPTED_FIELDS) + "):.*$");
 
     /**
      * The verdict. {@code refusal} non-null: nothing was compared, and it says why. Otherwise {@code agrees}, with the
-     * records compared and how many had {@code endTime} excepted, or the first {@code divergence}, in words.
+     * records compared and how many differed in an excepted ({@code endTime} or {@code thread}) line, or the first
+     * {@code divergence}, in words.
      */
     public record Verdict(EvidenceBundle.Verification verification, String refusal, boolean agrees, int records,
                           int excepted, String divergence) {

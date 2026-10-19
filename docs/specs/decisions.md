@@ -136,3 +136,9 @@ Moved verbatim from the live tracker on 2026-10-01. Cited as *tracker ▸ Decisi
   WebView would cost a ~100MB native per-platform dependency and destroy the single shaded fatjar that
   `jbang analyser@…` depends on. FlatLaf remains the only runtime dependency; a hand-rolled layered
   layout is the work, with pure-Java ELK as the fallback (spec-graph-replay §3).
+- **Claude Code tab: `@path` file mentions are sent; `!` and `#` lines stay refused** _(owner, 2026-10-16)_ — M74
+  OD-74.6. The P1a live smoke (`evidence/m74-p1a-smoke/SMOKE-report.md`) showed that over stream-json the CLI inlines a
+  mentioned file only when it is inside the working folder, and that `--restricted` denies the read of one outside it,
+  so a mention cannot widen the folder. `!` and `#` do nothing over stream-json either, but are kept refused: they are
+  terminal shortcuts a person would expect to run a shell or write memory, and the analyser says plainly that they do
+  not. Pinned by `ClaudeCodeProviderTest` and `LocalAgentAdapterReplayTest`, witnessed both ways.

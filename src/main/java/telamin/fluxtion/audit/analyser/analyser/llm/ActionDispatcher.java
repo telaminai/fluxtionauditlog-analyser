@@ -57,8 +57,61 @@ public final class ActionDispatcher {
         this.render = render;
     }
 
+    /**
+     * M74 P2 (spec §5.6, §8.2 (a)): where a hosted {@code propose} goes. The dispatcher decides only the call's SHAPE
+     * ({@link ProposeShape}); the offer itself is recorded by the session's {@code onboardingProposal} node, on its
+     * thread, which this hands the call to. Null: no session can take an offer, so {@code propose} is unknown here.
+     */
+    @FunctionalInterface
+    public interface Proposer {
+        ActionResult propose(long generation, ProposeShape.Call call);
+    }
+
+    private volatile Proposer proposer;
+
+    public void setProposer(Proposer proposer) {
+        this.proposer = proposer;
+    }
+
     /** Parse a request JSON body and dispatch it. */
     public ActionResult dispatch(String jsonBody) {
+        return dispatch(jsonBody, -1);
+    }
+
+    /**
+     * M74 P2: a call from the hosted bridge, whose credential maps to {@code generation} and was admitted on the session
+     * thread just before (ActionServer). Only such a call may reach {@code propose}; every other caller is told the verb
+     * is unknown, in the same words as any unknown verb.
+     */
+    public ActionResult dispatchHosted(String jsonBody, long generation) {
+        return dispatchHosted(jsonBody, generation, null);
+    }
+
+    /**
+     * Owner 2026-10-18: {@link #dispatchHosted(String, long)} for a {@code report} call the server admitted WITHOUT an
+     * approval: {@code admission} says what it may write, and the executor refuses anything else (a report that appeared
+     * or changed meanwhile is not replaced). Transport metadata, for the call's own duration, like {@link #servingHosted}.
+     */
+    public ActionResult dispatchHosted(String jsonBody, long generation,
+                                       telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) {
+        var previous = REPORT_ADMISSION.get();
+        if (admission != null) REPORT_ADMISSION.set(admission); else REPORT_ADMISSION.remove();
+        try {
+            return dispatch(jsonBody, generation < 0 ? -1 : generation);
+        } finally {
+            if (previous == null) REPORT_ADMISSION.remove(); else REPORT_ADMISSION.set(previous);
+        }
+    }
+
+    private static final ThreadLocal<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission> REPORT_ADMISSION =
+            new ThreadLocal<>();
+
+    /** The admission of the hosted {@code report} call this thread is serving without an approval, or null. */
+    public static telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission hostedReportAdmission() {
+        return REPORT_ADMISSION.get();
+    }
+
+    private ActionResult dispatch(String jsonBody, long hostedGeneration) {
         Object root;
         try {
             root = Json.parse(jsonBody);
@@ -66,11 +119,37 @@ public final class ActionDispatcher {
             return ActionResult.error("malformed JSON: " + e.getMessage());
         }
         if (!(root instanceof Map<?, ?> m)) return ActionResult.error("request must be a JSON object");
-        return dispatch(m);
+        return dispatch(m, hostedGeneration);
+    }
+
+    public ActionResult dispatch(Map<?, ?> req) {
+        return dispatch(req, -1);
     }
 
     @SuppressWarnings("unchecked")
-    public ActionResult dispatch(Map<?, ?> req) {
+    /**
+     * P5 (owner decision 2026-10-18): whether the call this thread is serving came from the hosted bridge — transport
+     * metadata, set for the call's own duration; {@code ActionExecutor.caller()} turns it into the caller a policy
+     * names. Never read across threads: a verb reads it before it moves to the event thread.
+     */
+    private static final ThreadLocal<Boolean> SERVING_HOSTED = new ThreadLocal<>();
+
+    /** Whether the call this thread is dispatching is the hosted bridge's. */
+    public static boolean servingHosted() {
+        return Boolean.TRUE.equals(SERVING_HOSTED.get());
+    }
+
+    private ActionResult dispatch(Map<?, ?> req, long hostedGeneration) {
+        Boolean previous = SERVING_HOSTED.get();
+        if (hostedGeneration >= 0) SERVING_HOSTED.set(Boolean.TRUE); else SERVING_HOSTED.remove();
+        try {
+            return dispatchServed(req, hostedGeneration);
+        } finally {
+            if (previous == null) SERVING_HOSTED.remove(); else SERVING_HOSTED.set(previous);
+        }
+    }
+
+    private ActionResult dispatchServed(Map<?, ?> req, long hostedGeneration) {
         Object vv = req.get("v");
         int v = vv instanceof Number n ? n.intValue() : SCHEMA_VERSION;
         if (v != SCHEMA_VERSION) return ActionResult.error("unsupported schema version " + v
@@ -103,6 +182,10 @@ public final class ActionDispatcher {
                      "report", "coverage", "series", "context", "spotlight", "walk", "import" -> render != null
                         ? render.render(action, params)
                         : ActionResult.error("render verb '" + action + "' is not enabled here");
+                // M74 P2: hosted only — anyone else gets exactly the unknown-verb words below
+                case VerbSchemas.PROPOSE -> hostedGeneration >= 0 && proposer != null
+                        ? propose(hostedGeneration, req.get("params"))
+                        : ActionResult.error("unknown verb '" + action + "'");
                 case "" -> ActionResult.error("missing 'action'");
                 default -> ActionResult.error("unknown verb '" + action + "'");
             };
@@ -110,6 +193,12 @@ public final class ActionDispatcher {
         } catch (RuntimeException e) {
             return ActionResult.error(action + " failed: " + e.getMessage());
         }
+    }
+
+    private ActionResult propose(long generation, Object params) {
+        ProposeShape.Shaped shaped = ProposeShape.of(params);
+        if (shaped.refusal() != null) return ActionResult.error(shaped.refusal());
+        return proposer.propose(generation, shaped.call());
     }
 
     /** The verbs whose answers are made of records; the rest describe the view, the graph or the transport. */

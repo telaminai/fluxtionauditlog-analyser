@@ -321,6 +321,7 @@ public final class ProjectProfile {
         c.namedFocuses.clear();
         c.reports.clear();
         c.walks.clear();                  // M69: a project's walks are that project's
+        c.walkBindingNotes.clear();       // review P2 N-b: what the last load dropped is that load's
         c.runbooks.clear();
         c.vocabularyPath = "";
         c.environments.clear();

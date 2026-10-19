@@ -1,0 +1,167 @@
+package telamin.fluxtion.audit.analyser.analyser.ui;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript;
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile;
+import telamin.fluxtion.audit.analyser.analyser.session.ProfileState;
+
+import javax.swing.AbstractButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import java.awt.Component;
+import java.awt.Container;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Review M74 usability #8, #12, #13, #14 (2026-10-17): one control for how the assistant works; the Settings help says
+ * where the REST token really is; one name for external access everywhere; an accessible name contains its visible label.
+ */
+class AssistantVocabularyTest {
+
+    static final Path CONFIG_PANEL = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ConfigPanel.java");
+
+    static List<Component> all(Container root) {
+        List<Component> out = new ArrayList<>();
+        for (Component c : root.getComponents()) {
+            out.add(c);
+            if (c instanceof Container k) out.addAll(all(k));
+        }
+        return out;
+    }
+
+    /**
+     * ★ #8. Witness: put the mode selector back beside the button — a combo named "Assistant mode" is found, and the
+     * fixed "your plan" with it.
+     */
+    @Test
+    @DisplayName("★ one control in the header names the profile in force and opens the quick switch; no mode selector, no 'your plan'")
+    void oneControlForHowTheAssistantWorks() throws Exception {
+        TranscriptViewTest.onEdt(() -> {
+            AssistantPanel a = new AssistantPanel(new AssistantTranscript());
+            a.renderProfiles(ProfileState.of(AssistantProfile.SAFE));
+            // M78 D2 (§4.1 item 1): the one mode chip — the short title; its name starts with it and names the profile
+            assertEquals("Safe ▾", a.profileButton().getText());
+            String name = a.profileButton().getAccessibleContext().getAccessibleName();
+            assertTrue(name.startsWith("Safe — Assistant: Safe analysis"), "the name starts with the visible label: " + name);
+            for (Component c : all(a)) {
+                if (c instanceof JComboBox<?> box) {
+                    assertNotEquals("Assistant mode", box.getAccessibleContext().getAccessibleName(),
+                            "there is no second control for the same choice");
+                    for (int i = 0; i < box.getItemCount(); i++) {
+                        assertFalse(String.valueOf(box.getItemAt(i)).contains("your plan"), "no fixed 'your plan'");
+                    }
+                }
+                if (c instanceof JLabel l && l.getText() != null) assertFalse(l.getText().contains("your plan"), l.getText());
+                if (c instanceof AbstractButton b && b.getText() != null) {
+                    assertFalse(b.getText().startsWith("Profile"), "the old Profile… button is gone: " + b.getText());
+                }
+            }
+            a.renderProfiles(ProfileState.of(AssistantProfile.IN_APP));
+            assertEquals("In-app ▾", a.profileButton().getText());
+            return null;
+        });
+    }
+
+    /** ★ #12. Witness: the old help sentence — "its URL + token appear in the status bar (and console)" — is found. */
+    @Test
+    @DisplayName("★ Settings says the token is in the endpoint file, readable only by you; the console shows 8 characters")
+    void theSettingsHelpIsTrue() throws Exception {
+        String src = Files.readString(CONFIG_PANEL);
+        assertFalse(src.contains("appear in the status bar (and console)"), "a security claim that is no longer true");
+        assertTrue(src.contains("~/.fluxtion-analyser/rest-endpoint"), "where the token is");
+        assertTrue(src.contains("readable \"\n                + \"only by you") || src.contains("readable only by you"),
+                "and who can read it");
+        assertTrue(src.contains("first 8 characters"), "what the console shows");
+    }
+
+    /**
+     * ★ Final review #15: Settings names the header control by its current label, read from the method that draws it.
+     * Witness: the old "(Assistant ▾)" — a label the header no longer shows.
+     */
+    @Test
+    @DisplayName("★ Settings' intro names the header control as it reads: 'Safe ▾'")
+    void theSettingsIntroNamesTheControlAsItReads() throws Exception {
+        String src = Files.readString(CONFIG_PANEL);
+        assertFalse(src.contains("(<b>Assistant ▾</b>)"), "the header has no control labelled 'Assistant ▾'");
+        assertTrue(src.contains("<b>" + AssistantPanel.assistantControlText(AssistantProfile.SAFE) + "</b>"),
+                "the label as the control draws it");
+    }
+
+    /**
+     * ★ Final review #14: the MCP bridge's own refusal uses the one name. Witness: the old "REST transport disabled".
+     */
+    @Test
+    @DisplayName("★ the MCP bridge says 'External MCP/REST access is off', never 'REST transport disabled'")
+    void theBridgeUsesTheOneName() throws Exception {
+        String bridge = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/mcp/McpBridge.java"));
+        assertFalse(bridge.contains("REST transport disabled"), "the old name");
+        assertTrue(bridge.contains("\"analyser not running, or External MCP/REST access is off"), "the one name");
+    }
+
+    /** ★ #13. Witness: keep the old Settings checkbox label — the one name is not on it. */
+    @Test
+    @DisplayName("★ one name for external access: Set up AI, the Settings checkbox, the AI menu and the limits line agree")
+    void oneNameForExternalAccess() throws Exception {
+        String name = "External MCP/REST access";
+        assertEquals(name, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_SETTING_NAME,
+                "Screen 2b's secondary label (M77-4: the cards' line went with the cards)");
+        assertTrue(Files.readString(CONFIG_PANEL).contains("new JCheckBox(\"" + name), "the Settings checkbox");
+        assertTrue(Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"))
+                .contains("new JCheckBoxMenuItem(\"" + name + "\")"), "the AI menu item");
+        assertTrue(LocalAgentPanel.EXTERNAL_CLOSED_FOR_SESSION.contains(name));
+        assertTrue(LocalAgentPanel.EXTERNAL_OPEN_TO_TOOLS.contains(name));
+        for (Path p : List.of(CONFIG_PANEL, Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/session/AiSetupLines.java"))) {
+            String s = Files.readString(p);
+            assertFalse(s.contains("MCP / REST access"), p + " uses the old spelling");
+            assertFalse(s.contains("drive the UI over localhost"), p + " uses the old checkbox words");
+        }
+    }
+
+    /**
+     * ★ #14 (WCAG 2.5.3, label in name). Witness: name a chip by its title alone — "Generic MCP setup" does not contain
+     * the visible "Other MCP client", and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ every start-page chip's accessible name contains its visible label")
+    void theAccessibleNameContainsTheVisibleLabel() {
+        assertTrue(StartPanel.accessibleName("Generic MCP setup", "Other MCP client").contains("Other MCP client"));
+        assertTrue(StartPanel.accessibleName("Fluxtion API key — not found", "Fluxtion key").contains("Fluxtion key"));
+        assertEquals("Open sample project", StartPanel.accessibleName("Open sample project", "Sample project"),
+                "a title that contains the label is kept as it is");
+        assertEquals("Fluxtion key — found", StartPanel.accessibleName("Fluxtion key — found", "Fluxtion key ✓"),
+                "the tick is not part of the label a person says");
+        assertEquals("Off — Assistant: Off, choose how the assistant works",
+                AssistantPanel.assistantControlName(AssistantProfile.OFF));
+    }
+
+    /**
+     * External utility review (2026-10-17): every quick-switch row (M77-4: the cards' lines) and every limits line says
+     * the profile is not local-only, and Set up AI's screens show the full sentences. Witness: drop {@code CARD_SENDS}
+     * from the Full row's tooltip, or the provider clause from a limits line.
+     */
+    @Test
+    @DisplayName("★ every quick-switch row and every limits line says where your words and evidence go")
+    void everyProfileSaysItIsNotLocalOnly() {
+        String cc = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CLAUDE_CODE_SENDS;
+        String inApp = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.IN_APP_SENDS;
+        for (AssistantProfile p : List.of(AssistantProfile.SAFE, AssistantProfile.FULL)) {
+            String tip = telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.quickTip(p);
+            assertTrue(tip.contains("Not local-only") && tip.contains("Anthropic"), p + " row: " + tip);
+        }
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.quickTip(AssistantProfile.IN_APP)
+                .contains("Not local-only"), "in-app row");
+        assertEquals(cc, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SENDS, "Screen 2a's honesty line");
+        assertEquals(inApp, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.IN_APP_SENDS, "Other options' line");
+        assertTrue(LocalAgentPanel.SAFE_LIMITS.endsWith(cc), "Safe limits");
+        assertTrue(LocalAgentPanel.FULL_LIMITS.endsWith(cc), "Full limits");
+        assertTrue(AssistantPanel.IN_APP_LIMITS.endsWith(inApp), "in-app limits");
+        assertFalse(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.quickTip(AssistantProfile.OFF)
+                .contains("Not local-only"), "Off sends nothing");
+    }
+}

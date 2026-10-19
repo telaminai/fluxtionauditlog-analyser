@@ -29,6 +29,19 @@ COMPARE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayCompare.ja
 RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
+# Release review: the CLI must not bypass the node's stricter documentation URL admission, and an old CLI session
+# carrying that allow must not resume under the new policy. Both are headless, named wrong-result witnesses.
+RELEASE_DOCS_FETCH_CONTROLS = [
+    ('release-docs-fetch-no-cli-bypass', J + 'assistant/localagent/ClaudeCodeProvider.java',
+     '        c.add(toolList(posture.cliAllowedVerbs(schemaVerbs)));',
+     '        c.add(toolList(posture.cliAllowedVerbs(schemaVerbs)) + (posture.isFull() ? ",WebFetch(domain:fluxtion-playground.dev)" : ""));',
+     'ClaudeCodeProviderTest#docsFetchCannotBypassTheUrlApprovalBoundary'),
+    ('release-docs-fetch-new-posture', SESSION + 'LocalAgentPosture.java',
+     '    public static final String DOCS_FETCH_POLICY = "host-url-approval-v2:https://" + DOCS_DOMAIN + ":443/no-user-info";',
+     '    public static final String DOCS_FETCH_POLICY = "WebFetch(domain:" + DOCS_DOMAIN + ")";',
+     'ClaudeCodeProviderTest#aSessionWithTheOldDomainOnlyAllowCannotResume'),
+]
+
 # Reintroduce the review's complete pathname-only defect. Removing only operation correlation
 # leaves the independent digest check in force, an intentionally surviving partial mutation.
 PROVENANCE_APPLICATION = """    @OnEventHandler
@@ -71,7 +84,37 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
                         pending.limits(), pending.notes(), pending.processor())
                 : BundleProvenance.NONE;"""
 
-CONTROLS = [
+CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
+    ("integration-c-source-window", J + 'design/SourceText.java',
+     'to = (int) Math.min(Integer.MAX_VALUE, (long) around + request.context());',
+     'to = around + request.context();',
+     'SourceTextTest#aLargeContextCannotWrapTheWindowIntoAnEmptySuccess'),
+    ("integration-c-report-project", NODE + 'LocalAgentPermission.java',
+     'activeProject == null || e.projectGeneration() != activeProject.generation()\n'
+     '                || e.expectedRootDigest() == null || !e.expectedRootDigest().equals(e.actualRootDigest())',
+     'false', 'ReportOwnershipFrameTest#anAdmittedReportCannotMoveToAnotherProject'),
+    ("integration-c-report-output", NODE + 'LocalAgentPermission.java',
+     '!Objects.equals(e.expectedOutput(), e.actualOutput())', 'false',
+     'ReportAdmissionGuardTest#theWriteRunsOnlyAsJudged'),
+    ("integration-c-report-full-only", NODE + 'LocalAgentPermission.java',
+     '\n                || !localAgent.state().posture().isFull()', '',
+     'ReportAdmissionGuardTest#theWriteRunsOnlyAsJudged'),
+    ("integration-c-report-revision", NODE + 'LocalAgentPermission.java',
+     'e.nameDigest() != null && (e.expectedRevision() == null ? e.exists()\n'
+     '                : !e.exists() || !e.expectedRevision().equals(e.actualRevision()))',
+     'false', 'ReportOwnershipFrameTest#anExternalRetitleRevokesAPreviouslyAdmittedOwnUpdate'),
+    ("integration-c-report-receipt", J + 'net/ActionServer.java',
+     'hostedGate.reportWritten(receipt.generation(), receipt.ownerKey(), receipt.revision());',
+     'hostedGate.reportWritten(receipt.generation(), receipt.ownerKey(), scope.reports().revision(reportAdmitted.get().name()));',
+     'HostedGrantServerTest#theServerRecordsTheReceiptRatherThanAnInterveningEdit'),
+    # Release v5 (2026-10-18): fix/java-spotlight-supersede made the PRODUCT wait for an earlier pane read before a
+    # Java spotlight captures its view, so the test barrier integration-c-sample-reader-barrier mutated is no longer the
+    # only thing standing between that read and a "superseded" refusal (its mutant survived). The control moves to the
+    # product's wait: run the spotlight at once, without waiting, and the held-goto-read witness is refused again.
+    ("spotlight-waits-for-source-reads", UI + 'MainFrame.java',
+     '    private void whenSourceReadsSettle(Runnable then) {\n',
+     '    private void whenSourceReadsSettle(Runnable then) {\n        if (true) { then.run(); return; }\n',
+     'SampleProjectSpotlightFrameTest#aJavaSpotlightWaitsForTheSourceReadAPreviousVerbStarted'),
     ("issue84-java-apply-view-is-walk-owned", UI + 'MainFrame.java',
      '                    walkViewChangeTicket = walkTicket;',
      '                    walkViewChangeTicket = -1;',
@@ -89,9 +132,12 @@ CONTROLS = [
      '                }, ex -> result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight refused: " + ex.getMessage())));',
      '                }, ex -> { });',
      "Issue84JavaWalkFrameTest#anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever"),
+    # Release v5 (2026-10-18): the Java spotlight now captures (captureLookup) only once the panes' reads settle, so a
+    # read inserted there never runs during the held original read and this mutant survived. Re-anchored by meaning:
+    # the same EDT-synchronous read at the spotlight's ENTRY, which still runs on the EDT while the original read is held.
     ("issue84-back-read-off-edt", UI + 'MainFrame.java',
-     "        var lookup = sourceService.captureLookup();\n        var capturedStore = store;",
-     "        var lookup = sourceService.captureLookup();\n        if (walkTicket >= 0) sourceService.sourceForFqn(asked.requests().stream().map(r -> SpotlightTarget.parse(r.target()).target()).filter(SpotlightTarget::javaSource).findFirst().orElseThrow().sourceFqn());\n        var capturedStore = store;",
+     "        long ticket = ++javaSpotlightTicket;\n        long deadlineNanos = System.nanoTime() + javaSourcePreparationTimeout.toNanos();",
+     "        if (walkTicket >= 0) sourceService.sourceForFqn(asked.requests().stream().map(r -> SpotlightTarget.parse(r.target()).target()).filter(SpotlightTarget::javaSource).findFirst().orElseThrow().sourceFqn());\n        long ticket = ++javaSpotlightTicket;\n        long deadlineNanos = System.nanoTime() + javaSourcePreparationTimeout.toNanos();",
      "Issue84JavaWalkFrameTest#backDuringTheOriginalReadMustNotBlockTheEventThread"),
     # Issue #84 third-review corrections, real boundary witnesses and named D-L3 mutants.
     ("issue84-aborted-plan-cannot-be-reowned", NODE + 'OpenBundle.java',
@@ -430,8 +476,9 @@ CONTROLS = [
      'if (total > MAX_TOTAL_BYTES) return', 'if (false) return',
      'WalkConversationTest#theTotalByteLimitIncludesTheAuthorAndJsonEscaping'),
     ('oa3-review-version-overflow', J + 'walk/WalkConversation.java',
-     'if (n.doubleValue() != WalkSpec.CONVERSATION_VERSION) {',
-     'if (n.intValue() != WalkSpec.CONVERSATION_VERSION) {',
+     # M74 P2b re-anchor: v2 is read too (§6), so the check is "neither v1 nor v2"
+     'if (n.doubleValue() != WalkSpec.CONVERSATION_VERSION && !v2) {',
+     'if (n.intValue() != WalkSpec.CONVERSATION_VERSION && !v2) {',
      'WalkConversationTest#aVersionCannotWrapToTheSupportedVersion'),
     ('oa3-review-count-allocation', J + 'config/ConfigStore.java',
      'int boundedCount = Math.min(tc, telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.MAX_TURNS + 1);',
@@ -867,8 +914,9 @@ CONTROLS = [
     ('m44-5-line-waits-for-the-session', UI + 'MainFrame.java',
      '        if (next.total() != s.size()) return;', '',
      'LogFindingsOnEverySurfaceFrameTest#theLineNeverCountsNewRowsBesideTheOldFindings'),
-    ('m44-5-line-waits-for-the-scan', UI + 'MainFrame.java',
-     'next.evidencePending()', 'false',
+    # INTEG-R10: the wait moved into the statusLine node (WAITING while a scan is outstanding); the renderer reads it
+    ('m44-5-line-waits-for-the-scan', NODE + 'StatusLine.java',
+     '                && !logEvidence.scanPending();', ';',
      'LogFindingsOnEverySurfaceFrameTest#theLineNeverCountsNewRowsBesideTheOldFindings'),
     # acceptance 4: the environment's provenance is resolved BEFORE the log is reported open, into the one copy
     ('m44-5-environment-before-open', UI + 'MainFrame.java',
@@ -946,8 +994,11 @@ CONTROLS = [
      '            if (d.project().equals(key) && d.report().name().equals(name)) { found = d; break; }',
      '            if (d.report().name().equals(name)) { found = d; break; }',
      'ReportBinTest#restoreIsScopedToTheProject'),
-    ('p33-restore-not-routed', UI + 'ActionExecutor.java',
-     '|| params.containsKey("csv") || params.containsKey("restore")) {', '|| params.containsKey("csv")) {',
+    # final review #2 (2026-10-17): the report verb's operation is VerbOperations.report's, shared by the executor and
+    # the approval dialog — so the restore routing, the "true" string and the go-alone rules are anchored there
+    ('p33-restore-not-routed', J + 'mcp/VerbOperations.java',
+     '            if (restore instanceof String name && !name.isBlank()) return new Chosen<>(ReportOp.RESTORE, null);',
+     '            if (restore instanceof String name && !name.isBlank()) return new Chosen<>(ReportOp.FINDING, null);',
      'ReportRecoverableDeleteFrameTest#theAssistantsDeleteCanBeUndone'),
     ('p33-nested-link-containment', J + 'llm/ExportGuard.java',
      '            if (!realTarget.startsWith(realDir)) {', '            if (false) {',
@@ -964,12 +1015,12 @@ CONTROLS = [
     ('p33-canonical-export-target', J + 'llm/ExportGuard.java',
      '            return new Resolved(realTarget, null);', '            return new Resolved(resolved, null);',
      'ExportGuardTest#anInternalLinkAllowsNewDescendantsAndReturnsTheCheckedLocation'),
-    ('p33-restore-string-true', UI + 'MainFrame.java',
-     '            if (Boolean.TRUE.equals(restore)) {',
-     '            if (Boolean.TRUE.equals(restore) || "true".equals(String.valueOf(restore))) {',
+    ('p33-restore-string-true', J + 'mcp/VerbOperations.java',
+     '            if (Boolean.TRUE.equals(restore)) return new Chosen<>(ReportOp.LIST_DELETED, null);',
+     '            if (Boolean.TRUE.equals(restore) || "true".equals(String.valueOf(restore))) return new Chosen<>(ReportOp.LIST_DELETED, null);',
      'ReportRecoverableDeleteFrameTest#aReportNamedTrueIsRestoredRatherThanListed'),
-    ('p33-restore-mixed-operations', UI + 'ActionExecutor.java',
-     '                    if (params.size() != 1) return ActionResult.error("report \'restore\' must be used alone");\n', '',
+    ('p33-restore-mixed-operations', J + 'mcp/VerbOperations.java',
+     '            if (p.size() != 1) return invalid("report \'restore\' must be used alone");\n', '',
      'ReportRecoverableDeleteFrameTest#restoreRefusesMixedOperationsWithoutChangingAnything'),
     ('p33-visible-report-actions', UI + 'ReportsPanel.java',
      '        reportsView.add(bar, BorderLayout.NORTH);',
@@ -1010,11 +1061,12 @@ CONTROLS = [
      '        if (s.size() > 0 && !Double.isFinite(s.y(s.size() - 1))) have = false;\n', '',
      'ChartDrawsItsClosingValueTest#aTrailingGapIsNotHeld'),
     ('p51-50-delete-first', UI + 'ActionExecutor.java',
-     '        if (bool(p.get("delete"))) {\n            // #50', '        if (false) {\n            // #50',
+     '        if (graphOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.DELETE) {\n            // #50',
+     '        if (false) {\n            // #50',
      'GraphNotesReplaceAndChartsDeleteTest#deleteDoesNotFallThroughToTheBuildPath'),
     ('p51-50-closed-chart', UI + 'GraphTabs.java',
-     '        if (!hasDefinition(target)) return false;\n        deleteListener.accept(target);',
-     '        if (!hasDefinition(target)) return false;\n        if (true) return true;\n        deleteListener.accept(target);',
+     '        if (!hasDefinition(target)) return false;\n        GraphSpec saved = definitionOf(target);',
+     '        if (!hasDefinition(target)) return false;\n        if (true) return true;\n        GraphSpec saved = definitionOf(target);',
      'GraphNotesReplaceAndChartsDeleteTest#aClosedChartCanBeDeleted'),
     ('p51-50-last-chart-leaves-none', UI + 'GraphTabs.java',
      '            if (placeholder != null) placeholders.add(placeholder);\n', '',
@@ -1069,8 +1121,8 @@ CONTROLS = [
     # caller cannot make, and "close ... for tidying up" sent probes into the profile — a closed chart keeps
     # its definition, which is the accumulation #50 exists to stop.
     ('p51r-50-guidance-names-the-verb', J + 'llm/VerbSchemas.java',
-     'to put a chart away without losing it, use close instead")',
-     'to put a chart away without losing it, close its tab instead")',
+     'to put a chart away without deleting it, use close instead")',
+     'to put a chart away without deleting it, close its tab instead")',
      'ChartRemovalGuidanceTest#closeIsTheVerbNotATab'),
     ('p51r-50-guidance-probes-are-deleted', J + 'llm/VerbSchemas.java',
      '"definition — for a chart worth keeping; a closed probe still sits in the "\n                                + "profile, so delete those. Goes alone; refused for the last open chart"',
@@ -1756,10 +1808,10 @@ CONTROLS = [
     ('rp-verify-states-the-replay-limit', BUNDLE,
      '        return v.replay() == null ? LIMITS : LIMITS_REPLAY;\n', '        return LIMITS;\n',
      'MainBundleTest#aReplayBundleSaysWhatItCarries'),
-    # M70.R3: --replay-compare (spec §6). Every record exact but endTime; a count difference and a changed line are
+    # M70.R3: --replay-compare (spec §6). Every record exact but endTime and thread (ReplayCompare.EXCEPTED_FIELDS); a count difference and a changed line are
     # divergences; only a bundle carrying replay records is compared; the exit code carries the verdict.
     ('rc-only-endtime-is-excepted', COMPARE,
-     'Pattern.compile("^\\\\s*(endTime|thread):.*$")', 'Pattern.compile("^\\\\s*(endTime|thread|eventTime):.*$")',
+     'java.util.List.of("endTime", "thread");', 'java.util.List.of("endTime", "thread", "eventTime");',
      'ReplayCompareTest#anEventTimeIsNeverExcepted'),
     ('rc-a-changed-line-diverges', COMPARE,
      '            if (first != null) {\n', '            if (false) {\n',
@@ -1861,8 +1913,8 @@ CONTROLS = [
     ('cv-a-window-makes-an-excerpt', UI + 'MainFrame.java',
      '        if (e.from() != null || e.to() != null) {\n            var range =', '        if (false) {\n            var range =',
      'EvidenceCaptureFrameTest#anExcerpt'),
-    ('cv-the-bundle-form-goes-alone', UI + 'ActionExecutor.java',
-     '''                    if (params.size() != 1) return ActionResult.error("report 'bundle' must be used alone");\n''', '',
+    ('cv-the-bundle-form-goes-alone', J + 'mcp/VerbOperations.java',
+     '''            if (p.size() != 1) return invalid("report 'bundle' must be used alone");\n''', '',
      'EvidenceCaptureFrameTest#noLog'),
     ('cv-an-excerpt-is-the-same-records', EXCERPT,
      '                if (!taken.digests().get(i).equals(WalkIdentity.recordDigest(back.rawText(i)))) {\n', '                if (false) {\n',
@@ -2105,12 +2157,15 @@ CONTROLS = [
     # onConfigChanged posts SourceRootsObserved, whose snapshot redraws it. That post exists for bundle anchoring, so
     # the refresh is a dependency nobody would see -- narrow the post and the stale banner returns with every other
     # test green. This control makes the dependency fail loudly.
+    # M74 (P1b, then P2): the block now also reports the local agent's consent and what can answer on the start page,
+    # each of which redraws too — so the control drops the WHOLE report, which is the dependency it guards.
     ('oa-settings-save-redraws-assistant', UI + 'MainFrame.java',
      '        if (!fromTransition && session != null) {\n'
      '            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents\n'
-     '                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));\n'
-     '        }\n',
-     '',
+     '                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));\n',
+     '        if (false) {\n'
+     '            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents\n'
+     '                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));\n',
      'AssistantLiveFrameTest#savingProviderSettingsRefreshesAssistant'),
     # ---- OA-3 (spec §6.1, §7): typed dialogue on walks, its storage, sharing and privacy -----------------------------
     ('oa3-binding-validated', UI + 'WalkAuthoring.java',
@@ -2132,8 +2187,8 @@ CONTROLS = [
      '            if (bytes > MAX_TURN_BYTES) return at + "is " + bytes + " bytes; a turn holds at most " + MAX_TURN_BYTES;\n', '',
      'WalkConversationTest#boundsAreEnforced'),
     ('oa3-edit-changes-kind', J + 'walk/ConversationDraft.java',
-     'lines.set(index, new Line(l.role(), text, l.captured(), l.captured() || l.edited()));',
-     'lines.set(index, new Line(l.role(), text, l.captured(), l.edited()));',
+     'lines.set(index, new Line(l.role(), text, l.captured(), l.captured() || l.edited(), false));',
+     'lines.set(index, new Line(l.role(), text, l.captured(), l.edited(), false));',
      'ConversationDraftTest#theKindFollowsWhatHappened'),
     ('oa3-excerpt-discloses-words', BUNDLE_PROFILE,
      '        if (rebase != null && rebase.first() > 0) {\n            for (WalkSpec w : c.walks) {',
@@ -2170,9 +2225,10 @@ CONTROLS = [
      'ConversationJourneyFrameTest#aJourneyPlays'),
     # OA-A15: the handoff must not carry the demonstration into the live thread
     # (first registered as priming from the view AFTER the handoff — equivalent: the view is already cleared by then)
+    # M74 P2: the handoff's in-app branch focuses the empty composer (primeDraft is gone: drafts are appended by the node)
     ('oa4-handoff-carries-nothing', UI + 'MainFrame.java',
-     '                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));\n                revealAssistant();                      // the fresh thread, ready for the person\'s own question\n                assistantPanel.primeDraft("");',
-     '                String demo = assistantPanel.conversationView().getText();\n                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));\n                revealAssistant();\n                assistantPanel.primeDraft(demo);',
+     '                var walk = sessionSnapshot().walkPlayback();\n                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));',
+     '                String demo = assistantPanel.conversationView().getText();\n                var walk = sessionSnapshot().walkPlayback();\n                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));\n                assistantPanel.appendDraft(0, demo, null);',
      'ConversationJourneyFrameTest#theHandoffIsAFreshThread'),
     # ---- OA-5 (spec §8): the DEMO journey's page describes the actual bytes, and its dialogue is true of the log -------
     ('oa5-page-states-the-bytes', 'docs/site/journeys/find-the-first-recorded-breach.md',
@@ -2226,8 +2282,10 @@ CONTROLS = [
     ('ups1-one-cause-one-name', PARSE + 'ProducerDiagnostics.java',
      '            if (broken != null && !broken.secondRecordKey()) continue;\n', '',
      'FormatConformanceTest#c31_aBrokenValueForgesNothingOnEitherPath'),
+    # INTEG-R10: the graph line is composed in graphStatusLine (renderLogEvidence's one writer), and the statusLine node
+    # makes it the line that stays after `open {log, graphml}` in every order, so dropping its warnings is seen again
     ('ups1-graph-line-keeps-warnings', UI + 'MainFrame.java',
-     '                + producerWarning(evidence.producerFindings()));', '                + "");',
+     '                + producerWarning;   // the graph line keeps the log\'s warnings', '                + "";',
      'BrokenValueFrameTest#aBrokenValueForgesNoNodeAndNoEventOnAnySurface'),
     ('ups1-detail-says-not-read', UI + 'LogicalLogView.java',
      '            if (record.brokenAtLine() > 0) {', '            if (false) {',
@@ -2326,8 +2384,8 @@ CONTROLS = [
      '                    (false',
      'WithheldIsNotAbsentTest#withheldLogsMustNotClaimNoOutputRecorded'),
     ('ups1-r2-session-holds-withheld', NODE + 'OpenLog.java',
-     '        nodeLogsWithheld = event.nodeLogsWithheld();\n        total = event.total();\n        mostVerboseLevel = event.mostVerboseLevel();\n        // M68.5',
-     '        total = event.total();\n        mostVerboseLevel = event.mostVerboseLevel();\n        // M68.5',
+     '        nodeLogsWithheld = event.nodeLogsWithheld();\n        total = event.total();\n        mostVerboseLevel = event.mostVerboseLevel();\n        openedAt = event.openedAtMillis();\n        // M68.5',
+     '        total = event.total();\n        mostVerboseLevel = event.mostVerboseLevel();\n        openedAt = event.openedAtMillis();\n        // M68.5',
      'WithheldPairingTest#anAllWithheldLogIsNotSilence'),
     ('ups1-r2-session-append-withheld', NODE + 'OpenLog.java',
      '        sampled = event.sampled();\n        nodeLogsWithheld = event.nodeLogsWithheld();\n        total = event.total();\n        mostVerboseLevel = event.mostVerboseLevel();\n        auditLog.info("openLog", "appended")',
@@ -2338,8 +2396,8 @@ CONTROLS = [
      'GraphPairing.of(declared, logged, 0)',
      'WithheldPairingTest#anAllWithheldLogIsNotSilence'),
     ('ups1-r2-arrival-carries-withheld', UI + 'MainFrame.java',
-     '                provenanceSource, followable, arrival.withheld()));',
-     '                provenanceSource, followable, 0));',
+     '                provenanceSource, followable, arrival.withheld(), System.currentTimeMillis()));',
+     '                provenanceSource, followable, 0, System.currentTimeMillis()));',
      'BrokenValueFrameTest#withheldNodeLogsAreNeverReportedAsAbsent'),
     # PR #92 R3: a repeated scalar's first copy can come from groupingId or thread, not only eventToString.
     ('ups1-r3-grouping-first-copy-withheld', PARSE + 'RecordBreak.java',
@@ -2490,8 +2548,8 @@ CONTROLS = [
      '            if (label != null) return abbreviate(label);',
      'ProjectModelTest#aProjectAndItsWorktreeDrawEveryRootDifferently'),
     ('pr144-panel-draws-primary', UI + 'ProjectPanel.java',
-     '        JLabel primary = new JLabel(r.drawn());',
-     '        JLabel primary = new JLabel(r.primary() == null ? "?" : ProjectModel.abbreviate(r.primary()));',
+     '        JLabel primary = UiText.label(r.drawn());',
+     '        JLabel primary = UiText.label(r.primary() == null ? "?" : ProjectModel.abbreviate(r.primary()));',
      'ProjectModelTest#aProjectAndItsWorktreeDrawEveryRootDifferently'),
     ('pr144-keep-clear-ignored', UI + 'SpotlightGeometry.java',
      '                for (Rectangle keep : clear) covers += overlap(candidate, keep);',

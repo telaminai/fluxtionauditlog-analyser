@@ -314,7 +314,7 @@ paginate rather than truncate, and every page carries the record anchor — prin
 from each other.
 
 An agent can produce the same document without you: write the finding with `flag`, set the view up with
-`goto` and `topology`, then call `report`. See [Analyser assistant](assistant.md).
+`goto` and `topology`, then call `report`. See [Hand the diagnosis on](../diagnose/hand-off.md#write-it-up-a-report).
 
 ## Where it fits
 
@@ -335,3 +335,28 @@ prove that a node did not run. The analyser does not infer missing inheritance o
 The toolbar's **Show all** and `topology {"showAll": true}` perform the same operation: leave every
 nested focus, clear selection and cycle shading, and return to the full graph. Combining the call
 with `scaffolding: false` still exits focus while hiding framework nodes as a view choice.
+
+## Reading coverage results
+
+The denominator counts only what **could** log. Event classes and exported service interfaces appear in
+a graph because the processor handles them, not because they run, so counting them as "never logged"
+reports a category error as a low score — on the demo that alone read 50% where the honest figure is
+100% of what can log. Anything left out is named in `excludedFromDenominator` with its reason, and
+summarised in `excludedNote`: a denominator that quietly shrinks is the same dishonesty as one that
+quietly includes.
+
+With source roots configured, a node whose class **cannot reach an audit logger at all** is left out
+too — but read that exclusion carefully, because it is not reassurance. Such a node is not observable
+in *any* audit log, so the ratio is silent about whether it ran rather than vouching for it, and
+`excludedNote` says so by name. Exclusion requires proof: a node whose source is missing, or whose
+supertype the analyser does not recognise, stays counted. Assuming silence is the one error you cannot
+spot from the output.
+
+When nodes *are* uncovered, the answer also carries `auditLevels` / `auditLevelFinest` /
+`auditLevelNote`. A gap can be the **level** rather than a silence: if the log was captured at INFO,
+any `debug()` or `trace()` call wrote nothing, so a missing node may have run and logged below the
+threshold. The note states the levels present and what they would have discarded, and stops there — the
+log cannot distinguish "the threshold excluded them" from "nothing called `debug()`", so neither does
+the analyser.
+
+

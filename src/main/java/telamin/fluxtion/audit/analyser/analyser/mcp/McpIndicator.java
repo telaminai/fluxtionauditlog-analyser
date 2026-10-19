@@ -47,7 +47,7 @@ public final class McpIndicator {
 
     public static View of(McpSetupState.LocalReadiness readiness) {
         if (readiness == null) {
-            return new View(Level.NEUTRAL, "MCP off", "Local transport state is not known in this window.");
+            return new View(Level.NEUTRAL, "MCP off", "Whether External MCP/REST access is on is not known in this window.");
         }
         return switch (readiness.status()) {
             // "ready", not "connected": this window is serving; whether an AI client is actually talking
@@ -60,7 +60,7 @@ public final class McpIndicator {
             // grey, not red: not set up is a state to act on, not a fault to alarm about, so the
             // tooltip carries the REMEDY rather than a diagnosis
             case OFF -> new View(Level.NEUTRAL, "MCP off", readiness.detail()
-                    + " Nothing is wrong — set it up with AI \u25b8 Connect an AI client.");
+                    + " Nothing is wrong — set it up with AI \u25b8 Set up AI\u2026");
         };
     }
 }

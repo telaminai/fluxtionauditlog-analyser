@@ -41,14 +41,15 @@ final class NewProjectOfferDialog {
             list.add(new JLabel("Found these project files. Select only what this analyser should adopt:"));
             addHeading(list, "Source roots");
             for (Path root : offer.sourceRoots()) {
-                JCheckBox box = new JCheckBox(offer.root().relativize(root).toString());
+                // SF-2: folder names, a SKILL.md's own frontmatter and GraphML paths are the repository's words
+                JCheckBox box = UiText.checkBox(offer.root().relativize(root).toString());
                 box.setSelected(false);
                 roots.put(root, box);
                 list.add(box);
             }
             addHeading(list, "Skills as runbook pointers");
             for (var skill : offer.skills().candidates()) {
-                JCheckBox box = new JCheckBox(skill.name() + " — " + skill.path()
+                JCheckBox box = UiText.checkBox(skill.name() + " — " + skill.path()
                         + (skill.description() == null ? "" : " — " + skill.description()));
                 box.setSelected(false);
                 skills.put(skill.path(), box);
@@ -57,7 +58,7 @@ final class NewProjectOfferDialog {
             addHeading(list, "Topology (at most one opens now)");
             ButtonGroup graphGroup = new ButtonGroup();
             for (GraphmlDiscovery.Candidate graph : offer.graphs().candidates()) {
-                JRadioButton button = new JRadioButton(graph.describe());
+                JRadioButton button = UiText.radio(graph.describe());
                 button.setSelected(false);
                 graphGroup.add(button);
                 graphs.put(graph.file(), button);
@@ -107,7 +108,7 @@ final class NewProjectOfferDialog {
 
     private static void addHeading(Box list, String text) {
         list.add(Box.createVerticalStrut(10));
-        JLabel label = new JLabel(text);
+        JLabel label = UiText.label(text);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         list.add(label);
     }

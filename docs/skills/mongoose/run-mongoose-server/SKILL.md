@@ -21,7 +21,7 @@ the bottom of this file, and the check belongs immediately before it.
 1. Start the server using **this project's own script**, not an invented command:
 
    ```
-   ./scripts/run-server.sh              # the starter's entry point
+   ./run-server.sh                      # the starter's entry point, at the project root
    ```
 
    TODO(bundle): if this project names it differently, correct this line when the bundle is generated.

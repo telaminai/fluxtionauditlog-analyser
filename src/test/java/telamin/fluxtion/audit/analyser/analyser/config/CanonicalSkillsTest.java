@@ -516,4 +516,36 @@ class CanonicalSkillsTest {
                 .digest(text.getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(digest);
     }
+
+    /**
+     * ★ Option 2 (owner, 2026-10-18): the skills a starter project gets are written from the analyser's own JAR — the pom
+     * copies {@code docs/skills} to {@code /starter-skills/} — so every file v2 can select must be on the classpath and
+     * byte-identical to the index's sha256, and the playground's two pages must match their pins. Witness: edit a byte
+     * of a bundled copy (or drop the pom's resource) — this fails before any project is written.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void theJarCarriesEverySelectableSkillAtItsPinnedDigest() throws Exception {
+        Map<String, Object> v2 = (Map<String, Object>) telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(
+                Files.readString(ROOT.resolve("m19-skills/2/index.json")));
+        Map<String, Object> pins = (Map<String, Object>) v2.get("sha256");
+        assertFalse(pins.isEmpty());
+        for (var e : pins.entrySet()) {
+            try (var in = getClass().getResourceAsStream("/starter-skills/" + e.getKey())) {
+                assertNotNull(in, "the jar carries " + e.getKey());
+                assertEquals(e.getValue(), telamin.fluxtion.audit.analyser.analyser.template.StarterSkills.sha256(
+                        in.readAllBytes()), "the jar's copy of " + e.getKey() + " is the pinned one");
+            }
+        }
+        try (var in = getClass().getResourceAsStream("/starter-skills/m19-skills/2/index.json")) {
+            assertNotNull(in, "the index ships too");
+        }
+        for (var e : telamin.fluxtion.audit.analyser.analyser.template.StarterSkills.PLAYGROUND.values()) {
+            try (var in = getClass().getResourceAsStream("/starter-skills/" + e[1])) {
+                assertNotNull(in, "the jar carries " + e[0]);
+                assertEquals(e[2], telamin.fluxtion.audit.analyser.analyser.template.StarterSkills.sha256(in.readAllBytes()),
+                        e[0] + " is the copy fetched and pinned on 2026-10-18");
+            }
+        }
+    }
 }

@@ -2,7 +2,7 @@
 
 The analyser reads the **event-audit log** a Fluxtion `EventProcessor` emits. This page is the whole
 path from "my processor logs nothing" to a file the analyser opens. In a hurry, or just evaluating?
-The analyser ships a recorded run inside the jar — see [Getting started](getting-started.md). Want a
+The analyser ships a recorded run inside the jar — see [Guided tour and sample project](start/tour-and-sample.md). Want a
 **live producer** instead of a recording — something you start, that writes a log while you watch?
 Download a prepared one: [From playground to analyser in 10 minutes](tutorial-playground.md). Its
 audit configuration is a working example of everything below.
@@ -172,14 +172,29 @@ sink; that file is the one you open here.
 - **Log level** — raise it (e.g. `DEBUG`) while diagnosing to capture more per-node detail; lower it
   (`INFO`) in steady state.
 - **File sink** — the server writes records to a `---`-separated text file. Open it locally, or copy it
-  to S3 and open `s3://bucket/key`. **This is the sink the analyser reads.**
+  to S3 and open `s3://bucket/key`.
 
-!!! note "The audit writer is pluggable — use the file sink for the analyser"
+!!! note "Which audit sinks the analyser reads"
     `EventLogManager` takes a `LogRecordListener`, so a processor can write its audit stream to any
-    back-end sink — a text file, or **Chronicle**, kafka, jdbc, etc. for higher throughput. The analyser
-    reads the **text file sink**. If your production system logs to Chronicle (or another binary sink)
-    for performance, add a text file sink alongside it to feed the analyser. (A file sink and a
-    high-performance sink can run side by side on the same processor.)
+    back-end sink: a text file, the binary `FLXA` file, **Chronicle**, Kafka, JDBC and so on. The analyser reads
+    the **text file** and the **binary file**. A Fluxtion binary audit log (`FLXA`) opens like a text one, recognised
+    by its first four bytes rather than its file name. For any other sink, export to one of those, or run a file sink
+    alongside it: a file sink and a high-performance sink can run side by side on the same processor.
+
+    A binary log differs from a text one in five ways:
+
+    - It does not carry `groupingId` or `thread`, so the analyser shows neither, rather than inventing them.
+    - It cannot be followed while it is still being written: open it again to see new records.
+    - Only millisecond binary logs open. A header that states no time unit, or nanoseconds, is refused. For a file
+      whose header states no unit, write a copy that declares it with the runtime's audit tool,
+      `AuditLogTool <file> --declare-unit millis --out <copy>`, and open the copy.
+    - Its byte offsets are not positions in the file, so an agent's `read` by `byteOffset` finds nothing; read by
+      record index or time instead.
+    - A cut-off tail is reported, not refused: the records before it open, and the analyser says how many bytes
+      at the end formed no whole record.
+
+    The analyser's [format specification](format-spec.md) is the text format's; the binary format's own
+    specification is published with the Fluxtion runtime.
 
 In an **embedded processor** the three pieces above are the whole configuration. In a **Mongoose
 server** the level and the sink are server configuration rather than code — see the Mongoose server

@@ -26,7 +26,7 @@ final class ImportSettingsDialog extends JDialog {
         JPanel content = new JPanel(new BorderLayout(0, UiTheme.PAD));
         content.setBorder(UiTheme.pad());
 
-        JLabel intro = new JLabel("<html>From <b>" + escape(sourceName)
+        JLabel intro = new JLabel("<html>From <b>" + UiText.escape(sourceName)
                 + "</b>. Choose what to apply — nothing is changed until you click Import.</html>");
         content.add(intro, BorderLayout.NORTH);
 
@@ -39,19 +39,29 @@ final class ImportSettingsDialog extends JDialog {
         g.insets = new Insets(2, 2, 2, 8);
         for (Category c : Category.values()) {
             if (!plan.present().contains(c)) continue;
-            JCheckBox cb = new JCheckBox(c.label, true);
+            JCheckBox cb = UiText.checkBox(c.label, true);
             boxes.put(c, cb);
             g.gridx = 0;
             g.weightx = 0;
             rows.add(cb, g);
-            JLabel detail = new JLabel(plan.summary().getOrDefault(c, ""));
+            JLabel detail = UiText.label(plan.summary().getOrDefault(c, ""));   // SF-2: the imported file's contents
             UiTheme.status(detail);
             g.gridx = 1;
             g.weightx = 1;
             rows.add(detail, g);
             g.gridy++;
         }
-        content.add(rows, BorderLayout.CENTER);
+        if (plan.machineOnly().isEmpty()) {
+            content.add(rows, BorderLayout.CENTER);
+        } else {
+            // P3: a switch the file carried that is this machine's is named, never applied and never a checkbox
+            JPanel middle = new JPanel(new BorderLayout(0, UiTheme.GAP));
+            middle.add(rows, BorderLayout.CENTER);
+            JLabel ignored = UiText.label(machineOnlyText(plan));
+            UiTheme.status(ignored);
+            middle.add(ignored, BorderLayout.SOUTH);
+            content.add(middle, BorderLayout.CENTER);
+        }
 
         JButton ok = new JButton("Import");
         JButton cancel = new JButton("Cancel");
@@ -74,6 +84,11 @@ final class ImportSettingsDialog extends JDialog {
         return s;
     }
 
+    /** P3: the import summary's line for the machine-tier switches the file carried, or "" when it carried none. */
+    static String machineOnlyText(ImportPlan plan) {
+        return String.join(". ", plan.machineOnly()) + (plan.machineOnly().isEmpty() ? "" : ".");
+    }
+
     /** Show the summary; returns the selected categories, or {@code null} if cancelled. */
     static Set<Category> show(Frame owner, ImportPlan plan, String sourceName) {
         ImportSettingsDialog d = new ImportSettingsDialog(owner, plan, sourceName);
@@ -81,7 +96,4 @@ final class ImportSettingsDialog extends JDialog {
         return d.result;
     }
 
-    private static String escape(String s) {
-        return s == null ? "" : s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-    }
 }

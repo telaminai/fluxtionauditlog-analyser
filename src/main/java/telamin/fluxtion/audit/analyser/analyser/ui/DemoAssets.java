@@ -41,6 +41,10 @@ public final class DemoAssets {
             "demo-quote-audit-traced.yaml",
             "demo-quote-series.yaml",
             "demo-quote-processor.graphml",
+            // M74 P2 (r8 F13): the DEMO journey "Find the first recorded breach" — its log and its walk + chart, exactly as
+            // the site bundle carries them, so the start page's S1 plays it from the jar (JourneyCatalogueTest pins it)
+            "journey/demo-quote-series.yaml",
+            "journey/first-breach.fluxtion-settings",
             "com/acme/demo/api/QuoteControl.java",
             "com/acme/demo/builder/DemoQuoteProcessorBuilder.java",
             "com/acme/demo/builder/DemoQuoteTracedProcessorBuilder.java",
@@ -69,6 +73,16 @@ public final class DemoAssets {
     /** 726 records, for the chart. */
     public static Path seriesLog() {
         return root().resolve("demo-quote-series.yaml");
+    }
+
+    /** The DEMO journey's log — the site bundle's bytes, which its walk is bound to (r8 F13). */
+    public static Path journeyLog() {
+        return root().resolve("journey").resolve("demo-quote-series.yaml");
+    }
+
+    /** The DEMO journey's walk and chart, as a profile fragment. */
+    public static Path journeyProfile() {
+        return root().resolve("journey").resolve("first-breach.fluxtion-settings");
     }
 
     public static Path graphml() {
@@ -106,6 +120,69 @@ public final class DemoAssets {
         } catch (IOException e) {
             throw new UncheckedIOException("could not unpack the demo set to " + root, e);
         }
+    }
+
+    /** The sample's event processor: its generated source ships in the set, under {@link #sourceRoot()}. */
+    public static final String PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor";
+    /** The traced log's processor, also shipped, so the traced log resolves to its own source. */
+    public static final String TRACED_PROCESSOR = "com.acme.demo.generated.DemoQuoteTracedProcessor";
+    /**
+     * The placeholder {@code AppConfig}'s default once named (owner hands-on test, 2026-10-18): a class that does not
+     * exist in the demo set. A sample profile written before then holds it, and the sample's source and
+     * {@code source {bean}} could never resolve.
+     */
+    static final String LEGACY_PLACEHOLDER = "com.acme.marketmaker.strategy.DemoMarketMakerStrategy";
+
+    /**
+     * The sample project's profile under {@code root}: written when absent, and HEALED when it still names the
+     * placeholder processor (or none), or when its source roots do not reach the shipped processor's source — only the
+     * processor fields and the demo root change, so a saved DEMO tour or report survives. The root is written
+     * project-relative ({@code sourceRoot.0=.}), so a moved home still resolves it.
+     *
+     * @return the profile's path
+     */
+    public static Path ensureSampleProfile(Path root) throws IOException {
+        Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
+        var share = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare();
+        var sample = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        if (Files.isRegularFile(profile)) {
+            var loaded = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.load(profile, sample, share);
+            if (!loaded.loaded() || !needsProcessorHeal(sample) && !needsSourceRootHeal(sample, root)) return profile;
+        }
+        sampleSourceRoot(sample, root);
+        sampleProcessors(sample);
+        telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, sample, share);
+        return profile;
+    }
+
+    /** The profile's own source roots do not find the shipped processor's source. */
+    static boolean needsSourceRootHeal(telamin.fluxtion.audit.analyser.analyser.config.AppConfig c, Path root) {
+        return new telamin.fluxtion.audit.analyser.analyser.source.SourceRootResolver(c.sourceRoots).find(PROCESSOR).isEmpty();
+    }
+
+    /** The demo folder (where {@code com/} sits) as a source root, added once. */
+    static void sampleSourceRoot(telamin.fluxtion.audit.analyser.analyser.config.AppConfig c, Path root) {
+        Path demo = root.toAbsolutePath().normalize();
+        boolean present = c.sourceRoots.stream().anyMatch(r -> {
+            try { return Path.of(r).toAbsolutePath().normalize().equals(demo); }
+            catch (RuntimeException notAPath) { return false; }
+        });
+        if (!present) c.sourceRoots.add(demo.toString());
+    }
+
+    /** The profile names the placeholder, or no processor at all. */
+    static boolean needsProcessorHeal(telamin.fluxtion.audit.analyser.analyser.config.AppConfig c) {
+        String selected = c.selectedEventProcessor == null ? "" : c.selectedEventProcessor.trim();
+        return selected.isEmpty() || selected.equals(LEGACY_PLACEHOLDER) || c.eventProcessorFqns.contains(LEGACY_PLACEHOLDER);
+    }
+
+    /** The sample's two shipped processors, the walkthrough's selected. */
+    static void sampleProcessors(telamin.fluxtion.audit.analyser.analyser.config.AppConfig c) {
+        c.eventProcessorFqns.remove(LEGACY_PLACEHOLDER);
+        for (String fqn : List.of(PROCESSOR, TRACED_PROCESSOR)) {
+            if (!c.eventProcessorFqns.contains(fqn)) c.eventProcessorFqns.add(fqn);
+        }
+        c.selectedEventProcessor = PROCESSOR;
     }
 
     /** The files that ship — exposed so a test can assert the jar carries every one. */

@@ -50,12 +50,22 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
         public String disclosure() {
             String bootstrap = agentBootstrap == null ? "not declared"
                     : agentBootstrap.isEmpty() ? "explicitly none" : String.join(", ", agentBootstrap);
-            return description + "\n\n" + keyDisclosure("Build key", keyNeed)
+            return shownDescription() + "\n\n" + keyDisclosure("Build key", keyNeed)
                     + "\n" + keyDisclosure("Regeneration key", regenerationKeyNeed)
                     + "\nAgent entry files: " + bootstrap
                     + "\n\nDeclarations describe the default download; verify the files in the generated project."
                     + (recommended() ? " A recommendation alone does not promise a walkthrough or keyless generation." : "");
         }
+        /**
+         * Authoring walk (2026-10-18, shot 4): the catalogue's description as the person reads it — without the
+         * playground's internal milestone ids ("The M19 onboarding bundle" reads "The onboarding bundle"). The words
+         * are the catalogue's; only an id that means nothing outside the project's tracker is left out (upstream ask
+         * UP-PG-09 asks the catalogue not to carry them).
+         */
+        public String shownDescription() {
+            return withoutMilestoneIds(description);
+        }
+
         private static String keyDisclosure(String label, String value) {
             return label + ": " + switch (value.toLowerCase(java.util.Locale.ROOT)) {
                 case "" -> "not declared";
@@ -70,6 +80,17 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
             return tags.stream().anyMatch(t -> t.equalsIgnoreCase(tag));
         }
 
+    }
+
+    /** An internal milestone id ({@code M19}, {@code M74.3}): never a word for the person. */
+    public static final java.util.regex.Pattern MILESTONE_ID = java.util.regex.Pattern.compile("\\bM\\d+(?:\\.\\d+)*\\b");
+
+    /** {@code text} with each milestone id (and a bracket that held only one) left out, spacing kept single. */
+    public static String withoutMilestoneIds(String text) {
+        if (text == null) return "";
+        String out = text.replaceAll("\\s*\\(\\s*" + MILESTONE_ID.pattern() + "\\s*\\)", "")
+                .replaceAll("[ \\t]*" + MILESTONE_ID.pattern() + "[ \\t]*", " ");
+        return out.replaceAll(" +([,.;:])", "$1").replaceAll("(?m)^ +| +$", "").replaceAll(" {2,}", " ");
     }
 
     /** What the picker should show, including whether recommendations were declared. */

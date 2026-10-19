@@ -141,7 +141,8 @@ public final class AssistantAdapter {
 
     private SessionEvents.Result prepare(SessionEffects.PrepareAssistantContextEffect e) {
         // captured NOW, on the event thread, as immutable values: the worker never sees a mutable config or selection
-        String question = transcript.text(e.draft());
+        // final review #12: the binding is told to the model in the prompt; the person's question stays as they read it
+        String question = transcript.text(e.draft()) + AskCatalogue.modelBinding(e.logGeneration());
         List<LogRecord> records = e.includeRecordContext() ? List.copyOf(nullToEmpty(env.selection())) : List.of();
         String fqn = env.epFqn();
         LogFileInfo file = env.fileInfo();
@@ -154,7 +155,7 @@ public final class AssistantAdapter {
                 String content = context.isEmpty() ? question : "Context follows.\n\n" + context + "\n\nQuestion: " + question;
                 if (e.includeManifest()) content = PromptBuilder.inProcessActionManifest(e.maxActionsPerReply()) + "\n\n" + content;
                 long prompt = transcript.add(AssistantTranscript.Kind.PROMPT, content);
-                env.post(new SessionEvents.AssistantContextPrepared(ticket, prompt));
+                env.post(new SessionEvents.AssistantContextPrepared(ticket, prompt, System.currentTimeMillis()));
             } catch (RuntimeException ex) {
                 env.post(new SessionEvents.AssistantContextFailed(ticket, safeFailure(ex)));
             }
@@ -179,10 +180,14 @@ public final class AssistantAdapter {
                 long replyId = transcript.add(AssistantTranscript.Kind.ANSWER, reply);
                 List<Long> blocks = new ArrayList<>();
                 for (String block : ActionParser.extract(reply)) blocks.add(transcript.add(AssistantTranscript.Kind.ACTION, block));
-                env.post(new SessionEvents.AssistantCompletionReceived(ticket, round, replyId, blocks));
+                env.post(new SessionEvents.AssistantCompletionReceived(ticket, round, replyId, blocks, System.currentTimeMillis()));
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
                 env.post(new SessionEvents.AssistantCompletionFailed(ticket, round, "the request was stopped"));
+            } catch (LlmClient.UnknownProvider ex) {
+                // §8.2 (h): refused before anything is constructed or sent; the stored key never leaves
+                env.post(new SessionEvents.AssistantCompletionFailed(ticket, round,
+                        LlmClient.UnknownProvider.words(e.route().provider())));
             } catch (Exception ex) {
                 env.post(new SessionEvents.AssistantCompletionFailed(ticket, round, safeFailure(ex)));
             }

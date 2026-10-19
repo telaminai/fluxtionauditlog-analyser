@@ -10,6 +10,20 @@ import static telamin.fluxtion.audit.analyser.analyser.design.ProducerResult.*;
 
 /** Read adapter. The session graph owns state; this class reads files and reports completed facts. */
 public final class DesignWorkspace {
+    /**
+     * Owner hands-on test (2026-10-18): {@code {bean}} or {@code {line}} alone with no design open said "a file path is
+     * required" — true of the resolver, wrong about the call. They select within the OPEN design.
+     */
+    public static final String NO_DESIGN = "no design is open: {bean} and {line} alone select within the open Spring XML "
+            + "design — open {design} first, or name the file with {file, bean}";
+    /**
+     * What a refused {@code source {bean}} adds when no design is open and the bean is a node of the graph: its class and
+     * the call that opens it, or how to name the class.
+     */
+    public static String graphNodeHint(String bean, String fqn) {
+        if (fqn == null || fqn.isBlank()) return "; for a processor node's Java source, call source {fqn: \"<its class>\"}";
+        return "; '" + bean + "' is a node of the open graph — its Java source is source {fqn: \"" + fqn + "\"}";
+    }
     public static final String SHAPES = "{file}, {file,line}, {line}, {bean}, {file,bean}, {fqn}, {fqn,method}";
     private final Supplier<DesignFiles> files;
     public interface State { String path(); DesignDocument document(); long generation(); }
@@ -66,14 +80,29 @@ public final class DesignWorkspace {
     public void clear(String reason) { dispatch.accept(new DesignEvents.Cleared(reason)); }
 
     public View source(Map<String, Object> params) throws IOException {
+        return source(params, false);
+    }
+
+    /**
+     * {@link #source(Map)}; {@code lines}: the call asked for the file's TEXT ({@code source {…, text}}, owner 2026-10-18),
+     * so a file that is not UTF-8 is refused in words — the lines cannot be returned — rather than as the decoder's.
+     */
+    public View source(Map<String, Object> params, boolean lines) throws IOException {
         Set<String> keys = params.keySet();
         if (!List.of(Set.of("file"), Set.of("file", "line"), Set.of("line"), Set.of("bean"), Set.of("file", "bean"), Set.of("fqn"), Set.of("fqn", "method")).contains(keys))
             throw new IOException("accepted source selectors: " + SHAPES);
         for (String key : keys) if (params.get(key) == null || str(params.get(key)).isBlank()) throw new IOException("empty source selector: " + key);
         DesignFiles access = files.get();
+        if (!keys.contains("fqn") && !keys.contains("file") && state.get().path() == null) throw new IOException(NO_DESIGN);
         Path path = keys.contains("fqn") ? access.fqn(str(params.get("fqn")))
                 : access.resolve(keys.contains("file") ? str(params.get("file")) : state.get().path());
-        String text = access.read(path);
+        String text;
+        try {
+            text = access.read(path);
+        } catch (java.nio.charset.CharacterCodingException e) {
+            if (lines) throw new IOException("the file is not UTF-8 text, so its lines are not returned: " + path);
+            throw e;
+        }
         int line = 1;
         if (keys.contains("line")) {
             Object n = params.get("line");

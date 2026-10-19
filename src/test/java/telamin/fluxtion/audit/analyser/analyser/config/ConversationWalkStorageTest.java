@@ -61,7 +61,7 @@ class ConversationWalkStorageTest {
     void aNewerVersionSurvives() {
         Properties p = new Properties();
         ConfigStore.writeWalks(p, List.of(WalkPersistenceTest.sample("future")));
-        p.setProperty("walk.0.conv.v", "2");
+        p.setProperty("walk.0.conv.v", "3");   // M74 P2b: v2 is this build's (§6)
         p.setProperty("walk.0.conv.kind", "scripted");
         p.setProperty("walk.0.conv.segments.count", "1");
         p.setProperty("walk.0.conv.segments.0.speech", "a future format");

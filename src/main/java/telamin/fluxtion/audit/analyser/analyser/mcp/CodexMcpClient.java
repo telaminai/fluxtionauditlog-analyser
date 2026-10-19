@@ -33,8 +33,6 @@ public final class CodexMcpClient {
     public static final String SERVER_NAME = "fluxtion-analyser";
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final int OUTPUT_LIMIT = 8 * 1024;
-    private static final Pattern SECRET_VALUE = Pattern.compile(
-            "(?i)\\b(token|api[_-]?key|password|secret|authorization)\\b(\\s*[:=]\\s*|\\s+bearer\\s+)([^\\s,;]+)");
 
     public enum RegistrationStatus { PRESENT, ABSENT, INDETERMINATE }
 
@@ -122,6 +120,18 @@ public final class CodexMcpClient {
                 "Codex did not add the registration; the analyser settings were not changed.");
     }
 
+    /**
+     * M77-3 (spec-ai-setup-wizard.md §9.3, S5): run EXACTLY {@code vector} — the argument vector the person's confirmation
+     * showed, never re-rendered. Refused (nothing started) unless it is this client's own executable.
+     */
+    public Result run(List<String> vector) {
+        if (vector == null || vector.isEmpty() || !executable.toString().equals(vector.get(0))) {
+            return new Result(Status.LAUNCH_FAILED, "Not this client's command; nothing was run.");
+        }
+        return result(invoke(List.copyOf(vector)), "Codex ran the confirmed command.",
+                "Codex did not accept the command; the analyser settings were not changed.");
+    }
+
     /** Replace only the exact named registration: remove it through Codex, then add the new command through Codex. */
     public Result replace(McpLaunchCommand bridge) {
         Outcome removed = invoke(removeCommand());
@@ -162,7 +172,7 @@ public final class CodexMcpClient {
 
     static String redactForDisplay(String output) {
         if (output == null || output.isBlank()) return "";
-        return SECRET_VALUE.matcher(output).replaceAll("$1$2…");
+        return telamin.fluxtion.audit.analyser.analyser.core.Redaction.keyValues(output);
     }
 
     private List<String> command(String... parts) {
