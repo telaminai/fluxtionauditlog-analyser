@@ -271,8 +271,26 @@ class EventTypesMinRowsFrameTest {
             int expected = Math.min(3, rows.size());
             assertTrue(visible >= expected, when + ": " + visible + " of " + rows.size()
                     + " checklist rows fully visible, expected at least " + expected + " (checklist height " + panel.getHeight()
-                    + ", viewport visible " + onScreen + ")");
+                    + ", viewport visible " + onScreen + "; " + floorDiagnostics(panel, rows) + ")");
         });
+    }
+
+    /** INTEG-R11: what the floor was computed from, so a platform where the rows do not fit it can be diagnosed. */
+    private static String floorDiagnostics(EventFilterPanel panel, List<JCheckBox> rows) {
+        JScrollPane sp = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, rows.get(0));
+        StringBuilder b = new StringBuilder("rowsFloor ").append(panel.rowsFloor())
+                .append(", min ").append(panel.getMinimumSize().height)
+                .append(", insets ").append(panel.getInsets()).append(", scroll insets ").append(sp.getInsets())
+                .append(", viewport ").append(sp.getViewport().getSize())
+                .append(", view pref ").append(sp.getViewport().getView().getPreferredSize())
+                .append(", hbar ").append(sp.getHorizontalScrollBar().isVisible()).append('/')
+                .append(sp.getHorizontalScrollBar().getHeight())
+                .append(", vbar ").append(sp.getVerticalScrollBar().isVisible()).append(", rows");
+        Container view = (Container) sp.getViewport().getView();
+        for (Component c : view.getComponents()) {
+            b.append(' ').append(c.getClass().getSimpleName()).append(c.getBounds().y).append('+').append(c.getHeight());
+        }
+        return b.toString();
     }
 
     private static void assertRecordsRowsVisible(AsyncOpenInterleavingFrameTest.Frame f, String when) throws Exception {
