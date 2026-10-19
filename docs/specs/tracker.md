@@ -331,6 +331,10 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 ### M75 · Document renderer ([spec](spec-document-renderer.md)) — draft r2, 2026-10-17
 - [M75] ☐ One layout, two backends (PDF + a document window) for reports and teaching lessons; owner decisions OD-75.1–.17 first, then P0–P3 (~15–20k lines, four PRs).
 
+### M80 · Design shows the graph's definition, whatever its form ([spec](spec-design-definitions.md)) — proposed 2026-10-19
+- [M80] ☐ Extends M66 to a Java `FluxtionGraphBuilder` and multi-file designs — discovery, node anchors, the
+  multi-file chooser, additive `context.design`; owner decisions OD-1–.5 first, then PR1–3 (S/M/S).
+
 ### M71 · Workspace Start — shipped ([spec](completed/spec-workspace-start.md))
 
 ### Project / Sources / Audit log menus — remaining follow-ups
