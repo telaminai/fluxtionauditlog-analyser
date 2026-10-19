@@ -12,7 +12,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   not fit the panel's current width it stacks each row as `Header: value` lines instead. A pipe-started block with no
   valid separator row still shows as the literal text it always was. The transcript also now renders headings 4–6
   (bold, base size), `~~strikethrough~~`, task-list items as `☐`/`☑`, a drawn rule for `---`/`***`/`___` alone on a
-  line, and nested block quotes (capped at three levels).
+  line, and nested block quotes (capped at three levels). Columns are aligned with pixel-measured tab stops, not
+  padded by character count, so a cell holding a status icon or an em dash no longer pulls that row's separators
+  out of line with the rest of the table; the header's drawn rule now reaches the full width of its longest cell.
 
 - The offline onboarding scorer refuses nonempty answer rows without string `text` instead of silently ignoring their contents. Operator correlation now covers current proposal-row, restart, no-log, profile/setup, external-access and starter choices, verified against actual Java records; unknown fact-bearing operator kinds also void the run. Empty answer captures remain explicitly distinguishable from missing or malformed captures.
 

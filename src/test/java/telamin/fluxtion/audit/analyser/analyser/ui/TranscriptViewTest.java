@@ -573,16 +573,16 @@ class TranscriptViewTest {
     }
 
     @Test
-    @DisplayName("fitsWidth is a pure width check: column widths + 3-char separators against the available pixels")
+    @DisplayName("fitsWidth is a pure width check: column pixel widths + the separator's pixel width against the available pixels")
     void fitsWidthPure() {
-        assertTrue(TranscriptView.fitsWidth(new int[]{4, 5}, 8, 1000));
-        assertFalse(TranscriptView.fitsWidth(new int[]{400, 500}, 8, 1000));
-        // two 5-char columns + one 3-char separator = 13 chars; at 10px/char that is exactly 130px
-        assertTrue(TranscriptView.fitsWidth(new int[]{5, 5}, 10, 130));
-        assertFalse(TranscriptView.fitsWidth(new int[]{5, 5}, 10, 129));
-        // a single column has no separator to count: exactly 5 chars, no "+3"
-        assertTrue(TranscriptView.fitsWidth(new int[]{5}, 10, 50));
-        assertFalse(TranscriptView.fitsWidth(new int[]{5}, 10, 49));
+        assertTrue(TranscriptView.fitsWidth(new int[]{40, 50}, 20, 1000));
+        assertFalse(TranscriptView.fitsWidth(new int[]{4000, 5000}, 20, 1000));
+        // two 50px columns + one 30px separator = 130px
+        assertTrue(TranscriptView.fitsWidth(new int[]{50, 50}, 30, 130));
+        assertFalse(TranscriptView.fitsWidth(new int[]{50, 50}, 30, 129));
+        // a single column has no separator to add
+        assertTrue(TranscriptView.fitsWidth(new int[]{50}, 30, 50));
+        assertFalse(TranscriptView.fitsWidth(new int[]{50}, 30, 49));
     }
 
     @Test
@@ -596,7 +596,7 @@ class TranscriptViewTest {
             return all(v);
         });
         assertTrue(shown.contains("Name") && shown.contains("Score") && shown.contains("Role"), shown);
-        assertTrue(shown.contains("─┼─"), "a drawn grid separator line: " + shown);
+        assertTrue(shown.contains("─") && shown.contains("┼"), "a drawn grid separator line: " + shown);
         assertFalse(shown.contains("|---"), "no raw table syntax leaks through: " + shown);
         assertFalse(shown.contains("**Bo**"), "inline markdown in a cell is interpreted, not shown raw: " + shown);
         assertTrue(shown.contains("Bo") && shown.contains("Ann") && shown.contains("lead") && shown.contains("dev"), shown);
@@ -618,6 +618,45 @@ class TranscriptViewTest {
         assertTrue(shown.contains("Account Status Code: Active"), shown);
         assertTrue(shown.contains("Last Activity Timestamp: 2026-01-01"), shown);
         assertTrue(shown.contains("Customer Reference: C2"), shown);
-        assertFalse(shown.contains("─┼─"), "stacked, not a grid: " + shown);
+        assertFalse(shown.contains("┼"), "stacked, not a grid: " + shown);
+    }
+
+    /**
+     * ★ regression: a status-icon column (✅/⚠/❌) or an em dash is not one monospace cell wide, so padding by
+     * CHARACTER COUNT put each row's separator at a different x (reported against c996e731 — 5–15 px off). Pixel
+     * tab stops must land every row's separator before the last column at the identical x, whatever that column's
+     * own glyph widths are.
+     */
+    @Test
+    @DisplayName("★ a table column holding non-monospace glyphs keeps every row's separator pixel-aligned")
+    void tableSeparatorsPixelAlignedWithWideGlyphs() throws Exception {
+        String md = "| Service | Status | Notes |\n|---|---|---|\n"
+                + "| auth | ✅ | wired to controller |\n"
+                + "| cache | ⚠ | — |\n"
+                + "| queue | ❌ | needs review |";
+        record Probe(int totalPipes, List<Double> lastPipeXPerRow) {
+        }
+        Probe probe = onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.setSize(900, 400);
+            v.render(List.of(answer("a", md)));
+            paint(v);
+            String text = all(v);
+            List<Integer> pipeOffsets = new ArrayList<>();
+            for (int i = 0; i < text.length(); i++) if (text.charAt(i) == '│') pipeOffsets.add(i);
+            List<Double> lastPerRow = new ArrayList<>();
+            for (int i = 1; i < pipeOffsets.size(); i += 2) {        // the SECOND (last) of each row's two separators
+                lastPerRow.add(v.modelToView2D(pipeOffsets.get(i)).getX());
+            }
+            return new Probe(pipeOffsets.size(), lastPerRow);
+        });
+        assertEquals(8, probe.totalPipes(), "4 rows (header + 3 body) × 2 separators");
+        assertEquals(4, probe.lastPipeXPerRow().size());
+        double headerX = probe.lastPipeXPerRow().get(0);
+        for (double x : probe.lastPipeXPerRow()) {
+            assertEquals(headerX, x, 0.75,
+                    "the separator before the last column must land at the same pixel column in every row, "
+                            + "whatever the Status glyph's own width is: " + probe.lastPipeXPerRow());
+        }
     }
 }

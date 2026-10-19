@@ -19,6 +19,7 @@ import javax.swing.text.StyledEditorKit;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
@@ -536,58 +537,144 @@ public final class TranscriptView extends JTextPane {
     // A table's width decision is made fresh at render time from the view's CURRENT width (fitsWidth, below): this
     // view only re-renders in full on New chat, a trim or a theme change (class javadoc), so a table rendered wide and
     // then narrowed by a resize keeps its grid until the entry re-renders (a later revision, or one of those three).
-
-    private static final String COL_SEP = " │ ";
+    //
+    // Columns are aligned with Swing paragraph TAB STOPS at PIXEL positions, never by padding with space characters:
+    // a cell holding a glyph that is not one monospace cell wide (✅, ⚠, an em dash, …) has no well-defined "character
+    // count", so counting characters (the first cut, r12) put each row's separator at a different x. A tab stop is
+    // exact regardless of what came before it on that line, so every row's separator and every column's content land
+    // at the SAME x — self-correcting at every column boundary, immune to any one cell's odd-width glyphs.
 
     /** A grid when it fits the view's current width; otherwise stacked {@code Header: value} records (§5.9 gap). */
     private void renderTable(StyledDocument doc, SafeMarkdown.Table table, Item item, boolean dark, boolean stale,
                               int[] candidates) throws BadLocationException {
         int cols = table.header().size();
         if (cols == 0) return;
-        int[] widths = new int[cols];
-        for (int c = 0; c < cols; c++) widths[c] = cellWidth(table.header().get(c));
+        FontMetrics plainFm = getFontMetrics(new Font(UiTheme.monoFamily(), Font.PLAIN, fontSize()));
+        FontMetrics boldFm = getFontMetrics(new Font(UiTheme.monoFamily(), Font.BOLD, fontSize()));
+        int[] colPx = new int[cols];
+        for (int c = 0; c < cols; c++) colPx[c] = cellWidthPx(table.header().get(c), true, plainFm, boldFm);
         for (List<SafeMarkdown.Cell> row : table.rows()) {
-            for (int c = 0; c < cols; c++) widths[c] = Math.max(widths[c], c < row.size() ? cellWidth(row.get(c)) : 0);
+            for (int c = 0; c < cols && c < row.size(); c++) {
+                colPx[c] = Math.max(colPx[c], cellWidthPx(row.get(c), false, plainFm, boldFm));
+            }
         }
-        if (!table.rows().isEmpty() && !fitsWidth(widths, monoCharWidth(), (int) textWidth())) {
+        int spacePx = Math.max(1, plainFm.stringWidth(" "));
+        int pipePx = Math.max(1, plainFm.stringWidth("│"));
+        int dashPx = Math.max(1, plainFm.stringWidth("─"));
+        int sepRegionPx = spacePx + pipePx + spacePx;      // the full " │ " gap between two columns
+
+        if (!table.rows().isEmpty() && !fitsWidth(colPx, sepRegionPx, (int) textWidth())) {
             renderStackedTable(doc, table, item, dark, stale, candidates);
             return;
         }
+
+        // colStart[c]..colEnd[c] is column c's reserved content width; pipeStart[c] is one space past colEnd[c], where
+        // the next "│" is drawn; colStart[c+1] is one more space past the pipe. Every position is non-decreasing and
+        // every gap between consecutive positions is at least one real character wide, so a tab from any point a row's
+        // actual content happens to reach is always a strictly FORWARD, unambiguous move to the next one.
+        int[] colStart = new int[cols];
+        int[] colEnd = new int[cols];
+        int[] pipeStart = new int[cols];
+        for (int c = 0; c < cols; c++) {
+            colEnd[c] = colStart[c] + colPx[c];
+            if (c < cols - 1) {
+                pipeStart[c] = colEnd[c] + spacePx;
+                colStart[c + 1] = pipeStart[c] + pipePx + spacePx;
+            }
+        }
+        List<javax.swing.text.TabStop> contentStops = new ArrayList<>();
+        List<javax.swing.text.TabStop> ruleStops = new ArrayList<>();
+        for (int c = 0; c < cols; c++) {
+            SafeMarkdown.Align align = table.aligns().get(c);
+            float target = switch (align) {
+                case RIGHT -> colEnd[c];
+                case CENTER -> colStart[c] + colPx[c] / 2f;
+                case LEFT -> colStart[c];
+            };
+            int tabAlign = switch (align) {
+                case RIGHT -> javax.swing.text.TabStop.ALIGN_RIGHT;
+                case CENTER -> javax.swing.text.TabStop.ALIGN_CENTER;
+                case LEFT -> javax.swing.text.TabStop.ALIGN_LEFT;
+            };
+            contentStops.add(new javax.swing.text.TabStop(target, tabAlign, javax.swing.text.TabStop.LEAD_NONE));
+            // the rule row always fills from the column's LEFT edge, whatever the column's own text alignment is
+            ruleStops.add(new javax.swing.text.TabStop(colStart[c], javax.swing.text.TabStop.ALIGN_LEFT,
+                    javax.swing.text.TabStop.LEAD_NONE));
+            if (c < cols - 1) {
+                javax.swing.text.TabStop pipeStop = new javax.swing.text.TabStop(pipeStart[c],
+                        javax.swing.text.TabStop.ALIGN_LEFT, javax.swing.text.TabStop.LEAD_NONE);
+                contentStops.add(pipeStop);     // the SAME pipe position in both sets, so "┼" lands under every "│"
+                ruleStops.add(pipeStop);
+            }
+        }
+        javax.swing.text.TabSet contentTabs =
+                new javax.swing.text.TabSet(contentStops.toArray(new javax.swing.text.TabStop[0]));
+        javax.swing.text.TabSet ruleTabs = new javax.swing.text.TabSet(ruleStops.toArray(new javax.swing.text.TabStop[0]));
+
         TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
         SimpleAttributeSet plain = mono(base(p.codeText(), dark));
         SimpleAttributeSet muted = mono(base(p.muted(), dark));
-        for (int c = 0; c < cols; c++) {
-            renderCellPadded(doc, table.header().get(c), widths[c], table.aligns().get(c), bold(plain), item, dark, stale,
-                    candidates);
-            if (c < cols - 1) put(doc, COL_SEP, muted, item);
-        }
+        SimpleAttributeSet headerAttr = bold(plain);
+
+        int headerStart = doc.getLength();
+        renderTableContentRow(doc, table.header(), table.aligns(), headerAttr, muted, item, dark, stale, candidates);
         put(doc, "\n", plain, item);
-        StringBuilder sep = new StringBuilder();
-        for (int c = 0; c < cols; c++) {
-            sep.append("─".repeat(widths[c]));
-            if (c < cols - 1) sep.append("─┼─");
-        }
-        put(doc, sep + "\n", muted, item);
+        applyTabSet(doc, headerStart, contentTabs);
+
+        int ruleStart = doc.getLength();
+        renderTableRuleRow(doc, colPx, dashPx, muted, item);
+        put(doc, "\n", muted, item);
+        applyTabSet(doc, ruleStart, ruleTabs);
+
         for (List<SafeMarkdown.Cell> row : table.rows()) {
-            for (int c = 0; c < cols; c++) {
-                SafeMarkdown.Cell cell = c < row.size() ? row.get(c) : new SafeMarkdown.Cell(List.of());
-                renderCellPadded(doc, cell, widths[c], table.aligns().get(c), plain, item, dark, stale, candidates);
-                if (c < cols - 1) put(doc, COL_SEP, muted, item);
-            }
+            int rowStart = doc.getLength();
+            renderTableContentRow(doc, row, table.aligns(), plain, muted, item, dark, stale, candidates);
             put(doc, "\n", plain, item);
+            applyTabSet(doc, rowStart, contentTabs);
         }
     }
 
-    /** One cell, its inline runs rendered then padded (by alignment) to {@code width} monospace characters. */
-    private void renderCellPadded(StyledDocument doc, SafeMarkdown.Cell cell, int width, SafeMarkdown.Align align,
-                                   SimpleAttributeSet around, Item item, boolean dark, boolean stale, int[] candidates)
+    /**
+     * One header or body row: a TAB to each column's (alignment-specific) pixel stop, the cell's inline runs, then —
+     * for every column but the last — a TAB to the shared pipe stop and a muted {@code │}. Column 0 skips its leading
+     * tab only when it is LEFT-aligned (the paragraph already starts at x=0; tabbing to x=0 from x=0 is never done, to
+     * avoid relying on how a same-position tab resolves).
+     */
+    private void renderTableContentRow(StyledDocument doc, List<SafeMarkdown.Cell> cells, List<SafeMarkdown.Align> aligns,
+                                        SimpleAttributeSet cellAttr, SimpleAttributeSet pipeAttr, Item item, boolean dark,
+                                        boolean stale, int[] candidates) throws BadLocationException {
+        int cols = aligns.size();
+        for (int c = 0; c < cols; c++) {
+            if (!(c == 0 && aligns.get(c) == SafeMarkdown.Align.LEFT)) put(doc, "\t", pipeAttr, item);
+            SafeMarkdown.Cell cell = c < cells.size() ? cells.get(c) : new SafeMarkdown.Cell(List.of());
+            for (SafeMarkdown.Run r : cell.runs()) renderRun(doc, r, cellAttr, item, dark, stale, candidates);
+            if (c < cols - 1) {
+                put(doc, "\t", pipeAttr, item);
+                put(doc, "│", pipeAttr, item);
+            }
+        }
+    }
+
+    /** The separator row: {@code ─} filling each column's full pixel width (rounded UP, never short) and a {@code ┼}. */
+    private void renderTableRuleRow(StyledDocument doc, int[] colPx, int dashPx, SimpleAttributeSet muted, Item item)
             throws BadLocationException {
-        int pad = Math.max(0, width - cellWidth(cell));
-        int left = align == SafeMarkdown.Align.RIGHT ? pad : align == SafeMarkdown.Align.CENTER ? pad / 2 : 0;
-        int right = pad - left;
-        if (left > 0) put(doc, " ".repeat(left), around, item);
-        for (SafeMarkdown.Run r : cell.runs()) renderRun(doc, r, around, item, dark, stale, candidates);
-        if (right > 0) put(doc, " ".repeat(right), around, item);
+        int cols = colPx.length;
+        for (int c = 0; c < cols; c++) {
+            if (c > 0) put(doc, "\t", muted, item);
+            int dashCount = Math.max(1, (int) Math.ceil(colPx[c] / (double) dashPx));
+            put(doc, "─".repeat(dashCount), muted, item);
+            if (c < cols - 1) {
+                put(doc, "\t", muted, item);
+                put(doc, "┼", muted, item);
+            }
+        }
+    }
+
+    /** {@code paragraphStart} is the offset the paragraph containing this row begins at (before its own text). */
+    private static void applyTabSet(StyledDocument doc, int paragraphStart, javax.swing.text.TabSet tabs) {
+        SimpleAttributeSet a = new SimpleAttributeSet();
+        StyleConstants.setTabSet(a, tabs);
+        doc.setParagraphAttributes(paragraphStart, 1, a, false);
     }
 
     /** Too narrow for a grid: each row as its own stacked {@code Header: value} lines, a blank line between rows. */
@@ -611,24 +698,31 @@ public final class TranscriptView extends JTextPane {
         }
     }
 
-    /** A cell's displayed character length (post-Markdown, pre-{@link VisibleMarks}) — what the padding counts. */
-    private static int cellWidth(SafeMarkdown.Cell cell) {
+    /**
+     * A cell's displayed PIXEL width (post-Markdown, pre-{@link VisibleMarks}), measured per run in the metrics it
+     * will actually be painted in — bold for a header cell or a {@code STRONG} run, plain mono otherwise — so a
+     * non-monospace glyph (an emoji, an em dash) is sized by what it really occupies, not by its character count.
+     */
+    private static int cellWidthPx(SafeMarkdown.Cell cell, boolean boldContext, FontMetrics plainFm, FontMetrics boldFm) {
         int w = 0;
         for (SafeMarkdown.Run r : cell.runs()) {
-            w += (r.kind() == SafeMarkdown.Kind.IMAGE ? r.url() : r.text()).length();
+            String text = r.kind() == SafeMarkdown.Kind.IMAGE ? r.url() : r.text();
+            FontMetrics fm = boldContext || r.kind() == SafeMarkdown.Kind.STRONG ? boldFm : plainFm;
+            w += fm.stringWidth(text);
         }
         return w;
     }
 
     /**
-     * Pure (no {@code Graphics} needed — headlessly testable): would {@code columnWidths} characters, joined by the
-     * 3-character column separator, fit in {@code availablePx} at {@code charWidth} monospace pixels per character?
+     * Pure (no {@code Graphics} needed — headlessly testable): would {@code columnWidthsPx} pixels, joined by
+     * {@code sepWidthPx} between columns, fit in {@code availablePx}? Both widths are already real pixel measurements
+     * (from font metrics), not character counts times an assumed per-character width.
      */
-    static boolean fitsWidth(int[] columnWidths, int charWidth, int availablePx) {
-        long chars = 0;
-        for (int w : columnWidths) chars += w;
-        if (columnWidths.length > 1) chars += 3L * (columnWidths.length - 1);
-        return chars * charWidth <= availablePx;
+    static boolean fitsWidth(int[] columnWidthsPx, int sepWidthPx, int availablePx) {
+        long total = 0;
+        for (int w : columnWidthsPx) total += w;
+        if (columnWidthsPx.length > 1) total += (long) sepWidthPx * (columnWidthsPx.length - 1);
+        return total <= availablePx;
     }
 
     /** The monospace font's advance width in pixels, at the body size. */
