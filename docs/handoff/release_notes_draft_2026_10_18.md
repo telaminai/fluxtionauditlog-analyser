@@ -98,5 +98,9 @@ CHANGELOG is right.
   to the model provider.
 - **Text the analyser did not write is shown as its characters, never as HTML**, and nothing is fetched.
 - **Invisible "smuggled" characters** are refused in prompt packs and dropped from drafted questions.
+- **Full Claude Code's documentation pre-allow now runs through the analyser's own URL check**, not a hostname-only
+  CLI allow rule — a non-HTTPS, non-default-port or user-info URL can no longer piggyback on the allowed hostname.
+  **Full Claude Code sessions started before this version start a new chat**: the change in what is allowed means an
+  old session cannot resume under it. Your own permission rules and selected mode are unaffected.
 
 See `CHANGELOG.md ▸ [Unreleased]` for the full list and the exact wording.
