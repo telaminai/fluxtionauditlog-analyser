@@ -398,6 +398,26 @@ class ClaudeCodeProviderTest {
     }
 
     /**
+     * The gap behind the owner's 1.36.0 report (§4.3, OD-74.22): opening a project changes the working directory, so
+     * it must change {@code postureRef} too — otherwise a session started in one project's folder could resume under
+     * another's, carrying the wrong folder's CLAUDE.md and pre-allow list. ★ Witness: drop the real directory from
+     * {@link LocalAgentPosture#ref} — this and {@code theNoteIsInThePostureRef} both start asserting {@code false}.
+     */
+    @Test
+    @DisplayName("★ postureRef changes with the working directory, so a session is never resumed in the wrong folder")
+    void thePostureRefChangesWithTheFolder() throws java.io.IOException {
+        Path a = Files.createDirectory(tmp.resolve("project-a"));
+        Path b = Files.createDirectory(tmp.resolve("project-b"));
+        for (LocalAgentPosture posture : List.of(LocalAgentPosture.ANALYSER_ASSISTANT,
+                LocalAgentPosture.full(LocalAgentPosture.FullMode.DEFAULT))) {
+            assertNotEquals(ClaudeCodeProvider.postureRef(a, posture), ClaudeCodeProvider.postureRef(b, posture),
+                    "two different project folders must not share a postureRef: " + posture);
+            assertEquals(ClaudeCodeProvider.postureRef(a, posture), ClaudeCodeProvider.postureRef(a, posture),
+                    "the same folder is stable");
+        }
+    }
+
+    /**
      * The analyser must not add CLI web allows: those run before the host's URL-specific decision. Safe has no web
      * tool at all. Witness: restore the previous domain-only allow, or add a bare WebFetch/WebSearch allow.
      */
