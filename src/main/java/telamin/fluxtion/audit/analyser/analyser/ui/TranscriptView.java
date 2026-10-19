@@ -438,24 +438,32 @@ public final class TranscriptView extends JTextPane {
                 case BLANK -> put(doc, "\n", base(ink, dark), item);
                 case CODE -> renderCode(doc, b.code(), b.language(), item, dark);
                 case TABLE -> {
-                    SimpleAttributeSet m = mono(base(p.codeText(), dark));
-                    StyleConstants.setBackground(m, p.codeBackground());
-                    put(doc, VisibleMarks.show(b.code()) + "\n", m, item);
+                    if (b.table() != null) {
+                        renderTable(doc, b.table(), item, dark, stale, candidates);
+                    } else {
+                        SimpleAttributeSet m = mono(base(p.codeText(), dark));
+                        StyleConstants.setBackground(m, p.codeBackground());
+                        put(doc, VisibleMarks.show(b.code()) + "\n", m, item);
+                    }
                 }
+                case RULE -> put(doc, "─".repeat(monoColumns()) + "\n", mono(base(p.muted(), dark)), item);
                 default -> {
                     SimpleAttributeSet a = base(ink, dark);
                     String prefix = "";
                     switch (b.kind()) {
                         case HEADING -> {
                             StyleConstants.setBold(a, true);
-                            StyleConstants.setFontSize(a, fontSize() + (4 - b.level()) * 2);
+                            // levels 1–3 scale up; 4–6 render like level 3's weight but at the base size (§5.9 gap)
+                            if (b.level() <= 3) StyleConstants.setFontSize(a, fontSize() + (4 - b.level()) * 2);
                         }
                         case BULLET -> prefix = "  ".repeat(b.level()) + (b.level() == 1 ? "• " : b.level() == 2 ? "◦ " : "▪ ");
+                        case TASK_OPEN -> prefix = "  ".repeat(b.level()) + "☐ ";
+                        case TASK_DONE -> prefix = "  ".repeat(b.level()) + "☑ ";
                         case NUMBERED -> prefix = "  ".repeat(b.level()) + b.number() + ". ";
                         case QUOTE -> {
                             // a plain bar and the muted colour: an italic run behind a block glyph lost its letters in
-                            // the system font (seen in the P2a screenshots)
-                            prefix = "| ";
+                            // the system font (seen in the P2a screenshots); nested quotes repeat the bar, capped at 3
+                            prefix = "| ".repeat(Math.max(1, b.level()));
                             StyleConstants.setForeground(a, p.muted());
                         }
                         default -> { }
@@ -482,6 +490,7 @@ public final class TranscriptView extends JTextPane {
         switch (r.kind()) {
             case STRONG -> StyleConstants.setBold(a, true);
             case EMPHASIS -> StyleConstants.setItalic(a, true);
+            case STRIKE -> StyleConstants.setStrikeThrough(a, true);
             case CODE -> {
                 String code = r.text();
                 if (candidates[0] < MAX_CANDIDATES) {
@@ -521,6 +530,116 @@ public final class TranscriptView extends JTextPane {
             default -> { }
         }
         renderProse(doc, r.text(), a, item, stale, candidates);
+    }
+
+    // ---- GFM tables -----------------------------------------------------------------------------------------------
+    // A table's width decision is made fresh at render time from the view's CURRENT width (fitsWidth, below): this
+    // view only re-renders in full on New chat, a trim or a theme change (class javadoc), so a table rendered wide and
+    // then narrowed by a resize keeps its grid until the entry re-renders (a later revision, or one of those three).
+
+    private static final String COL_SEP = " │ ";
+
+    /** A grid when it fits the view's current width; otherwise stacked {@code Header: value} records (§5.9 gap). */
+    private void renderTable(StyledDocument doc, SafeMarkdown.Table table, Item item, boolean dark, boolean stale,
+                              int[] candidates) throws BadLocationException {
+        int cols = table.header().size();
+        if (cols == 0) return;
+        int[] widths = new int[cols];
+        for (int c = 0; c < cols; c++) widths[c] = cellWidth(table.header().get(c));
+        for (List<SafeMarkdown.Cell> row : table.rows()) {
+            for (int c = 0; c < cols; c++) widths[c] = Math.max(widths[c], c < row.size() ? cellWidth(row.get(c)) : 0);
+        }
+        if (!table.rows().isEmpty() && !fitsWidth(widths, monoCharWidth(), (int) textWidth())) {
+            renderStackedTable(doc, table, item, dark, stale, candidates);
+            return;
+        }
+        TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
+        SimpleAttributeSet plain = mono(base(p.codeText(), dark));
+        SimpleAttributeSet muted = mono(base(p.muted(), dark));
+        for (int c = 0; c < cols; c++) {
+            renderCellPadded(doc, table.header().get(c), widths[c], table.aligns().get(c), bold(plain), item, dark, stale,
+                    candidates);
+            if (c < cols - 1) put(doc, COL_SEP, muted, item);
+        }
+        put(doc, "\n", plain, item);
+        StringBuilder sep = new StringBuilder();
+        for (int c = 0; c < cols; c++) {
+            sep.append("─".repeat(widths[c]));
+            if (c < cols - 1) sep.append("─┼─");
+        }
+        put(doc, sep + "\n", muted, item);
+        for (List<SafeMarkdown.Cell> row : table.rows()) {
+            for (int c = 0; c < cols; c++) {
+                SafeMarkdown.Cell cell = c < row.size() ? row.get(c) : new SafeMarkdown.Cell(List.of());
+                renderCellPadded(doc, cell, widths[c], table.aligns().get(c), plain, item, dark, stale, candidates);
+                if (c < cols - 1) put(doc, COL_SEP, muted, item);
+            }
+            put(doc, "\n", plain, item);
+        }
+    }
+
+    /** One cell, its inline runs rendered then padded (by alignment) to {@code width} monospace characters. */
+    private void renderCellPadded(StyledDocument doc, SafeMarkdown.Cell cell, int width, SafeMarkdown.Align align,
+                                   SimpleAttributeSet around, Item item, boolean dark, boolean stale, int[] candidates)
+            throws BadLocationException {
+        int pad = Math.max(0, width - cellWidth(cell));
+        int left = align == SafeMarkdown.Align.RIGHT ? pad : align == SafeMarkdown.Align.CENTER ? pad / 2 : 0;
+        int right = pad - left;
+        if (left > 0) put(doc, " ".repeat(left), around, item);
+        for (SafeMarkdown.Run r : cell.runs()) renderRun(doc, r, around, item, dark, stale, candidates);
+        if (right > 0) put(doc, " ".repeat(right), around, item);
+    }
+
+    /** Too narrow for a grid: each row as its own stacked {@code Header: value} lines, a blank line between rows. */
+    private void renderStackedTable(StyledDocument doc, SafeMarkdown.Table table, Item item, boolean dark, boolean stale,
+                                     int[] candidates) throws BadLocationException {
+        TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
+        SimpleAttributeSet plain = mono(base(p.codeText(), dark));
+        SimpleAttributeSet label = bold(plain);
+        int cols = table.header().size();
+        List<List<SafeMarkdown.Cell>> rows = table.rows();
+        for (int r = 0; r < rows.size(); r++) {
+            List<SafeMarkdown.Cell> row = rows.get(r);
+            for (int c = 0; c < cols; c++) {
+                for (SafeMarkdown.Run run : table.header().get(c).runs()) renderRun(doc, run, label, item, dark, stale, candidates);
+                put(doc, ": ", plain, item);
+                SafeMarkdown.Cell cell = c < row.size() ? row.get(c) : new SafeMarkdown.Cell(List.of());
+                for (SafeMarkdown.Run run : cell.runs()) renderRun(doc, run, plain, item, dark, stale, candidates);
+                put(doc, "\n", plain, item);
+            }
+            if (r < rows.size() - 1) put(doc, "\n", plain, item);
+        }
+    }
+
+    /** A cell's displayed character length (post-Markdown, pre-{@link VisibleMarks}) — what the padding counts. */
+    private static int cellWidth(SafeMarkdown.Cell cell) {
+        int w = 0;
+        for (SafeMarkdown.Run r : cell.runs()) {
+            w += (r.kind() == SafeMarkdown.Kind.IMAGE ? r.url() : r.text()).length();
+        }
+        return w;
+    }
+
+    /**
+     * Pure (no {@code Graphics} needed — headlessly testable): would {@code columnWidths} characters, joined by the
+     * 3-character column separator, fit in {@code availablePx} at {@code charWidth} monospace pixels per character?
+     */
+    static boolean fitsWidth(int[] columnWidths, int charWidth, int availablePx) {
+        long chars = 0;
+        for (int w : columnWidths) chars += w;
+        if (columnWidths.length > 1) chars += 3L * (columnWidths.length - 1);
+        return chars * charWidth <= availablePx;
+    }
+
+    /** The monospace font's advance width in pixels, at the body size. */
+    private int monoCharWidth() {
+        Font f = new Font(UiTheme.monoFamily(), Font.PLAIN, fontSize());
+        return Math.max(1, getFontMetrics(f).charWidth('0'));
+    }
+
+    /** How many monospace characters fit the view's current text width — used to size a drawn rule. */
+    private int monoColumns() {
+        return Math.max(10, Math.min(120, (int) (textWidth() / monoCharWidth())));
     }
 
     private static final Pattern REFERENCE = Pattern.compile(

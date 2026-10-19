@@ -498,4 +498,126 @@ class TranscriptViewTest {
             return null;
         });
     }
+
+    // ---- ★ GFM tables and the other §5.9 gaps -----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("a GFM table (valid separator row) parses into header/body cells with alignment; \\| stays literal")
+    void tableParsing() {
+        var blocks = SafeMarkdown.parse("| Name | Age | Note |\n|:---|---:|:---:|\n| **Bo** | 30 | a\\|b |");
+        var b = blocks.get(0);
+        assertEquals(SafeMarkdown.BlockKind.TABLE, b.kind());
+        assertNotNull(b.table(), "a valid separator row makes a structured table");
+        assertNull(b.code(), "the raw fallback text is unused once structured");
+        var t = b.table();
+        assertEquals(List.of(SafeMarkdown.Align.LEFT, SafeMarkdown.Align.RIGHT, SafeMarkdown.Align.CENTER), t.aligns());
+        assertEquals("Name", t.header().get(0).runs().get(0).text());
+        assertEquals(1, t.rows().size());
+        var row = t.rows().get(0);
+        assertEquals(SafeMarkdown.Kind.STRONG, row.get(0).runs().get(0).kind());
+        assertEquals("Bo", row.get(0).runs().get(0).text());
+        assertEquals("a|b", row.get(2).runs().get(0).text(), "an escaped pipe stays a literal pipe in the cell");
+    }
+
+    @Test
+    @DisplayName("a pipe run with no valid separator row (or a column-count mismatch) stays the raw monospace fallback")
+    void tableFallbackWithoutSeparator() {
+        var noSeparator = SafeMarkdown.parse("| not a table |\n| still not |").get(0);
+        assertNull(noSeparator.table());
+        assertEquals("| not a table |\n| still not |", noSeparator.code());
+
+        var mismatch = SafeMarkdown.parse("| a | b |\n|---|\n| 1 | 2 |").get(0);
+        assertNull(mismatch.table(), "the separator's column count must match the header's");
+    }
+
+    @Test
+    @DisplayName("nested quotes report their depth, capped at 3, stripping every '>' level from the content")
+    void nestedQuotes() {
+        var blocks = SafeMarkdown.parse("> one\n> > two\n> > > > four");
+        assertEquals(1, blocks.get(0).level());
+        assertEquals("one", blocks.get(0).runs().get(0).text());
+        assertEquals(2, blocks.get(1).level());
+        assertEquals("two", blocks.get(1).runs().get(0).text());
+        assertEquals(3, blocks.get(2).level(), "capped at 3");
+        assertEquals("four", blocks.get(2).runs().get(0).text());
+    }
+
+    @Test
+    @DisplayName("headings 4-6, a thematic break, task-list items and strikethrough all parse")
+    void otherGaps() {
+        var blocks = SafeMarkdown.parse("#### Four\n###### Six\n---\n***\n- [ ] todo\n- [x] done\n~~gone~~");
+        assertEquals(SafeMarkdown.BlockKind.HEADING, blocks.get(0).kind());
+        assertEquals(4, blocks.get(0).level());
+        assertEquals(6, blocks.get(1).level());
+        assertEquals(SafeMarkdown.BlockKind.RULE, blocks.get(2).kind());
+        assertEquals(SafeMarkdown.BlockKind.RULE, blocks.get(3).kind());
+        assertEquals(SafeMarkdown.BlockKind.TASK_OPEN, blocks.get(4).kind());
+        assertEquals(SafeMarkdown.BlockKind.TASK_DONE, blocks.get(5).kind());
+        assertEquals(SafeMarkdown.Kind.STRIKE, blocks.get(6).runs().get(0).kind());
+        assertEquals("gone", blocks.get(6).runs().get(0).text());
+    }
+
+    /** ★ like {@code parserIsLinear}: a table-shaped run must not make the parser quadratic. */
+    @Test
+    @DisplayName("★ the table parser handles 64 KB of pipe-delimited rows, and one 64 KB pipe-delimited row, in bounded time")
+    void tableParserIsLinear() {
+        StringBuilder manyRows = new StringBuilder("| a | b |\n|---|---|\n");
+        while (manyRows.length() < 65_536) manyRows.append("| x | y |\n");
+        String oneHugeRow = "| h |\n|---|\n|" + "a|".repeat(32_000);
+        for (String pathological : List.of(manyRows.toString(), oneHugeRow)) {
+            long t0 = System.nanoTime();
+            SafeMarkdown.parse(pathological);
+            long ms = (System.nanoTime() - t0) / 1_000_000;
+            assertTrue(ms < 750, pathological.length() + " chars took " + ms + " ms");
+        }
+    }
+
+    @Test
+    @DisplayName("fitsWidth is a pure width check: column widths + 3-char separators against the available pixels")
+    void fitsWidthPure() {
+        assertTrue(TranscriptView.fitsWidth(new int[]{4, 5}, 8, 1000));
+        assertFalse(TranscriptView.fitsWidth(new int[]{400, 500}, 8, 1000));
+        // two 5-char columns + one 3-char separator = 13 chars; at 10px/char that is exactly 130px
+        assertTrue(TranscriptView.fitsWidth(new int[]{5, 5}, 10, 130));
+        assertFalse(TranscriptView.fitsWidth(new int[]{5, 5}, 10, 129));
+        // a single column has no separator to count: exactly 5 chars, no "+3"
+        assertTrue(TranscriptView.fitsWidth(new int[]{5}, 10, 50));
+        assertFalse(TranscriptView.fitsWidth(new int[]{5}, 10, 49));
+    }
+
+    @Test
+    @DisplayName("a table wide enough for the view renders as a padded monospace grid with inline formatting in cells")
+    void tableGrid() throws Exception {
+        String shown = onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.setSize(900, 400);
+            v.render(List.of(answer("a", "| Name | Score | Role |\n|---|---:|:---:|\n| **Bo** | 9 | lead |\n| Ann | 10 | dev |")));
+            paint(v);
+            return all(v);
+        });
+        assertTrue(shown.contains("Name") && shown.contains("Score") && shown.contains("Role"), shown);
+        assertTrue(shown.contains("─┼─"), "a drawn grid separator line: " + shown);
+        assertFalse(shown.contains("|---"), "no raw table syntax leaks through: " + shown);
+        assertFalse(shown.contains("**Bo**"), "inline markdown in a cell is interpreted, not shown raw: " + shown);
+        assertTrue(shown.contains("Bo") && shown.contains("Ann") && shown.contains("lead") && shown.contains("dev"), shown);
+    }
+
+    @Test
+    @DisplayName("a table too narrow for the view stacks each row as Header: value lines, a blank line between rows")
+    void tableStacked() throws Exception {
+        String wide = "| Customer Reference | Account Status Code | Last Activity Timestamp |\n|---|---|---|\n"
+                + "| C1 | Active | 2026-01-01 |\n| C2 | Closed | 2025-12-31 |";
+        String shown = onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.setSize(60, 400);
+            v.render(List.of(answer("a", wide)));
+            paint(v);
+            return all(v);
+        });
+        assertTrue(shown.contains("Customer Reference: C1"), shown);
+        assertTrue(shown.contains("Account Status Code: Active"), shown);
+        assertTrue(shown.contains("Last Activity Timestamp: 2026-01-01"), shown);
+        assertTrue(shown.contains("Customer Reference: C2"), shown);
+        assertFalse(shown.contains("─┼─"), "stacked, not a grid: " + shown);
+    }
 }

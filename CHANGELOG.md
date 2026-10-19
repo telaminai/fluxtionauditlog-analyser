@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **The transcript renders Markdown tables, not raw pipes.** A GFM table (a header row plus a valid separator row —
+  `:---`, `---:`, `:---:` or `---` per column) draws as an aligned, bordered monospace grid, with alignment from the
+  separator row and `**bold**`/`` `code` ``/links working inside cells; `\|` stays a literal pipe. When the grid would
+  not fit the panel's current width it stacks each row as `Header: value` lines instead. A pipe-started block with no
+  valid separator row still shows as the literal text it always was. The transcript also now renders headings 4–6
+  (bold, base size), `~~strikethrough~~`, task-list items as `☐`/`☑`, a drawn rule for `---`/`***`/`___` alone on a
+  line, and nested block quotes (capped at three levels).
+
 - The offline onboarding scorer refuses nonempty answer rows without string `text` instead of silently ignoring their contents. Operator correlation now covers current proposal-row, restart, no-log, profile/setup, external-access and starter choices, verified against actual Java records; unknown fact-bearing operator kinds also void the run. Empty answer captures remain explicitly distinguishable from missing or malformed captures.
 
 - The offline M74 onboarding scorer now binds scores to the sealed oracle bytes, refuses incomplete captures, checks ordered person actions and their references/choices, and reads the current Java permission facts. Maven seeds reject live symlink aliases. CI checks the current Java pack parser without rewriting its expected verdicts, including the non-breaking-space URL regression. The live operator harness is still not implemented; no onboarding trial is implied.

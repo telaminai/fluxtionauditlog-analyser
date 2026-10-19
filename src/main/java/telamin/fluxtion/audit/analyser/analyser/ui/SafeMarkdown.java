@@ -5,15 +5,24 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * M74 P2 (spec §5.9): a small, LINEAR parser for the CommonMark subset the transcript renders — ATX headings (1–3),
- * emphasis and strong, bullet and numbered lists (three levels), block quotes, inline code, fenced code blocks, tables
- * as monospace text, and bare {@code http(s)://} autolinks. <b>Everything else is literal text</b>, and three things are
- * refused by construction: HTML (a tag is its characters — there is no HTML renderer to reach), images
- * ({@code ![alt](url)} is the text {@code [image: alt] url}, never fetched) and scripts (nothing is evaluated).
+ * M74 P2 (spec §5.9): a small, LINEAR parser for the CommonMark subset the transcript renders — ATX headings (1–6),
+ * emphasis, strong and strikethrough, bullet and numbered lists (three levels) including task-list checkboxes, block
+ * quotes (nested up to three levels), inline code, fenced code blocks, thematic breaks ({@code ---}/{@code ***}/
+ * {@code ___} alone on a line), GFM tables, and bare {@code http(s)://} autolinks. <b>Everything else is literal
+ * text</b>, and three things are refused by construction: HTML (a tag is its characters — there is no HTML renderer
+ * to reach), images ({@code ![alt](url)} is the text {@code [image: alt] url}, never fetched) and scripts (nothing is
+ * evaluated).
+ *
+ * <p><b>Tables</b>: a run of lines starting with {@code |} is a table only when its second line is a valid GFM
+ * separator row (per-column {@code :---}/{@code ---:}/{@code :---:}/{@code ---} cells, same column count as the
+ * header); its cells become inline runs (so {@code **bold**} etc. work inside a cell), {@code \|} is a literal pipe,
+ * and missing trailing pipes are tolerated. A pipe run with no valid separator row stays the literal, raw monospace
+ * text it always was — the view draws that as-is, never interpreted.
  *
  * <p><b>Linear</b> (r8 F21): it runs again on every streamed revision, so pathological input (64 KB of unclosed
- * emphasis) must not go quadratic. Each delimiter's NEXT occurrence is precomputed in one backward pass, so finding a
- * closer is a lookup, and an unclosed delimiter is a literal character.
+ * emphasis, or a huge pipe-delimited line) must not go quadratic. Each delimiter's NEXT occurrence is precomputed in
+ * one backward pass, so finding a closer is a lookup, and an unclosed delimiter is a literal character; a table row is
+ * split into cells in one forward pass.
  *
  * <p>The model's text is untrusted data. This produces runs of text with a {@link Kind}; what is SHOWN for any control
  * or format character is {@link VisibleMarks}' job, applied by the view.
@@ -24,22 +33,48 @@ public final class SafeMarkdown {
     }
 
     /** A block of the answer. */
-    public enum BlockKind { PARAGRAPH, HEADING, BULLET, NUMBERED, QUOTE, CODE, TABLE, BLANK }
+    public enum BlockKind { PARAGRAPH, HEADING, BULLET, NUMBERED, QUOTE, CODE, TABLE, BLANK, RULE, TASK_OPEN, TASK_DONE }
 
     /** An inline run. */
-    public enum Kind { TEXT, EMPHASIS, STRONG, CODE, LINK, IMAGE }
+    public enum Kind { TEXT, EMPHASIS, STRONG, CODE, LINK, IMAGE, STRIKE }
+
+    /** A GFM column's declared alignment (the separator row's {@code :} placement); {@code LEFT} is the default. */
+    public enum Align { LEFT, CENTER, RIGHT }
 
     /** A run of inline text; {@code url} for a link (and an image, whose URL is shown, never fetched). */
     public record Run(Kind kind, String text, String url) {
     }
 
+    /** One table cell's inline runs (reuses {@link #inline}, so Markdown inside a cell renders). */
+    public record Cell(List<Run> runs) {
+        public Cell {
+            runs = List.copyOf(runs == null ? List.of() : runs);
+        }
+    }
+
+    /** A parsed GFM table: the header row, each column's alignment, and the body rows (ragged rows are padded empty). */
+    public record Table(List<Cell> header, List<Align> aligns, List<List<Cell>> rows) {
+        public Table {
+            header = List.copyOf(header == null ? List.of() : header);
+            aligns = List.copyOf(aligns == null ? List.of() : aligns);
+            rows = List.copyOf(rows == null ? List.of() : rows);
+        }
+    }
+
     /**
-     * A block: its kind, level (heading level 1–3, list depth 1–3), the list item's number, a code block's language and
-     * text (exact), and its inline runs (empty for code).
+     * A block: its kind, level (heading level 1–6, list/quote depth 1–3), the list item's number, a code block's
+     * language and text (exact), its inline runs (empty for code and for a structured table), and a parsed
+     * {@link Table} (non-null only for a {@code TABLE} block whose separator row validated; otherwise a {@code TABLE}
+     * block's raw text is in {@code code}, exactly as typed, for the monospace fallback).
      */
-    public record Block(BlockKind kind, int level, int number, String language, String code, List<Run> runs) {
+    public record Block(BlockKind kind, int level, int number, String language, String code, List<Run> runs, Table table) {
         public Block {
             runs = List.copyOf(runs == null ? List.of() : runs);
+        }
+
+        /** A block with no table (every kind except a structured {@code TABLE}). */
+        public Block(BlockKind kind, int level, int number, String language, String code, List<Run> runs) {
+            this(kind, level, number, language, code, runs, null);
         }
     }
 
@@ -74,31 +109,56 @@ public final class SafeMarkdown {
                 continue;
             }
             int hashes = 0;
-            while (hashes < trimmed.length() && hashes < 4 && trimmed.charAt(hashes) == '#') hashes++;
-            if (hashes >= 1 && hashes <= 3 && trimmed.length() > hashes && trimmed.charAt(hashes) == ' ') {
+            while (hashes < trimmed.length() && hashes < 7 && trimmed.charAt(hashes) == '#') hashes++;
+            if (hashes >= 1 && hashes <= 6 && trimmed.length() > hashes && trimmed.charAt(hashes) == ' ') {
                 out.add(new Block(BlockKind.HEADING, hashes, 0, null, null, inline(trimmed.substring(hashes + 1).strip())));
                 i++;
                 continue;
             }
             if (trimmed.startsWith("|")) {
-                StringBuilder table = new StringBuilder();
+                List<String> tableLines = new ArrayList<>();
                 while (i < lines.length && lines[i].stripLeading().startsWith("|")) {
-                    if (!table.isEmpty()) table.append('\n');
-                    table.append(lines[i]);
+                    tableLines.add(lines[i]);
                     i++;
                 }
-                out.add(new Block(BlockKind.TABLE, 0, 0, null, table.toString(), List.of()));
+                Table table = parseTable(tableLines);
+                if (table != null) {
+                    out.add(new Block(BlockKind.TABLE, 0, 0, null, null, List.of(), table));
+                } else {
+                    out.add(new Block(BlockKind.TABLE, 0, 0, null, String.join("\n", tableLines), List.of()));
+                }
                 continue;
             }
-            if (trimmed.startsWith("> ") || trimmed.equals(">")) {
-                out.add(new Block(BlockKind.QUOTE, 1, 0, null, null, inline(trimmed.length() > 2 ? trimmed.substring(2) : "")));
+            if (trimmed.matches("-{3,}") || trimmed.matches("\\*{3,}") || trimmed.matches("_{3,}")) {
+                out.add(new Block(BlockKind.RULE, 0, 0, null, null, List.of()));
+                i++;
+                continue;
+            }
+            if (trimmed.startsWith(">")) {
+                int level = 0;
+                int idx = 0;
+                while (idx < trimmed.length() && trimmed.charAt(idx) == '>') {
+                    if (level < 3) level++;
+                    idx++;
+                    if (idx < trimmed.length() && trimmed.charAt(idx) == ' ') idx++;
+                }
+                out.add(new Block(BlockKind.QUOTE, level, 0, null, null, inline(trimmed.substring(idx))));
                 i++;
                 continue;
             }
             int indent = line.length() - trimmed.length();
             int level = Math.min(3, 1 + indent / 2);
             if ((trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("+ ")) && trimmed.length() > 2) {
-                out.add(new Block(BlockKind.BULLET, level, 0, null, null, inline(trimmed.substring(2))));
+                String rest = trimmed.substring(2);
+                if (rest.length() >= 4 && rest.charAt(0) == '[' && rest.charAt(2) == ']' && rest.charAt(3) == ' '
+                        && (rest.charAt(1) == ' ' || rest.charAt(1) == 'x' || rest.charAt(1) == 'X')) {
+                    boolean done = rest.charAt(1) != ' ';
+                    out.add(new Block(done ? BlockKind.TASK_DONE : BlockKind.TASK_OPEN, level, 0, null, null,
+                            inline(rest.substring(4))));
+                    i++;
+                    continue;
+                }
+                out.add(new Block(BlockKind.BULLET, level, 0, null, null, inline(rest)));
                 i++;
                 continue;
             }
@@ -118,6 +178,71 @@ public final class SafeMarkdown {
     }
 
     /**
+     * {@code lines} is a run of consecutive {@code |}-prefixed lines. Valid only when line 2 is a GFM separator row
+     * (per-column {@code :?-+:?}) with the same column count as the header; returns {@code null} otherwise (the
+     * caller keeps the raw text). Linear in the total length of {@code lines}.
+     */
+    private static Table parseTable(List<String> lines) {
+        if (lines.size() < 2) return null;
+        List<String> headerCells = splitRow(lines.get(0));
+        List<String> sepCells = splitRow(lines.get(1));
+        if (headerCells.isEmpty() || sepCells.size() != headerCells.size()) return null;
+        List<Align> aligns = new ArrayList<>();
+        for (String raw : sepCells) {
+            String c = raw.strip();
+            if (!c.matches(":?-+:?")) return null;
+            boolean left = c.startsWith(":");
+            boolean right = c.endsWith(":");
+            aligns.add(left && right ? Align.CENTER : right ? Align.RIGHT : Align.LEFT);
+        }
+        List<Cell> header = new ArrayList<>();
+        for (String c : headerCells) header.add(new Cell(inline(c.strip())));
+        List<List<Cell>> rows = new ArrayList<>();
+        for (int r = 2; r < lines.size(); r++) {
+            List<String> raw = splitRow(lines.get(r));
+            List<Cell> row = new ArrayList<>();
+            for (int c = 0; c < headerCells.size(); c++) {
+                row.add(new Cell(inline(c < raw.size() ? raw.get(c).strip() : "")));
+            }
+            rows.add(row);
+        }
+        return new Table(header, aligns, rows);
+    }
+
+    /**
+     * Split one table row into its cell texts: a leading {@code |} is dropped, {@code \|} is a literal pipe, a
+     * trailing (unescaped) {@code |} ends the row without an extra empty cell. One forward pass — linear.
+     */
+    private static List<String> splitRow(String line) {
+        String t = line.strip();
+        int n = t.length();
+        int i = 0;
+        if (i < n && t.charAt(i) == '|') i++;
+        List<String> cells = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        boolean lastWasDelimiter = false;
+        for (; i < n; i++) {
+            char c = t.charAt(i);
+            if (c == '\\' && i + 1 < n && t.charAt(i + 1) == '|') {
+                cur.append('|');
+                i++;
+                lastWasDelimiter = false;
+                continue;
+            }
+            if (c == '|') {
+                cells.add(cur.toString());
+                cur.setLength(0);
+                lastWasDelimiter = true;
+                continue;
+            }
+            cur.append(c);
+            lastWasDelimiter = false;
+        }
+        if (!lastWasDelimiter) cells.add(cur.toString());
+        return cells;
+    }
+
+    /**
      * Inline runs of one line, linearly: each delimiter's next occurrence is a lookup into an array filled by one
      * backward pass, so a delimiter with no closer costs one step and becomes a literal character.
      */
@@ -130,6 +255,7 @@ public final class SafeMarkdown {
         int[] nextClose = next(s, ']');
         int[] nextParen = next(s, ')');
         int[] nextDouble = nextDouble(s, '*');
+        int[] nextDoubleTilde = nextDouble(s, '~');
         StringBuilder text = new StringBuilder();
         int i = 0;
         while (i < n) {
@@ -147,6 +273,14 @@ public final class SafeMarkdown {
                 if (close > i + 2) {
                     flush(runs, text);
                     runs.add(new Run(Kind.STRONG, s.substring(i + 2, close), null));
+                    i = close + 2;
+                    continue;
+                }
+            } else if (c == '~' && i + 1 < n && s.charAt(i + 1) == '~') {
+                int close = i + 2 < n ? nextDoubleTilde[i + 2] : -1;
+                if (close > i + 2) {
+                    flush(runs, text);
+                    runs.add(new Run(Kind.STRIKE, s.substring(i + 2, close), null));
                     i = close + 2;
                     continue;
                 }
