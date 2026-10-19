@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Clarified in the Claude Code docs page, and covered by a new regression test, what was already true of the running
+  app: with your own project open, Claude Code's hosted session works in that project's own folder (never the
+  analyser's private scratch folder) once you trust it — only the sample project and an evidence bundle's working copy
+  use the scratch folder. No behaviour changed; the guarantee just was not stated this plainly, and the one untested
+  seam (the real operating-system process actually receiving that folder as its working directory) now has a test.
+
 ## [1.36.0] - 2026-10-19
 
 - Full Claude Code's documentation pre-allow now runs through the analyser's URL check rather than a hostname-only CLI allow. Non-HTTPS URLs, non-default ports and user-info URLs no longer bypass that check. Existing Full conversations require a new session so they cannot retain the previous allow rule; the person's own permission rules and selected mode still apply.

@@ -165,6 +165,9 @@ public final class MainFrame extends JFrame {
 
     telamin.fluxtion.audit.analyser.analyser.assistant.localagent.AgentProcess.Launcher localAgentLauncher =
             new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.OsAgentLauncher();
+    /** Test seam: what a spawn's child sees as its own environment — a real-process frame test isolates {@code PATH}
+     * so {@code claude} can never resolve to the person's own installed CLI. Null: the real {@code System.getenv()}. */
+    java.util.Map<String, String> localAgentEnvironmentForTest;
     private long localAgentRequest;
     private long localAgentSendRequest;
     private long localAgentDraftCleared;
@@ -5322,7 +5325,9 @@ public final class MainFrame extends JFrame {
             @Override public String restUrl() { return restUrl; }
             @Override public String restToken() { return restToken; }
             @Override public java.util.Optional<java.util.List<String>> bridgeLauncher() { return localAgentBridgeLauncher(); }
-            @Override public java.util.Map<String, String> environment() { return System.getenv(); }
+            @Override public java.util.Map<String, String> environment() {
+                return localAgentEnvironmentForTest != null ? localAgentEnvironmentForTest : System.getenv();
+            }
             @Override public Path userHome() { return Path.of(System.getProperty("user.home")); }
             @Override public void post(Object fact) {
                 SwingUtilities.invokeLater(() -> { if (session != null) session().post(fact); });
