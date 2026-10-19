@@ -6,17 +6,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-- Docs: deferred M81 project build-script pre-approval after reviewing execution wrappers, shell setup and automatic backgrounding. No script-trust feature ships; existing Bash permission behavior remains unchanged.
+### Added
 
 - Claude Code now shows the step it starts, elapsed time and a quiet inactivity cue while a turn runs. Keep waiting dismisses that silence episode until a new stream event; approvals show their own cue while keeping the existing modal question, with no blocked Show control. About lists tool/turn totals, and project context exposes the same read-only activity snapshot.
-
-- An interrupted Claude Code conversation that cannot resume in its changed folder or mode starts a new chat with your last request and a recovery reminder placed, never sent. A CLI-reported missing session falls back once; ordinary failures do not retry. The session now records a start activity clock for the live activity display.
-
-- Restart recovers a Claude Code process stuck starting or stopping, preserving its conversation when it can resume. Start on a healthy session now says it is already running; externally stopped processes name signal 15 or 9, and rate-limit notes explain that they do not block Start or Restart.
-- Transcript tables bound cell and repeated-label expansion, preserving oversized tables as raw text. Pixel widths
-  include displayed link destinations, image captions, visible character disclosures and navigation chips, so grid
-  alignment and narrow-panel stacking match what is actually rendered.
-
 - **The transcript renders Markdown tables, not raw pipes.** A GFM table (a header row plus a valid separator row —
   `:---`, `---:`, `:---:` or `---` per column) draws as an aligned, bordered monospace grid, with alignment from the
   separator row and `**bold**`/`` `code` ``/links working inside cells; `\|` stays a literal pipe. When the grid would
@@ -26,14 +18,21 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   line, and nested block quotes (capped at three levels). Columns are aligned with pixel-measured tab stops, not
   padded by character count, so a cell holding a status icon or an em dash no longer pulls that row's separators
   out of line with the rest of the table; the header's drawn rule now reaches the full width of its longest cell.
+- Transcript tables bound cell and repeated-label expansion, preserving oversized tables as raw text. Pixel widths
+  include displayed link destinations, image captions, visible character disclosures and navigation chips, so grid
+  alignment and narrow-panel stacking match what is actually rendered.
+- Docs: a new page, *The audit log ▸ From a Mongoose server to the analyser*, explains how a Mongoose-hosted processor's audit records reach a `---`-separated file that the analyser opens. It covers two routes: your own `LogRecordListener` passed at boot, and Mongoose's audit capture exported by `svc-admin-web`. It also covers where the audit level comes from. Steps that the Mongoose sources do not settle are marked *To confirm*.
 
+### Changed
+
+- Docs: deferred M81 project build-script pre-approval after reviewing execution wrappers, shell setup and automatic backgrounding. No script-trust feature ships; existing Bash permission behavior remains unchanged.
+- The offline M74 onboarding scorer now binds scores to the sealed oracle bytes, refuses incomplete captures, checks ordered person actions and their references/choices, and reads the current Java permission facts. Maven seeds reject live symlink aliases. CI checks the current Java pack parser without rewriting its expected verdicts, including the non-breaking-space URL regression. The live operator harness is still not implemented; no onboarding trial is implied.
 - The offline onboarding scorer refuses nonempty answer rows without string `text` instead of silently ignoring their contents. Operator correlation now covers current proposal-row, restart, no-log, profile/setup, external-access and starter choices, verified against actual Java records; unknown fact-bearing operator kinds also void the run. Empty answer captures remain explicitly distinguishable from missing or malformed captures.
 
-- The offline M74 onboarding scorer now binds scores to the sealed oracle bytes, refuses incomplete captures, checks ordered person actions and their references/choices, and reads the current Java permission facts. Maven seeds reject live symlink aliases. CI checks the current Java pack parser without rewriting its expected verdicts, including the non-breaking-space URL regression. The live operator harness is still not implemented; no onboarding trial is implied.
+### Fixed
 
-### Added
-
-- Docs: a new page, *The audit log ▸ From a Mongoose server to the analyser*, explains how a Mongoose-hosted processor's audit records reach a `---`-separated file that the analyser opens. It covers two routes: your own `LogRecordListener` passed at boot, and Mongoose's audit capture exported by `svc-admin-web`. It also covers where the audit level comes from. Steps that the Mongoose sources do not settle are marked *To confirm*.
+- Restart recovers a Claude Code process stuck starting or stopping, preserving its conversation when it can resume. Start on a healthy session now says it is already running; externally stopped processes name signal 15 or 9, and rate-limit notes explain that they do not block Start or Restart.
+- An interrupted Claude Code conversation that cannot resume in its changed folder or mode starts a new chat with your last request and a recovery reminder placed, never sent. A CLI-reported missing session falls back once; ordinary failures do not retry. The session now records a start activity clock for the live activity display.
 - **Fixed: accepting "this log sits inside the project X — load it?" while Claude Code is running now offers the
   same restart as any other project switch**, instead of applying at once. If you started Claude Code before opening
   a project (so it began in the analyser's private scratch folder), then opened an audit log and said yes to that

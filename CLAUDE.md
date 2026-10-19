@@ -46,6 +46,10 @@ architecture, conventions). This file is only the rules that must never be skipp
    merges — `607ea90d` (#81) and `a7d35335` (#86) on 2026-09-30, `a636959f` (#88) and `35c2f78d` (#108) on
    2026-10-06 — so the account's commit email had reverted for web merges. Every merge since is local, under
    the personal address; check a GitHub-made merge's author before trusting the button again.
+   **Counted again 2026-10-19** (1.37.0 release check): the fourth is **98**. The four new ones are GitHub-made merges
+   from before 1.36.0 — `a7d35335` (PR #86) and `607ea90d` on 2026-09-30, the #88 and #108 merges on 2026-10-06 — all
+   already inside released versions. Every commit since `v1.36.0` carries the personal address; the third term is
+   unchanged at 132.
    **Counted again 2026-09-27** (1.25.0 release check): the fourth is 94. The new one is `29a9ece4`, PR #24's
    merge made through GitHub on 2026-09-27, already inside 1.24.0; nothing since carries an employer domain.
    **Counted 2026-09-26:** the fourth rose from 82 to 93, and all eleven new commits are pull-request
