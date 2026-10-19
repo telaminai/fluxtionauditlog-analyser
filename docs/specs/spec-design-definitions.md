@@ -485,4 +485,3 @@ retire a valid root scan. A discovered one-file presentation is a glance, not im
 
 The unchanged-main T10 stub actually made two calls, one refused because no file was discoverable in context;
 its authorised root was already present. No longer sequence or unnecessary source-root approval is invented.
-
