@@ -1,6 +1,8 @@
 # M81 — Live activity, per-project build-script trust, a restart that always works, and staying in sync
 
-**Status:** DRAFT r4, 2026-10-19 (r2 added Feature C, from an investigation of the 1.36.0 release; r3 adds Feature
+**Status:** DRAFT r5, 2026-10-19; **Feature B explicitly deferred by the owner, not shipping** (see disposition below).
+The B sections remain the historical proposed design, not current permission authority. C/A are implemented in
+unmerged PRs #173/#176; D proceeds without B. (r2 added Feature C, from an investigation of the 1.36.0 release; r3 adds Feature
 D, approved by the owner the same day). Four owner-approved features (2026-10-19) for the onboard Claude Code
 assistant, specified together because all four touch the same machinery: the local-agent session's rule-9 node
 (`localAgentSession` / `assistantLoop`), the stream adapter's observation boundary, and the Full-posture
@@ -17,6 +19,31 @@ word-and-control budgets, rule 9's "nothing composed in the panel"). **Depends o
 B's script resolution is defined relative to that root and is moot (and refused) when no project is open.
 CLAUDE.md rules 1, 6, 8 and 9 apply throughout; rule 6 — this spec was written against the live M74 code on
 `origin/main`, not inferred from memory.
+
+---
+
+## Current disposition — Feature B deferred
+
+**Owner, 2026-10-19: defer option A; close draft #184 without merging or deleting its branch.** Neither the
+original candidate nor its guarded-launch WIP is a shipping feature. Excluding that code preserves existing
+Full Bash permission behavior; closing a draft does not change the candidate's runtime behavior to asking.
+The historical B requirements and OD-81.3–6 below do not authorise enabling this incomplete exception.
+
+The owner first authorised both root-reset and no-background launch safeguards with explicit opt-in wording,
+then a bounded Bash-only helper investigation. Supported hooks report snapshots, not an execution reservation.
+Before building a narrower alternative, the owner requested a read-only assessment of an absolute-real-path,
+digest-matched single command with every input containing `run_in_background` refused. That variant also fails
+the requested execution/foreground guarantee: the documented shell prefix wraps the invocation, persisted shell
+setup runs before it, settings can replace inherited environment, and timeout can background a foreground call.
+See the [primary-source investigation](../handoff/m81-b-effective-context-investigation.md) and
+[final disposition](../handoff/m81-b-deferral.md). No live CLI/model/configuration probe was performed.
+
+Separately, an unchanged wrapper may execute assistant-edited build files, plugins or tests. Identity is not
+effect: this residual was already disclosed in the original §2.4/§6, not a newly discovered accidental breach.
+The owner now chooses not to grant that broader authority. A future opt-in must honestly say that it lets the
+assistant run the project's build without asking, **including assistant edits**, and needs a separate security
+review. No such consent or implementation is authorised here. D is independent and proceeds on a safe base
+excluding all B production changes.
 
 ---
 
@@ -657,6 +684,10 @@ already is today when the person opens a file by hand.
 
 ### 8.1 Phasing
 
+**r5 disposition supersedes B delivery:** its draft is closed unmerged; this documentation-only disposition
+does not carry B production code. The D branch depends on safe C/A and the working-folder prerequisite, not B.
+The original four-group plan below is preserved as history, not a direction to ship the deferred exception.
+
 The owner requests four PRs, **C, A, B, D**, each against main, with stack dependencies documented. The rows below
 are implementation phases within those PRs, in order; C1/C2 are one C PR, A1–A3 one A PR, B1–B4 one B PR,
 and D1/D2 one D PR. Each delivery is a reviewed feature branch with its CHANGELOG line (rule 2) and green tests (rule 4). **Feature C
@@ -694,6 +725,8 @@ followed by a further 60 s of silence (§3.1, §4.1). | accepted (owner, 2026-10
 | **OD-81.10** | **Sync offers are banners, never modals; offer, never act.** Accepting pairs through the existing path; declining or ignoring changes nothing; the person's own open log is never auto-switched (§2.7, §3.5). | accepted (owner, 2026-10-19) |
 
 | **OD-81.11** | **Truthful modal approval presentation.** Preserve existing application-modal approvals. Do not imply that a composer Show action is clickable while blocked. Test truthful status and native interaction; supersedes the original A5 Show affordance, not the permission policy. | accepted (owner, 2026-10-19) |
+| **OD-81.12** | Both root-reset and no-background safeguards were authorised only for explicitly opted-in Full script-trusting sessions, with no running-session retrofit. A bounded per-call helper investigation was subsequently authorised, not a self-report acceptance claim or execution proxy. | historical authorisation; implementation withheld by OD-81.13 |
+| **OD-81.13** | **Defer B, close #184 unmerged and preserve its evidence/WIP.** The absolute-path-only alternative was assessed read-only before implementation and does not close documented wrapper, shell-prelude or auto-background gaps. Do not ship pre-approval. Any future broader build consent, explicitly including assistant-edited build inputs, requires a separate design/security review. D proceeds without B. | explicitly confirmed by owner, 2026-10-19; supersedes B delivery/OD-81.3–6 in this milestone |
 
 ### 8.3 Open questions
 
@@ -736,4 +769,8 @@ followed by a further 60 s of silence (§3.1, §4.1). | accepted (owner, 2026-10
   per-script content binding within the single set choice, four-second watcher, and explicit local accepts with
   exchange off. Recorded heartbeat evidence limits, narrow signal vocabulary, and the four-PR delivery grouping.
   Subsequently recorded OD-81.11: keep modal approval and remove the blocked composer Show affordance.
+
+- **2026-10-19, DRAFT r5**: recorded explicit B deferral after the bounded helper investigation and the owner's
+  read-only absolute-path assessment; preserved the historical proposal and existing effect-risk disclosure;
+  recorded the separate-review boundary for any future broader consent. D proceeds without unsafe B ancestry.
 
