@@ -181,7 +181,10 @@ When Claude Code proposes a starter, the review and what follows are in
   runs asks first: **Stop, and get Start ready in the new project** (the session ends; nothing starts until you press
   *Start a new session in this project*, and the new folder is confirmed then), **Keep it running here** (the switch
   happens; the session keeps working in its own folder, and its context describes the previous project), or
-  **Cancel**. An assistant's `open {project}` is never held this way. (A handoff report from the old session to the new
-  one is planned for later.)
+  **Cancel**. The same question is asked when you say yes to *"This log sits inside the project '\<name\>' — load it?"*
+  (the offer a log gets when you open it with no matching project active) — accepting that while a session is running
+  no longer applies the project at once; it asks first too, so a session that started before any project was open (and
+  so began in the scratch folder) is never left silently bound to it. An assistant's `open {project}` is never held
+  this way. (A handoff report from the old session to the new one is planned for later.)
 - **Don't resume this conversation in a terminal while it is open here** — the history would fork. A second analyser
   window cannot open it either: *"This conversation is open in another analyser window."*

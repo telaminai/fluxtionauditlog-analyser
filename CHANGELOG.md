@@ -6,11 +6,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Fixed: accepting "this log sits inside the project X — load it?" while Claude Code is running now offers the
+  same restart as any other project switch**, instead of applying at once. If you started Claude Code before opening
+  a project (so it began in the analyser's private scratch folder), then opened an audit log and said yes to that
+  offer, the project became active immediately but the already-running session kept working in its original folder
+  with no warning — so its `CLAUDE.md` and `.claude/skills` were never loaded, even though a later Start or New chat
+  would have picked them up correctly. Now you get the usual *"Claude Code is in \<old folder\>; restart in \<project\>?"*
+  choice first.
 - Clarified in the Claude Code docs page, and covered by a new regression test, what was already true of the running
-  app: with your own project open, Claude Code's hosted session works in that project's own folder (never the
-  analyser's private scratch folder) once you trust it — only the sample project and an evidence bundle's working copy
-  use the scratch folder. No behaviour changed; the guarantee just was not stated this plainly, and the one untested
-  seam (the real operating-system process actually receiving that folder as its working directory) now has a test.
+  app otherwise: with your own project open, Claude Code's hosted session works in that project's own folder (never
+  the analyser's private scratch folder) once you trust it — only the sample project and an evidence bundle's working
+  copy use the scratch folder.
 
 ## [1.36.0] - 2026-10-19
 
