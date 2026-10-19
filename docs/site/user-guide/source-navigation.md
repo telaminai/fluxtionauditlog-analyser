@@ -50,8 +50,13 @@ their node index follows separately. Existing Spring bean indexing is unchanged.
 
 No generated processor header is inspected. A project is not a read grant: discovery reads only authorised roots,
 does not follow directory links and rechecks file containment. It counts at most 10,000 regular files and 20,000
-filesystem entries, with the existing 2 MiB/UTF-8 source limit. An incomplete scan reports unavailable and returns
-no partial candidate list. Working definitions remain **relationship unverified**, never paired with a run by discovery.
+filesystem entries, with the existing 2 MiB/UTF-8 source limit. Exceeding a scan limit reports unavailable with the
+specific limit and returns no partial candidate list. Individual unreadable, undecodable or oversized files do not
+erase the readable candidates: their names and count appear in the Design pane and `context.design.note` as
+“2 files could not be read: …”. With no readable candidate the message says so, rather than claiming no design
+exists. A failed first explicit read omits `kind` until a form has actually loaded; a failed refresh may retain
+the last good revision and its known form. Working definitions remain **relationship unverified**, never paired
+with a run by discovery.
 
 **Sources ▸ Open design…** selects the session's Spring XML or Java builder. Add its directory to source roots first;
 opening a project alone grants no file access. **Source ▸ Design** shows highlighted XML, a bean/config

@@ -79,16 +79,30 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     public ProducerResult result() { return result; }
     public String resultError() { return resultError; }
     public long generation() { return generation; }
+    public String discoveryNote() {
+        String note = discovery.source().startsWith("unavailable")
+                ? "Definition discovery " + discovery.source() + ". No partial list is shown."
+                : discovery.files().isEmpty()
+                ? (discovery.unreadableFiles().isEmpty() ? "No design found. Add a source folder or open a design."
+                        : "No readable design found.")
+                : discovery.files().size() == 1
+                ? "Definition discovered under authorised roots · relationship to this run unverified"
+                : "Several definitions found. Open a design to inspect it.";
+        return discovery.warning().isEmpty() ? note : note + "\n" + discovery.warning();
+    }
     public Map<String, Object> echo() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("relationship", "unverified"); m.put("note", "working copy; matched by name; relationship to this run unknown");
+        if (!discovery.warning().isEmpty()) m.put("note", m.get("note") + "\n" + discovery.warning());
         if (path != null) m.put("file", path);
         if (document != null) { m.put("revision", document.revision()); m.put("beans", document.beanIds()); }
         else if (builder != null) { m.put("revision", builder.revision()); m.put("beans", List.of()); }
         if (!error.isEmpty()) m.put("error", error);
         if (!resultError.isEmpty()) m.put("diagnosticsError", resultError);
         if (result != null) { m.put("diagnosticsFile", result.file()); m.put("inputs", result.relationship(document)); }
-        m.put("kind", path != null && discovery.files().isEmpty() ? (builder == null ? "spring" : "builder") : discovery.kind());
+        // A failed first read provides no loaded form. Never infer Spring merely from the absence of a builder.
+        if (path == null || document != null || builder != null)
+            m.put("kind", path != null && discovery.files().isEmpty() ? (builder == null ? "spring" : "builder") : discovery.kind());
         if (!discovery.files().isEmpty()) m.put("files", discovery.files().stream().map(f -> Map.of("path", f.path(), "role", f.role())).toList());
         m.put("nodes", List.of());
         m.put("source", path != null && discovery.files().isEmpty() ? "explicit" : discovery.source());

@@ -12,6 +12,46 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
 
 /** Stub-assistant calls only: no CLI, model or credentials. Run unchanged-main witness before implementation. */
 class M80DesignDiscoveryFrameTest {
+    @Test void readableCandidateAndReadWarningsReachTheDesignPaneAndContext(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(),"real display required");
+        Path project=Files.createDirectories(tmp.resolve("DEMO"));
+        Path root=Files.createDirectories(project.resolve("src"));
+        Path builder=Files.writeString(root.resolve("DEMOBuilder.java"),
+                "import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
+                +"class DEMOBuilder implements FluxtionGraphBuilder { void buildGraph(Config cfg) {} }");
+        String expected=builder.toRealPath().toString();
+        Files.write(root.resolve("bad.java"),new byte[]{(byte)0xff});
+        Files.writeString(root.resolve("large.xml")," ".repeat(telamin.fluxtion.audit.analyser.analyser.design.DesignFiles.MAX_BYTES+1));
+        Files.writeString(Files.createDirectories(project.resolve(".analyser")).resolve("project.fluxtion-settings"),
+                "share.version=1\nsourceRoot.count=1\nsourceRoot.0=src\n");
+        try(var f=new Frame(tmp)) {
+            onEdt(()->{f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();});
+            assertTrue(f.ex.render("open",Map.of("project",project.toString())).ok());
+            var shown=new java.util.concurrent.atomic.AtomicReference<String>("");
+            long until=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(15);
+            do {
+                onEdt(()->{
+                    SourcePanel source=(SourcePanel)field(f.frame,"sourcePanel");
+                    if(source.fileView()!=null && source.fileView().file().equals(expected))
+                        shown.set(((javax.swing.JTextArea)field(source.designComponent(),"status")).getText());
+                });
+                if(shown.get().contains("2 files could not be read:"))break;
+                Thread.sleep(20);
+            } while(System.nanoTime()<until);
+            assertTrue(shown.get().contains("2 files could not be read:"),"candidate and warning must reach the actual Design pane: "+shown.get());
+            assertTrue(shown.get().contains("bad.java") && shown.get().contains("large.xml"));
+            var context=f.ex.render("context",Map.of("sections",List.of("design")));
+            assertEquals(1,((List<?>)find(context.payload(),"files")).size());
+            assertTrue(String.valueOf(find(context.payload(),"note")).contains("2 files could not be read:"),context.toMap().toString());
+            assertTrue(f.ex.render("source",Map.of("file",expected)).ok());
+            onEdt(()->{
+                var source=(SourcePanel)field(f.frame,"sourcePanel");
+                var status=(javax.swing.JTextArea)field(source.designComponent(),"status");
+                assertTrue(status.isShowing(),"the warning is on the visible Design pane");
+                assertTrue(status.getText().contains("2 files could not be read:"),"explicit glances retain the warning");
+            });
+        }
+    }
     @Test void aStubFindsTheBuilderInTwoCallsWithoutRefusals(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "real display required");
         Path project=Files.createDirectories(tmp.resolve("DEMO"));

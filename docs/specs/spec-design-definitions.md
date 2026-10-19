@@ -474,7 +474,7 @@ form-string edit above; neither test's assertions change shape.
 ## 10 · Owner decisions and implementation record (2026-10-19)
 
 The owner approved OD-2–OD-5: no helper role in v1, permanent bean/node synonyms, no auditor anchors, and the
-10,000-file budget with unavailable rather than partial discovery. OD-1 remains gated: all three implementation
+10,000-file budget, with unavailable rather than partial discovery when the cap is exceeded. OD-1 remains gated: all three implementation
 PRs are source-scan only; no processor header is inspected. The scanner additionally bounds filesystem metadata
 entries and per-file reads using the existing source limit. All regular files count toward the file budget.
 
@@ -485,3 +485,13 @@ retire a valid root scan. A discovered one-file presentation is a glance, not im
 
 The unchanged-main T10 stub actually made two calls, one refused because no file was discoverable in context;
 its authorised root was already present. No longer sequence or unnecessary source-root approval is invented.
+
+Independent review at `6c31ef53` refined the per-file policy: unreadable, undecodable and oversized individual
+files are named in the existing `context.design.note` and human Design note, while readable candidates remain
+available. No extra context key is introduced. Source stays `source-scan` when files failed; the note discloses
+that the scan did not establish absence. File/metadata cap exhaustion still clears the list and names its
+specific limit; an inaccessible root or traversal remains unavailable rather than inventing coverage.
+
+A failed first read with no loaded XML or builder omits `kind` instead of inferring Spring from a null builder.
+A failed refresh of the same file retains the last good revision and its form. The human zero-file line is short
+plain text. The additive-key check extracts only the brace-matched `echo()` body, not later methods.

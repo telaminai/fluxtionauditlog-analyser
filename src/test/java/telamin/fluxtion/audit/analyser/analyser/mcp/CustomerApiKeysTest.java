@@ -60,7 +60,7 @@ class CustomerApiKeysTest {
 
     @Test void designEchoKeepsItsReleasedKeysAndOnlyNamesTheFourAdditions() throws Exception {
         String source = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/DesignSession.java"));
-        String echo = source.substring(source.indexOf("public Map<String, Object> echo()"));
+        String echo = designEchoBody(source);
         Set<String> keys = new LinkedHashSet<>();
         Matcher puts = Pattern.compile("m\\.put\\(\"([^\"]+)\"").matcher(echo);
         while (puts.find()) keys.add(puts.group(1));
@@ -81,6 +81,18 @@ class CustomerApiKeysTest {
             assertEquals(List.of("relationship", "note", "file", "revision", "beans"), released);
             assertEquals(java ? List.of() : List.of("a"), actual.get("beans"));
         }
+    }
+
+    static String designEchoBody(String source) {
+        return telamin.fluxtion.audit.analyser.analyser.ui.OneDispatchModelTestAccess.bodyOf(source, "public Map<String, Object> echo()");
+    }
+
+    @Test void designEchoExtractionExcludesLaterMethods() {
+        String source = "class DEMO { public Map<String, Object> echo() { m.put(\"kind\", \"none\"); return m; } "
+                + "void later() { m.put(\"notAnEchoKey\", true); } }";
+        String body = designEchoBody(source);
+        assertTrue(body.contains("m.put(\"kind\""));
+        assertFalse(body.contains("notAnEchoKey"),"★ T9 must inspect only echo, not later methods");
     }
 
     /** {@code ContextSections.SECTIONS} as released in 1.35.1 ({@code main}): the customer's contract. */

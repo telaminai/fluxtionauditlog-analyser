@@ -1897,12 +1897,17 @@ public final class MainFrame extends JFrame {
             note += "\n" + state.result().description(state.document());
         }
         if (!state.error().isEmpty()) note += "\n" + state.error() + (state.document() == null ? " — no parsed revision available" : " — showing the last good revision");
+        if (!state.discovery().warning().isEmpty()) note += "\n" + state.discovery().warning();
         return note;
     }
 
     private String designViewNote(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.View view) {
         String note = view == null || java.util.Objects.equals(view.file(), session().processor().designSession.path()) ? designNote()
                 : "File glance · relationship unverified\nSession design: " + session().processor().designSession.path();
+        if (view != null && !java.util.Objects.equals(view.file(), session().processor().designSession.path())) {
+            String warning = session().processor().designSession.discovery().warning();
+            if (!warning.isEmpty()) note += "\n" + warning;
+        }
         return view == null || view.problem().isEmpty() ? note : note + "\n" + view.problem() + " — text only; bean index unavailable";
     }
 
@@ -8961,11 +8966,8 @@ public final class MainFrame extends JFrame {
                     var state = session.processor().designSession;
                     if (!isDisplayable() || state.discoveryGeneration() != e.generation()) return;
                     if (e.file() == null) {
-                        if (state.path() == null) { sourcePanel.clearDesign(); sourcePanel.designNote(state.discovery().source().startsWith("unavailable")
-                                ? "Definition discovery unavailable; no partial list is shown."
-                                : state.discovery().files().isEmpty()
-                                ? "No Spring XML or Java builder found under the authorised source roots. Add source roots with source_root {add: [...]} or open {design: <path>}."
-                                : "Several definitions found; name one with source {file: <path>}."); }
+                        if (state.path() == null) { sourcePanel.clearDesign(); sourcePanel.designNote(state.discoveryNote()); }
+                        else sourcePanel.designNote(designViewNote(sourcePanel.fileView()));
                     } else {
                         var files = designFiles(); long readGeneration = state.generation();
                         var snapshot = new telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Snapshot(state.path(), state.document(), readGeneration);
@@ -8975,7 +8977,7 @@ public final class MainFrame extends JFrame {
                             // Any later read or root/project generation retires this preparation before display.
                             if (!isDisplayable() || state.discoveryGeneration() != e.generation() || state.generation() != readGeneration) return;
                             if (prepared.value() != null) sourcePanel.showFile(prepared.value(),
-                                    "Definition discovered under authorised roots · relationship to this run unverified", false);
+                                    state.discoveryNote(), false);
                             else sourcePanel.designNote("Definition unavailable: " + prepared.error());
                         }, error -> { if (state.discoveryGeneration() == e.generation()) sourcePanel.designNote("Definition unavailable"); });
                     }

@@ -86,7 +86,8 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
 
 CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
     ('m80-source-scan-without-header', J + 'design/DesignDiscovery.java',
-     'return new DesignDiscovery(kind, List.copyOf(found.values()), found.isEmpty() ? "none" : "source-scan");',
+     'return new DesignDiscovery(kind, List.copyOf(found.values()), found.isEmpty() && unreadable.isEmpty() ? "none" : "source-scan",\n'
+     '                List.copyOf(unreadable));',
      'return DesignDiscovery.none();',
      'DesignDiscoveryTest#scanFindsTheBuilderWithoutAnyGeneratedProcessorOrHeader'),
     ('m80-design-additive-key-pin', NODE + 'DesignSession.java',
@@ -2582,3 +2583,33 @@ CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
 WALKREEL_NOTE = (
     'The reel page is pure (records in, one string out), so its controls are string-level and read oddly; that is '
     'the point -- every one of them is a sentence a recipient either sees or does not.')
+
+# PR175 independent review: failed form, bounded-but-partial discovery, and the exact static/human boundaries.
+CONTROLS += [
+    ('m80-failed-read-no-invented-form', NODE + 'DesignSession.java',
+     'if (path == null || document != null || builder != null)', 'if (true)',
+     'DesignDiscoverySessionTest#failedDesignReadNeverInventsASpringForm'),
+    ('m80-file-failure-keeps-candidates', J + 'design/DesignDiscovery.java',
+     'new DesignDiscovery(kind, List.copyOf(found.values()), found.isEmpty() && unreadable.isEmpty()',
+     'new DesignDiscovery(kind, unreadable.isEmpty() ? List.copyOf(found.values()) : List.of(), found.isEmpty() && unreadable.isEmpty()',
+     'DesignDiscoveryTest#individualReadFailuresKeepCandidatesAndNameEveryUnreadableFile'),
+    ('m80-file-warning-in-context', NODE + 'DesignSession.java',
+     '        if (!discovery.warning().isEmpty()) m.put("note", m.get("note") + "\\n" + discovery.warning());', '',
+     'DesignDiscoveryTest#individualReadFailuresKeepCandidatesAndNameEveryUnreadableFile'),
+    ('m80-file-cap-distinct-reason', J + 'design/DesignDiscovery.java',
+     'catch (ScanLimit limit) { return unavailable(limit.getMessage()); }',
+     'catch (ScanLimit limit) { return unavailable(); }',
+     'DesignDiscoveryTest#anExceededBudgetNeverReturnsAPartialCandidateList'),
+    ('m80-echo-body-only', 'src/test/java/telamin/fluxtion/audit/analyser/analyser/mcp/CustomerApiKeysTest.java',
+     'return telamin.fluxtion.audit.analyser.analyser.ui.OneDispatchModelTestAccess.bodyOf(source, "public Map<String, Object> echo()");',
+     'return source.substring(source.indexOf("public Map<String, Object> echo()"));',
+     'CustomerApiKeysTest#designEchoExtractionExcludesLaterMethods'),
+    ('m80-no-dead-root-budget', J + 'design/DesignDiscovery.java',
+     '            for (String root : access.roots()) {',
+     '            if (access.roots().size() > MAX_FILES) return unavailable();\n            for (String root : access.roots()) {',
+     'DesignDiscoveryTest#theFileBudgetHasNoDeadRootCountGuard'),
+    ('m80-short-human-empty-line', NODE + 'DesignSession.java',
+     'No design found. Add a source folder or open a design.',
+     'No Spring XML or Java builder found under the authorised source roots. Add source roots with source_root {add: [...]} or open {design: <path>}.',
+     'DesignDiscoverySessionTest#emptyDiscoveryUsesAShortHumanMessageWithoutJsonSyntax'),
+]
