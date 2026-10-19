@@ -1960,6 +1960,16 @@ public final class MainFrame extends JFrame {
 
     private void refreshDesignView(telamin.fluxtion.audit.analyser.analyser.design.DesignDocument before) {
         var state = session().processor().designSession; var document = state.document();
+        if (state.builder() != null) {
+            var builder = state.builder(); var viewed = sourcePanel.fileView();
+            if (viewed != null && viewed.file().equals(builder.file()) && !viewed.text().equals(builder.text())) {
+                for (var lit : spotlight.lit()) if (lit.target().startsWith("source:design")) {
+                    spotlight.remove(lit.target()); designWentOut.add(lit.target()); designSpotlightRevisions.remove(lit.target());
+                }
+                int lines = 1 + (int) builder.text().chars().filter(c -> c == '\n').count();
+                sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(builder, Math.min(viewed.line(), lines), null), designNote(), false);
+            }
+        }
         boolean changed = document != null && (before == null || !before.revision().equals(document.revision()));
         if (changed) {
             for (var lit : spotlight.lit()) {
@@ -8938,6 +8948,40 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects effect) throws Exception {
         long opId = effect.opId();
         return switch (effect) {
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DiscoverDesignEffect e -> {
+                var files = designFiles();
+                Background.run(() -> telamin.fluxtion.audit.analyser.analyser.design.DesignDiscovery.scan(files),
+                        found -> { if (isDisplayable()) session.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryCompleted(found, e.generation())); },
+                        error -> { if (isDisplayable()) session.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryCompleted(
+                                telamin.fluxtion.audit.analyser.analyser.design.DesignDiscovery.unavailable(), e.generation())); });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(opId, "discoverDesign");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PresentDesignDiscoveryEffect e -> {
+                SwingUtilities.invokeLater(() -> {
+                    var state = session.processor().designSession;
+                    if (!isDisplayable() || state.discoveryGeneration() != e.generation()) return;
+                    if (e.file() == null) {
+                        if (state.path() == null) { sourcePanel.clearDesign(); sourcePanel.designNote(state.discovery().source().startsWith("unavailable")
+                                ? "Definition discovery unavailable; no partial list is shown."
+                                : state.discovery().files().isEmpty()
+                                ? "No Spring XML or Java builder found under the authorised source roots. Add source roots with source_root {add: [...]} or open {design: <path>}."
+                                : "Several definitions found; name one with source {file: <path>}."); }
+                    } else {
+                        var files = designFiles(); long readGeneration = state.generation();
+                        var snapshot = new telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Snapshot(state.path(), state.document(), readGeneration);
+                        Background.run(() -> telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.prepare(files, snapshot,
+                                workspace -> workspace.source(Map.of("file", e.file()))), prepared -> {
+                            // Presentation of a discovered file is a glance: it never starts/supersedes an explicit read.
+                            // Any later read or root/project generation retires this preparation before display.
+                            if (!isDisplayable() || state.discoveryGeneration() != e.generation() || state.generation() != readGeneration) return;
+                            if (prepared.value() != null) sourcePanel.showFile(prepared.value(),
+                                    "Definition discovered under authorised roots · relationship to this run unverified", false);
+                            else sourcePanel.designNote("Definition unavailable: " + prepared.error());
+                        }, error -> { if (state.discoveryGeneration() == e.generation()) sourcePanel.designNote("Definition unavailable"); });
+                    }
+                });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(opId, "presentDesignDiscovery");
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrepareBundleEffect e -> {
                 var driver = session;
                 Background.run(() -> {

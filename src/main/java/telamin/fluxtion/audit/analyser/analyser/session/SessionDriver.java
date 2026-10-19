@@ -289,6 +289,8 @@ public final class SessionDriver {
     /** The effect's name in the audit vocabulary — the same word {@code EffectOutcomes} records. */
     public static String name(SessionEffects effect) {
         return switch (effect) {
+            case SessionEffects.DiscoverDesignEffect ignored -> "discoverDesign";
+            case SessionEffects.PresentDesignDiscoveryEffect ignored -> "presentDesignDiscovery";
             case SessionEffects.AnswerHostedReportApplyEffect ignored -> "answerHostedReportApply";
             case SessionEffects.LoadProfileEffect ignored -> "loadProfile";
             case SessionEffects.PrepareBundleEffect ignored -> "prepareBundle";

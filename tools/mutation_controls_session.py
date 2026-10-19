@@ -85,6 +85,16 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
                 : BundleProvenance.NONE;"""
 
 CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
+    ('m80-source-scan-without-header', J + 'design/DesignDiscovery.java',
+     'return new DesignDiscovery(kind, List.copyOf(found.values()), found.isEmpty() ? "none" : "source-scan");',
+     'return DesignDiscovery.none();',
+     'DesignDiscoveryTest#scanFindsTheBuilderWithoutAnyGeneratedProcessorOrHeader'),
+    ('m80-design-additive-key-pin', NODE + 'DesignSession.java',
+     'm.put("nodes", List.of());', 'm.put("anchors", List.of());',
+     'CustomerApiKeysTest#designEchoKeepsItsReleasedKeysAndOnlyNamesTheFourAdditions'),
+    ('m80-xml-released-value', NODE + 'DesignSession.java',
+     'm.put("relationship", "unverified");', 'm.put("relationship", "verified");',
+     'DesignDiscoverySessionTest#xmlsReleasedValuesAndTheirOrderAreUnchanged'),
     ("integration-c-source-window", J + 'design/SourceText.java',
      'to = (int) Math.min(Integer.MAX_VALUE, (long) around + request.context());',
      'to = around + request.context();',

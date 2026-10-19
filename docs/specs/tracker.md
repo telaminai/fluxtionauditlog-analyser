@@ -139,6 +139,10 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - ☐ **FIX-8's open decision** (sample-session reads of the demo folder still prompt): likely resolved by
   `source {text}` (FIX-9) — confirm and close.
 
+### M80 · Design definitions ([spec](spec-design-definitions.md))
+- [M80-1] ◧ Source-root discovery, additive context and zero/one Design states implemented; verification/review pending. Header discovery remains gated; OD-2–OD-5 accepted by owner.
+- [M80-2/3] ☐ Bounded Java anchors/spotlight synonyms, then the multi-file chooser, as separate dependent PRs.
+
 ### M77 · Set up AI — the first-run wizard ([spec](spec-ai-setup-wizard.md), r5; OD-77.1 superseded by M79 OD-79.5)
 - [M77] ☑ **Set up AI wizard, with M77-1…M77-5 — released in 1.36.0 (PR #168).**
   ▸ detail: *completed/tracker.md ▸ 1.36.0*.

@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- M80: Design discovers Spring XML and Java builder definitions under authorised source roots when a project opens or roots change, without relying on generated headers. Context adds kind/files/nodes/source while keeping released keys; a single candidate opens as a read-only glance, and absent or unavailable discovery is stated. Java anchors and the multi-file chooser follow separately.
+
 - The offline onboarding scorer refuses nonempty answer rows without string `text` instead of silently ignoring their contents. Operator correlation now covers current proposal-row, restart, no-log, profile/setup, external-access and starter choices, verified against actual Java records; unknown fact-bearing operator kinds also void the run. Empty answer captures remain explicitly distinguishable from missing or malformed captures.
 
 - The offline M74 onboarding scorer now binds scores to the sealed oracle bytes, refuses incomplete captures, checks ordered person actions and their references/choices, and reads the current Java permission facts. Maven seeds reject live symlink aliases. CI checks the current Java pack parser without rewriting its expected verdicts, including the non-breaking-space URL regression. The live operator harness is still not implemented; no onboarding trial is implied.

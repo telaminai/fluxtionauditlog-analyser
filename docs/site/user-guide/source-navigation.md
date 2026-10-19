@@ -40,7 +40,20 @@ not added to the history.
 
 ## Spring design and file glances
 
-**Sources ▸ Open design…** selects the session's Spring XML. Add its directory to source roots first;
+Opening a project, or changing its source roots, scans those authorised roots in the background for Spring
+`FluxtionSpringConfig` XML and Java `FluxtionGraphBuilder` definitions. `context {sections: ["design"]}` lists their
+`kind`, `files` (path and role) and discovery `source`; `nodes` is initially empty. The Design pane shows a single
+candidate directly as a read-only glance, without adopting it as the session design. With no candidates it says
+so and points to `source_root {add: [...]}` or `open {design: <path>}`. Several candidates can be opened by naming
+one with `source {file: <path>}`; the chooser follows separately. Java builders are highlighted in Design mode;
+their node index follows separately. Existing Spring bean indexing is unchanged.
+
+No generated processor header is inspected. A project is not a read grant: discovery reads only authorised roots,
+does not follow directory links and rechecks file containment. It counts at most 10,000 regular files and 20,000
+filesystem entries, with the existing 2 MiB/UTF-8 source limit. An incomplete scan reports unavailable and returns
+no partial candidate list. Working definitions remain **relationship unverified**, never paired with a run by discovery.
+
+**Sources ▸ Open design…** selects the session's Spring XML or Java builder. Add its directory to source roots first;
 opening a project alone grants no file access. **Source ▸ Design** shows highlighted XML, a bean/config
 index, **Follow design**, **Show node** and **Show records**. The latter opens the first record logging the
 selected bean's name. Record and topology context menus offer **Show declaration**. These links are
