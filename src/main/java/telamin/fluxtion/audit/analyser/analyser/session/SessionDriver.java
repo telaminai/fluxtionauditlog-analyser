@@ -342,6 +342,8 @@ public final class SessionDriver {
             case SessionEffects.AiSetupTimerEffect ignored -> "aiSetupTimer";
             case SessionEffects.RunSuggestedActionEffect ignored -> "runSuggestedAction";
             case SessionEffects.StartLocalAgentEffect ignored -> "startLocalAgent";
+            case SessionEffects.StartActivityClockEffect ignored -> "startActivityClock";
+            case SessionEffects.PlaceRecoveryDraftEffect ignored -> "placeRecoveryDraft";
             case SessionEffects.PollLocalAgentStatusEffect ignored -> "pollLocalAgentStatus";
             case SessionEffects.SendLocalAgentTurnEffect ignored -> "sendLocalAgentTurn";
             case SessionEffects.StopLocalAgentEffect ignored -> "stopLocalAgent";

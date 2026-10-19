@@ -97,6 +97,10 @@ final class Harness {
             @Override public Path userHome() { return home; }
             @Override public Path scratchFolder() { return scratch; }
             @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports() { return reports; }
+            @Override public boolean activityCurrent(long generation, long ticket) {
+                var s = d[0].snapshot().localAgent();
+                return s.generation() == generation && (ticket == 0 ? s.starting() : s.openTicket() == ticket);
+            }
             @Override public List<String> fullTrustRecords() {
                 // review B7: the working folder is trusted as it is when first asked, unless a test set its own records
                 if (fullTrust == null) {
@@ -124,6 +128,8 @@ final class Harness {
                 return r;
             }
             others.add(effect);
+            if (effect instanceof SessionEffects.PlaceRecoveryDraftEffect e)
+                return new SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
             return new SessionEvents.LocalAgentEffectStarted(effect.opId(), 0, "other");
         });
         d[0] = driver;

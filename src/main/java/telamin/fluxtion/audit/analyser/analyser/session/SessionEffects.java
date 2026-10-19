@@ -458,6 +458,13 @@ public sealed interface SessionEffects {
     record PollLocalAgentStatusEffect(long opId, long generation, long delayMs) implements SessionEffects {
     }
 
+    /** M81: tick while the published generation/ticket remains current; ticket 0 covers starting. */
+    record StartActivityClockEffect(long opId, long generation, long ticket) implements SessionEffects { }
+
+    /** M81: place the interrupted request plus the node's fixed recovery line; never send it. */
+    record PlaceRecoveryDraftEffect(long opId, long generation, long draftRef, String fixedLine)
+            implements SessionEffects { }
+
     /** Write transcript entry {@code draft} to the CLI as one user line, with a freshly minted uuid for {@code ticket}. */
     record SendLocalAgentTurnEffect(long opId, long generation, long ticket, long draft, long logGeneration)
             implements SessionEffects {

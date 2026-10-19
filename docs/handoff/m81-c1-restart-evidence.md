@@ -34,8 +34,9 @@ four-term sweep, and a changed-file private-path sweep were clean.
 
 ## Outstanding scope
 
-C2's recovery draft, impossible-resume fallback and start activity clock are separate. A, B and D are not implemented
-by this PR. Owner questions OQ-1 through OQ-8 have been flagged; no answer is inferred. In particular, A's same-silence
+C2's recovery draft, impossible-resume fallback and start activity clock are now included in this same C delivery;
+see [the C2 evidence](m81-c2-recovery-evidence.md). A, B and D are not implemented by this PR.
+Owner questions OQ-1 through OQ-8 have been flagged; no answer is inferred. In particular, A's same-silence
 Keep-waiting behaviour conflicts between specification §3.1 (repeat) and A4/§4.1 (wait for a new event), and needs an
-owner choice. The CLI unknown-resume error shape still needs authoritative evidence within the stub-only constraint.
+owner choice. C2 records the public CLI unknown-resume string evidence and its limitations.
 Windows signal vocabulary beyond the two specified signals is not claimed.

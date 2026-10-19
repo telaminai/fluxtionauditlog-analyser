@@ -84,6 +84,14 @@ public class LocalAgentSession implements EventLogSource {
     private boolean killRequested;
     private long ticket;
     private long openTicket;
+    private long openTicketSendRef;
+    private long recoveryDraftRef;
+    private SessionEvents.LocalAgentConsent launchConsent;
+    private boolean resumeAttempt;
+    private long lastEventAtMillis = -1;
+    private long activityAtMillis;
+    public static final String RECOVERY_LINE =
+            "This was interrupted part-way. Check what has already changed before continuing.";
     private boolean interruptAcked;
     private long pendingDraft;
     private long pendingRequest;
@@ -308,6 +316,14 @@ public class LocalAgentSession implements EventLogSource {
         }
         String refusal = startRefusal(consent, request);
         if (refusal != null) {
+            if (refusal.startsWith("POSTURE_CHANGED:") && recoveryDraftRef != 0) {
+                beginConversation();
+                spawn(consent);
+                note("RESUME_UNAVAILABLE", "This conversation can't be resumed here (the mode or folder changed) — "
+                        + "starting a new chat.");
+                answer(request, true, "");
+                return changed();
+            }
             refuse(request, refusal);
             return changed();
         }
@@ -732,6 +748,8 @@ public class LocalAgentSession implements EventLogSource {
 
     /** A new conversation: a new id at the next spawn, an empty transcript. */
     private void beginConversation() {
+        long recover = recoveryDraftRef;
+        recoveryDraftRef = 0;
         conversation++;
         sessionId = null;
         resumable = false;
@@ -741,14 +759,27 @@ public class LocalAgentSession implements EventLogSource {
         entries = new ArrayList<>();
         trimmed = 0;
         turns = new LinkedHashMap<>();
+        if (recover != 0) effects.request(new SessionEffects.PlaceRecoveryDraftEffect(0L, generation, recover, RECOVERY_LINE));
     }
 
     // ---- the adapter's facts --------------------------------------------------------------------------------------
 
-    @OnEventHandler(propagate = false)
+    @OnEventHandler
     public boolean onEffectStarted(SessionEvents.LocalAgentEffectStarted e) {
         auditLog.info("localAgentEffect", e.what()).info("generation", e.generation());
+        if (e.generation() == generation && starting() && "activityClock".equals(e.what())) {
+            lastEventAtMillis = e.atMillis();
+            activityAtMillis = e.atMillis();
+            return changed();
+        }
         return false;
+    }
+
+    @OnEventHandler
+    public boolean onActivityTick(SessionEvents.LocalAgentActivityTick e) {
+        if (stale(e.generation(), "LocalAgentActivityTick") || e.ticket() != 0 || !starting()) return false;
+        activityAtMillis = Math.max(activityAtMillis, e.atMillis());
+        return changed();
     }
 
     @OnEventHandler
@@ -784,6 +815,7 @@ public class LocalAgentSession implements EventLogSource {
             return changed();
         }
         phase = "HANDSHAKE";
+        lastEventAtMillis = e.atMillis() != 0 ? e.atMillis() : activityAtMillis;
         auditLog.info("localAgentSpawned", generation);
         return changed();
     }
@@ -803,6 +835,7 @@ public class LocalAgentSession implements EventLogSource {
             return changed();
         }
         phase = "BINDING";
+        lastEventAtMillis = e.atMillis() != 0 ? e.atMillis() : activityAtMillis;
         auditLog.info("localAgentHandshake", "OK").info("generation", generation);
         effects.request(new SessionEffects.PollLocalAgentStatusEffect(0L, generation, 0));
         return changed();
@@ -836,6 +869,7 @@ public class LocalAgentSession implements EventLogSource {
                 } else {
                     bound = true;
                     phase = "READY";
+                    if (resumeAttempt) recoveryDraftRef = 0; // the conversation continued; no later recovery draft
                     verdict = "BOUND";
                     reason = "";
                     auditLog.info("localAgentBound", generation);
@@ -1105,6 +1139,7 @@ public class LocalAgentSession implements EventLogSource {
     @OnEventHandler
     public boolean onExited(SessionEvents.LocalAgentExited e) {
         if (stale(e.generation(), "LocalAgentExited")) return false;
+        boolean unknownResume = e.resumeSessionUnknown() && resumeAttempt && starting();
         stderrRef = e.stderrRef();
         if ("OFF".equals(phase)) {               // we asked for it: the kill already said why
             auditLog.info("localAgentExited", e.code()).info("requested", true);
@@ -1117,6 +1152,15 @@ public class LocalAgentSession implements EventLogSource {
         bound = false;
         postureChecked = false;
         pendingDraft = 0;
+        if (unknownResume && launchConsent != null) {
+            SessionEvents.LocalAgentConsent consent = launchConsent;
+            beginConversation();
+            spawn(consent);
+            note("RESUME_UNAVAILABLE", "This conversation can't be resumed here (Claude Code no longer knows it) — "
+                    + "starting a new chat.");
+            auditLog.info("localAgentResume", "UNKNOWN_SESSION");
+            return changed();
+        }
         verdict = "EXITED";
         String exit = e.code() == 143 || e.code() == 137
                 ? "Claude Code was stopped from outside the analyser (signal " + (e.code() - 128) + ")."
@@ -1441,6 +1485,7 @@ public class LocalAgentSession implements EventLogSource {
 
     private void spawn(SessionEvents.LocalAgentConsent c) {
         generation++;
+        launchConsent = c;
         if (sessionId == null) sessionRef++;
         if (sessionId == null || !resumable) {
             // review M2: a conversation that never had a turn has nothing to resume, so it starts afresh — a new id
@@ -1450,6 +1495,7 @@ public class LocalAgentSession implements EventLogSource {
             resumable = false;
         }
         nonce = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        resumeAttempt = resumable;
         budgetMicros = c.budgetMicros();
         posture = c.posture();
         // owner, 2026-10-18: what this process starts with, for the restart offer's comparison
@@ -1473,6 +1519,8 @@ public class LocalAgentSession implements EventLogSource {
         killRequested = false;
         interruptAcked = false;
         bindingElapsedMs = 0;
+        lastEventAtMillis = -1;
+        activityAtMillis = 0;
         detailRef = 0;
         stderrRef = 0;
         verdict = "";
@@ -1486,11 +1534,13 @@ public class LocalAgentSession implements EventLogSource {
         needBridge(generation);
         effects.request(new SessionEffects.StartLocalAgentEffect(0L, generation, sessionId, resumable, nonce, remaining,
                 c.postureRef(), posture));
+        effects.request(new SessionEffects.StartActivityClockEffect(0L, generation, 0));
     }
 
     private void sendTurn(long draft, long request, long logGeneration) {
         ticket++;
         openTicket = ticket;
+        openTicketSendRef = draft;
         phase = "BUSY";
         interruptAcked = false;
         verdict = "";
@@ -1503,6 +1553,9 @@ public class LocalAgentSession implements EventLogSource {
 
     private void endTurn(SessionEvents.TurnOutcome outcome) {
         long was = openTicket;
+        if (outcome == SessionEvents.TurnOutcome.PROCESS_EXIT && openTicketSendRef != 0)
+            recoveryDraftRef = openTicketSendRef;
+        openTicketSendRef = 0;
         openTicket = 0;
         // a Send refused while this turn ran is answered by the turn ending: the refusal no longer describes anything
         // (P1a live smoke: "Ready — Claude is still answering" stayed on the status line after Stop)
@@ -1596,6 +1649,8 @@ public class LocalAgentSession implements EventLogSource {
         clearRestart();                                  // an offer belongs to the process it was made for
         long was = openTicket;
         if (was != 0) {
+            recoveryDraftRef = openTicketSendRef;
+            openTicketSendRef = 0;
             openTicket = 0;
             note("STOPPED", "the turn in progress ended when Claude Code was stopped");
         }
@@ -1819,7 +1874,7 @@ public class LocalAgentSession implements EventLogSource {
                             attention(verdict, detailRef, stderrRef, unknownEvents + unclassifiedCommands + droppedLines),
                             new LocalAgentState.Restart(restartOffer, restartState, restartChanged, restartNewChat)));
             // robot walkthrough #3: the one primary action and the one instruction line, decided here from the state
-            published = published.withExtra(withGuide(published.extra(), guide(published, permissionWaiting)));
+            published = published.withExtra(withGuide(published.extra(), activityGuide(guide(published, permissionWaiting))));
             dirty = false;
         }
         return published;
@@ -1892,6 +1947,20 @@ public class LocalAgentSession implements EventLogSource {
     /** As {@link #guide(LocalAgentState)} with no permission dialog open (the node's tests and the panel's). */
     public static LocalAgentState.Guide guide(LocalAgentState s) {
         return guide(s, false);
+    }
+
+    private LocalAgentState.Guide activityGuide(LocalAgentState.Guide g) {
+        String step = switch (phase) {
+            case "SPAWNING" -> "Starting Claude Code…";
+            case "HANDSHAKE" -> "Checking Claude Code is ready…";
+            case "BINDING" -> "Connecting to the analyser's tools…";
+            default -> "";
+        };
+        int seconds = step.isEmpty() || lastEventAtMillis < 0 ? 0
+                : (int) Math.min(Integer.MAX_VALUE, Math.max(0, activityAtMillis - lastEventAtMillis) / 1_000);
+        if (seconds >= 3) step += " " + seconds / 60 + ":" + String.format(java.util.Locale.ROOT, "%02d", seconds % 60);
+        return new LocalAgentState.Guide(g.primary(), g.instruction(), g.action(), g.refusal(), g.chipWord(), g.banner(),
+                step, seconds);
     }
 
     private static LocalAgentState.Guide guide(LocalAgentState s, String primary, String instruction, String action,
