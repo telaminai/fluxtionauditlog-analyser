@@ -1,0 +1,151 @@
+VERDICT: REQUEST CHANGES at dd70ea80e933dab770a897d581a0c74c3736b091
+
+Scope: PR #155's onboarding runner, recorder/Java helper, fixtures, tests and added CI step.
+This is an independent tooling review, not a live onboarding trial or a review of every teaching-pack claim.
+No PR #155 source, fixture or test was modified. No token, credential file, participant project, paid model or
+hosted generator was accessed. The findings below remain OPEN for the author; no approval was posted to GitHub.
+
+SEPARATE REQUEST — PR #169
+
+Reviewed head 6c89def526d80dd81ae8166c9ee4ff197ee7c78c, no blocking finding for its current-release correction.
+Its test now examines Unreleased plus the first released section rather than losing the required text at release.
+The tracker move keeps open follow-ups live. Exact-head required CI checks were green, including eight shards and
+the collector. Local mvn -o test: 4255 / 0 failures / 0 errors / 348 skipped, 599 reports;
+DocsExternalAccessClaimsTest itself: 10 / 0 / 0 / 0.
+As requested, fast-forwarded main from 23180b12 to 6c89def5. Both incoming commits' author/committer addresses were
+the configured personal identity. GitHub independently confirmed PR #169 MERGED at that same SHA.
+No other branch was merged; no release or deployment was run.
+
+PR #155 FINDINGS, RANKED — ALL P2
+
+F1 — VERIFIED — Scoring is not bound to the run's sealed oracle.
+tools/m74_onboarding_runner.py:888 and :1031 (also :947).
+
+Reproduction: created a cycle with predictions, pack, operator script and oracle; ran seal and init_run with valid
+pins. Copied the synthetic recorded evidence into the run, keeping its generated config and pinned oracle digest.
+Changed the observed pointer to logTime=999: the original oracle correctly yielded FAIL. Then changed the oracle to
+999 after sealing. verify_seal correctly refused "oracle.json changed after the seal", but score_run accepted that
+same changed oracle and returned PASS. The digest in the run's pinned oracle was different from the scored digest.
+The score CLI supplies the current file hash as a label; neither it nor score_run compares that hash with the pin.
+
+Remedy: require a valid pinned oracle and compare the scored bytes with the run's sealed oracle identity before any
+verdict. Missing/mismatched seal material must refuse/VOID, never certify PASS. Make deliberate oracle corrections
+explicit separate revisions with both verdicts retained. Require the mandatory seal inputs rather than silently
+omitting absent ones. Do not let generic --pins data overwrite track, posture or seal-owned configuration fields.
+Required regression: a real seal -> init-run -> oracle edit -> score sequence that is refused, with the unchanged
+sealed-oracle control still scoring normally.
+
+F2 — VERIFIED — Incomplete evidence can be certified complete and PASS.
+tools/m74_onboarding_runner.py:902, :647 and :897.
+
+Reproduction A: in a copy of run-t1-pass, changed session-record.meta.json total from 21 to 21000, keeping dropped=0
+and sinkFailures=0 and the 21-record export. Result: complete=true, verdict=PASS. The scorer never reconciles total
+with the parsed/exported count. SessionAuditSink.total() explicitly means every offered record, so this is a
+detectable truncated/inconsistent export, not an unknowable absence.
+Reproduction B: deleted answers.jsonl. Result: PASS with answersRead=0 and contradictions=0. Missing capture is
+treated as an empty answer stream and therefore as evidence for noContradiction.
+
+Remedy: validate required run artifacts and their schema before scoring; reconcile exported/parsed counts with the
+sink metadata and validate snapshot recordSeq bounds. Distinguish a present empty stream from a missing capture.
+Missing evidence must be VOID/unavailable, not a successful negative check. Required claims being informational
+is intentional in SCORECARD section 3; this finding does NOT ask to make requiredFound a pass condition.
+Required regressions: count mismatch and absent answer capture both void/refuse, plus valid 21-record and explicitly
+empty-capture controls under an appropriate track.
+
+F3 — VERIFIED — The person/subject boundary checks counts, not the claimed ordering.
+tools/m74_onboarding_runner.py:657-673.
+
+Reproduction: retained the operator log's increasing times, but exchanged the Start and first Send kinds. The
+operator now says Send before Start; session facts still say Start before Send. Every per-kind total is unchanged.
+Result: boundary.ok=true and verdict=PASS. The function docstring promises "same kind, in the same order"; the
+implementation only subtracts collection lengths. It cannot establish that the matching act caused the fact.
+
+Remedy: compare the ordered person-act/fact streams and bind request/ticket/decision identities where available;
+if stronger ownership cannot be proven from current fields, report that limitation rather than boundary.ok=true.
+Keep the existing missing/extra-act checks. Required regressions: reordered acts/facts with identical totals, wrong
+decision/request identity, and a correctly ordered/correlated positive control.
+
+F4 — VERIFIED — A supposedly frozen, isolated Maven seed can retain live external symlinks.
+tools/m74_onboarding_runner.py:424 and :369-370.
+
+Reproduction: made a DEMO seed jar a symlink to a harmless file outside the seed; its _remote.repositories listed
+the jar under central. m2_provenance returned clean=true and seed_m2 accepted/copied it with symlinks=True.
+After changing the external file, the run repository's jar bytes changed, but seedTreeSha256 still matched.
+tree_sha256 hashes the link text, not the artifact bytes that Maven reads. The supposedly per-run copy still reads
+outside its own repository and its recorded digest does not identify the actual dependency content.
+
+Remedy: reject symlinks in seeds, or explicitly resolve/materialise only authorised contained content, checking
+provenance and hashing the bytes actually copied. Cover directory aliases as well as artifact-file aliases.
+Required regressions: external jar and directory links refused/materialised safely; changing an outside target
+cannot alter an accepted run's artifact bytes while preserving the recorded seed identity; regular clean seed works.
+
+F5 — VERIFIED — Approval accounting uses a spec-era field absent from today's Java fact.
+tools/m74_onboarding_runner.py:770; tools/test_m74_onboarding_runner.py:441 (synthetic decision=ALLOW shape).
+Actual contract: src/main/java/telamin/fluxtion/audit/analyser/analyser/session/SessionEvents.java:1952.
+
+Reproduction: instantiated the real compiled LocalAgentPermissionAnswered Java record with allow=true,
+by=PERSON, written=true and parsed its actual toString through the scorer. Result: granted=0 and
+deniedBy={PERSON:1}. Current facts carry the boolean allow, not decision=ALLOW. The test uses an invented old
+shape and therefore passes while the actual shipped shape is miscounted. The generic else also counts non-person
+allows as denials.
+
+Remedy: use today's allow/by/written contract, separate positive pre-allows from actual denials, and explicitly
+account for an answer not delivered to the process. Test records emitted from the real Java type, not a hand-built
+obsolete string. Refresh nearby documented unavailable/spec-only fact assumptions against the released source.
+Required regressions: person allow, person deny, pre-allowed allow and written=false using current record fields.
+
+F6 — VERIFIED CURRENT DISAGREEMENT; INFERRED FUTURE CI GAP — The mirror accepts a pack Java refuses, and CI does
+not execute the authority it claims to pin.
+tools/m74_onboarding_runner.py:160-163; tools/test_m74_onboarding_runner.py:29-44;
+.github/workflows/ci.yml:97-98.
+
+Reproduction input (where <NBSP> is the literal U+00A0 character, and the hash is forty 'a' characters):
+  # T
+  1. **X** — example: https://github.com/telaminai/diamond/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip<NBSP>
+Python lint_pack returned a valid example after parse_example's Python strip() removed the NBSP. The current
+compiled Java PromptPack returned {line:2,cause:EXAMPLE_NOT_ARCHIVE}. Java's whitespace treatment does not remove
+that character. No archive was downloaded; both parsers ran locally on the same bytes.
+
+The existing 89 cases all agree today, and running the ACTUAL recorder on a disposable fixture copy reproduced it
+byte-for-byte. However, the added CI step runs only Python tests against saved JSON Java verdicts. It does not run
+the Java recorder or compare current compiled PromptPack with that JSON. A later valid Java grammar change can
+leave the mirror stale without this claimed cross-check detecting the drift (INFERRED from the executed test and
+the workflow; no production Java mutation was performed).
+
+Remedy: align raw example URL/digest stripping with Java semantics and add this NBSP case to the recorded corpus.
+Add a non-writing --check path and execute it against freshly compiled classes in CI; fail on drift rather than
+silently regenerating the oracle. Keep explicit re-recording as the intentional maintenance operation.
+Required regressions: this same-byte Java/Python disagreement is caught before the fix and agrees afterward; a
+changed current Java verdict is detected by the CI check independently of the stored expected JSON.
+
+VERIFICATION
+
+At PR #155 head dd70ea80:
+- python3 tools/test_m74_onboarding_runner.py: 41 / 0 failures / 0 errors / 0 skips.
+- mvn -o -q -DskipTests test-compile: success (compilation only; not claimed as a second full Maven test run).
+- Executed both parsers on all 89 committed inputs: 89 returned, zero mismatches.
+- Executed m74_record_pack_crosscheck.py itself on a disposable fixture copy: byte-identical, SHA-256
+  4f816f8f9e9e226e25dbf1a2127c534a4838fc5327174a9cdbff1f5855506e6e.
+- Additional NBSP example: Python accepts, Java refuses, as F6.
+- Executed all isolated DEMO counterexamples above; raw outputs retained alongside this report.
+- Exact-head PR #155 CI read independently: build, ui-frame, self-test, all eight shards and collector SUCCESS.
+  Those green checks do not cover the missing negative cases above.
+- Prescribed tracked-file public-data sweep: no output. Both review worktrees remain source-clean.
+- git diff --check is NOT clean: 42 trailing-whitespace diagnostics in the synthetic session-record.yaml fixture
+  (eventLogRecord/nodeLogs header lines). Non-blocking formatting/evidence-policy note; no fixture was rewritten.
+- Strict MkDocs was attempted but not verified: mkdocs is not installed in this environment. No dependencies were
+  installed just for a code-only tooling review.
+
+LIMITS AND NON-FINDINGS
+
+No live virgin-LLM experiment, process reaping, sandbox isolation or token/login flow was exercised. launch explicitly
+returns refusal because its in-JVM operator harness does not exist here yet. analyser_env accepts a caller-supplied
+OAuth string; this offline tool does NOT itself read a trial-token file. That is future live-harness work, not a
+working capability demonstrated by the passing unit fixture.
+The teaching content, all external examples and the entire proposed experimental protocol were not audited end to
+end. No full mutation gate or GUI suite was rerun for PR #155's tooling review. Existing exact-head CI was read.
+The probe cases are reviewer evidence, not maintained regression protection; the author must add the named kinds
+of regressions above. No finding is being marked closed.
+
+Evidence files beside this report: pr155-review-probes.py, Pr155Facts.java, pr155-review-probes.log,
+pr155-runner-tests.log, pr155-compile.log and pr155-diff-check.log.

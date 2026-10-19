@@ -1,0 +1,31 @@
+PR #155 correction evidence — author verification, not independent approval
+Base production code: dd70ea80e933dab770a897d581a0c74c3736b091
+
+Before correction:
+- test_m74_onboarding_integrity.py: 16 methods; 24 assertion failures (including subcases); zero errors/skips.
+- test_m74_onboarding_contract.py: one method; one assertion failure: actual allow=true PERSON grant counted as 0.
+- A later check loaded the original scorer source from Git into an isolated module, without replacing any files:
+  seven named methods; eight assertion failures; zero errors. Names and wrong results:
+  test_changed_sealed_oracle_is_refused: exit 0 rather than required 2; changed oracle changes FAIL into PASS.
+  test_export_count_must_match_sink_total: PASS rather than VOID for 21 parsed / total=21000.
+  test_missing_answers_are_not_proof_of_no_contradiction: PASS rather than VOID when capture absent.
+  test_person_action_order_must_match: boundary.ok=True for reversed Start/Send.
+  test_external_file_and_directory_links_are_not_frozen_seeds: no ValueError for either live alias subcase.
+  test_destination_alias_is_refused_before_copying: no ValueError for a linked destination.
+  test_example_nbsp_is_not_normalised_away: no refusal rather than EXAMPLE_NOT_ARCHIVE at line 2.
+
+After correction:
+- Original Python suite: 41 / failures 0 / errors 0 / skips 0.
+- New integrity suite: 20 / failures 0 / errors 0 / skips 0.
+- Current-Java contract suite: 2 / failures 0 / errors 0 / skips 0.
+- Read-only Java pack check: 90 verdicts, all agree; fixture unchanged.
+- The contract test's deliberately wrong disposable expected verdict is rejected at exit 1, names its case,
+  and is NOT silently repaired. A correct disposable copy is also byte-identical after checking.
+
+- mvn -o test: BUILD SUCCESS, 4255 / failures 0 / errors 0 / skips 348; 599 source-mapped reports, no orphans.
+- Preflight: 73 frame suites / 688 anchors; chart-review harness unit suite: five passed.
+- Correction delta git diff --check: clean. Public-data sweeps over tracked files, new files and additions: no output.
+- Original review report preserved byte-identically. No application Java/resources/graph-builder change.
+- Exact-head CI must be read for the correction branch; no full CI success is claimed in this local checkpoint.
+Existing PR #155 session-record YAML is unchanged; its 42 original diff-check trailing-space warnings remain.
+No full local mutation registry or GUI run claimed for these offline-only changes.

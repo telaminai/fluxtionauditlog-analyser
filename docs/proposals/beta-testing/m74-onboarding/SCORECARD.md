@@ -11,7 +11,9 @@ The protocol that produces the inputs is [PROTOCOL.md](PROTOCOL.md). The facts a
 branch uses (`SessionEvents` records, and the keys the session nodes write with `auditLog.info`) as of
 `feature/claude-code-p2` at `71e0c57f`. P3's names are the spec's (§8.3), not code yet. **When P2 or P3 merges, re-read
 the names before the first run**: the scorer matches strings, and a renamed fact reads as zero, not as an error.
-The tests pin the shapes the scorer expects, so a rename is fixed in one place.
+The original shapes remain historical context. **PR #155 correction, 2026-10-19:** the permission reader now uses
+the released `allow`, `by`, `written` record fields, with a test constructing the actual Java records after
+compilation. CI also runs the real pack parser in non-writing check mode, not just the saved JSON verdicts.
 
 ## 1. Inputs: the run folder
 
@@ -55,7 +57,8 @@ fact's own timestamp and never the model's. `t0` is the operator's first act.
 | `proposals.pairing`, `.fit` | the analyser's own check after the last item | node log `proposalChecked` with `pairing`, `fit` | available |
 | `proposals.itemsShown`, `.itemsReviewed`, `.everyItemReviewed` | items the person could answer, and whether the operator recorded a decision for each | shown = rows not `refused`/`outside`; reviewed = `operator.jsonl` acts of kind `review` naming the item | available, **from the operator log**: the record cannot show a No (**R5**) |
 | `approvals.asked`, `.byClass` | permission requests that reached the analyser (P3) | fact `LocalAgentPermissionRequested` `toolClass` | **P3** (spec §8.3 names; **R8**) |
-| `approvals.granted`, `.deniedBy` | Allow once by the person; denials by `PERSON`, `TIMEOUT`, `STOP`, `POLICY`, `BUSY`, `TOO_LARGE` | fact `LocalAgentPermissionAnswered` `decision`, `by` | **P3** (**R8**) |
+| `approvals.granted`, `.deniedBy` | delivered Allow once by the person; delivered denials by decision source | fact `LocalAgentPermissionAnswered` `allow`, `by`, `written` | current Java contract checked in CI |
+| `approvals.allowedBy`, `.undelivered` | delivered allows by decision source (pre-allows are not denials), and responses not written to the process | the same current Java fact | available |
 | `approvals.approvalUnavailable` | P2's stand-in: an action the mode would have asked about, denied because nobody can be asked | `LocalAgentNoted` `note: APPROVAL_UNAVAILABLE` | available |
 | `operator.guidedActs`, `.cannedReplies`, `.nudges` | person acts taken because Claude named a control, because Claude asked a question, or to unstick a stalled turn | `operator.jsonl` `guided`, `reply`, `nudge` | available |
 | `boundary` | every person-act fact has an operator act of the same kind, in order, and every press that should post a fact did | the facts `StartPromptPackDropped`, `ReturnToMainOptions`, `StartPagePromptSent`, `LocalAgentStartRequested`, `LocalAgentFolderAnswered`, `LocalAgentSendRequested`, `LocalAgentStopRequested`, `ProposalApplyRequested`, `ProposalDismissed`, `ExampleDownloadRequested`, `ExampleDownloadConfirmed`, `LocalAgentSwitchChosen` and (P3) `LocalAgentPermissionChosen`, against `operator.jsonl` | available; stronger with **R3** |
@@ -65,7 +68,7 @@ fact's own timestamp and never the model's. `t0` is the operator's first act.
 | `cost.totalUsd`, `.basis` | the session's running total and what it means | fact `LocalAgentCostObserved` `totalCostMicros` (max: it is already a running total, §4.6), fact `LocalAgentInitialized` `billing` | available |
 | `deadEnds` | §4 | the record, the snapshots | available |
 | `oracleLeakHits` | fetches of this repository's protocol, evidence or oracle material | `cli-session.jsonl`, `answers.jsonl`, against `ORACLE_LEAK_PATTERN` | available |
-| `complete` | the session record holds the whole run | `session-record.meta.json`: `dropped == 0` and `sinkFailures == 0` | available |
+| `complete` | the exported session record accounts for the declared whole run | nonnegative integer `total`, `dropped`, `sinkFailures`; zero drops/failures AND parsed record count equals `total` | available |
 | `wallSeconds`, `capped`, `reaped`, `keyScanClean` | the run's envelope | `meta.json` (the G14 runner's reaping, sweep and key scan, reused) | available |
 
 **Cost, honestly.** On a Claude plan (`billing: SUBSCRIPTION`, which the trial OAuth token is) the figure is the CLI's
@@ -75,6 +78,11 @@ same figure the 2026-10-12/13 ladders reported, so it compares with them. With `
 cost is *at least* the figure.
 
 ## 3. The oracle
+
+`score` takes the oracle **file path**, reads/hash-checks those bytes against `config.pinned.oracle.json`, and parses
+that same read. It does not accept a caller-supplied dictionary or digest. Missing/mismatched pins refuse scoring.
+The init-run configuration and its published cycle seal are the trust root; this is not a signature protecting
+against an operator who deliberately rewrites both configuration and evidence.
 
 An oracle is a JSON file, **written and sealed before the cycle's first run** (protocol §3), measured on a throwaway
 instance of the pinned build. It has **primary predicates** (all must hold for `correctness.primaryHeld`) and **claims**.
@@ -117,6 +125,12 @@ difference is worth seeing.
   `POSTURE_OR_CONTAMINATION` (a server, tool or posture the run was not started with); `ORACLE_LEAK`; `NOT_REAPED`;
   `INFRA:<cause>` (an outage, a rate limit, a host that would not serve the pinned example), recorded by the runner.
   A VOID run is re-run once; a second VOID of the same cause is a finding about the rig.
+  `MISSING_EVIDENCE` names absent required captures (metadata, session export, operator log, snapshots, answers;
+  Full also requires its CLI transcript). An existing empty answer file is distinct from a missing file.
+  `INVALID_SNAPSHOT` means a missing/out-of-bounds `recordSeq` or invalid observer time; `INVALID_OPERATOR` means
+  absent, non-finite or out-of-order operator times. Unknown reaping is
+  `NOT_REAPED`, not an assumed success. Malformed JSON or unsupported schemas refuse with exit 2. The `score`
+  command's exit 0 means a score was computed, not that its JSON `verdict` is PASS.
 - **PASS** — not VOID, and every check the track names holds (`TRACKS` in the runner): T1 and T3 `oracle` and
   `noContradiction`; T2 `oracle` and `everyItemReviewed`; T4 those plus a clean `keyScan`; T5 `oracle` and
   `noContradiction`.
@@ -147,7 +161,7 @@ Read from the P2 branch, not inferred. Each says what is lost without it and whe
 | **R5** | The person's per-item answer in the review dialog as a fact (spec §8.2 lists `ProposalItemAnswered{proposalId, itemId, yes}`; the code posts `ProposalApplyRequested{yes: […]}` only) — **a spec-versus-code divergence** | a No and an item never looked at are the same in the record, so "every item reviewed" is shown only by the operator log | `operator.jsonl` `review` acts |
 | **R6** | **Words and paths in facts.** `ProposalReceived` carries Claude's `summary` and each item's `reason` and `path`; `LocalAgentSetupDirectoryChosen.dir`, `ExampleDownloadConfirmed.targetDir`, `ExampleUnpacked.root` and `ProposalPreviewDone.setupDir` carry real paths. The session processor records each event's `eventToString`, so these reach the session record — against spec §4.1 (*"facts carry … never words, account data or paths"*). Read from the source, **not verified on a live export**. For the owner: keep (and say so in §4.1) or move to references | a session record cannot be committed or shared unredacted | the scorer reads only enums, ids and counts; the protocol redacts before anything leaves the run |
 | **R7** | The skills, plugins and agents a turn's `system/init` reports, as a count or digest on `LocalAgentInitObserved` | a virgin full-posture run cannot prove from the record that none of the owner's skills loaded | the isolated `CLAUDE_CONFIG_DIR` and the sandbox (protocol §2) make it true; nothing records it |
-| **R8** | P3's facts exactly as §8.3 names them (`LocalAgentPermissionRequested{… toolClass, verb …}`, `LocalAgentPermissionAnswered{… decision, by}`, `HostedCallPresented`) | T4 and T1-cold cannot be scored | none |
+| **R8** | Current P3 permission facts (`LocalAgentPermissionRequested{… toolClass, name …}`, `LocalAgentPermissionAnswered{… allow, by, written}`) | approval accounting must not use the obsolete spec-era `decision` field | current Java record construction checked in CI; no live T4 trial implied |
 | **R9** | `context` has no local-agent key (phase, verdict, armed Start): an observer over REST cannot see the session | an external observer must be in-JVM | the in-JVM harness reads the snapshot |
 | **R10** | The session record's completeness travels with an export (the export writes no header, by design) | a truncated record could be scored as whole | `session-record.meta.json` from `total()`, `dropped()` |
 

@@ -34,6 +34,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('checkout')
     ap.add_argument('--label', default=None, help='what was built, for the fixture _about')
+    ap.add_argument('--check', action='store_true', help='compare current Java verdicts without rewriting any fixture')
     ns = ap.parse_args(argv)
     classes = Path(ns.checkout) / 'target/classes'
     if not (classes / 'telamin/fluxtion/audit/analyser/analyser/assistant/PromptPack.class').exists():
@@ -47,10 +48,17 @@ def main(argv=None):
         out = subprocess.run(['java', '-cp', str(classes), str(RECORDER), tmp], check=True, capture_output=True,
                              text=True).stdout
     got = dict(line.split('\t', 1) for line in out.splitlines() if line)
-    missing = sorted(set(cases) - set(got))
-    if missing:
-        print(f'the Java parser returned no verdict for {missing}', file=sys.stderr)
+    missing, extra = sorted(set(cases) - set(got)), sorted(set(got) - set(cases))
+    if missing or extra:
+        print(f'the Java parser case set differs: missing={missing}, extra={extra}', file=sys.stderr)
         return 2
+    if ns.check:
+        changed = [name for name in cases if json.loads(got[name]) != cases[name]['java']]
+        if changed:
+            print('current Java verdicts differ for: ' + ', '.join(changed), file=sys.stderr)
+            return 1
+        print(f'checked {len(cases)} current Java verdicts; fixture unchanged')
+        return 0
     for name in cases:
         cases[name]['java'] = json.loads(got[name])
     if ns.label:

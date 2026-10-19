@@ -82,6 +82,9 @@ under `central` or `repsy-fluxtion-public`, no SNAPSHOT, no locally installed ar
 (`seed_m2`, which also refuses to merge into a used repository and checks the copy's digest); check sufficiency
 once per seed. The owner's `~/.m2` fails the check by construction and is never a seed. These functions are the
 G14-W runner flag's check, in a tested home; the G14 runner can import them.
+Seed roots, entries and the destination itself must not be symlinks. A link-text hash does not freeze the artifact
+bytes Maven would read through it. The frozen source and the operator-selected destination are trusted local inputs;
+this copy helper is not an atomic snapshot or a sandbox against a concurrently malicious filesystem writer.
 
 ---
 
@@ -102,7 +105,10 @@ docs/handoff/evidence/m74-onboarding-<date>-c<NN>/
 ```
 
 `seal` digests `predictions.md`, `virgin-pack.md`, `oracle.json` and `operator.json`, refuses to run twice, and
-`init-run` refuses a cycle whose seal does not verify. **The seal commit is pushed before the first launch** (the release
+requires all four inputs. `init-run` refuses a cycle whose seal does not verify; launch pins cannot replace its
+track, posture or seal-owned fields. `score <run> <oracle.json>` reads the oracle bytes itself and refuses a file
+whose SHA-256 differs from the run's sealed `pinned.oracle.json` (including a missing pin). A rejected score does
+not overwrite an existing verdict. **The seal commit is pushed before the first launch** (the release
 ladder did: `a445666d`), because a `date -u` line in a file the operator wrote is not evidence of when it was
 written; the push is. Pushing is the owner's.
 
@@ -137,6 +143,9 @@ the CLI transcript (`oracleLeakHits`), and any hit voids the run. T1–T3's defa
 Allowed only as in the release ladder: a scorer or oracle correction is disclosed with its UTC time and the runs
 it touches, applied to every run alike, and the sealed verdict is kept beside the corrected one (`ORACLE_r1`). A
 correction made after a result it changes is reported as such, never folded in.
+The scorer has no unpinned override: prepare a separately sealed revision/configuration for such a correction,
+retain the original inputs and score, and identify the original run and correction in that revision. Do not edit
+the old run's oracle pin to make a changed answer key look like the original experiment.
 
 ---
 
@@ -366,6 +375,11 @@ same cell, and its words are kept with the run.
 - **Every person-act fact must be explained by an operator act, and every act by a fact** (`boundary` on the
   scorecard). The person-act facts are the ones no verb can post; a fact the operator did not press means something
   else pressed, and the run is VOID. R3 (an `origin` on each such fact) would let the record prove this by itself.
+  The scorer compares the complete ordered streams, not just totals. Each operator act that expects a fact carries
+  a `fact` object with the references/choices named by `ACT_FIELDS` in `tools/m74_onboarding_runner.py`; e.g.
+  `{"kind":"permission","fact":{"requestRef":9,"allow":false}}`, or
+  `{"kind":"send","fact":{"request":4,"draft":6}}`. Missing/different identities or choices void the run.
+  This is a consistency check on the operator's evidence, not independent causal attestation of who pressed.
 - **The subject cannot reach the operator.** The operator reads Claude's words only to match a sealed label or a
   trailing question mark; it never parses an instruction, a path or a command out of an answer.
 - **The decision policies use only analyser-shown data.** For T2 that is the review dialog's verdict words; for T4 the

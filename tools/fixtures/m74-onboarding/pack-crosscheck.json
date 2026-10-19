@@ -1,5 +1,5 @@
 {
- "_about": "Verdicts of the analyser's own assistant/PromptPack.parse, on feature/claude-code-p3 at 031545cc (the forgiving reader of 69eb2fac), built 2026-10-17, recorded by tools/m74_record_pack_crosscheck.py running the Java parser over each input. tools/test_m74_onboarding_runner.py pins the Python mirror to them, so a divergence fails a test; re-record when PromptPack changes.",
+ "_about": "Verdicts of the analyser's own assistant/PromptPack.parse, PR 155 base dd70ea80, JDK 21; NBSP regression added, recorded by tools/m74_record_pack_crosscheck.py running the Java parser over each input. tools/test_m74_onboarding_runner.py pins the Python mirror to them, so a divergence fails a test; re-record when PromptPack changes.",
  "cases": {
   "angle-placeholder": {
    "input": "# T\n1. **x** — example: https://github.com/example/demo/archive/<40-hex>.zip\n",
@@ -92,6 +92,13 @@
    "java": {
     "line": 2,
     "cause": "EXAMPLE_MALFORMED"
+   }
+  },
+  "example-nbsp-suffix": {
+   "input": "# T\n1. **X** — example: https://github.com/telaminai/diamond/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip \n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_NOT_ARCHIVE"
    }
   },
   "extra-content": {

@@ -25,6 +25,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -63,6 +64,18 @@ PERSON_ACT_EVENTS = {
     'permission': 'LocalAgentPermissionChosen',
 }
 EVENT_TO_ACT = {v: k for k, v in PERSON_ACT_EVENTS.items()}
+
+# Stable references and choices the operator must record beside each act. Read from current SessionEvents;
+# never put the subject's free-form words or filesystem paths in this correlation evidence.
+ACT_FIELDS = {
+    'dropPack': ('packRef',), 'returnToMain': ('origin',),
+    'startPage': ('request', 'entryId', 'textRef'), 'start': ('request',),
+    'folder': ('request', 'yes', 'contentUnchanged'), 'send': ('request', 'draft'), 'stop': ('origin',),
+    'apply': ('proposalId', 'yes', 'createProject'), 'dismiss': ('proposalId',),
+    'exampleDownload': ('request', 'packRef', 'entryIndex'),
+    'exampleConfirm': ('request', 'yes', 'targetRef'), 'switch': ('request', 'choice'),
+    'permission': ('requestRef', 'allow'),
+}
 
 # Node-log keys that carry a refusal, and how the reason is named (read from the P2 branch's session nodes).
 REFUSAL_KEYS = {'localAgentRefused', 'localAgentSpawnFailed', 'exampleRefused'}
@@ -157,10 +170,11 @@ def parse_example(raw, digest):
     # java.net.URI.create refuses a character RFC 3986 does not allow (`<`, `>`, `{`, a space…) before any other check,
     # which ExampleSource reports as NOT_AN_ARCHIVE; urlsplit accepts them. Found by the cross-check against the Java
     # parser (PROTOCOL §4.3): `…/archive/<40-hex>.zip` was MOVING_REF here and NOT_AN_ARCHIVE there.
-    if not _URI_CHARS.match((raw or '').strip()):
+    raw = _jstrip(raw or '')               # Python strip() also erases NBSP; Java String.strip() does not
+    if not _URI_CHARS.fullmatch(raw):
         return None, 'NOT_AN_ARCHIVE'
     try:
-        u = urlsplit((raw or '').strip())
+        u = urlsplit(raw)
         port = u.port
     except ValueError:
         return None, 'NOT_AN_ARCHIVE'
@@ -187,7 +201,7 @@ def parse_example(raw, digest):
     if not _HEX40.match(ref):
         return None, 'MOVING_REF'
     third_party = host not in ('github.com', 'codeload.github.com') or owner.lower() != TELAMIN_ORG
-    return {'url': raw.strip(), 'host': host, 'owner': owner, 'repo': repo, 'commit': ref.lower(),
+    return {'url': raw, 'host': host, 'owner': owner, 'repo': repo, 'commit': ref.lower(),
             'sha256': digest.lower() if digest else None, 'thirdParty': third_party}, None
 
 
@@ -380,6 +394,11 @@ def m2_provenance(m2, allowed=ALLOWED_REMOTES):
     """Every jar/pom must be listed in its directory's _remote.repositories under an allowed remote. Refused: a
     SNAPSHOT, a file with no recorded source, a locally installed artefact (empty remote), any other remote."""
     m2 = Path(m2)
+    # A copied seed must own its bytes. Do this before opening metadata or artifacts through any link.
+    links = [m2] if m2.is_symlink() else sorted(p for p in m2.rglob('*') if p.is_symlink())
+    if links:
+        problems = [['symlink', '.' if p == m2 else str(p.relative_to(m2))] for p in links]
+        return {'artefactFilesByRemote': {}, 'problemCount': len(problems), 'problems': problems[:20], 'clean': False}
     counts, problems = {}, []
     dirs = sorted({p.parent for p in m2.rglob('*') if p.is_file() and p.suffix in ('.jar', '.pom')})
     for d in dirs:
@@ -414,6 +433,8 @@ def m2_provenance(m2, allowed=ALLOWED_REMOTES):
 def seed_m2(seed, dest):
     """Copy a frozen, provenance-clean seed into a run's EMPTY repository. Returns the record to keep with the run."""
     seed, dest = Path(seed), Path(dest)
+    if dest.is_symlink():
+        raise ValueError('the run repository destination must not be a symlink')
     verdict = m2_provenance(seed)
     if not verdict['clean']:
         raise ValueError(f'seed {seed} is not provenance-clean: {verdict["problemCount"]} problem(s), '
@@ -422,6 +443,8 @@ def seed_m2(seed, dest):
         raise ValueError(f'{dest} is not empty — a run repository is seeded once, never merged into')
     digest = tree_sha256(seed)
     shutil.copytree(seed, dest, dirs_exist_ok=True, symlinks=True)
+    if dest.is_symlink() or any(p.is_symlink() for p in dest.rglob('*')):
+        raise ValueError('the copied repository contains a symlink — the seed changed during copying')
     if tree_sha256(dest) != digest:
         raise ValueError('the copied repository does not match its seed')
     return {'warmCache': True, 'seed': seed.name, 'seedTreeSha256': digest,
@@ -431,6 +454,10 @@ def seed_m2(seed, dest):
 # ---------------------------------------------------------------------------------------------------------------------
 # Predictions before results (PROTOCOL §3). One-shot seal; a run refuses an unsealed or edited prediction.
 
+SEAL_INPUTS = ('virgin-pack.md', 'oracle.json', 'operator.json')
+RUN_OWNED_KEYS = {'run', 'track', 'trackName', 'needs', 'posture', 'predictionsSha256', 'sealedUtc', 'pinned', 'createdUtc'}
+
+
 def seal(cycle_dir):
     cycle_dir = Path(cycle_dir)
     pred = cycle_dir / 'predictions.md'
@@ -439,11 +466,10 @@ def seal(cycle_dir):
         raise ValueError(f'no {pred}')
     if out.exists():
         raise ValueError(f'{out} exists — a seal is written once; a changed prediction is a new cycle')
-    pinned = {}
-    for name in ('virgin-pack.md', 'oracle.json', 'operator.json'):
-        f = cycle_dir / name
-        if f.exists():
-            pinned[name] = sha256_file(f)
+    missing = [name for name in SEAL_INPUTS if not (cycle_dir / name).is_file()]
+    if missing:
+        raise ValueError('missing seal inputs: ' + ', '.join(missing))
+    pinned = {name: sha256_file(cycle_dir / name) for name in SEAL_INPUTS}
     record = {'predictionsSha256': sha256_file(pred), 'pinned': pinned, 'sealedUtc': utc_now()}
     out.write_text(json.dumps(record, indent=1) + '\n')
     return record
@@ -456,6 +482,8 @@ def verify_seal(cycle_dir):
     if not sf.exists():
         raise ValueError('the cycle is not sealed: write predictions.md and run `seal` before any launch')
     s = json.loads(sf.read_text())
+    if set(s.get('pinned', {})) != set(SEAL_INPUTS):
+        raise ValueError('the seal must pin the pack, oracle and operator script')
     if sha256_file(cycle_dir / 'predictions.md') != s['predictionsSha256']:
         raise ValueError('predictions.md changed after the seal')
     for name, digest in s.get('pinned', {}).items():
@@ -469,6 +497,11 @@ def init_run(cycle_dir, run_dir, track, pins):
     s = verify_seal(cycle_dir)
     if track not in TRACKS:
         raise ValueError(f'unknown track {track}')
+    if not isinstance(pins, dict):
+        raise ValueError('pins must be an object')
+    reserved = RUN_OWNED_KEYS & pins.keys()
+    if reserved:
+        raise ValueError('pins cannot replace cycle-owned fields: ' + ', '.join(sorted(reserved)))
     run_dir = Path(run_dir)
     if run_dir.exists() and any(run_dir.iterdir()):
         raise ValueError(f'{run_dir} is not empty — an existing or interrupted run is never overwritten')
@@ -648,7 +681,17 @@ def load_jsonl(path):
     p = Path(path)
     if not p.exists():
         return []
-    return [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
+    rows = [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
+    if any(not isinstance(row, dict) for row in rows):
+        raise ValueError(f'{p.name} must contain JSON objects')
+    return rows
+
+
+def finite_time(value):
+    try:
+        return type(value) in (int, float) and value >= 0 and math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -657,19 +700,36 @@ def load_jsonl(path):
 def boundary_check(acts, records):
     """Every person-act fact is accounted for by an operator act of the same kind, in the same order, and every act
     that expected a fact produced one. A fact with no act means something other than the operator pressed."""
-    facts = {}
+    facts, fact_stream = {}, []
     for r in records:
         kind = EVENT_TO_ACT.get(r['event'])
         if kind:
             facts.setdefault(kind, []).append(r['seq'])
-    pressed = {}
+            fact_stream.append((kind, r['fields']))
+    pressed, act_stream = {}, []
     for a in acts:
         if a.get('kind') in PERSON_ACT_EVENTS and a.get('expectFact', True):
             pressed.setdefault(a['kind'], []).append(a)
+            act_stream.append((a['kind'], a.get('fact', {})))
     unaccounted = {k: len(v) - len(pressed.get(k, [])) for k, v in facts.items()
                    if len(v) > len(pressed.get(k, []))}
     missing = {k: len(v) - len(facts.get(k, [])) for k, v in pressed.items() if len(v) > len(facts.get(k, []))}
-    return {'ok': not unaccounted and not missing, 'factsWithoutAnAct': unaccounted, 'actsWithoutAFact': missing,
+    order_matches = [k for k, _ in fact_stream] == [k for k, _ in act_stream]
+    mismatches = []
+    for i, ((kind, actual), (act_kind, expected)) in enumerate(zip(fact_stream, act_stream)):
+        if kind != act_kind:
+            continue
+        if not isinstance(expected, dict):
+            mismatches.append({'index': i, 'kind': kind, 'field': 'fact', 'problem': 'not an object'})
+            continue
+        for key in sorted(set(ACT_FIELDS[kind]) | set(expected)):
+            if key not in expected or key not in actual or type(expected[key]) is not type(actual[key]) \
+                    or expected[key] != actual[key]:
+                mismatches.append({'index': i, 'kind': kind, 'field': key, 'problem': 'missing or different'})
+    return {'ok': not unaccounted and not missing and order_matches and not mismatches,
+            'factsWithoutAnAct': unaccounted, 'actsWithoutAFact': missing,
+            'orderMatches': order_matches, 'identityMismatches': mismatches,
+            'basis': 'ordered operator evidence with matching references/choices; not an independent origin attestation',
             'personActs': {k: len(v) for k, v in facts.items()}}
 
 
@@ -759,21 +819,30 @@ def approvals(records):
                             and r['fields'].get('note') == 'APPROVAL_UNAVAILABLE')
     if not asked and not answered:
         return {'asked': 0, 'granted': 0, 'byClass': {}, 'deniedBy': {},
+                'allowedBy': {}, 'undelivered': 0,
                 'approvalUnavailable': unavailable_notes,
                 'note': 'no P3 permission facts in this record (P3 names: spec §8.3, R8)'}
     by_class, denied_by = {}, {}
     for r in asked:
         c = r['fields'].get('toolClass')
         by_class[c] = by_class.get(c, 0) + 1
-    granted = 0
+    granted, undelivered = 0, 0
+    allowed_by = {}
     for r in answered:
-        if r['fields'].get('decision') == 'ALLOW' and r['fields'].get('by') == 'PERSON':
-            granted += 1
+        f = r['fields']
+        if type(f.get('allow')) is not bool or type(f.get('written')) is not bool or not isinstance(f.get('by'), str):
+            raise ValueError('permission answer lacks the current allow/by/written contract')
+        if not f['written']:
+            undelivered += 1
+        elif f['allow']:
+            by = f['by']
+            allowed_by[by] = allowed_by.get(by, 0) + 1
+            granted += by == 'PERSON'
         else:
-            b = r['fields'].get('by')
+            b = f['by']
             denied_by[b] = denied_by.get(b, 0) + 1
     return {'asked': len(asked), 'granted': granted, 'byClass': by_class, 'deniedBy': denied_by,
-            'approvalUnavailable': unavailable_notes}
+            'allowedBy': allowed_by, 'undelivered': undelivered, 'approvalUnavailable': unavailable_notes}
 
 
 def cost(records):
@@ -885,21 +954,55 @@ def dead_ends(records, turn_list, snapshots, oracle, first_correct_seq, refusal_
     return out
 
 
-def score_run(run_dir, oracle, oracle_sha256=None):
+def score_run(run_dir, oracle_path):
+    """Read the oracle once and verify its BYTES against the seal copied by init-run. No caller-supplied digest."""
     run_dir = Path(run_dir)
     config = json.loads((run_dir / 'config.json').read_text())
+    if not isinstance(config, dict) or not isinstance(config.get('pinned'), dict):
+        raise ValueError('the run configuration must contain its sealed pins')
+    oracle_bytes = Path(oracle_path).read_bytes()
+    oracle_sha256 = sha256_bytes(oracle_bytes)
+    expected = config.get('pinned', {}).get('oracle.json')
+    if not isinstance(expected, str) or not _HEX64.fullmatch(expected) or expected != oracle_sha256:
+        raise ValueError('the scored oracle does not match the run\'s sealed oracle pin')
+    oracle = json.loads(oracle_bytes)
+    if not isinstance(oracle, dict):
+        raise ValueError('the oracle must be an object')
     meta = json.loads((run_dir / 'meta.json').read_text()) if (run_dir / 'meta.json').exists() else {}
+    if not isinstance(meta, dict):
+        raise ValueError('run metadata must be an object')
     track = config['track']
+    if track not in TRACKS or config.get('posture') != TRACKS[track]['posture']:
+        raise ValueError('the run track/posture contract is invalid')
+    required = ['meta.json', 'session-record.yaml', 'session-record.meta.json',
+                'operator.jsonl', 'snapshots.jsonl', 'answers.jsonl']
+    if config['posture'] == 'full':
+        required.append('cli-session.jsonl')
+    missing = [name for name in required if not (run_dir / name).is_file()]
     rec_path = run_dir / 'session-record.yaml'
     records = parse_session_record(rec_path.read_text()) if rec_path.exists() else []
     rec_meta = json.loads((run_dir / 'session-record.meta.json').read_text()) \
         if (run_dir / 'session-record.meta.json').exists() else {}
+    if not isinstance(rec_meta, dict):
+        raise ValueError('session record metadata must be an object')
     acts = load_jsonl(run_dir / 'operator.jsonl')
-    snaps = load_jsonl(run_dir / 'snapshots.jsonl')
+    observed_snaps = load_jsonl(run_dir / 'snapshots.jsonl')
+    snaps = [s for s in observed_snaps if type(s.get('recordSeq')) is int and 0 <= s['recordSeq'] <= len(records)
+             and finite_time(s.get('t'))]
+    invalid_snapshots = len(snaps) != len(observed_snaps)
     answers = load_jsonl(run_dir / 'answers.jsonl')
-    t0 = acts[0]['t'] if acts else None
+    valid_acts = bool(acts) and all(finite_time(a.get('t')) for a in acts)
+    if valid_acts:
+        valid_acts = all(a['t'] <= b['t'] for a, b in zip(acts, acts[1:]))
+    t0 = acts[0]['t'] if valid_acts else None
+    if any(a['t'] > b['t'] or a['recordSeq'] > b['recordSeq'] for a, b in zip(snaps, snaps[1:])) \
+            or (t0 is not None and any(s['t'] < t0 for s in snaps)):
+        invalid_snapshots = True
+        snaps = []
 
-    complete = bool(records) and rec_meta.get('dropped') == 0 and rec_meta.get('sinkFailures', 0) == 0
+    counts_valid = all(type(rec_meta.get(k)) is int and rec_meta[k] >= 0 for k in ('total', 'dropped', 'sinkFailures'))
+    complete = bool(records) and counts_valid and rec_meta['dropped'] == 0 and rec_meta['sinkFailures'] == 0 \
+        and rec_meta['total'] == len(records) and all(r['event'] for r in records)
     tl = turns(records)
     ref_counts, ref_seq = refusals(records)
     final_ctx = snaps[-1].get('context') if snaps else None
@@ -916,6 +1019,7 @@ def score_run(run_dir, oracle, oracle_sha256=None):
         sends_before = sum(1 for r in records[:first.get('recordSeq', len(records))]
                            if r['event'] == 'LocalAgentSendRequested')
     claims = claim_checks(oracle, answers)
+    claims['available'] = (run_dir / 'answers.jsonl').is_file()
     boundary = boundary_check(acts, records)
     integrity = posture_integrity(records, config.get('posture')) if config.get('posture') != 'external' \
         else {'ok': True, 'note': 'external client: checked by T5 contract checks'}
@@ -944,7 +1048,7 @@ def score_run(run_dir, oracle, oracle_sha256=None):
                                          for a in acts)},
         'boundary': boundary,
         'postureIntegrity': integrity,
-        'correctness': {'oracleSha256': oracle_sha256 or sha256_bytes(json.dumps(oracle, sort_keys=True).encode()),
+        'correctness': {'oracleSha256': oracle_sha256,
                         'primaryHeld': first is not None, 'claims': claims},
         'cost': cost(records),
         'wallSeconds': meta.get('wallSeconds'), 'capped': meta.get('capped', False),
@@ -954,10 +1058,17 @@ def score_run(run_dir, oracle, oracle_sha256=None):
     first_seq = None if first is None else first.get('recordSeq', len(records))
     card['deadEnds'] = dead_ends(records, tl, snaps, oracle, first_seq, ref_seq, props)
 
-    checks = {'oracle': first is not None, 'noContradiction': claims['contradictions'] == 0,
+    checks = {'oracle': first is not None,
+              'noContradiction': claims['contradictions'] == 0 if claims['available'] else None,
               'everyItemReviewed': props['everyItemReviewed'],
               'keyScan': None if TRACKS[track]['posture'] != 'full' else meta.get('keyScanClean') is True}
     void = []
+    if missing:
+        void.append('MISSING_EVIDENCE')
+    if invalid_snapshots:
+        void.append('INVALID_SNAPSHOT')
+    if not valid_acts:
+        void.append('INVALID_OPERATOR')
     if not complete:
         void.append('INCOMPLETE_RECORD')
     if not boundary['ok']:
@@ -966,11 +1077,12 @@ def score_run(run_dir, oracle, oracle_sha256=None):
         void.append('POSTURE_OR_CONTAMINATION')
     if card['oracleLeakHits']:
         void.append('ORACLE_LEAK')
-    if meta.get('reaped') is False:
+    if meta.get('reaped') is not True:
         void.append('NOT_REAPED')
     if meta.get('infraVoid'):
         void.append('INFRA:' + str(meta['infraVoid']))
     card['checks'] = checks
+    card['missingEvidence'] = missing
     card['verdict'] = ('VOID' if void else
                        'PASS' if all(checks[c] for c in TRACKS[track]['pass']) else 'FAIL')
     card['void'] = void
@@ -1028,7 +1140,7 @@ def main(argv=None):
             print(json.dumps(write_wrapper(ns.wrapper_dir, ns.real_cli), indent=1))
             return 0
         if ns.cmd == 'score':
-            card = score_run(ns.run_dir, json.loads(Path(ns.oracle).read_text()), sha256_file(ns.oracle))
+            card = score_run(ns.run_dir, ns.oracle)
             (Path(ns.run_dir) / 'score.json').write_text(json.dumps(card, indent=1) + '\n')
             print(json.dumps(card, indent=1))
             return 0
@@ -1036,7 +1148,7 @@ def main(argv=None):
             return fail('launch needs the in-JVM operator harness, which presses the analyser\'s own controls and is '
                         'built only on the merged M74 P2 (T1–T3) and P3 (T4) code — PROTOCOL.md §6 and §9. '
                         'T5 runs today through tools/g14_runner.py / the METHOD.md rig.')
-    except ValueError as exc:
+    except (ValueError, OSError, KeyError, TypeError, AttributeError, OverflowError) as exc:
         return fail(str(exc))
     return 0
 

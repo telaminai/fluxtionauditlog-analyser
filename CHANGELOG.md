@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- The offline M74 onboarding scorer now binds scores to the sealed oracle bytes, refuses incomplete captures, checks ordered person actions and their references/choices, and reads the current Java permission facts. Maven seeds reject live symlink aliases. CI checks the current Java pack parser without rewriting its expected verdicts, including the non-breaking-space URL regression. The live operator harness is still not implemented; no onboarding trial is implied.
+
 ### Added
 
 - Docs: a new page, *The audit log ▸ From a Mongoose server to the analyser*, explains how a Mongoose-hosted processor's audit records reach a `---`-separated file that the analyser opens. It covers two routes: your own `LogRecordListener` passed at boot, and Mongoose's audit capture exported by `svc-admin-web`. It also covers where the audit level comes from. Steps that the Mongoose sources do not settle are marked *To confirm*.

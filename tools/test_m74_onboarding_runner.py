@@ -195,6 +195,8 @@ class SealTest(unittest.TestCase):
         self.cycle.mkdir()
         (self.cycle / 'predictions.md').write_text('1. T1 haiku passes 2 of 3\n')
         (self.cycle / 'oracle.json').write_text('{"primary": []}\n')
+        (self.cycle / 'virgin-pack.md').write_text('# DEMO\n1. **Q** — Where?\n')
+        (self.cycle / 'operator.json').write_text('{}\n')
         self.pins = {'analyserJarSha256': 'a', 'claudeBinSha256': 'b', 'claudeVersion': '2.x', 'model': 'm'}
 
     def tearDown(self):
@@ -295,7 +297,7 @@ class ScorecardTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.run = Path(self.tmp.name) / 'run'
         shutil.copytree(FIX / 'run-t1-pass', self.run)
-        self.oracle = json.loads((FIX / 'oracle-t1.json').read_text())
+        self.oracle = FIX / 'oracle-t1.json'
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -436,17 +438,19 @@ class ProposalAndApprovalTest(unittest.TestCase):
     def test_p3_approval_facts_are_counted_by_class_and_by_whom(self):
         rec = '\n'.join([
             '---', 'eventLogRecord: ', '    event: LocalAgentPermissionRequested', '    eventToString: '
-            'LocalAgentPermissionRequested[generation=1, ticket=2, requestRef=9, requestIdRef=10, toolClass=BUILT_IN, '
-            'verb=null, inputDigest=d, toolUseIdDigest=e, showable=true]', '    nodeLogs: ',
+            'LocalAgentPermissionRequested[generation=1, ticket=2, requestRef=9, toolClass=BUILT_IN, '
+            'name=Read, inputDigest=d, toolUseIdDigest=e, showable=true, kind=CHANGES]', '    nodeLogs: ',
             '---', 'eventLogRecord: ', '    event: LocalAgentPermissionAnswered', '    eventToString: '
-            'LocalAgentPermissionAnswered[generation=1, ticket=2, requestRef=9, decision=ALLOW, by=PERSON]',
+            'LocalAgentPermissionAnswered[opId=1, generation=1, ticket=2, requestRef=9, toolClass=BUILT_IN, '
+            'name=Read, allow=true, by=PERSON, written=true]',
             '    nodeLogs: ',
             '---', 'eventLogRecord: ', '    event: LocalAgentPermissionRequested', '    eventToString: '
-            'LocalAgentPermissionRequested[generation=1, ticket=2, requestRef=11, requestIdRef=12, '
-            'toolClass=HOSTED_DESTRUCTIVE, verb=open, inputDigest=d, toolUseIdDigest=e, showable=true]',
+            'LocalAgentPermissionRequested[generation=1, ticket=2, requestRef=11, '
+            'toolClass=HOSTED_DESTRUCTIVE, name=open, inputDigest=d, toolUseIdDigest=e, showable=true, kind=CHANGES]',
             '    nodeLogs: ',
             '---', 'eventLogRecord: ', '    event: LocalAgentPermissionAnswered', '    eventToString: '
-            'LocalAgentPermissionAnswered[generation=1, ticket=2, requestRef=11, decision=DENY, by=TIMEOUT]',
+            'LocalAgentPermissionAnswered[opId=2, generation=1, ticket=2, requestRef=11, toolClass=HOSTED_DESTRUCTIVE, '
+            'name=open, allow=false, by=TIMEOUT, written=true]',
             '    nodeLogs: ', '---', ''])
         a = r.approvals(r.parse_session_record(rec))
         self.assertEqual((a['asked'], a['granted']), (2, 1))
