@@ -20,10 +20,17 @@ public final class LocalAgentConsents {
 
     /** The machine-tier settings the consent is read from. */
     public record Settings(boolean allowed, boolean full, String fullMode, List<String> trusted, List<String> trustedFull,
-                           Double budgetUsd, String model) {
+                           Double budgetUsd, String model, List<String> trustedScripts, boolean scriptProject,
+                           int runningTrustedScripts) {
         public Settings {
             trusted = List.copyOf(trusted == null ? List.of() : trusted);
             trustedFull = List.copyOf(trustedFull == null ? List.of() : trustedFull);
+            trustedScripts = List.copyOf(trustedScripts == null ? List.of() : trustedScripts);
+        }
+
+        public Settings(boolean allowed, boolean full, String fullMode, List<String> trusted, List<String> trustedFull,
+                        Double budgetUsd, String model) {
+            this(allowed, full, fullMode, trusted, trustedFull, budgetUsd, model, List.of(), false, -1);
         }
 
         /** The shape before the restart offer: the model not observed. */
@@ -60,9 +67,18 @@ public final class LocalAgentConsents {
         // owner, 2026-10-18: the model (blank is the default) and the folder by digest, for the restart offer
         String model = s.model() == null ? null
                 : s.model().isBlank() ? ClaudeCodeProvider.DEFAULT_MODEL : s.model().strip();
+        boolean scriptProject = s.full() && s.scriptProject() && !isScratch && TrustedProjectScripts.supported();
+        var scripts = TrustedProjectScripts.scan(scriptProject ? dir : null);
+        boolean scriptsConfirmed = scriptProject && !scripts.entries().isEmpty()
+                && TrustedProjectScripts.confirms(s.trustedScripts(), real, scripts.scripts(), scripts.digest());
+        boolean scriptsChanged = scriptProject && !TrustedProjectScripts.changeNote(s.trustedScripts(), real,
+                scripts.scripts(), scripts.digest()).isEmpty();
+        int count = !scriptProject ? 0 : s.runningTrustedScripts() >= 0 ? s.runningTrustedScripts()
+                : scriptsConfirmed ? scripts.entries().size() : 0;
         return new SessionEvents.LocalAgentConsent(s.allowed(), confirmed,
                 dir != null && bundleWorkingCopy != null && bundleWorkingCopy.test(dir), postureRef, budget, folder,
-                s.full(), mode, fullConfirmed, model, dir == null ? null : LocalAgentPosture.digest(real));
+                s.full(), mode, fullConfirmed, model, dir == null ? null : LocalAgentPosture.digest(real),
+                scriptsConfirmed, scriptsChanged, scriptProject, count);
     }
 
     static String realPath(Path p) {

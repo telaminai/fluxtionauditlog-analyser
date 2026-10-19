@@ -77,6 +77,28 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
         return kind == Kind.FULL;
     }
 
+    /**
+     * M81 B: observe one literal foreground script invocation, never rewrite a shell command. Expansion, quoting,
+     * operators, redirection, comments, interpreter prefixes and environment assignments all retain ordinary asking.
+     * The real target must be a regular file immediately inside the project's real root, checked on every call.
+     */
+    public static Optional<java.nio.file.Path> buildScriptInvocation(String command, java.nio.file.Path projectRealRoot) {
+        if (command == null || projectRealRoot == null || command.length() > 16_384
+                || command.indexOf('\n') >= 0 || command.indexOf('\r') >= 0) return Optional.empty();
+        if (command.codePoints().anyMatch(c -> c >= 127 || c < 32 && c != '\t')) return Optional.empty();
+        String[] argv = command.strip().split("[ \\t]+");
+        if (argv.length == 0 || !argv[0].matches("\\./[A-Za-z0-9_.-]+")) return Optional.empty();
+        for (int i = 1; i < argv.length; i++) {
+            if (!argv[i].matches("[A-Za-z0-9_./:=+,%@-]+")) return Optional.empty();
+        }
+        try {
+            java.nio.file.Path root = projectRealRoot.toRealPath();
+            java.nio.file.Path script = root.resolve(argv[0].substring(2)).toRealPath();
+            return java.nio.file.Files.isRegularFile(script) && root.equals(script.getParent())
+                    ? Optional.of(script) : Optional.empty();
+        } catch (java.io.IOException | RuntimeException unavailable) { return Optional.empty(); }
+    }
+
     /** The hosted bridge's server name: distinct from M42's {@code fluxtion-analyser}, so the person's rules never apply. */
     public static final String HOSTED_SERVER = "fluxtion-analyser-hosted";
 

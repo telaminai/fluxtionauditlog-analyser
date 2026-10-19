@@ -17,6 +17,13 @@ public sealed interface SessionEffects {
     /** The operation this effect belongs to; the answering result must carry the same id. */
     long opId();
 
+    /** Read the exact stored command's current real script/content and live machine grant, outside dispatch. */
+    record CheckLocalAgentScriptTrustEffect(long opId, long generation, long ticket, long requestRef)
+            implements SessionEffects { }
+
+    /** The node accepted the person's Revoke action; remove only this project's machine grant. */
+    record RevokeLocalAgentScriptsEffect(long opId, String folderRef) implements SessionEffects { }
+
     /** Answer the final, EDT-confined report-write check. The adapter acts only on this verdict. */
     record AnswerHostedReportApplyEffect(long opId, String refusal) implements SessionEffects { }
 

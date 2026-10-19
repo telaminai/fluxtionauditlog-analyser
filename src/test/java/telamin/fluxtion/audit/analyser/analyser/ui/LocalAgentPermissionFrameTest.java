@@ -398,6 +398,126 @@ class LocalAgentPermissionFrameTest {
         });
     }
 
+    @Test
+    void theRealFullFolderCheckboxStartsUntickedAndAboutRevokesWithoutRestart(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        for (int scenario = 0; scenario < 3; scenario++) {
+            boolean tick = scenario > 0;
+            boolean changed = scenario == 2;
+            Path base = Files.createDirectories(tmp.resolve("DEMO-choice-" + scenario));
+            Path home = Files.createDirectories(base.resolve("home"));
+            Path claude = Files.createDirectories(home.resolve(".local/bin")).resolve("claude");
+            Files.writeString(claude, "#!/bin/sh\nexit 0\n");
+            Files.setPosixFilePermissions(claude, PosixFilePermissions.fromString("rwx------"));
+            Files.writeString(Files.createDirectories(home.resolve(".jbang/bin")).resolve("analyser"), "#!/bin/sh\n");
+            Path profile = Files.createDirectories(base.resolve("proj/.analyser")).resolve("project.fluxtion-settings");
+            Files.writeString(profile, "share.version=1\n");
+            Files.writeString(base.resolve("proj/mvnw"), "DEMO wrapper");
+            String before = System.getProperty("user.home");
+            MainFrame[] made = new MainFrame[1];
+            System.setProperty("user.home", home.toString());
+            try {
+                onEdt(() -> {
+                    MainFrame f = new MainFrame();
+                    made[0] = f;
+                    try {
+                        f.localAgentLauncher = FixtureAgent.ofP3("p3-0-default-real.jsonl");
+                        var show = MainFrame.class.getDeclaredMethod("showWorkspace", boolean.class);
+                        show.setAccessible(true);
+                        show.invoke(f, false);
+                    } catch (Exception e) { throw new AssertionError(e); }
+                    f.setSize(1200, 800);
+                    f.setVisible(true);
+                    AppConfig config = (AppConfig) field(f, "config");
+                    config.claudeCodeAllowed = true;
+                    config.claudeCodeFull = true;
+                    config.claudeCodeFullMode = "default";
+                    render((ActionExecutor) field(f, "actionExecutor"), "open", Map.of("project", profile.toString()));
+                    ((AssistantPanel) field(f, "assistantPanel")).chooseModeForTest(AssistantMode.LOCAL_AGENT);
+                });
+                MainFrame f = made[0];
+                var panel = (LocalAgentPanel) field(f, "localAgentPanel");
+                var assistant = (AssistantPanel) field(f, "assistantPanel");
+                ClaudeCodeTabFrameTest.awaitState(f, s -> s.mode() == AssistantMode.LOCAL_AGENT, "Claude Code");
+                onEdt(panel::onStart);
+                JDialog folder = ClaudeCodeTabFrameTest.awaitDialog(LocalAgentFolderDialog.FULL_TITLE);
+                AtomicReference<javax.swing.JCheckBox> choice = new AtomicReference<>();
+                onEdt(() -> {
+                    choice.set(findScriptsChoice(folder));
+                    assertNotNull(choice.get());
+                    assertFalse(choice.get().isSelected(), "★ B2: a real Full dialog never opts in for the person");
+                    assertTrue(choice.get().getText().endsWith("./mvnw"));
+                    folder.toFront();
+                    folder.requestFocus();
+                });
+                if (tick) {
+                    java.awt.Point[] point = new java.awt.Point[1];
+                    onEdt(() -> {
+                        point[0] = choice.get().getLocationOnScreen();
+                        point[0].translate(9, choice.get().getHeight() / 2);
+                    });
+                    var robot = new java.awt.Robot();
+                    robot.mouseMove(point[0].x, point[0].y);
+                    robot.mousePress(java.awt.event.InputEvent.BUTTON1_DOWN_MASK);
+                    robot.mouseRelease(java.awt.event.InputEvent.BUTTON1_DOWN_MASK);
+                    robot.delay(150);
+                    robot.waitForIdle();
+                    onEdt(() -> assertTrue(choice.get().isSelected(), "the native checkbox click is usable"));
+                }
+                if (changed) Files.writeString(base.resolve("proj/mvnw"), "DEMO changed during confirmation");
+                onEdt(ClaudeCodeTabFrameTest.findButton(folder, LocalAgentFolderDialog.TRUST)::doClick);
+                if (changed) {
+                    ClaudeCodeTabFrameTest.awaitState(f, s -> "FOLDER_CHANGED".equals(s.verdict()), "script changed during review");
+                    onEdt(() -> {
+                        AppConfig config = (AppConfig) field(f, "config");
+                        assertTrue(config.claudeCodeTrustedScripts.isEmpty());
+                        assertTrue(config.claudeCodeTrustedFullFolders.isEmpty());
+                        assertTrue(session(f).snapshot().localAgent().reason().contains("build scripts changed while the confirmation was open"));
+                        assertTrue(((List<?>) field(f.localAgentLauncher, "commands")).isEmpty(), "changed shown bytes never start the CLI");
+                    });
+                    continue;
+                }
+                ClaudeCodeTabFrameTest.awaitState(f, s -> "READY".equals(s.phase()), "Full ready");
+                onEdt(() -> {
+                    AppConfig config = (AppConfig) field(f, "config");
+                    assertEquals(tick ? 1 : 0, config.claudeCodeTrustedScripts.size(), "only the explicit tick records a grant");
+                    assertTrue(panel.aboutLines().contains(tick ? "Project scripts: trusted (1)" : "Project scripts: not trusted"));
+                });
+                if (tick) {
+                    long generation = session(f).snapshot().localAgent().generation();
+                    onEdt(() -> {
+                        for (Component item : assistant.moreMenu().getComponents()) {
+                            if (item instanceof javax.swing.JMenuItem menu && AssistantPanel.ABOUT.equals(menu.getText())) menu.doClick();
+                        }
+                    });
+                    JDialog about = ClaudeCodeTabFrameTest.awaitDialog(AboutSessionDialog.TITLE);
+                    onEdt(ClaudeCodeTabFrameTest.findButton(about, "Revoke project scripts")::doClick);
+                    ClaudeCodeTabFrameTest.awaitState(f, s -> s.extra().scripts().trustedCount() == 0, "revoked");
+                    onEdt(() -> {
+                        assertTrue(((AppConfig) field(f, "config")).claudeCodeTrustedScripts.isEmpty());
+                        assertTrue(panel.aboutLines().contains("Project scripts: not trusted"));
+                        assertEquals(generation, session(f).snapshot().localAgent().generation());
+                        assertTrue(session(f).snapshot().localAgent().running(), "revocation never restarts or kills");
+                    });
+                }
+            } finally {
+                if (made[0] != null) onEdt(made[0]::dispose);
+                System.setProperty("user.home", before);
+            }
+        }
+    }
+
+    private static javax.swing.JCheckBox findScriptsChoice(Container container) {
+        for (Component child : container.getComponents()) {
+            if (child instanceof javax.swing.JCheckBox box && "trustProjectScripts".equals(box.getName())) return box;
+            if (child instanceof Container nested) {
+                var found = findScriptsChoice(nested);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
     static String statusText(LocalAgentPanel panel) throws Exception {
         AtomicReference<String> s = new AtomicReference<>();
         onEdt(() -> s.set(((JTextArea) field(panel, "status")).getText()));

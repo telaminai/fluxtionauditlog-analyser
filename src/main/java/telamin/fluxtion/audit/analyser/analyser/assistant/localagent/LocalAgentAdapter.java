@@ -85,6 +85,10 @@ public final class LocalAgentAdapter {
          */
         List<String> fullTrustRecords();
 
+        /** M81: machine-only grants and an ordinary person's project; null for scratch/sample/bundle/no project. */
+        default List<String> scriptTrustRecords() { return List.of(); }
+        default Path scriptProjectRoot() { return null; }
+
         /**
          * Owner decision 2026-10-18: the charts that exist now, so a {@code graph} call that creates a chart is told apart
          * from one that replaces an existing chart's definition. The default knows none, so every such call is asked.
@@ -138,6 +142,7 @@ public final class LocalAgentAdapter {
     /** Review M3: how long a spawn waits for this analyser's own previous process of the same conversation to stop. */
     long handoverWaitMs = KILL_GRACE.toMillis() + 3_000;
     private final Map<Long, Run> runs = new ConcurrentHashMap<>();
+    private final Map<String, List<String>> conversationScripts = new LinkedHashMap<>();
     private volatile List<StreamJson.Command> lastCommands = List.of();
     private volatile int unknownEvents;
 
@@ -206,6 +211,7 @@ public final class LocalAgentAdapter {
                 || effect instanceof SessionEffects.SendLocalAgentTurnEffect
                 || effect instanceof SessionEffects.StopLocalAgentEffect
                 || effect instanceof SessionEffects.AnswerPermissionEffect
+                || effect instanceof SessionEffects.CheckLocalAgentScriptTrustEffect
                 || effect instanceof SessionEffects.StartPermissionClockEffect;
     }
 
@@ -225,6 +231,7 @@ public final class LocalAgentAdapter {
             case SessionEffects.SendLocalAgentTurnEffect e -> send(e);
             case SessionEffects.StopLocalAgentEffect e -> stop(e);
             case SessionEffects.AnswerPermissionEffect e -> answerPermission(e);
+            case SessionEffects.CheckLocalAgentScriptTrustEffect e -> checkScriptTrust(e);
             case SessionEffects.StartPermissionClockEffect e -> {
                 long gen = e.generation();
                 long ref = e.requestRef();
@@ -264,6 +271,16 @@ public final class LocalAgentAdapter {
                 List.copyOf(env.fullTrustRecords() == null ? List.of() : env.fullTrustRecords()), env.scratchFolder());
         Run run = new Run(e.generation(), e.sessionId(), e.nonce(), writers.get());
         run.resume = e.resume();
+        // Capture once per conversation, not once per process restart: a re-grant cannot widen a resumed chat.
+        Path project = env.scriptProjectRoot();
+        if (e.posture().isFull() && project != null && project.equals(s.cwd())) {
+            run.scriptRoot = project;
+            if (!e.resume()) {
+                conversationScripts.put(e.sessionId(), List.copyOf(env.scriptTrustRecords()));
+                while (conversationScripts.size() > 8) conversationScripts.remove(conversationScripts.keySet().iterator().next());
+            }
+            run.trustedScripts = conversationScripts.getOrDefault(e.sessionId(), List.of());
+        }
         runs.put(e.generation(), run);
         worker.execute(() -> spawn(run, s));
         return started(e.opId(), e.generation(), "start");
@@ -357,7 +374,7 @@ public final class LocalAgentAdapter {
         var posture = s.effect().posture();
         List<String> command = provider.command(new LocalAgentProvider.LaunchSpec(found.executable(), run.sessionId,
                 s.effect().resume(), s.model(), s.cwd(), s.launcher().get(), run.endpointFile, s.effect().maxBudgetMicros(),
-                posture));
+                posture, run.trustedScripts));
         // OD-74.11: computed once from the analyser's own environment, never by a shell, and used for both the child's
         // environment and the header; the default posture's environment is unchanged
         ChildPath.Extension path = posture.isFull() ? ChildPath.extend(s.environment(), s.home()) : null;
@@ -693,6 +710,45 @@ public final class LocalAgentAdapter {
         return SessionEvents.HostedCallKind.CHANGES;
     }
 
+    private static boolean scriptMatches(Run run, String raw, List<String> live) {
+        if (!run.full || run.scriptRoot == null) return false;
+        try {
+            Object input = telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(raw);
+            return input instanceof Map<?, ?> fields && fields.get("command") instanceof String command
+                    && TrustedProjectScripts.permits(run.trustedScripts, live, run.scriptRoot, command);
+        } catch (RuntimeException | StackOverflowError unreadable) { return false; }
+    }
+
+    private SessionEvents.Result checkScriptTrust(SessionEffects.CheckLocalAgentScriptTrustEffect e) {
+        Run run = runs.get(e.generation());
+        var words = store.permission(e.requestRef());
+        boolean present = false;
+        if (run != null) {
+            synchronized (run) { present = run.pendingPermissions.containsKey(e.requestRef()); }
+        }
+        boolean matches = run != null && !run.killed && run.runningTicket == e.ticket() && present && words != null
+                && "Bash".equals(words.toolName()) && scriptMatches(run, words.inputRaw(), env.scriptTrustRecords());
+        return new SessionEvents.LocalAgentScriptTrustChecked(e.opId(), e.generation(), e.ticket(), e.requestRef(),
+                matches, trustedScriptCount(run));
+    }
+
+    /** A bounded observation for the next consent snapshot; -1 means no running process owns a capture yet. */
+    public int currentTrustedScriptCount() {
+        Run run = runs.values().stream().filter(r -> !r.killed).max(java.util.Comparator.comparingLong(r -> r.generation))
+                .orElse(null);
+        return run == null ? -1 : trustedScriptCount(run);
+    }
+
+    private int trustedScriptCount(Run run) {
+        if (run == null || !run.full || run.scriptRoot == null) return 0;
+        int count = 0;
+        List<String> live = List.copyOf(env.scriptTrustRecords());
+        for (String token : TrustedProjectScripts.candidates(run.scriptRoot)) {
+            if (TrustedProjectScripts.permits(run.trustedScripts, live, run.scriptRoot, token)) count++;
+        }
+        return count;
+    }
+
     private void onControlRequest(Run run, StreamJson.ControlRequest r) {
         if (!r.canUseTool() || r.requestId() == null) {
             write(run, StreamJson.deny(r.requestId(), "Denied: the analyser does not answer this request"));
@@ -720,6 +776,9 @@ public final class LocalAgentAdapter {
             }
         } else if (named.toolClass() == SessionEvents.ToolClass.BUILT_IN && judged.showable()) {
             kind = builtInKind(named.name(), r.inputRaw());
+            if ("Bash".equals(named.name()) && run.full && scriptMatches(run, r.inputRaw(), run.trustedScripts)) {
+                kind = SessionEvents.HostedCallKind.PRE_ALLOWED;
+            }
         }
         env.post(new SessionEvents.LocalAgentPermissionRequested(run.generation, ticket, ref, named.toolClass(),
                 named.name(), judged.digest(), r.toolUseId() == null ? null : LocalAgentPosture.digest(r.toolUseId()),
@@ -1042,6 +1101,8 @@ public final class LocalAgentAdapter {
         volatile String folder;
         /** Owner 2026-10-18: this run is Full Claude Code (its in-project {@code open} needs no approval). */
         volatile boolean full;
+        volatile Path scriptRoot;
+        volatile List<String> trustedScripts = List.of();
         boolean resume;
         /** P2b (§5.2): {@code scheme://host[:port]} of the base URL passed to the child, or null. */
         volatile String endpoint;

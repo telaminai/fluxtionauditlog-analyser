@@ -35,11 +35,21 @@ public interface LocalAgentProvider {
      */
     record LaunchSpec(Path executable, String sessionId, boolean resume, String model, Path workingDir,
                       List<String> bridgeLauncher, Path endpointFile, long maxBudgetMicros,
-                      telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture posture) {
+                      telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture posture,
+                      List<String> trustedScripts) {
         public LaunchSpec {
             bridgeLauncher = List.copyOf(bridgeLauncher);
+            trustedScripts = List.copyOf(trustedScripts == null ? List.of() : trustedScripts);
             posture = posture == null
                     ? telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.ANALYSER_ASSISTANT : posture;
+        }
+
+        /** Before M81: project scripts always ask. The captured records never become CLI allow rules. */
+        public LaunchSpec(Path executable, String sessionId, boolean resume, String model, Path workingDir,
+                          List<String> bridgeLauncher, Path endpointFile, long maxBudgetMicros,
+                          telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture posture) {
+            this(executable, sessionId, resume, model, workingDir, bridgeLauncher, endpointFile, maxBudgetMicros, posture,
+                    List.of());
         }
 
         /** The default posture. */

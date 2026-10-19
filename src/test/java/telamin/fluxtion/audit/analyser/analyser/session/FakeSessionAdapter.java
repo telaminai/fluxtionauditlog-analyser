@@ -120,6 +120,9 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.ClosePermissionDialogEffect> permissionCloses = new ArrayList<>();
     final List<SessionEffects.AnswerPermissionEffect> permissionAnswers = new ArrayList<>();
     final List<SessionEffects.StartPermissionClockEffect> permissionClocks = new ArrayList<>();
+    final List<SessionEffects.CheckLocalAgentScriptTrustEffect> scriptChecks = new ArrayList<>();
+    boolean scriptMatches;
+    boolean holdScriptChecks;
     /** The local agent's effects by name, in the order they were performed. */
     final List<String> agentOrder = new ArrayList<>();
     /** Review H4: whether the hosted bridge listener comes up when served. */
@@ -416,6 +419,14 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 yield new SessionEvents.LocalAgentPermissionAnswered(e.opId(), e.generation(), e.ticket(), e.requestRef(),
                         e.toolClass(), e.name(), e.allow(), e.by(), true);
             }
+            case SessionEffects.CheckLocalAgentScriptTrustEffect e -> {
+                scriptChecks.add(e);
+                yield holdScriptChecks ? new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "scriptCheck")
+                        : new SessionEvents.LocalAgentScriptTrustChecked(e.opId(), e.generation(), e.ticket(),
+                        e.requestRef(), scriptMatches, scriptMatches ? 1 : 0);
+            }
+            case SessionEffects.RevokeLocalAgentScriptsEffect e ->
+                    new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "revokeScripts");
             case SessionEffects.StartPermissionClockEffect e -> {
                 permissionClocks.add(e);
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "permissionClock");

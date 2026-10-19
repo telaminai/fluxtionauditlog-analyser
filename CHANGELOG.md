@@ -6,6 +6,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- Full Claude Code can optionally trust this project's named build scripts on this machine (POSIX first): an unticked choice, separate real-path/content binding per script, a fresh analyser permission check for every eligible call, immediate revocation, and explicit identity-not-effect limits. Safe analysis, Windows asking and external clients are unchanged.
 - Claude Code now shows the step it starts, elapsed time and a quiet inactivity cue while a turn runs. Keep waiting dismisses that silence episode until a new stream event; approvals show their own cue while keeping the existing modal question, with no blocked Show control. About lists tool/turn totals, and project context exposes the same read-only activity snapshot.
 
 - An interrupted Claude Code conversation that cannot resume in its changed folder or mode starts a new chat with your last request and a recovery reminder placed, never sent. A CLI-reported missing session falls back once; ordinary failures do not retry. The session now records a start activity clock for the live activity display.
@@ -15,8 +18,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - The offline onboarding scorer refuses nonempty answer rows without string `text` instead of silently ignoring their contents. Operator correlation now covers current proposal-row, restart, no-log, profile/setup, external-access and starter choices, verified against actual Java records; unknown fact-bearing operator kinds also void the run. Empty answer captures remain explicitly distinguishable from missing or malformed captures.
 
 - The offline M74 onboarding scorer now binds scores to the sealed oracle bytes, refuses incomplete captures, checks ordered person actions and their references/choices, and reads the current Java permission facts. Maven seeds reject live symlink aliases. CI checks the current Java pack parser without rewriting its expected verdicts, including the non-breaking-space URL regression. The live operator harness is still not implemented; no onboarding trial is implied.
-
-### Added
 
 - Docs: a new page, *The audit log ▸ From a Mongoose server to the analyser*, explains how a Mongoose-hosted processor's audit records reach a `---`-separated file that the analyser opens. It covers two routes: your own `LogRecordListener` passed at boot, and Mongoose's audit capture exported by `svc-admin-web`. It also covers where the audit level comes from. Steps that the Mongoose sources do not settle are marked *To confirm*.
 ### Fixed

@@ -782,7 +782,11 @@ public final class AssistantPanel extends JPanel {
         menu.add(host);
         menu.addSeparator();
         JMenuItem about = new JMenuItem(ABOUT);
-        about.addActionListener(e -> AboutSessionDialog.show(this, aboutText()));
+        about.addActionListener(e -> {
+            String folderRef = claudeCodeShown() ? localAgent.revokeScriptsFolderRef() : null;
+            AboutSessionDialog.show(this, aboutText(), folderRef == null ? null : "Revoke project scripts",
+                    folderRef == null ? null : () -> localAgent.revokeProjectScripts(folderRef));
+        });
         menu.add(about);
         JMenuItem change = new JMenuItem(SWITCH);
         change.setEnabled(profileButton.isEnabled());

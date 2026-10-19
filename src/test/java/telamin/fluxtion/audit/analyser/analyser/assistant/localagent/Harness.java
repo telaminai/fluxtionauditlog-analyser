@@ -32,6 +32,9 @@ final class Harness {
     final List<SessionEffects> others = new ArrayList<>();
     /** Review B7: the full-posture trust records the environment reports; null until first asked (then the folder as-is). */
     List<String> fullTrust;
+    List<String> scriptTrust = List.of();
+    Path scriptProject;
+    java.util.function.Consumer<SessionEffects.CheckLocalAgentScriptTrustEffect> beforeScriptCheck = e -> { };
     /** Authoring walk: the analyser's own scratch folder the environment reports (null: none). */
     Path scratch;
     /** P3: what the adapter answered each effect with (an AnswerPermissionEffect's result is the answer as written). */
@@ -96,6 +99,8 @@ final class Harness {
             }
             @Override public Path userHome() { return home; }
             @Override public Path scratchFolder() { return scratch; }
+            @Override public List<String> scriptTrustRecords() { return scriptTrust; }
+            @Override public Path scriptProjectRoot() { return scriptProject; }
             @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports() { return reports; }
             @Override public boolean activityCurrent(long generation, long ticket) {
                 var s = d[0].snapshot().localAgent();
@@ -123,6 +128,7 @@ final class Harness {
                 writers);
         this.driver = new SessionDriver(effect -> {
             if (LocalAgentAdapter.handles(effect)) {
+                if (effect instanceof SessionEffects.CheckLocalAgentScriptTrustEffect e) beforeScriptCheck.accept(e);
                 SessionEvents.Result r = adapter.perform(effect);
                 results.add(r);
                 return r;

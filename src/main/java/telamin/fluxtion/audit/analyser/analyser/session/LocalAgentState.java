@@ -71,12 +71,20 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
      *                           the person said about restarting for it — the node's decision; the panel renders it
      */
     public record Extra(long setupDirRef, String setupDirShown, int unknownEvents, int unclassifiedCommands, int droppedLines,
-                        java.util.Map<Long, Turn> turns, int trimmed, Attention attention, Restart restart, Guide guide) {
+                        java.util.Map<Long, Turn> turns, int trimmed, Attention attention, Restart restart, Guide guide,
+                        ScriptTrust scripts) {
         public Extra {
             turns = java.util.Map.copyOf(turns == null ? java.util.Map.of() : turns);
             attention = attention == null ? Attention.NONE : attention;
             restart = restart == null ? Restart.NONE : restart;
             guide = guide == null ? Guide.NONE : guide;
+            scripts = scripts == null ? ScriptTrust.NONE : scripts;
+        }
+
+        public Extra(long setupDirRef, String setupDirShown, int unknownEvents, int unclassifiedCommands, int droppedLines,
+                     java.util.Map<Long, Turn> turns, int trimmed, Attention attention, Restart restart, Guide guide) {
+            this(setupDirRef, setupDirShown, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed, attention,
+                    restart, guide, ScriptTrust.NONE);
         }
 
         /** The shape before the one primary action and instruction (robot walkthrough #3). */
@@ -106,6 +114,11 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
         public boolean diagnostics() {
             return unknownEvents > 0 || unclassifiedCommands > 0 || droppedLines > 0;
         }
+    }
+
+    /** Node-published About facts; the panel never reads grants or decides permissions. */
+    public record ScriptTrust(boolean project, int trustedCount, String folderRef) {
+        public static final ScriptTrust NONE = new ScriptTrust(false, 0, null);
     }
 
     /**

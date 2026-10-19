@@ -34,6 +34,23 @@ class FaqSecurityContractTest {
     static final Path SECURITY = Path.of("docs/site/admin/security.md");
 
     @Test
+    void projectScriptTrustDisclosesIdentityNotEffectAndItsMachineOnlyPosixBoundary() throws Exception {
+        String security = Files.readString(SECURITY);
+        String faq = Files.readString(Path.of("docs/site/faq.md"));
+        for (String claim : new String[]{"unticked", "script identity, not effect", "SHA-256 content",
+                "not argument sandboxing", "machine-only", "profile", "bundle", "Windows", "scripts still ask",
+                "https://github.com/telaminai/fluxtionauditlog-analyser/issues/148"}) {
+            assertTrue(security.contains(claim), "security must disclose: " + claim);
+            assertTrue(faq.contains(claim), "FAQ must disclose: " + claim);
+        }
+        for (String claim : new String[]{"conversation's captured grant", "fresh read", "Revoke project scripts",
+                "New trust never widens a running or resumed conversation", "No `Bash` CLI `--allowedTools` rule",
+                "Safe analysis and external MCP/REST clients are unchanged", "not held as an execution lock"}) {
+            assertTrue(security.contains(claim), "security must disclose: " + claim);
+        }
+    }
+
+    @Test
     void everyDestructiveVerbIsNamedInTheFaqSecurityAnswer() throws Exception {
         String faq = Files.readString(Path.of("docs/site/faq.md"));
         String page = Files.readString(SECURITY);

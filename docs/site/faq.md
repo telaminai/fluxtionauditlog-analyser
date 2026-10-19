@@ -68,6 +68,13 @@ limits that are stated rather than hidden, and what an administrator cannot yet 
 under Full Claude Code, a `report` call that writes a new report inside the open project needs no approval, while a
 write over an existing report or file, a delete, and anything outside the project are still asked.
 
+Full's folder-trust dialog also has an **unticked** option for the project's named build scripts. It verifies
+**script identity, not effect**: each script's real path and SHA-256 content are checked for every eligible call,
+but flags and environment are **not argument sandboxing**. A changed or new script asks. The grant is machine-only,
+never in shared settings, a profile or a bundle, and can be revoked in *About this session…*. Safe analysis and outside
+clients are unchanged. This is POSIX-only; Windows has no script-trust checkbox and scripts still ask
+([Windows acceptance #148](https://github.com/telaminai/fluxtionauditlog-analyser/issues/148)).
+
 ## Why does the Graph panel say “Charts not loaded”?
 
 Older versions could save two charts with the same name. The analyser cannot tell which definition a

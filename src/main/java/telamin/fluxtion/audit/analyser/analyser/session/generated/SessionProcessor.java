@@ -146,6 +146,8 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgent
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentProgressObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentRestartAnswered;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentRestartOfferRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentScriptTrustChecked;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentScriptsRevokeRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSetupDirectoryChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSpawned;
@@ -399,6 +401,8 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentProgressObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentRestartAnswered
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentRestartOfferRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentScriptTrustChecked
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentScriptsRevokeRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSetupDirectoryChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSpawned
@@ -1078,6 +1082,14 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentRestartOfferRequested",
                 false),
             new ProcessorDescriptor.Input(
+                "LocalAgentScriptTrustChecked",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentScriptTrustChecked",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentScriptsRevokeRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentScriptsRevokeRequested",
+                false),
+            new ProcessorDescriptor.Input(
                 "LocalAgentSendRequested",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested",
                 false),
@@ -1459,7 +1471,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "94c27043ebc6c60a6bfe5be96f949239f763b44b8121c9e4d4a8653330e46c14",
+              "01e5c37c43c49986d660d17c82c5b94cdccdc418da896d3ba7b90db3efde28c8",
               null));
 
   @Override
@@ -1954,6 +1966,12 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof LocalAgentRestartOfferRequested) {
       LocalAgentRestartOfferRequested typedEvent = (LocalAgentRestartOfferRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentScriptTrustChecked) {
+      LocalAgentScriptTrustChecked typedEvent = (LocalAgentScriptTrustChecked) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentScriptsRevokeRequested) {
+      LocalAgentScriptsRevokeRequested typedEvent = (LocalAgentScriptsRevokeRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof LocalAgentSendRequested) {
       LocalAgentSendRequested typedEvent = (LocalAgentSendRequested) event;
@@ -2789,6 +2807,16 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(LocalAgentRestartOfferRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentScriptTrustChecked event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentScriptsRevokeRequested event) {
     processEvent(event);
   }
 
@@ -4553,6 +4581,34 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onRestartOfferRequested", typedEvent);
     isDirty_localAgentSession = localAgentSession.onRestartOfferRequested(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentScriptTrustChecked typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(
+        localAgentPermission, "localAgentPermission", "onScriptTrustChecked", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onScriptTrustChecked(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentScriptsRevokeRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(
+        localAgentPermission, "localAgentPermission", "onScriptsRevokeRequested", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onScriptsRevokeRequested(typedEvent);
+    auditInvocation(localAgentSession, "localAgentSession", "onScriptsRevokeRequested", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onScriptsRevokeRequested(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -6553,6 +6609,21 @@ public class SessionProcessor
       auditInvocation(
           localAgentSession, "localAgentSession", "onRestartOfferRequested", typedEvent);
       isDirty_localAgentSession = localAgentSession.onRestartOfferRequested(typedEvent);
+    } else if (event instanceof LocalAgentScriptTrustChecked) {
+      LocalAgentScriptTrustChecked typedEvent = (LocalAgentScriptTrustChecked) event;
+      auditEvent(typedEvent);
+      auditInvocation(
+          localAgentPermission, "localAgentPermission", "onScriptTrustChecked", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onScriptTrustChecked(typedEvent);
+    } else if (event instanceof LocalAgentScriptsRevokeRequested) {
+      LocalAgentScriptsRevokeRequested typedEvent = (LocalAgentScriptsRevokeRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(
+          localAgentPermission, "localAgentPermission", "onScriptsRevokeRequested", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onScriptsRevokeRequested(typedEvent);
+      auditInvocation(
+          localAgentSession, "localAgentSession", "onScriptsRevokeRequested", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onScriptsRevokeRequested(typedEvent);
     } else if (event instanceof LocalAgentSendRequested) {
       LocalAgentSendRequested typedEvent = (LocalAgentSendRequested) event;
       auditEvent(typedEvent);

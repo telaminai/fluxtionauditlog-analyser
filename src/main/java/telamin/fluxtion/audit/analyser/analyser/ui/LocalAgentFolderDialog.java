@@ -1,10 +1,13 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
 import telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust;
+import telamin.fluxtion.audit.analyser.analyser.assistant.localagent.TrustedProjectScripts;
 
 import javax.swing.JComponent;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JCheckBox;
+import javax.swing.JPanel;
 import java.awt.Component;
 import java.nio.file.Path;
 
@@ -48,6 +51,52 @@ public final class LocalAgentFolderDialog {
                                String realPath) {
         // review M74 usability #7: the shared rule — Don't trust is the default, at the right; Trust at the left
         return SafeChoice.ask(parent, FULL_TITLE, content(dir, scan, records, realPath), TRUST, DONT);
+    }
+
+    record Answer(boolean yes, boolean scriptsSelected) { }
+    record ScriptContent(JComponent component, JCheckBox scripts) { }
+
+    /** M81 B: the optional set choice is always initially unticked, including a changed-content re-ask. */
+    static ScriptContent scriptContent(Path dir, FullFolderTrust.Scan scan, java.util.List<String> records,
+                                       String realPath, TrustedProjectScripts.Scan scripts, java.util.List<String> grants) {
+        JPanel root = new JPanel(new java.awt.BorderLayout(0, 8));
+        root.add(content(dir, scan, records, realPath), java.awt.BorderLayout.CENTER);
+        JPanel choices = new JPanel();
+        choices.setLayout(new javax.swing.BoxLayout(choices, javax.swing.BoxLayout.Y_AXIS));
+        String note = TrustedProjectScripts.changeNote(grants, realPath, scripts.scripts(), scripts.digest());
+        if (!note.isEmpty()) {
+            JTextArea changed = new JTextArea(note);
+            changed.setEditable(false);
+            changed.setOpaque(false);
+            changed.setLineWrap(true);
+            changed.setWrapStyleWord(true);
+            choices.add(changed);
+        }
+        JCheckBox checkbox = null;
+        if (TrustedProjectScripts.supported() && !scripts.entries().isEmpty()) {
+            checkbox = UiText.checkBox("run this project's own build scripts without asking: "
+                    + String.join(", ", scripts.scripts()));
+            checkbox.setSelected(false);
+            checkbox.setName("trustProjectScripts");
+            choices.add(checkbox);
+            JTextArea warning = new JTextArea("Verifies script identity, not what it does: flags and environment are not "
+                    + "a sandbox. Remembered on this machine only. New trust applies at New chat.");
+            warning.setEditable(false);
+            warning.setOpaque(false);
+            warning.setLineWrap(true);
+            warning.setWrapStyleWord(true);
+            choices.add(warning);
+        }
+        root.add(choices, java.awt.BorderLayout.SOUTH);
+        return new ScriptContent(root, checkbox);
+    }
+
+    static Answer confirmFullWithScripts(Component parent, Path dir, FullFolderTrust.Scan scan,
+                                          java.util.List<String> records, String realPath,
+                                          TrustedProjectScripts.Scan scripts, java.util.List<String> grants) {
+        var body = scriptContent(dir, scan, records, realPath, scripts, grants);
+        boolean yes = SafeChoice.ask(parent, FULL_TITLE, body.component(), TRUST, DONT);
+        return new Answer(yes, yes && body.scripts() != null && body.scripts().isSelected());
     }
 
     static final String FULL_TITLE = "Full Claude Code — confirm this folder";

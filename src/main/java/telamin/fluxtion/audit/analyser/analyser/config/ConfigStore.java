@@ -137,6 +137,7 @@ public final class ConfigStore {
                 p.getProperty("assistant.claudeCode.budgetFormat"));
         readList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
         readList(p, "assistant.claudeCode.trustedFull", c.claudeCodeTrustedFullFolders);
+        readList(p, "assistant.claudeCode.trustedScripts", c.claudeCodeTrustedScripts);
         c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
         c.eventTypesDivider = parseInt(p.getProperty("eventTypesDivider"), c.eventTypesDivider);
         readLastFocuses(p, c.lastFocusByProject);
@@ -249,6 +250,7 @@ public final class ConfigStore {
         put(p, "assistant.claudeCode.budgetFormat", BUDGET_FORMAT);
         writeList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
         writeList(p, "assistant.claudeCode.trustedFull", c.claudeCodeTrustedFullFolders);
+        writeList(p, "assistant.claudeCode.trustedScripts", c.claudeCodeTrustedScripts);
         put(p, "assistant.exportDir", c.assistantExportDir);
         put(p, "eventTypesDivider", Integer.toString(c.eventTypesDivider));
         writeLastFocuses(p, c.lastFocusByProject);

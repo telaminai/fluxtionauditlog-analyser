@@ -32,10 +32,14 @@ final class AboutSessionDialog {
 
     /** Show {@code text}, modeless, over {@code owner}'s window; Escape or Close dismisses it. */
     static JDialog show(Component owner, String text) {
+        return show(owner, text, null, null);
+    }
+
+    static JDialog show(Component owner, String text, String actionLabel, Runnable action) {
         Window w = owner == null ? null : SwingUtilities.getWindowAncestor(owner);
         JDialog d = new JDialog(w, TITLE);
         d.setModal(false);
-        d.setContentPane(content(text, d));
+        d.setContentPane(content(text, d, actionLabel, action));
         d.pack();
         d.setLocationRelativeTo(owner);
         d.setVisible(true);
@@ -43,6 +47,10 @@ final class AboutSessionDialog {
     }
 
     static JComponent content(String text, JDialog d) {
+        return content(text, d, null, null);
+    }
+
+    static JComponent content(String text, JDialog d, String actionLabel, Runnable action) {
         JTextArea a = new JTextArea(text, 14, 52);
         a.setEditable(false);
         a.setLineWrap(true);
@@ -57,6 +65,11 @@ final class AboutSessionDialog {
         JButton close = UiText.button("Close");
         close.addActionListener(e -> d.dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        if (actionLabel != null && action != null) {
+            JButton act = UiText.button(actionLabel);
+            act.addActionListener(e -> { action.run(); d.dispose(); });
+            buttons.add(act);
+        }
         buttons.add(close);
         JPanel root = new JPanel(new BorderLayout(8, 8));
         root.setBorder(BorderFactory.createEmptyBorder(12, 12, 8, 12));

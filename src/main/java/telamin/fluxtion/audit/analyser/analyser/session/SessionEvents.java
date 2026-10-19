@@ -1089,7 +1089,16 @@ public final class SessionEvents {
     public record LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
                                     String postureRef, long budgetMicros, FolderVerdict folder, boolean full,
                                     LocalAgentPosture.FullMode fullMode, boolean fullFolderConfirmed, String model,
-                                    String folderRef) {
+                                    String folderRef, boolean scriptsPreAllowed, boolean scriptsChanged,
+                                    boolean scriptProject, int scriptsTrustedCount) {
+        /** Before M81's optional, machine-only project-script consent. */
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
+                                 String postureRef, long budgetMicros, FolderVerdict folder, boolean full,
+                                 LocalAgentPosture.FullMode fullMode, boolean fullFolderConfirmed, String model,
+                                 String folderRef) {
+            this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, folder, full, fullMode,
+                    fullFolderConfirmed, model, folderRef, false, false, false, 0);
+        }
         /** The shape before the restart offer (owner, 2026-10-18): neither the model nor the folder observed. */
         public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
                                  String postureRef, long budgetMicros, FolderVerdict folder, boolean full,
@@ -1211,7 +1220,15 @@ public final class SessionEvents {
      * when it was shown (always true for the default posture). The node decides whether the answer still applies, and
      * asks for the trust record and the start.
      */
-    public record LocalAgentFolderAnswered(long request, boolean yes, boolean contentUnchanged, LocalAgentConsent consent) {
+    public record LocalAgentFolderAnswered(long request, boolean yes, boolean contentUnchanged, LocalAgentConsent consent,
+                                           boolean scriptsSelected, int scriptCount, boolean scriptsUnchanged) {
+        public LocalAgentFolderAnswered(long request, boolean yes, boolean contentUnchanged, LocalAgentConsent consent,
+                                        boolean scriptsSelected, int scriptCount) {
+            this(request, yes, contentUnchanged, consent, scriptsSelected, scriptCount, true);
+        }
+        public LocalAgentFolderAnswered(long request, boolean yes, boolean contentUnchanged, LocalAgentConsent consent) {
+            this(request, yes, contentUnchanged, consent, false, 0, true);
+        }
     }
 
     /**
@@ -1992,6 +2009,13 @@ public final class SessionEvents {
     /** The person pressed a button of the dialog for {@code requestRef} (closing it is Deny). */
     public record LocalAgentPermissionChosen(long requestRef, boolean allow) {
     }
+
+    /** Fresh filesystem/machine-grant observations for the node's requested, scoped script-identity check. */
+    public record LocalAgentScriptTrustChecked(long opId, long generation, long ticket, long requestRef,
+                                               boolean matches, int trustedCount) implements Result { }
+
+    /** Person's About action: narrower immediately; it never starts a process or changes posture. */
+    public record LocalAgentScriptsRevokeRequested(String folderRef) { }
 
     /** The adapter's clock: {@code deadlineMs} have passed since the dialog for {@code requestRef} was asked for. */
     public record LocalAgentPermissionDeadline(long generation, long requestRef) {

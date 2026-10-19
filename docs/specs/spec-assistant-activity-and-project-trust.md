@@ -1,6 +1,6 @@
 # M81 — Live activity, per-project build-script trust, a restart that always works, and staying in sync
 
-**Status:** DRAFT r4, 2026-10-19 (r2 added Feature C, from an investigation of the 1.36.0 release; r3 adds Feature
+**Status:** DRAFT r5, 2026-10-19 (r2 added Feature C, from an investigation of the 1.36.0 release; r3 adds Feature
 D, approved by the owner the same day). Four owner-approved features (2026-10-19) for the onboard Claude Code
 assistant, specified together because all four touch the same machinery: the local-agent session's rule-9 node
 (`localAgentSession` / `assistantLoop`), the stream adapter's observation boundary, and the Full-posture
@@ -476,10 +476,25 @@ the model has started answering.
 the session's **launch-time** snapshot of the trusted set (fixed per session, exactly as `postureRef` fixes the
 posture — a mid-session settings change narrows live, §3.2, but never *widens* a running session without New chat,
 consistent with "a posture change needs New chat", §3 of M74). `LocalAgentPermission`, before calling
-`allowWithoutAsking`, **re-reads the resolved script's current bytes** and recomputes its digest — not trusting
+`allowWithoutAsking`, **requests a fresh read of the resolved script's current bytes** and compares its digest — not trusting
 the adapter's classification alone — exactly mirroring OD-74.12's "the spawn re-checks the folder's whole trust
 digest again" and the dual adapter/server judgement `McpTools.openInProject`/`reportInProject` already use for
 hosted verbs. A mismatch denies (asks), once, and flags the folder for a re-ask dialog next Start.
+
+**Rule-9 implementation boundary (r5).** The node does not perform filesystem I/O inside dispatch. It retains the
+scoped request, emits `CheckLocalAgentScriptTrustEffect`, and handles `LocalAgentScriptTrustChecked` before deciding
+allow versus the ordinary ask path. The adapter observes the stored exact command, current real target and complete
+bounded bytes, launch capture and still-present machine grant. Stop, turn end, exit, New chat and revocation supersede
+checks; a stale or duplicate observation cannot allow a request. Each script has its own real-path/full-SHA-256 entry
+inside the single machine record, plus a stable set digest for the review note. An unchanged sibling cannot lend its
+identity to a changed or new program. Reads over 256 KiB fail closed rather than trusting a partial digest.
+
+`LaunchSpec.trustedScripts` is data only, never a CLI allow rule. The adapter retains the same capture for process
+generations resuming the same conversation; an absent capture fails closed. Literal argv uses a conservative unquoted
+grammar: unsupported quoting or shell expansion asks, never gets rewritten. About's count is a bounded observation of
+currently matching captured/live identities, published by the node. Revoke is bound to the displayed folder's digest,
+so an old modeless About dialog cannot revoke another project after a switch. A changed-script review during a running
+conversation preserves its held Send; new trust is saved for New chat and never silently widens that conversation.
 
 ### 4.3 Feature C
 
@@ -736,4 +751,7 @@ followed by a further 60 s of silence (§3.1, §4.1). | accepted (owner, 2026-10
   per-script content binding within the single set choice, four-second watcher, and explicit local accepts with
   exchange off. Recorded heartbeat evidence limits, narrow signal vocabulary, and the four-PR delivery grouping.
   Subsequently recorded OD-81.11: keep modal approval and remove the blocked composer Show affordance.
+- **2026-10-19, DRAFT r5**: recorded B's node-requested filesystem observation boundary, per-script SHA-256 bindings,
+  conversation-stable capture, conservative literal argv, scoped revocation and held-Send review behavior. No owner
+  policy answer changed. Added the CLI-upgrade evidence checklist without claiming a live protocol check.
 

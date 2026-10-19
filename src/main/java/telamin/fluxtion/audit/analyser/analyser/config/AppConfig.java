@@ -160,6 +160,8 @@ public final class AppConfig {
      * {@code .mcp.json}: a separate trust, bound to content, so a changed hook file is asked about again.
      */
     public final List<String> claudeCodeTrustedFullFolders = new ArrayList<>();
+    /** M81 B: per-script real-path/content bindings, machine tier only; never a profile, share or bundle key. */
+    public final List<String> claudeCodeTrustedScripts = new ArrayList<>();
     /**
      * M74 P2 (OD-74.23): the assistant mode the person last chose on the Assistant tab ({@code IN_APP} or
      * {@code LOCAL_AGENT}), remembered on THIS MACHINE so a Claude Code user relaunching with no API key is not sent to

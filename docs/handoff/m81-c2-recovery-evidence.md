@@ -53,6 +53,12 @@ failures do not qualify. This is public distribution-source evidence, not a live
 routing for this error was not exercised. The fixture exercises the adapter's stderr path. No live model,
 paid provider, participant project, real assistant configuration or credentials were used.
 
+CLI-upgrade check: `ResumeErrorObservationTest.onlyThePublishedUnknownSessionErrorQualifies` pins that exact
+2.1.282 prefix, with misleading prose and generic/authentication errors as negative neighbours. Before changing the
+supported CLI version, re-check the public matching distribution and the stderr-routing assumption; do not broaden
+the recovery predicate to free-text guesses. A future authorised live/stub protocol acceptance can add routing evidence,
+but no such live check is claimed here.
+
 The official streaming documentation mentions a first non-ping event, but that does not establish a whole-session
 heartbeat during Bash. OQ-4 therefore remains evidence work for A, not a claim that CLI pings do not exist.
 

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust;
+import telamin.fluxtion.audit.analyser.analyser.assistant.localagent.TrustedProjectScripts;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -60,5 +61,26 @@ class LocalAgentFolderDialogTest {
     private static void collect(Component c, List<Component> out) {
         out.add(c);
         if (c instanceof Container k) for (Component child : k.getComponents()) collect(child, out);
+    }
+
+    @Test
+    void scriptTrustIsOneUntickedFullOnlyChoiceAndNeverOfferedOnWindows() throws Exception {
+        Files.writeString(dir.resolve("mvnw"), "DEMO wrapper");
+        var scripts = TrustedProjectScripts.scan(dir);
+        var full = LocalAgentFolderDialog.scriptContent(dir, FullFolderTrust.scan(dir), List.of(),
+                dir.toRealPath().toString(), scripts, List.of());
+        assertNotNull(full.scripts());
+        assertFalse(full.scripts().isSelected(), "★ B2: the optional grant is unticked, even for a trusted folder");
+        assertTrue(full.scripts().getText().endsWith("./mvnw"));
+        List<Component> all = new ArrayList<>();
+        collect(LocalAgentFolderDialog.safeContent(dir, false), all);
+        assertTrue(all.stream().noneMatch(javax.swing.JCheckBox.class::isInstance), "Safe has no script opt-in");
+        String os = System.getProperty("os.name");
+        try {
+            System.setProperty("os.name", "Windows 11");
+            assertTrue(TrustedProjectScripts.candidates(dir).isEmpty());
+            assertNull(LocalAgentFolderDialog.scriptContent(dir, FullFolderTrust.scan(dir), List.of(),
+                    dir.toRealPath().toString(), scripts, List.of()).scripts(), "Windows retains today's asking");
+        } finally { System.setProperty("os.name", os); }
     }
 }

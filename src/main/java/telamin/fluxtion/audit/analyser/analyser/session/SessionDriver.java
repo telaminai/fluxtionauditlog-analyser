@@ -363,6 +363,8 @@ public final class SessionDriver {
             case SessionEffects.ReleaseHostedBridgeEffect ignored -> "releaseHostedBridge";
             case SessionEffects.AnswerHostedCallEffect ignored -> "answerHostedCall";
             case SessionEffects.ShowPermissionDialogEffect ignored -> "showPermissionDialog";
+            case SessionEffects.CheckLocalAgentScriptTrustEffect ignored -> "checkLocalAgentScriptTrust";
+            case SessionEffects.RevokeLocalAgentScriptsEffect ignored -> "revokeLocalAgentScripts";
             case SessionEffects.ClosePermissionDialogEffect ignored -> "closePermissionDialog";
             case SessionEffects.AnswerPermissionEffect ignored -> "answerPermission";
             case SessionEffects.StartPermissionClockEffect ignored -> "startPermissionClock";

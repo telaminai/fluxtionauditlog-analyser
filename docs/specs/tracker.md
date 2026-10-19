@@ -147,6 +147,21 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M78] ☑ **Quiet assistant panel, with D1 and D2 — released in 1.36.0 (PR #168).**
   ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
+### M81 · Live activity, project build-script trust, restart recovery, and project-sync offers ([spec](spec-assistant-activity-and-project-trust.md), DRAFT r5)
+
+- [M81] ☐ Four owner-approved features, delivered as **four PRs: C, A, B, D**. Policy answers are recorded; technical
+  heartbeat limits are stated, not treated as a liveness guarantee. No M81 PR is merged or released.
+- [M81-C] ☑ Restart/recovery implemented in [#173](https://github.com/telaminai/fluxtionauditlog-analyser/pull/173),
+  exact `2964d734` CI green; independent approval supplied by the owner for that exact head, not for A/B/D.
+- [M81-A] ☑ Live activity, quiet silence cues, totals and additive context implemented in
+  [#176](https://github.com/telaminai/fluxtionauditlog-analyser/pull/176), exact `8c8ed705` CI green; review pending.
+  It explicitly integrates dependency #171's `ff3a9888` feature head without rebasing or merging a PR/main.
+- [M81-B] ☑ Optional per-program content/path-bound build-script trust in Full, machine-only and POSIX-first,
+  implemented with local full/focused/native verification and six wrong-result controls green after restoration
+  ([evidence](../handoff/m81-b-script-trust-evidence.md)); publication/exact-head CI reported in its PR, review pending.
+  Windows keeps asking; acceptance #148 remains open.
+- [M81-D] ☐ General debounced graph/log output offers for normal projects, never sample/bundle roots; not started.
+
 ### M79 · The first minute ([spec](spec-first-minute.md), r6)
 - [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers; r6 the second review, OD-79.20–.25 accepted): the real-run diamond walk autoplays once, its Spring XML beside the topology, three doors, a start page under 40 words; then a recorded, composition-first teaching conversation in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, and later the external teacher kit. 8 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`. No M79 code is in the integration.
 - [M79-1] ☐ The first launch: the `firstMinute` node, the diamond walk autoplayed once, three doors, a start page under 40 words (spec §5; spec under independent review on [#164](https://github.com/telaminai/fluxtionauditlog-analyser/pull/164)).

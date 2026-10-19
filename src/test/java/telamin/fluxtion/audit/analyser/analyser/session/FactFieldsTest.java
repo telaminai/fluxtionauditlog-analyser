@@ -84,7 +84,8 @@ class FactFieldsTest {
                 "CanvasLeftAssistant.shown", "AssistantTabShown.origin")) {
             M74.put(c, Holds.VOCABULARY);
         }
-        for (String c : List.of("LocalAgentConsent.postureRef", "LocalAgentConsent.folderRef", "LocalAgentStatusObserved.hostedNonceDigest",
+        for (String c : List.of("LocalAgentConsent.postureRef", "LocalAgentConsent.folderRef", "LocalAgentScriptsRevokeRequested.folderRef",
+                "LocalAgentStatusObserved.hostedNonceDigest",
                 "LocalAgentInitObserved.sessionDigest", "LocalAgentDraftComposed.logIdentity",
                 "AssistantDraftComposed.logIdentity", "ProposalItemFact.pathDigest", "ProposalItemFact.classNameDigest",
                 "ProposalItemPreviewed.proposalId", "ProposalItemPreviewed.itemId", "ProposalPreviewDone.proposalId",

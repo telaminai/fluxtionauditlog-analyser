@@ -178,6 +178,23 @@ Code. **Full may read fluxtion-playground.dev documentation without asking**: it
 `WebFetch(domain:fluxtion-playground.dev)` — never `WebSearch`, another domain or a network command — and the
 analyser's own approvals allow without a dialog only an https fetch of exactly that host; any other fetch is asked.
 
+**Optional project build-script trust is a narrow Full-only exception to asking.** The Full folder-trust dialog offers
+one **unticked** checkbox naming only the project's declared root build scripts. Leaving it unticked changes nothing.
+Each script is individually bound to its **real path and SHA-256 content** on this machine. Before the analyser grants
+each eligible `Bash` call, its permission node requests a fresh read and checks both the conversation's captured grant
+and the still-present machine grant. A changed or newly added script asks; the next Start or Send asks you to review
+changed script trust. **Revoke project scripts** in *About this session…* narrows immediately, without a restart.
+New trust never widens a running or resumed conversation: start a **New chat** to use it.
+
+This is **script identity, not effect**: the script may itself run arbitrary commands, access the network, or interpret
+dangerous flags or environment. It is **not argument sandboxing**. Only one simple literal foreground script invocation
+qualifies; a second command, pipe, expansion, redirection, interpreter prefix or environment assignment is asked as
+before. No `Bash` CLI `--allowedTools` rule is added: the analyser owns this decision. Grants are **machine-only**, never
+in a project profile, shared settings file or evidence bundle. Safe analysis and external MCP/REST clients are unchanged.
+This first delivery is **POSIX-only**: **Windows offers no script-trust checkbox and scripts still ask**, pending
+[Windows acceptance #148](https://github.com/telaminai/fluxtionauditlog-analyser/issues/148). File identity is checked at
+the approval boundary, not held as an execution lock; changing a file after that check is a residual risk.
+
 **The analyser's note to Claude Code** begins every session, in both postures, as fixed text with nothing interpolated:
 Claude Code is the assistant inside this app, the analyser's words (project, starter, log, graph, report) mean the
 analyser's, and it calls `analyser_context` first. Full's note adds that a new application begins from one of the

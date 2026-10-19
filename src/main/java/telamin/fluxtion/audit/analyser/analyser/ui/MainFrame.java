@@ -150,7 +150,8 @@ public final class MainFrame extends JFrame {
     private final java.util.Map<Long, FolderAsked> localAgentFolderAsked = new java.util.HashMap<>();
 
     /** What a folder dialog showed: the real folder, and for the full posture the digest of the files it named. */
-    private record FolderAsked(String real, String fullDigest) {
+    private record FolderAsked(String real, String fullDigest, String scriptRecord) {
+        FolderAsked(String real, String fullDigest) { this(real, fullDigest, null); }
     }
     private telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter localAgentAdapter;
     /** The process launcher. A test could replace it; the application uses the one OS launcher. */
@@ -5334,6 +5335,10 @@ public final class MainFrame extends JFrame {
             }
             @Override public boolean scratchForProject() { return projectRootIsAnalyserOwned(); }
             @Override public java.util.List<String> fullTrustRecords() { return config.claudeCodeTrustedFullFolders; }
+            @Override public java.util.List<String> scriptTrustRecords() { return config.claudeCodeTrustedScripts; }
+            @Override public Path scriptProjectRoot() {
+                return projectRootIsAnalyserOwned() ? null : projectRoot();
+            }
             @Override public Path scratchFolder() { return localAgentScratch; }
             @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts() {
                 return MainFrame.this::chartExistsNow;
@@ -5385,6 +5390,10 @@ public final class MainFrame extends JFrame {
             @Override public void keepWaiting(long generation, long ticket) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentActivityAcknowledged(
                         generation, ticket));
+            }
+            @Override public void revokeProjectScripts(String folderRef) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentScriptsRevokeRequested(
+                        folderRef));
             }
             @Override public void closeExternalAccess(long generation) {
                 // review B2: the person's choice, reported; actionListener decides
@@ -5574,7 +5583,9 @@ public final class MainFrame extends JFrame {
                 new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentConsents.Settings(
                         config.claudeCodeAllowed, config.claudeCodeFull, config.claudeCodeFullMode,
                         config.claudeCodeTrustedFolders, config.claudeCodeTrustedFullFolders, config.claudeCodeBudgetUsd,
-                        config.claudeCodeModel),
+                        config.claudeCodeModel, config.claudeCodeTrustedScripts,
+                        projectRoot() != null && !projectRootIsAnalyserOwned(),
+                        localAgentAdapter == null ? -1 : localAgentAdapter.currentTrustedScriptCount()),
                 telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy);
     }
 
@@ -5596,15 +5607,24 @@ public final class MainFrame extends JFrame {
             // OD-74.12, review H6: read the files Start would load (bounded, names only) NOW, name them, and bind the
             // trust to exactly the content that was shown — the answer says whether it still matches when given
             var scan = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.scan(dir);
+            var scripts = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.TrustedProjectScripts.scan(
+                    projectRoot() != null && !projectRootIsAnalyserOwned() ? dir : null);
             SwingUtilities.invokeLater(() -> {
-                boolean yes = LocalAgentFolderDialog.confirmFull(this, dir, scan,
-                        java.util.List.copyOf(config.claudeCodeTrustedFullFolders), realPathOf(dir));
+                var answer = LocalAgentFolderDialog.confirmFullWithScripts(this, dir, scan,
+                        java.util.List.copyOf(config.claudeCodeTrustedFullFolders), realPathOf(dir), scripts,
+                        java.util.List.copyOf(config.claudeCodeTrustedScripts));
+                boolean yes = answer.yes();
                 if (session == null) return;
                 boolean unchanged = scan.digest().equals(
                         telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.scan(dir).digest());
-                if (yes) localAgentFolderAsked.put(e.request(), new FolderAsked(realPathOf(dir), scan.digest()));
+                boolean scriptsUnchanged = scripts.realRoot().isEmpty() || scripts.digest().equals(
+                        telamin.fluxtion.audit.analyser.analyser.assistant.localagent.TrustedProjectScripts.scan(dir).digest());
+                if (yes) localAgentFolderAsked.put(e.request(), new FolderAsked(realPathOf(dir), scan.digest(),
+                        answer.scriptsSelected()
+                                ? telamin.fluxtion.audit.analyser.analyser.assistant.localagent.TrustedProjectScripts.record(scripts) : ""));
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentFolderAnswered(
-                        e.request(), yes, unchanged, localAgentConsent()));
+                        e.request(), yes, unchanged, localAgentConsent(), answer.scriptsSelected(), scripts.entries().size(),
+                        scriptsUnchanged));
             });
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(), 0,
                     "confirmFolder:full");
@@ -5632,6 +5652,10 @@ public final class MainFrame extends JFrame {
                     .recorded(config.claudeCodeTrustedFullFolders, asked.real(), asked.fullDigest());
             config.claudeCodeTrustedFullFolders.clear();
             config.claudeCodeTrustedFullFolders.addAll(records);
+            var scriptRecords = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.TrustedProjectScripts.recorded(
+                    config.claudeCodeTrustedScripts, asked.real(), asked.scriptRecord());
+            config.claudeCodeTrustedScripts.clear();
+            config.claudeCodeTrustedScripts.addAll(scriptRecords);
             saveConfigQuietly();
         } else if (asked != null && !config.claudeCodeTrustedFolders.contains(asked.real())) {
             config.claudeCodeTrustedFolders.add(asked.real());
@@ -5639,6 +5663,23 @@ public final class MainFrame extends JFrame {
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(), 0,
                 asked == null ? "trustFolder:unknown" : asked.fullDigest() != null ? "trustFolder:full" : "trustFolder");
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result revokeLocalAgentScripts(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RevokeLocalAgentScriptsEffect e) {
+        Path dir = localAgentDirectory();
+        String real = dir == null ? null : realPathOf(dir);
+        if (real != null && java.util.Objects.equals(e.folderRef(),
+                telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(real))) {
+            var records = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.TrustedProjectScripts.recorded(
+                    config.claudeCodeTrustedScripts, real, null);
+            config.claudeCodeTrustedScripts.clear();
+            config.claudeCodeTrustedScripts.addAll(records);
+            saveConfigQuietly();
+            reportAssistantSettings();
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(), 0,
+                "revokeProjectScripts");
     }
 
     /**
@@ -9235,6 +9276,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StopLocalAgentEffect e -> performLocalAgent(e);
             // M74 P3 (§5.7): the CLI's answer and the request's clock are the adapter's; the dialog is the frame's
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AnswerPermissionEffect e -> performLocalAgent(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CheckLocalAgentScriptTrustEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartPermissionClockEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowPermissionDialogEffect e -> showPermissionDialog(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ClosePermissionDialogEffect e -> closePermissionDialog(e);
@@ -9252,6 +9294,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStartPageFallbackEffect e -> showStartPageFallback(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ComposeStartPageDraftEffect e -> composeStartPageDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.TrustLocalAgentFolderEffect e -> trustLocalAgentFolder(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RevokeLocalAgentScriptsEffect e -> revokeLocalAgentScripts(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ServeHostedBridgeEffect e -> serveHostedBridge(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReleaseHostedBridgeEffect e -> releaseHostedBridge(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfigureActionListenerEffect e -> configureActionListener(e);

@@ -77,6 +77,7 @@ public final class LocalAgentPanel extends JPanel {
         default void askAgain(java.util.List<Long> draftBindings) { }
 
         default void keepWaiting(long generation, long ticket) { }
+        default void revokeProjectScripts(String folderRef) { }
 
     }
 
@@ -554,6 +555,11 @@ public final class LocalAgentPanel extends JPanel {
         LocalAgentTranscript.Header h = shownHeader(s, store);
         out.add(headerLine(h, s));
         out.add(s.toolCallCount() + " tool calls · " + s.turnCount() + " turns");
+        boolean scriptFull = s.running() ? s.posture().isFull() : s.fullCue() != LocalAgentState.FullCue.NONE;
+        if (scriptFull && s.extra().scripts().project()) {
+            int count = s.extra().scripts().trustedCount();
+            out.add(count > 0 ? "Project scripts: trusted (" + count + ")" : "Project scripts: not trusted");
+        }
         if (h != null && h.scratchForProject()) out.add(SCRATCH_NOTE);
         out.add(postureLine(h, s));
         if (s.resumable()) out.add(LOCK_WARNING);
@@ -569,6 +575,16 @@ public final class LocalAgentPanel extends JPanel {
                 ? "Claude Code's last error line: " + store.text(s.stderrRef()) : "";
         if (!words.isBlank()) out.add(words);
         return out;
+    }
+
+    String revokeScriptsFolderRef() {
+        if (rendered == null || !rendered.extra().scripts().project() || rendered.extra().scripts().trustedCount() == 0
+                || !(rendered.running() ? rendered.posture().isFull() : rendered.fullCue() != LocalAgentState.FullCue.NONE)) return null;
+        return rendered.extra().scripts().folderRef();
+    }
+
+    void revokeProjectScripts(String folderRef) {
+        if (intents != null) intents.revokeProjectScripts(folderRef);
     }
 
     /** Review B2/B5: render actionListener's decision — the offer to close external access, and the limits line. */

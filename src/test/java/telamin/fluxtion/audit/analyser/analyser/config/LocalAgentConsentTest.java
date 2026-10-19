@@ -25,6 +25,8 @@ class LocalAgentConsentTest {
             "assistant.claudeCode.full.mode=acceptEdits",
             "assistant.claudeCode.trustedFull.count=1",
             "assistant.claudeCode.trustedFull.0=/somewhere/else|0123456789abcdef0123456789abcdef",
+            "assistant.claudeCode.trustedScripts.count=1",
+            "assistant.claudeCode.trustedScripts.0=DEMO-SCRIPT-GRANT",
             "assistant.claudeCode.warmStart=true",
             "assistant.claudeCode.budgetUsd=999",
             "assistant.claudeCode.profile=FULL",
@@ -59,14 +61,20 @@ class LocalAgentConsentTest {
         on.claudeCodeTrustedFolders.add("/a/confirmed/folder");
         on.claudeCodeFullMode = "plan";
         on.claudeCodeTrustedFullFolders.add("/a/full/folder|00112233445566778899aabbccddeeff");
+        on.claudeCodeTrustedScripts.add("DEMO-SCRIPT-GRANT");
         on.claudeCodeBudgetUsd = 7.5;
         on.assistantProfile = "FULL";
         String exported = share.export(on, SettingsShare.Category.defaults());
         assertFalse(exported.contains("claudeCode"), "never exported: " + exported);
-        assertFalse(ProjectProfile.write(on, share, profile).contains("claudeCode"), "never a profile key");
+        assertFalse(exported.contains("DEMO-SCRIPT-GRANT"), "the grant payload never travels under any other key either");
+        String profileWritten = ProjectProfile.write(on, share, profile);
+        assertFalse(profileWritten.contains("claudeCode"), "never a profile key");
+        assertFalse(profileWritten.contains("DEMO-SCRIPT-GRANT"), "the profile/bundle carries no grant payload");
         ProjectProfile.clearProjectScoped(on);
         assertTrue(on.claudeCodeAllowed, "a project switch does not touch them: they are this machine's");
         assertEquals(1, on.claudeCodeTrustedFolders.size());
+        assertEquals(java.util.List.of("DEMO-SCRIPT-GRANT"), on.claudeCodeTrustedScripts,
+                "switching projects cannot revoke or replace this machine's grants");
 
         ConfigStore store = new ConfigStore(tmp.resolve("config"));
         store.save(on);
@@ -75,6 +83,7 @@ class LocalAgentConsentTest {
         assertEquals(java.util.List.of("/a/confirmed/folder"), back.claudeCodeTrustedFolders);
         assertEquals("plan", back.claudeCodeFullMode);
         assertEquals(java.util.List.of("/a/full/folder|00112233445566778899aabbccddeeff"), back.claudeCodeTrustedFullFolders);
+        assertEquals(java.util.List.of("DEMO-SCRIPT-GRANT"), back.claudeCodeTrustedScripts);
         assertEquals(7.5, back.claudeCodeBudgetUsd);
         AppConfig fresh = new ConfigStore(tmp.resolve("absent")).load();
         assertOff(fresh, "off by default");
@@ -87,6 +96,7 @@ class LocalAgentConsentTest {
         assertFalse(c.claudeCodeFull, what + " cannot widen it to the full posture");
         assertTrue(c.claudeCodeTrustedFolders.isEmpty(), what + " cannot add a trusted folder");
         assertTrue(c.claudeCodeTrustedFullFolders.isEmpty(), what + " cannot add a full-posture trusted folder");
+        assertTrue(c.claudeCodeTrustedScripts.isEmpty(), "★ B7: " + what + " cannot carry a project-script grant");
         assertEquals("default", c.claudeCodeFullMode, what + " cannot choose the full posture's mode");
         assertNull(c.claudeCodeBudgetUsd, what + " cannot set a spend limit");
         assertNull(c.assistantProfile, what + " cannot choose the assistant profile (M74 UX)");

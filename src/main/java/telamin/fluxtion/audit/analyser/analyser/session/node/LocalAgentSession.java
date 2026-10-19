@@ -74,6 +74,8 @@ public class LocalAgentSession implements EventLogSource {
     private String sessionId;
     private boolean resumable;
     private String postureRef;
+    private boolean scriptsCaptured;
+    private LocalAgentState.ScriptTrust scripts = LocalAgentState.ScriptTrust.NONE;
     private String nonce;
     private String phase = "OFF";
     private String verdict = "";
@@ -295,12 +297,26 @@ public class LocalAgentSession implements EventLogSource {
                     + "confirmation was open, so nothing was started — press Start again");
             return changed();
         }
+        if (c.full() && !e.scriptsUnchanged()) {
+            refuse(e.request(), "FOLDER_CHANGED: the project's build scripts changed while the confirmation was open — "
+                    + "review and press Start again; nothing was started or trusted");
+            return changed();
+        }
         effects.request(new SessionEffects.TrustLocalAgentFolderEffect(0L, e.request()));
         // the person's yes confirms the folder for the posture it was asked for (the full posture's trust is separate)
         boolean wasRunning = running();
-        start(e.request(), new SessionEvents.LocalAgentConsent(c.allowed(), c.full() ? c.folderConfirmed() : true,
+        var confirmed = new SessionEvents.LocalAgentConsent(c.allowed(), c.full() ? c.folderConfirmed() : true,
                 c.bundleWorkingCopy(), c.postureRef(), c.budgetMicros(), c.folder(), c.full(), c.fullMode(),
-                c.full() || c.fullFolderConfirmed(), c.model(), c.folderRef()));
+                c.full() || c.fullFolderConfirmed(), c.model(), c.folderRef(), e.scriptsSelected() && c.scriptProject(),
+                false, c.scriptProject(), e.scriptsSelected() ? e.scriptCount() : 0);
+        observeConsent(confirmed);
+        if (wasRunning && draft != 0 && "READY".equals(phase)) {
+            note("SCRIPT_TRUST_SAVED", "Project script trust was saved. New trust applies at New chat; changed scripts "
+                    + "still ask in this conversation.");
+            sendTurn(draft, e.request(), draftLogGeneration);
+            return changed();
+        }
+        start(e.request(), confirmed);
         if (draft != 0 && !wasRunning && running() && pendingDraft == 0) {
             // the Send that asked: its question waits for READY, as any Send accepted before the process is ready does —
             // the composer is cleared by this request's acceptance, and the question is sent once
@@ -313,6 +329,10 @@ public class LocalAgentSession implements EventLogSource {
     }
 
     private boolean start(long request, SessionEvents.LocalAgentConsent consent) {
+        if (running() && "READY".equals(phase) && needsScriptReview(consent)) {
+            refuse(request, askFolder(request, consent));
+            return changed();
+        }
         if (running()) {
             if ("READY".equals(phase) || "BUSY".equals(phase)) {
                 note("ALREADY_RUNNING", "Claude Code is already running.");
@@ -320,7 +340,8 @@ public class LocalAgentSession implements EventLogSource {
                 answer(request, true, "");
                 return changed();
             }
-            // M81: Restart recovers an unfinished start/Stop, retaining the resumable conversation's identity.
+            // M81: recover an unfinished start/Stop, retaining the resumable identity. Null why deliberately emits
+            // no RECOVERING note: spawn publishes the new starting step; noteStatus is unused on this call.
             kill(null, "RECOVERING");
         }
         String refusal = startRefusal(consent, request);
@@ -681,6 +702,12 @@ public class LocalAgentSession implements EventLogSource {
             refuse(e.request(), refusal);
             return changed();
         }
+        if (running() && needsScriptReview(e.consent())) {
+            refuse(e.request(), askFolder(e.request(), e.consent()));
+            confirmDraft = e.draft();
+            confirmDraftLogGeneration = boundGeneration(e.draftBindings());
+            return changed();
+        }
         if (!running()) {
             String startRefusal = startRefusal(e.consent(), e.request());
             if (startRefusal != null) {
@@ -766,6 +793,7 @@ public class LocalAgentSession implements EventLogSource {
         conversation++;
         sessionId = null;
         resumable = false;
+        scriptsCaptured = false;
         postureRef = null;
         pendingDraft = 0;
         newChatOffered = false;
@@ -1478,7 +1506,10 @@ public class LocalAgentSession implements EventLogSource {
     /** Record the posture a consent fact names (for the full-posture cue); true when it changed. */
     private boolean observeConsent(SessionEvents.LocalAgentConsent c) {
         LocalAgentPosture now = c == null || !c.allowed() ? null : c.posture();
-        if (java.util.Objects.equals(now, consentPosture)) return false;
+        var scriptState = c == null || !c.allowed() || !c.full() || !c.scriptProject()
+                ? LocalAgentState.ScriptTrust.NONE : new LocalAgentState.ScriptTrust(true, c.scriptsTrustedCount(), c.folderRef());
+        if (java.util.Objects.equals(now, consentPosture) && scriptState.equals(scripts)) return false;
+        scripts = scriptState;
         consentPosture = now;
         dirty = true;
         return true;
@@ -1515,18 +1546,7 @@ public class LocalAgentSession implements EventLogSource {
         }
         // review H4: no REST_OFF refusal — the external REST switch is the person's choice about EXTERNAL clients;
         // spawn() asks for a hosted-only listener when it is off
-        if (!c.confirmedForPosture()) {
-            confirmRequest = request;
-            confirmPosture = c.postureRef();
-            confirmDraft = 0;                     // a Start asks with no question; a Send sets its own after this
-            confirmDraftLogGeneration = 0;
-            effects.request(new SessionEffects.ConfirmLocalAgentFolderEffect(0L, request, c.full()));
-            return c.full()
-                    ? "CONFIRM_FOLDER: confirm this folder for full Claude Code first — its hooks, MCP servers and "
-                    + "instruction files load at Start, and a folder trusted before is asked again when they change; "
-                    + "nothing was started"
-                    : "CONFIRM_FOLDER: confirm this folder for Claude Code first; nothing was started";
-        }
+        if (!c.confirmedForPosture() || needsScriptReview(c)) return askFolder(request, c);
         // owner, 2026-10-17: the budget is OPTIONAL and off by default — a session on the person's own Claude plan has
         // that plan's limits; only a set limit (budgetMicros > 0) is enforced here
         long remaining = c.budgetMicros() - spent();
@@ -1541,6 +1561,41 @@ public class LocalAgentSession implements EventLogSource {
                     + "settings — start a New chat";
         }
         return null;
+    }
+
+    private static boolean needsScriptReview(SessionEvents.LocalAgentConsent c) {
+        return c != null && c.allowed() && c.full() && c.scriptProject() && c.scriptsChanged()
+                && c.folder() == SessionEvents.FolderVerdict.OK && !c.bundleWorkingCopy();
+    }
+
+    private String askFolder(long request, SessionEvents.LocalAgentConsent c) {
+        confirmRequest = request;
+        confirmPosture = c.postureRef();
+        confirmDraft = 0;
+        confirmDraftLogGeneration = 0;
+        effects.request(new SessionEffects.ConfirmLocalAgentFolderEffect(0L, request, c.full()));
+        return needsScriptReview(c)
+                ? "CONFIRM_FOLDER: the project's build scripts changed; review the folder's optional script trust again"
+                : c.full() ? "CONFIRM_FOLDER: confirm this folder for full Claude Code first — its hooks, MCP servers and "
+                + "instruction files load at Start, and a folder trusted before is asked again when they change; nothing was started"
+                : "CONFIRM_FOLDER: confirm this folder for Claude Code first; nothing was started";
+    }
+
+    public boolean scriptsPreAllowedCaptured() { return scriptsCaptured; }
+
+    /** Permission owns the check's request/supersession; it pushes only an accepted observation into this snapshot. */
+    public void scriptTrustObserved(int count) {
+        if (!scripts.project()) return;
+        scripts = new LocalAgentState.ScriptTrust(true, Math.max(0, Math.min(32, count)), scripts.folderRef());
+        dirty = true;
+    }
+
+    @OnEventHandler
+    public boolean onScriptsRevokeRequested(SessionEvents.LocalAgentScriptsRevokeRequested e) {
+        if (!scripts.project() || scripts.trustedCount() == 0 || !java.util.Objects.equals(e.folderRef(), scripts.folderRef())) return false;
+        scripts = new LocalAgentState.ScriptTrust(true, 0, scripts.folderRef());
+        effects.request(new SessionEffects.RevokeLocalAgentScriptsEffect(0L, scripts.folderRef()));
+        return changed();
     }
 
     private String sendRefusal(SessionEvents.LocalAgentSendRequested e) {
@@ -1579,6 +1634,7 @@ public class LocalAgentSession implements EventLogSource {
             sessionId = java.util.UUID.randomUUID().toString();
             postureRef = c.postureRef();
             resumable = false;
+            scriptsCaptured = c.scriptsPreAllowed();
         }
         nonce = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         resumeAttempt = resumable;
@@ -1731,7 +1787,7 @@ public class LocalAgentSession implements EventLogSource {
         kill(why, "STOPPED");
     }
 
-    /** As {@link #kill(String)}, with the status of the note that says why ({@code STOPPED}, or {@link #RESTARTED}). */
+    /** As {@link #kill(String)}; noteStatus is used only when why is non-null. Null why requests no extra note. */
     private void kill(String why, String noteStatus) {
         clearRestart();                                  // an offer belongs to the process it was made for
         long was = openTicket;
@@ -1964,7 +2020,8 @@ public class LocalAgentSession implements EventLogSource {
                     entries, answer, posture, personServers, billing, armedWhy, consentPosture,
                     new LocalAgentState.Extra(setupDirRef, setupDirShown, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed,
                             attention(verdict, detailRef, stderrRef, unknownEvents + unclassifiedCommands + droppedLines),
-                            new LocalAgentState.Restart(restartOffer, restartState, restartChanged, restartNewChat)));
+                            new LocalAgentState.Restart(restartOffer, restartState, restartChanged, restartNewChat),
+                            LocalAgentState.Guide.NONE, scripts));
             // robot walkthrough #3: the one primary action and the one instruction line, decided here from the state
             published = published.withExtra(withGuide(published.extra(), activityGuide(guide(published, permissionWaiting))));
             dirty = false;
@@ -2116,7 +2173,7 @@ public class LocalAgentSession implements EventLogSource {
 
     private static LocalAgentState.Extra withGuide(LocalAgentState.Extra x, LocalAgentState.Guide g) {
         return new LocalAgentState.Extra(x.setupDirRef(), x.setupDirShown(), x.unknownEvents(), x.unclassifiedCommands(),
-                x.droppedLines(), x.turns(), x.trimmed(), x.attention(), x.restart(), g);
+                x.droppedLines(), x.turns(), x.trimmed(), x.attention(), x.restart(), g, x.scripts());
     }
 
     /**

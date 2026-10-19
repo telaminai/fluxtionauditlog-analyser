@@ -141,6 +141,8 @@ public class LocalAgentPermission implements EventLogSource {
     private long decisions;
     /** #10c: requests waiting behind the open dialog — ref, generation, ticket, class, name, input, tool_use digests. */
     private List<String[]> queued = new ArrayList<>();
+    /** Scoped requests awaiting the node-requested fresh filesystem observation; never their command words. */
+    private java.util.Map<Long, SessionEvents.LocalAgentPermissionRequested> scriptChecks = new java.util.LinkedHashMap<>();
     /**
      * Owner 2026-10-18: the reports the current generation's session wrote in the active project without an approval —
      * the project/lifetime/name key's digest → the digest of that key with the complete revision written
@@ -217,6 +219,15 @@ public class LocalAgentPermission implements EventLogSource {
             deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.TOO_LARGE, DENIED_TOO_LARGE);
             return changed();
         }
+        if (cls == ToolClass.BUILT_IN && "Bash".equals(e.name())
+                && e.kind() == SessionEvents.HostedCallKind.PRE_ALLOWED && localAgent.currentPosture().isFull()
+                && localAgent.scriptsPreAllowedCaptured() && scriptChecks.size() < MAX_QUEUED) {
+            if (scriptChecks.putIfAbsent(e.requestRef(), e) == null) {
+                effects.request(new SessionEffects.CheckLocalAgentScriptTrustEffect(0L, e.generation(), e.ticket(),
+                        e.requestRef()));
+            }
+            return changed();
+        }
         if (cls == ToolClass.BUILT_IN && WEB_FETCH.equals(e.name()) && e.kind() == SessionEvents.HostedCallKind.PRE_ALLOWED
                 && localAgent.currentPosture() != null && localAgent.currentPosture().isFull()) {
             // owner, 2026-10-18: in Full, a WebFetch of the public Fluxtion docs — https, exactly fluxtion-playground.dev,
@@ -258,6 +269,40 @@ public class LocalAgentPermission implements EventLogSource {
         }
         ask(e.requestRef(), e.generation(), e.ticket(), cls, e.name(), e.inputDigest(), e.toolUseIdDigest());
         return changed();
+    }
+
+    /** The node, not the classifier or CLI flags, owns the final verdict after every call's fresh identity read. */
+    @OnEventHandler
+    public boolean onScriptTrustChecked(SessionEvents.LocalAgentScriptTrustChecked e) {
+        var request = scriptChecks.get(e.requestRef());
+        if (request == null || request.generation() != e.generation() || request.ticket() != e.ticket()) return false;
+        scriptChecks.remove(e.requestRef());
+        if (e.generation() != localAgent.currentGeneration() || e.ticket() != localAgent.currentTicket()
+                || !localAgent.processRunning() || localAgent.stopping()) {
+            deny(e.generation(), e.requestRef(), e.ticket(), ToolClass.BUILT_IN, "Bash", PermissionBy.POLICY, DENIED_STALE);
+        } else if (e.matches() && localAgent.currentPosture().isFull() && localAgent.scriptsPreAllowedCaptured()) {
+            localAgent.scriptTrustObserved(e.trustedCount());
+            allowWithoutAsking(e.generation(), e.requestRef(), e.ticket(), ToolClass.BUILT_IN, "Bash", PermissionBy.PRE_ALLOWED);
+        } else {
+            localAgent.scriptTrustObserved(e.trustedCount());
+            // Same unchanged request, ordinary Full asking. Never retry the automatic check or rewrite the command.
+            onRequested(new SessionEvents.LocalAgentPermissionRequested(request.generation(), request.ticket(),
+                    request.requestRef(), request.toolClass(), request.name(), request.inputDigest(),
+                    request.toolUseIdDigest(), request.showable(), SessionEvents.HostedCallKind.CHANGES));
+        }
+        return changed();
+    }
+
+    private boolean denyScriptChecks(PermissionBy by, String words, java.util.function.Predicate<SessionEvents.LocalAgentPermissionRequested> which) {
+        boolean any = false;
+        for (var it = scriptChecks.values().iterator(); it.hasNext(); ) {
+            var request = it.next();
+            if (!which.test(request)) continue;
+            it.remove();
+            any = true;
+            deny(request.generation(), request.requestRef(), request.ticket(), ToolClass.BUILT_IN, "Bash", by, words);
+        }
+        return any;
     }
 
     private void ask(long ref, long generation, long ticket, ToolClass cls, String name, String inputDigest,
@@ -412,6 +457,11 @@ public class LocalAgentPermission implements EventLogSource {
      */
     @OnEventHandler
     public boolean onCancelled(SessionEvents.LocalAgentPermissionCancelled e) {
+        var check = scriptChecks.get(e.requestRef());
+        if (check != null && check.generation() == e.generation()) {
+            scriptChecks.remove(e.requestRef());
+            return changed();
+        }
         for (java.util.Iterator<String[]> it = queued.iterator(); it.hasNext(); ) {
             String[] q = it.next();
             if (Long.parseLong(q[0]) != e.requestRef() || Long.parseLong(q[1]) != e.generation()) continue;
@@ -453,6 +503,7 @@ public class LocalAgentPermission implements EventLogSource {
     @OnEventHandler
     public boolean onStopRequested(SessionEvents.LocalAgentStopRequested e) {
         boolean any = pendingRef != 0 || !grants.isEmpty() || !queued.isEmpty();
+        any |= denyScriptChecks(PermissionBy.STOP, DENIED_STOP, q -> true);
         if (pendingRef != 0) resolvePending(PermissionBy.STOP, DENIED_STOP);
         denyQueued(PermissionBy.STOP, DENIED_STOP, q -> true);
         dropGrants("stop");
@@ -462,6 +513,8 @@ public class LocalAgentPermission implements EventLogSource {
     @OnEventHandler
     public boolean onTurnEnded(SessionEvents.LocalAgentTurnEnded e) {
         boolean any = false;
+        any |= denyScriptChecks(PermissionBy.POLICY, DENIED_ENDED,
+                q -> q.generation() == e.generation() && q.ticket() == e.ticket());
         any |= denyQueued(PermissionBy.POLICY, DENIED_ENDED,
                 q -> Long.parseLong(q[1]) == e.generation() && Long.parseLong(q[2]) == e.ticket());
         if (pendingRef != 0 && e.generation() == pendingGeneration && e.ticket() == pendingTicket) {
@@ -476,6 +529,7 @@ public class LocalAgentPermission implements EventLogSource {
     @OnEventHandler
     public boolean onExited(SessionEvents.LocalAgentExited e) {
         boolean any = false;
+        any |= denyScriptChecks(PermissionBy.POLICY, DENIED_ENDED, q -> q.generation() == e.generation());
         any |= denyQueued(PermissionBy.POLICY, DENIED_ENDED, q -> Long.parseLong(q[1]) == e.generation());
         if (pendingRef != 0 && e.generation() == pendingGeneration) {
             resolvePending(PermissionBy.POLICY, DENIED_ENDED);
@@ -489,19 +543,36 @@ public class LocalAgentPermission implements EventLogSource {
     @OnEventHandler
     public boolean onNewChat(SessionEvents.LocalAgentNewChatRequested e) {
         boolean any = pendingRef != 0 || !grants.isEmpty() || !queued.isEmpty();
+        any |= denyScriptChecks(PermissionBy.POLICY, DENIED_ENDED, q -> true);
         if (pendingRef != 0) resolvePending(PermissionBy.POLICY, DENIED_ENDED);
         denyQueued(PermissionBy.POLICY, DENIED_ENDED, q -> true);
         dropGrants("newChat");
         return any && changed();
     }
 
+    @OnEventHandler
+    public boolean onScriptsRevokeRequested(SessionEvents.LocalAgentScriptsRevokeRequested e) {
+        if (!java.util.Objects.equals(e.folderRef(), localAgent.state().extra().scripts().folderRef())) return false;
+        var waiting = new java.util.ArrayList<>(scriptChecks.values());
+        scriptChecks.clear();
+        for (var request : waiting) {
+            onRequested(new SessionEvents.LocalAgentPermissionRequested(request.generation(), request.ticket(),
+                    request.requestRef(), request.toolClass(), request.name(), request.inputDigest(),
+                    request.toolUseIdDigest(), request.showable(), SessionEvents.HostedCallKind.CHANGES));
+        }
+        return !waiting.isEmpty() && changed();
+    }
+
     /** Settings applied: a withdrawn consent or a changed posture (the switches, the mode) ends every request and grant. */
     @OnEventHandler
     public boolean onConsentChanged(SessionEvents.LocalAgentConsentChanged e) {
         SessionEvents.LocalAgentConsent c = e.consent();
+        // Even an otherwise same-posture save may revoke script trust. A result read before that save cannot allow
+        // afterwards; the next request is freshly checked/asked. Ordinary pending dialogs keep their existing rule.
+        boolean scriptsEnded = denyScriptChecks(PermissionBy.POLICY, DENIED_SETTINGS, q -> true);
         boolean same = c != null && c.allowed() && c.full() == localAgent.currentPosture().isFull()
                 && Objects.equals(c.postureRef(), localAgent.currentPostureRef());
-        if (same || pendingRef == 0 && grants.isEmpty() && queued.isEmpty()) return false;
+        if (same || pendingRef == 0 && grants.isEmpty() && queued.isEmpty()) return scriptsEnded && changed();
         if (pendingRef != 0) resolvePending(PermissionBy.POLICY, DENIED_SETTINGS);
         denyQueued(PermissionBy.POLICY, DENIED_SETTINGS, q -> true);
         dropGrants("settings");
