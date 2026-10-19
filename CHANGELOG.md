@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-10-19
+
 - Full Claude Code's documentation pre-allow now runs through the analyser's URL check rather than a hostname-only CLI allow. Non-HTTPS URLs, non-default ports and user-info URLs no longer bypass that check. Existing Full conversations require a new session so they cannot retain the previous allow rule; the person's own permission rules and selected mode still apply.
 
 ### Added
