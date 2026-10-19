@@ -1,3 +1,164 @@
+## 1.36.0 — shipped 2026-10-19, PR #168
+
+The 2026-10-18 integration stack: M77 Set up AI, M78 the quiet assistant panel, the ten FIX branches, UX-SC, M74's
+P1a…P3/UX-unification/r14/r15, [DOCS-IA], OPT-2 (a starter proposed by Claude Code), and the integration review's
+R3–R11 / C1–C8 corrections. [Review map](../../handoff/review_map_integration_2026_10_18.md).
+
+### Integration review — fixes accepted
+- [INTEG-R3] ☑ Project changes cancel later starter opens/drafts, retaining downloaded files (owner decision,
+  2026-10-18); node-owned correlation and graph-offer acceptance. [Regression evidence](../../handoff/evidence/integration-review-2026-10-18/f3-starter-ownership.md).
+- [INTEG-R5] ☑ Full/acceptEdits consent wording names automatic commands and permission rules; rendered-offer
+  regression. [Evidence](../../handoff/evidence/integration-review-2026-10-18/f5-permission-wording.md).
+- [INTEG-R6] ☑ Partial skills writes are disclosed rather than reported as zero writes; real filesystem fault and
+  rendered-review regressions. [Evidence](../../handoff/evidence/integration-review-2026-10-18/f6-partial-skills.md).
+- [INTEG-C1] ☑ (FIX-9) Source-text window arithmetic cannot overflow into an empty success; `SourceTextTest` pins
+  `to = 0` → 200.
+- [INTEG-C2] ☑ (FIX-8) The sample spotlight fixture waits for its earlier pane navigation to finish;
+  `SampleProjectSpotlightFrameTest` reproduces the exact superseded refusal without the barrier.
+- [INTEG-C3] ☑ (FIX-9) Report admission is bound to the node's project lifetime and exact output;
+  `ReportOwnershipFrameTest` pins project/destination switches and link replacement. [v3 review](../../handoff/review_integration_v3_2026_10_18_codex.md).
+- [INTEG-C4] ☑ (FIX-9) Complete report revisions replace timestamp ownership; internal write receipts prevent
+  attribution of later edits. Guards: `ReportRevisionTest`, `ReportOwnershipFrameTest`, `HostedGrantServerTest`.
+- [INTEG-C5] ☑ A Java source spotlight asked right after `goto` or `topology {select, source: true}` waits for
+  that verb's source read before capturing the view, instead of answering "superseded". Guard:
+  `SampleProjectSpotlightFrameTest`.
+- [INTEG-C6] ☑ Settings ▸ Assistant's intro note and Safe analysis group no longer share a grid row with
+  *Set up AI…*. Guard: `AssistantFirstRunFrameTest.theAssistantPagesRowsNeverOverlap`.
+- [INTEG-C7] ☑ (release CI) Conformance C34 pinned; `SafeChoiceFrameTest` ignores a scroll bar's text-less arrows;
+  mutation controls re-anchored after the spotlight fix, both caught.
+- [INTEG-C8] ☑ (release CI round 2) `ForeignTextIsPlainTest`'s class-header regex recursed per character and
+  overflowed CI's stack; possessive runs fix it, witness `aLongHeaderDoesNotOverflowTheStack`.
+- [INTEG-R10] ☑ (owner yes, 2026-10-19) One status line — the `statusLine` session node decides log line vs graph
+  line from facts; `renderLogEvidence` is the one writer. Guards: `StatusLineOrderTest`, `BrokenValueFrameTest`,
+  `OneDispatchModelTest`. (Rule-9 residue — `onLoaded`/`offerSourceGraph` still write outside the node — kept live,
+  ▸ tracker *rule-9 status-bar leftovers*.)
+- [INTEG-R11] ☑ (owner yes, 2026-10-19) Per-platform budgets with their reasons (S1 words, T29 px) corrected; rows
+  now count by vertical extent, as the records table's do. `EventTypesMinRowsFrameTest`.
+- [INTEG-R4] ☑ (M47) The sample pre-allow cannot expand through a linked sample/parent directory; genuine sample
+  and home-alias controls retained. [Evidence](../../handoff/evidence/integration-review-2026-10-18/f4-sample-anchor.md).
+- [OPT-2-R1] ☑ A discovery failure settles the starter and its proposal; stale outcomes are ignored and another
+  creation is admitted. [F1](../../handoff/evidence/integration-review-2026-10-18/f1-discovery.md).
+- [OPT-2-R2] ☑ Starter design outcome waits for the actual read/display; a declined source root is not recorded
+  as opened. [F2](../../handoff/evidence/integration-review-2026-10-18/f2-design-outcome.md).
+
+### [INTEG] the integration branch — ☑ released
+`test/usability-2026-10-18` through v2/v3/v4: M78 D2 (which holds P3, M77-1–5 and D1) plus FIX-1–10, UX-SC and the
+spec/tracker branches, each as its own merge commit, the generated session processor regenerated, never
+hand-merged. Headless 4231/0/0/335; full frame list 333/1/0/0 (the SampleProjectSpotlight flake, green alone).
+
+### [M74-FR] first-run polish — ☑ merged into P3, released
+`fix/first-run-polish` and `fix/event-types-min-rows`: robot re-walk points (the way back to the answer, the
+`startPageNoLogHint` node, one no-key line, nothing clipped), and the Records table / Event types three-row floor.
+
+### FIX-1 … FIX-10 — ☑ released
+- [FIX-1] ☑ `fix/no-log-offer-cancel`: a cancelled chooser offers the no-log opens again (ported to M77-4's wizard).
+- [FIX-2] ☑ `fix/records-filter-visibility`: a filter that hides records says so; `recordsView` node, additive
+  `context` field `hidden` (pinned by `CustomerApiKeysTest`).
+- [FIX-3] ☑ `fix/event-types-default-collapsed`: Event types starts collapsed on a fresh install; saved choices win.
+- [FIX-4] ☑ `fix/authoring-walk-defects` (+ `fix/template-exec-bits`): the authoring walk's seven defects and five
+  follow-ons (exec bits, `STAY_IN_PROJECT_NOTE`, the narrow in-project `open` pre-allow, Build preselects Full
+  acceptEdits, the wizard mode saved). Full chain ran live at 14 approvals before the fix; about 3 expected now.
+- [FIX-5] ☑ `fix/merged-nodelog-entries`: conformance C34 and `FormatConformanceTest` pin how a merged
+  duplicate-key `nodeLogs` entry is read; filed upstream as fluxtion#46.
+- [FIX-6] ☑ `fix/owner-test-small`: the owner's first hands-on test fixes — the sample's own processor, honest
+  `processors[].from` / `source {bean}`, permission dialogs come forward, Full opens the sample's own log/GraphML
+  unasked, `context` section hints, Start building offers `acceptEdits`.
+- [FIX-7] ☑ `fix/wizard-scorecard-regressions`: Set up AI's buttons say what they do; Check connection on Screen 2b;
+  scorecard T6 7→4 acts, T1/T2 3→2 hesitations.
+- [FIX-8] ☑ `fix/project-source-roots`: the owner's second hands-on test — Java spotlights refused in the Topology
+  tab (zero-size Split/narrow panes) fixed; the sample profile heals a missing source root; `run-mongoose-server`
+  names `./run-server.sh`. Its open decision (sample-session reads of the demo folder still prompt) is kept live,
+  ▸ tracker *FIX-8's open decision*.
+- [FIX-9] ☑ `feature/source-text-and-report-allow`: `source {…, text}` returns capped lines as data; Full's
+  in-project `report` writes need no approval; transcript chips keep their text; the Copy hover no longer flickers;
+  each turn shows its time.
+- [FIX-10] ☑ `fix/starter-proposal-visible`: a waiting proposal is said in a strip above the workspace and its
+  Review… brings the assistant forward; the starter banner says it makes a new project.
+
+### [UX-SC] usability scorecard and CI budgets — ☑ released, PR #160
+The scorecard harness ported to M77-4 and re-baselined (`baseline-integration`): SC T4 2→1 and T4c passes, SC T5
+8→5, S2 31→6 words; SC T1 5→6 (Continue + Finish) and SC T6 4→7 (flagged for the owner, now ▸ tracker *scorecard
+starter-flow task*).
+
+### M77 · Set up AI — the first-run wizard — ☑ SHIPPED ([spec](../spec-ai-setup-wizard.md), r5)
+One door with four choices (No AI / own MCP client / Claude inside, Safe or Full / both); checks with *Check
+again*; a live external-client check; the pending question at Finish; an `aiSetup` session node. Spec ACCEPTED r5
+(OD-77.1 superseded by M79 OD-79.5, no first-run AI block).
+- [M77-1] ☑ PR #157 — the `aiSetup` node and the two read-only Claude checks; the auth parse drops email and
+  organisation.
+- [M77-2] ☑ PR #159 — the wizard's inside path; T19 in 6 acts; the empty `selectedOptionExtra` slot for M77-5.
+- [M77-3] ☑ PR #162 — Screen 2b; one owner of external access, a confirmation at every door; registration; the
+  live check; the additive `X-Analyser-Client` / `X-Analyser-Probe` headers (pinned by `CustomerApiKeysTest`).
+- [M77-4] ☑ PR #165 — the Assistant ▾ quick switch, the profile cards retired (`ProfileOverlay` deleted), one
+  client door, the first-run block offered once, the diagram on Screen 2b, T20 (`capture-docs.py --setup-ai`).
+- [M77-5] ☑ PR #161 — Where data goes ([spec §6.1a](../spec-ai-setup-wizard.md), r4): `FlowDiagram` (Full in amber,
+  the palette, T25–T31); wired to external access by M77-4.
+
+### M78 · The quiet assistant panel — ☑ SHIPPED ([spec](../spec-quiet-assistant-panel.md), ACCEPTED)
+The docked panel at 1200×800 (216×431 px), chrome words cut from 33–80 to ≤15 (≤20 error/no-key/restart), ≤4
+controls when Ready, safety signals kept (◆ Full cue, *Claude · unverified*, permission dialog, Full consent); all
+12 owner decisions OD-Q.1–.12 accepted.
+- [M78-D1] ☑ PR #163 — the quiet panel; Ready 27 → 3 words; four deviations from the spec (review map flag 10).
+- [M78-D2] ☑ PR #166 — the mode chip is M77-4's quick switch.
+
+### OPT-2 · A starter proposed by Claude Code — ☑ SHIPPED, PR #167 (`59220eee`, with `fix/starter-followups`)
+`propose {kind: starter}`, `context.starters`, ONE `starterProject` chain (also *New project from template…*), the
+identity note, Full's docs-site WebFetch. `fix/fill-skill-placeholders` fills every marker the first-run record
+can answer (Mongoose start, embedded run); the rest kept with a note each.
+
+### M79-D1, M79-D2 — ☑ done in the fluxtion-diamond repo
+- [M79-D1] ☑ The diamond domains: `telaminai/fluxtion-diamond` `main` `24d6d74`, mathematics, accounting, logistics
+  and trading beside the generic run, all real runs.
+- [M79-D2] ☑ The broken-diamond teaching run: `telaminai/fluxtion-diamond` branch `teaching/broken-diamond`
+  `6bff0d67`, not merged to `main` on purpose; record [3], digest `sha256:7e31f039…0d11`.
+
+### M74 · Claude Code as the analyser's assistant — P1a…P3, UX-unification, r14, r15 — ☑ SHIPPED ([spec](../spec-claude-code-provider.md), r15)
+- ☑ P0, P0b protocol probes; P1a (default posture, off by default), two independent reviews closed, live smoke
+  passed 2026-10-16; owner decision: `@path` mentions allowed, `!`/`#` kept refused.
+- ☑ P1b (full posture behind its own switch and warning; optional spend limit, OD-74.24); probes PB-1…4 and live
+  smoke, re-smoke after the review's 14 fixes.
+- ☑ P2a (the start-page prompt with the built-in list and dropped prompt packs, the Ask catalogue with no pop-up,
+  transcript presentation, the full-posture cue); the configurable list deferred by the owner until after P3.
+- ☑ P2b (`propose` onboarding, the simplified Move, conversation v2, the carried items, prompt-pack example
+  entries OD-74.29/.30); the handoff report replaced by M76's investigation checkpoint; a Telamin example
+  catalogue deferred.
+- ☑ P3 (probes P3-0…6 on the real bridge; the permission dialog, single-use server-side grants, the scorecard's
+  R1/R2/R5–R8; preview labels removed; live smoke passed).
+- ☑ UX unification (owner 2026-10-17: one start-page surface, one assistant panel in two modes, the profile
+  overlay, Settings ▸ Assistant by profile; P3 leftovers a–d); the rename to Telamin Canvas / Telamin AI stays a
+  separate later PR, ▸ tracker *Delivery order*; P4 managed policy, P5 conversation log stay open.
+- ☑ r14: the three final reviews fixed (disposition tables in `docs/handoff/review_m74_final_*_2026-10-17.md`).
+- ☑ r15: the usability review fixed ([disposition](../../handoff/review_m74_usability_2026-10-17.md); OD-74.16
+  refined, OD-74.17 amended; the owner's spotlight-caption decision). Owner: no per-turn bulk approval for now.
+- **Acceptance remains open and is kept live:** Windows (§11, #148).
+
+### [DOCS-IA] docs site task-first restructure — ☑ SHIPPED, PR #152 (`b1c22704`)
+Reconciled in the 2026-10-18 integration; the owner approved the audit's nav (§5) on 2026-10-17
+([audit](../../handoff/docs-audit-2026-10-17.md)); every branch's `docs/site/` content carried into it (Set up AI,
+the quick switch, the quiet panel, the records filter, the authoring fixes); `mkdocs build --strict` passes.
+**Still stale, kept live:** `ai-menu.png` and the journey step shots (M77-4).
+
+### M73 · Create a project over the action socket — ☑ SHIPPED ([spec](../spec-create-project.md))
+`open {project, create}` preview/apply, decided by `sessionBoundary`; `assistant.createProjects` consent; G1–G3
+fixed — accepted 2026-10-16 (built-jar socket run; owner's visual check of the Settings checkbox and the "Open it
+instead?" dialog); shipped with PR #142.
+
+### Evidence bundles — #82, #83, #85 — ☑ released in 1.32.0 (recorded here 2026-10-19 under rule 7)
+- [#83/#85] ☑ Import off the event thread and working-copy reaping with cross-process ownership — PR #88 (older
+  unmarked copies stay).
+- [#82] ☑ A walkthrough reel — PR #108; the owner read a reel recorded from the release jar. Recorded as a
+  self-contained page, with the finish page stating whether a bundle stands behind the frames; text redacted with
+  the bundle's own rule, title page says the frame images are not (#113).
+
+### Small already-shipped items, archived under rule 7
+- [M43] ☑ The AI menu's name shipped as `AI`, superseded by the Telamin AI rename (owner, 2026-10-17).
+- [M19.15] ☑ The seeding prompt for step 2, superseded by M74's start-page prompt and prompt packs.
+- [M71.F1] ☑ Optional: the tour's instructional sequence, reading width, the template dialog's hierarchy —
+  superseded by M74's unified start page and packs.
+- [M20.5] ☑ Project artifact pointers — offer, never act — superseded by M74's `propose` onboarding (offer,
+  checked, applied by the person).
+- [M12.4] ☑ "Fix with agent…" launcher — superseded by M74 (Claude Code in the analyser).
+
 ## 1.31.0 — shipped 2026-10-05
 
 - [UPS-1] ☑ Admin-command reader acceptance (PR #92, `787f2e1a`): C31/C32, broken-record refusal,

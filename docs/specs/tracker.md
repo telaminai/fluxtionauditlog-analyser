@@ -21,22 +21,6 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 - ☐ [INTEG-R8] Diagnose background EDT ownership exceptions in one passing grouped usability run; no proven production cause or named failing regression yet. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
 - ☐ [INTEG-R9] Owner scope needed for historical host-path redaction and stale screenshots; not introduced by this integration. Preserve evidence while planning the cleanup. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
 
-- ☑ [INTEG-R6] Partial skills writes are disclosed rather than reported as zero writes; real filesystem fault and rendered-review regressions. ▸ [evidence](../handoff/evidence/integration-review-2026-10-18/f6-partial-skills.md)
-
-- ☑ [INTEG-R5] Full/acceptEdits consent wording names automatic commands and permission rules; rendered-offer regression. ▸ [evidence](../handoff/evidence/integration-review-2026-10-18/f5-permission-wording.md)
-
-- ☑ [INTEG-R3] Project changes cancel later starter opens/drafts, retaining downloaded files (owner decision, 2026-10-18); node-owned correlation and graph-offer acceptance. ▸ [regression evidence](../handoff/evidence/integration-review-2026-10-18/f3-starter-ownership.md)
-- ☑ INTEG-C1 (FIX-9): source-text window arithmetic cannot overflow into an empty success; `SourceTextTest.aLargeContextCannotWrapTheWindowIntoAnEmptySuccess` failed at `to = 0` before the correction (expected 200).
-- ☑ INTEG-C2 (FIX-8): the sample spotlight fixture waits for its earlier pane navigation to finish; the held-reader `SampleProjectSpotlightFrameTest.theSampleJourneyWaitsForItsEarlierPaneRead` reproduces the exact superseded refusal without this barrier. Product supersession is unchanged.
-- ☑ INTEG-C3 (FIX-9): report admission is bound to the node's project lifetime and exact output; `ReportOwnershipFrameTest` pins project/destination switches and link replacement. See the [v3 review](../handoff/review_integration_v3_2026_10_18_codex.md).
-- ☑ INTEG-C4 (FIX-9): complete report revisions replace timestamp ownership; internal write receipts prevent attribution of later edits. Guards: `ReportRevisionTest`, `ReportOwnershipFrameTest`, `HostedGrantServerTest.theServerRecordsTheReceiptRatherThanAnInterveningEdit`.
-- ☑ INTEG-C5: a Java source spotlight asked right after `goto` or `topology {select, source: true}` waits for that verb's source read before capturing the view, instead of answering "superseded"; Swing adapter timing only. Guard: `SampleProjectSpotlightFrameTest` (held read, back-to-back, genuine supersede).
-- ☑ INTEG-C6: Settings ▸ Assistant's intro note and Safe analysis group shared a grid row since M77-2 put *Set up AI…* above them, painting over each other (seen in the release's settings-assistant.png); rows now count on. Guard: `AssistantFirstRunFrameTest.theAssistantPagesRowsNeverOverlap` (witness: restoring `c.gridy = 1` fails it).
-- ☑ INTEG-C7 (release CI, 2026-10-18): conformance C34 pinned in `tools/test_audit_compare.py`; `SafeChoiceFrameTest` ignores a scroll bar's text-less arrows (Linux fonts scroll the Full folder text); mutation controls after the spotlight fix — `integration-c-sample-reader-barrier` replaced by `spotlight-waits-for-source-reads` (the product now waits), `issue84-back-read-off-edt` re-anchored to the spotlight's entry; both caught.
-- ☑ INTEG-C8 (release CI round 2): `ForeignTextIsPlainTest`'s class-header regex recursed per character and overflowed CI's stack; possessive runs, witness `aLongHeaderDoesNotOverflowTheStack`. The spotlight-wait witness asserts the contract (no answer while goto's read is held), so `spotlight-waits-for-source-reads` is caught on any timing.
-- ☑ INTEG-R10 (owner yes, 2026-10-19): one status line — the new `statusLine` session node decides log line vs graph line from facts (log, evidence landed, graph verdict, Follow); `renderLogEvidence` is the one writer, `judgeOpenedGraph` writes nothing. Guards: `StatusLineOrderTest` (all three orders), `BrokenValueFrameTest.theGraphLineIsTheSameWhicheverArrivesFirst` (witness: the dual-writer frame fails *graph then log*), `OneDispatchModelTest`; `ups1-graph-line-keeps-warnings` re-anchored on `graphStatusLine` and caught.
-- ☑ INTEG-R11 (owner yes, 2026-10-19): per-platform budgets with their reasons — S1 words macOS 224 / Linux 242, T29 Screen 1 macOS 730 / Linux 732 px (font metrics, not layout); `EventTypesMinRowsFrameTest`: the Linux "2 of 7" was the test counting a row only if it fitted HORIZONTALLY (Linux rows 252 px wide in a 191 px viewport under its scroll bar); rows now count by vertical extent, as the records table's do; at 900×680 it asserts the give-way order, and the 3-row floor again at 900×760. Witnesses unchanged (a label more; four pictures; either `MIN_VISIBLE_ROWS` = 0).
-
 _Refreshed 2026-10-06, after 1.32.0._ **Shipped since the 2026-09-27 refresh:** **1.25.0** (chart and report lifecycle,
 PR #51); **1.26.0 / 1.26.1** (M69 spotlight walks); **1.27.0** (evidence bundles, first delivery); **1.28.0** (M70
 replay, M71 Workspace Start); **1.29.0** (the onboard assistant and conversation journeys, PR #77); **1.30.0** (bundles as
@@ -54,32 +38,30 @@ rule (#113); PR #88 bundle import off the event thread and working-copy reaping 
 #85); PR #107 MG-1 mutation-gate iteration; PR #105 EDT-fault and native-input test guards; PR #123 the assistant's
 settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/release_analyser_1_32_0_2026_10_06.md).
 
-_Refreshed 2026-10-18 (owner)._ The 2026-10-17 order is superseded by this one. **Two tracks:** innovation now;
-thorough review and shipping later, **on the owner's schedule**. Gates: quick checks per branch, the full gates once on
-the integration branch. The stack, every branch and its evidence: [review map](../handoff/review_map_integration_2026_10_18.md).
+**Released in 1.36.0 (2026-10-19), PR #168:** the 2026-10-18 integration stack — M77 Set up AI, M78 the quiet
+assistant panel, FIX-1…FIX-10, UX-SC, the OPT-2 Claude-Code-proposed starter, and the integration review's R3–R11 /
+C1–C8 corrections; M74's P1a…P3, UX-unification, r14/r15, and [DOCS-IA]. Archived in
+[completed/tracker.md](completed/tracker.md) ▸ *1.36.0*.
 
-1. **Integration** — one branch from P3 (`a875fcba`, [#151](https://github.com/telaminai/fluxtionauditlog-analyser/pull/151) / [#156](https://github.com/telaminai/fluxtionauditlog-analyser/pull/156)) with the four fix branches, M77-1/-2/-3/-5
-   (#157, #159, #162, #161), M77-4 (#165), M78 D1 (#163), the scorecard (#160), the spec branches (`docs/m77-ai-setup-wizard`,
-   #158, #164, #154), M78 D2 when built; the docs restructure (#152, `b1c22704`) reconciled; the full gates once.
-2. **Owner test and review** — the owner's hands-on test of the integration build, then the integration review
-   ([brief](../handoff/brief_review_integration_2026_10_18.md)); reviewers fix unless a redesign is needed.
-3. **M79** the first minute — M79-1 … M79-5 below.
-4. **M76 slice 1** — the criterion chip and the before/after run comparison (#154).
-5. **The colleague extension of Settings share** (M79 spec §13; amends [the Settings share spec](completed/spec-settings-share.md)).
+_Refreshed 2026-10-19, after 1.36.0._ **Delivery order:**
 
-**Shipping track (owner-scheduled):** the M74 stacked merge #146 → #145 → #147 → #150 → #151 (#156) and the release,
-whose notes carry the "full token no longer on the console" note and M77-3's new confirmation before external access
-turns on; [DOCS-IA], then the Telamin Canvas / Telamin AI rename as one PR; OD-74.2 and a one-page security model
-before any customer-facing Claude Code release.
+1. **MVP, in parallel:** M79-1a (the first launch) and the M76 criterion chip + before/after run comparison.
+2. **Commercial track (owner):** the gateway hotfix (compiler#113) deploys, then RapidAPI self-serve and a
+   trial/teaching key tier.
+3. **The security one-pager** (OD-74.2), before any customer-facing Claude Code release.
+4. **2–3 friendly-team trials.**
 
-**Carried from the 2026-10-17 order:** M74 follow-ups (the spec split; `LocalAgentWiring`; the CLI-drift canary and
+Big builds wait **for the owner's plan usage reset (2026-10-22)**.
+
+**Still carried:** M74 follow-ups (Settings ▸ Assistant around the four profiles, now partly superseded by M77's
+wizard and quick switch — re-scope or close; the spec split; `LocalAgentWiring`; the CLI-drift canary and
 managed-settings probe; Windows, #148) · virgin-LLM cycles (#155; T4 authoring first, T5 the external-loop gate) ·
 M75 (#153) once its owner decisions are answered · assurance debt (#70, #119) · owner decisions (M70 vs Mongoose
 replay; branch protection requiring `mutation-gate`; M44.6; #74; BETA-B3; M39; M34.5; AF-8/AF-9 and OD-5; O2) ·
 M48.17, M72, M46.1 · small correctness items (N2; OBL-1, OBL-2; #143; #149; the restart checker's path aliases;
 feedback 36 and 42; the evidence-bundle items) · then OA acceptance, the beta (B4, BETA-8), TA-5b/5c/9/B, SG-2's
 hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and the C++ target's compiler issues
-(compiler#106–#109).
+(compiler#106–#109) · the Telamin Canvas / Telamin AI rename, as its own PR, after M74.
 
 ---
 
@@ -107,18 +89,6 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   #67 excerpt of a non-time-ordered log · #68 walk save's generation check in the frame (rule 9) · #69 small leftovers.
 - ◑ #73 discovery: recents and project inventory exist; pre-open preview and working-copy management remain open.
 - ☐ #74 (design) project-bound or standalone.
-- ☑ #83 import off the event thread and #85 working-copy reaping with cross-process ownership — PR #88, released in
-  1.32.0 (older unmarked copies stay). Follow-ups from its correction-delta review: #118 busy-on-coordination-lock, #119
-  no bundle opens on a filesystem without fcntl locks (a regression for those filesystems), #120 test teardown can
-  reap under the real home, #121 low-severity items.
-- ☑ #82 a walkthrough reel — PR #108, released in 1.32.0; the owner read a reel recorded from the release jar.
-  Recorded as a self-contained page, with the finish page stating whether a bundle stands
-  behind the frames and refusing to invite replay against one that does not carry them; its text is redacted with
-  the bundle's own rule and its title page says the frame images are not (#113). PR #108. Deferred from its reviews:
-  #114 encoding on the event thread, #115 a failed screenshot renders silently, #116 the recording wait exceeds the
-  MCP call timeout, #117 the lighting guard is witnessed only through a fake; #122 the review's residuals, including
-  an **owner decision**: a CJK-named source file in a failing step blocks the reel, because a generated reason cannot
-  be quoted the way a bundle path can.
 - ☐ #109 a bundle's working copy should be read-only evidence, not the project the session writes into. Raised from
   the #88 review: sharing one copy per identity made a reopened bundle lose its provenance in silence, because the
   session had saved its own settings over a member. #88 takes a fresh copy per open and reaps only provably unused managed copies, which keeps
@@ -146,47 +116,36 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M13.5] ☐ _(later)_ Resources/prompts (`analyser://…`) and/or option B. ▸ detail: *M13*.
 
 ### M43 · The AI menu — follow-ups
-- ☑ ~~**(owner)** the menu's name (shipped as `AI`)~~ — superseded by the Telamin AI rename (owner, 2026-10-17). ☐ **(owner)** D-AI9 wording addendum. ▸ detail: *M43*.
+- ☐ **(owner)** D-AI9 wording addendum. ▸ detail: *M43*.
 
 ### M74 · Claude Code as the analyser's assistant ([spec](spec-claude-code-provider.md), r15)
-- [M74] ☑ P0, P0b protocol probes (2026-10-16). ◐ **P1a implemented** on `feature/claude-code-provider` (default posture, off by default; spec ▸ Implementation notes); two independent reviews closed; **live smoke passed** 2026-10-16 ([report](evidence/m74-p1a-smoke/SMOKE-report.md): bridge bound in 1.0 s, the §5.4 probes answered, two defects fixed) — **acceptance open:** Windows (§11), the owner's visual check of the tab and Settings on the built jar, the frame suites in CI. Owner decision 2026-10-16: `@path` mentions allowed, `!`/`#` kept refused. ◐ **P1b implemented** on `feature/claude-code-p1b` (full posture behind its own switch and warning; optional spend limit, off by default, OD-74.24); probes PB-1…4 run 2026-10-17 ([report](evidence/m74-p1b/PB-report.md), US$0.24: `auto` is model-dependent) live smoke 2026-10-17 ([report](evidence/m74-p1b-smoke/SMOKE-report.md)) and re-smoke after the review's 14 fixes (warm start fixed and passing live) — **acceptance open:** the owner's visual check. ◐ **P2a implemented** on `feature/claude-code-p2` (r10: the start-page prompt with the built-in list and dropped prompt packs, the Ask catalogue with no pop-up, transcript presentation, the full-posture cue; spec ▸ Implementation notes (P2a)); the configurable list is deferred by the owner until after P3. ◐ **P2b implemented** on `feature/claude-code-p2` after merging P1b (r11: `propose` onboarding, the simplified Move, conversation v2, the carried items, prompt-pack example entries OD-74.29/.30; spec ▸ Implementation notes (P2b)) — **acceptance open:** review, the owner's visual check; the handoff report is ☑ ~~deferred~~ **replaced by M76's investigation checkpoint** (2026-10-17); a Telamin example catalogue is deferred ◐ **P3 implemented** on `feature/claude-code-p3` (r12: probes P3-0…6 run on the real bridge, [report](evidence/m74-p3/P3-report.md); the permission dialog, single-use server-side grants, the scorecard's R1/R2/R5–R8; the preview labels removed; live smoke passed, [report](evidence/m74-p3-smoke/SMOKE-report.md)) — **acceptance open:** the owner's local UI test, then agent reviews.
-- [M74] ◐ **UX unification implemented** on `feature/claude-code-p3` (r13, owner 2026-10-17: one start-page surface, one assistant panel in two modes, the profile overlay, Settings ▸ Assistant by profile; P3 leftovers a–d; spec ▸ Implementation notes (UX)) — **acceptance open:** the owner's visual check; the docs site's screenshots regenerated (`tools/capture-docs.py`); the rename to Telamin Canvas / Telamin AI is a separate later PR · P4 managed policy · P5 conversation log.
-- [M74] ◐ **r14: the three final reviews fixed** on `feature/claude-code-p3` (disposition tables in `docs/handoff/review_m74_final_*_2026-10-17.md`; the P1a holistic review's lost findings recorded) — **acceptance open:** an independent delta review, the owner's visual check of the start page's new block grid.
-- [M74] ◐ **r15: the usability review fixed** on `feature/claude-code-p3` ([disposition](../handoff/review_m74_usability_2026-10-17.md); OD-74.16 refined, OD-74.17 amended; the owner's spotlight-caption decision) — **acceptance open:** the owner's hands-on test, an independent delta review. Owner: no per-turn bulk approval for now (revisit after the hands-on test).
-- [M74] ☐ **Settings ▸ Assistant around the four profiles** (usability review T1): one Claude Code box — the master switch, then Safe analysis / Full Claude Code — and an administrator section with a capability matrix.
+- [M74] ◧ **P0…P3, UX-unification, r14, r15 — released in 1.36.0 (PR #168).** ▸ detail: *completed/tracker.md ▸ 1.36.0*.
+  **Acceptance remains open:** Windows (§11, #148).
+- [M74] ☐ **Settings ▸ Assistant around the four profiles** (usability review T1) — partly superseded by M77's wizard
+  and quick switch; re-scope or close.
 - [M74] ☐ **Split the spec** (review B9): `spec-claude-code-provider.md` is ~2,600 lines; propose a core spec (§1–§11) and per-phase notes files, keeping the OD table and §10 in the core. Not done in r14 by direction.
 - [M74] ☐ **`LocalAgentWiring`** (review B10): `MainFrame`'s local-agent wiring (the adapter's environment, the panel's intents, the listener performers) into one class the frame constructs, so the frame stops growing with each phase.
 - [M74] ☐ **CLI-drift canary and managed-settings probe** (review B8): a scheduled zero-cost check that the installed `claude`'s stream shapes still match the fixtures, and a probe of what an administrator's managed settings do to the full posture.
 - [M74] ☐ **OD-74.2 terms check and a one-page security model** (review B11): before a customer release.
-- [DOCS-IA] ◐ **Docs site task-first restructure — reconciled in the 2026-10-18 integration** ([PR #152](https://github.com/telaminai/fluxtionauditlog-analyser/pull/152), `b1c22704`; the owner approved the audit's nav (§5) on 2026-10-17, [audit](../handoff/docs-audit-2026-10-17.md)): the restructure's information architecture kept, every branch's `docs/site/` content carried into it (Set up AI, the quick switch, the quiet panel, the records filter, the authoring fixes); `mkdocs build --strict` passes. Lands with M74, before the Telamin Canvas rename; screenshots still stale (M77-4).
+- ☐ **Skill and system-note guidance from the Haiku trials:** never bypass Fluxtion when a command is denied (use
+  the project scripts or ask); log decision reasons through `auditLog`; split independent decisions into separate
+  nodes; the starter's approval gate should work for unattended runs.
+- [DOCS-IA] ◧ **Docs site task-first restructure — released in 1.36.0 (PR #168).** ▸ detail: *completed/tracker.md ▸ 1.36.0*.
+  **Still stale:** `ai-menu.png` and the journey step shots (M77-4).
 
 ### M74 stack — the 2026-10-18 integration ([review map](../handoff/review_map_integration_2026_10_18.md))
-- [INTEG] ◐ **Integration branch `test/usability-2026-10-18`** (no PR; for the owner's hands-on test and the independent review; tip and gate results in the review map §5): M78 D2 (`209bf46c`, which holds P3 `a875fcba`, M77-1–5 and D1) plus FIX-1–5, UX-SC and the spec and tracker branches, each as its own merge commit; the generated session processor regenerated, never hand-merged. **v2** `test/usability-2026-10-18b` (review map §6) adds FIX-6, FIX-7 and OPT-2 (#167 with `fix/starter-followups`); full gate green at `ddccd5c5`. **v3** `test/usability-2026-10-18c` (review map §7) adds FIX-8, FIX-9, FIX-10 and `fix/fill-skill-placeholders`; full gate at `1c06f146` (one frame flake, green alone). **v4** `test/usability-2026-10-18d` (review map §8) merges the accepted integration-review fixes (F1–F6, seven commits); headless 4231/0/0/335, full frame list at `d1aa3efb` 333/1/0/0 (the SampleProjectSpotlight flake, green alone); the zero-skip display CI gate has not run.
-- [M74-FR] ◐ **Merged into P3** (`a875fcba`), not released: `fix/first-run-polish` `dbfe6c67` (robot re-walk points #1, #3, #4, #6: the way back to the answer, the `startPageNoLogHint` node, one no-key line, nothing clipped) and `fix/event-types-min-rows` `8648b39f` (the Records table and Event types each keep three rows). Acceptance with the stack.
-- [FIX-1] ◐ **in the integration** — `fix/no-log-offer-cancel` `da86da42`, no PR: a cancelled chooser offers the no-log opens again (its frame test ported to M77-4's wizard on integration).
-- [FIX-2] ◐ **in the integration** — `fix/records-filter-visibility` `87551460`, no PR: a filter that hides records says so (B1, B2, M1, M2, m6) — a `recordsView` node, the additive `context` field `hidden` (now pinned by `CustomerApiKeysTest`), the assistant's basis names hidden types, a three-row floor at 1200×680, the search row wraps.
-- [FIX-3] ◐ **in the integration** — `fix/event-types-default-collapsed` `eb52bb45` (on FIX-2), no PR: Event types starts collapsed on a fresh install; saved choices win.
-- [FIX-4] ◐ **in the integration** — `fix/authoring-walk-defects` `0161dab3` (on M77-2, with `fix/template-exec-bits` `655dc8ad`), no PR, its node edits re-applied on M77-4's shape: the authoring walk's seven defects and five follow-ons (exec bits, `STAY_IN_PROJECT_NOTE`, the narrow in-project `open` pre-allow, Build preselects Full acceptEdits, the wizard mode saved). The walk ran the full chain live (7.4 min, 14 approvals; about 3 expected now, not re-measured).
-- [FIX-5] ◐ **in the integration** — `fix/merged-nodelog-entries` `e46c5836` (from P3), no PR, test and docs only: conformance C34 and `FormatConformanceTest` pin how a merged duplicate-key `nodeLogs` entry is read; the format spec §3/§8; UP-FLX-56–58, filed as telaminai/fluxtion#46.
-- [FIX-6] ◐ **in integration v2** — `fix/owner-test-small` `1f445e78` (on FIX-7), no PR: the owner's first hands-on test — the sample's own processor, honest `processors[].from` and `source {bean}`, permission dialogs come forward and a timeout says do not retry, Full opens the sample's own log/GraphML unasked, `context` section hints, Start building offers `acceptEdits` (review map §6).
-- [FIX-7] ◐ **in integration v2** — `fix/wizard-scorecard-regressions` `c07eaccc` (on v1), no PR: Set up AI's buttons say what they do and Check connection is on Screen 2b; scorecard `regfix` T6 7→4 acts, T1/T2 3→2 hesitations, unchanged in `integration-b`.
-- [FIX-8] ◐ **in integration v3** — `fix/project-source-roots` `53b3a366` (on `fix/fill-skill-placeholders`), no PR: the owner's second hands-on test — Java spotlights refused in the Topology tab (Split half at height 0, narrow column at width 0), the sample profile heals a missing source root, run-mongoose-server names `./run-server.sh`; owner decision open: sample-session reads of the demo folder still prompt.
-- [FIX-9] ◐ **in integration v3** — `feature/source-text-and-report-allow` `4f2862ef` (on FIX-8), no PR: the owner's 2026-10-18 asks — `source {…, text}` returns capped lines as data (no Read/grep needed), Full's in-project `report` writes need no approval (review map §6 flag 23), transcript chips keep their text, the Copy hover no longer flickers, each turn shows its time.
-- [FIX-10] ◐ **in integration v3** — `fix/starter-proposal-visible` `956358e0` (on FIX-8), no PR: a waiting proposal is said in a strip above the workspace and its Review… brings the assistant forward; the starter banner says it makes a new project (review map §7 flag 26).
-- [UX-SC] ◐ **in the integration** — [PR #160](https://github.com/telaminai/fluxtionauditlog-analyser/pull/160), awaiting review: the usability scorecard and its CI budgets; the harness ported to M77-4 on integration and re-baselined there (`baseline-integration`; scorecard.md ▸ *The integration build*): SC T4 2→1 and T4c passes, SC T5 8→5, S2 31→6 words; SC T1 5→6 (Continue + Finish) and **SC T6 4→7, a finding for the owner**; comprehension and authoring batteries in progress.
+- [INTEG] ◧ **Integration branch, M74-FR, FIX-1…FIX-10, UX-SC — released in 1.36.0 (PR #168).**
+  ▸ detail: *completed/tracker.md ▸ 1.36.0*.
+- ☐ **FIX-8's open decision** (sample-session reads of the demo folder still prompt): likely resolved by
+  `source {text}` (FIX-9) — confirm and close.
 
 ### M77 · Set up AI — the first-run wizard ([spec](spec-ai-setup-wizard.md), r5; OD-77.1 superseded by M79 OD-79.5)
-- [M77] ◐ **Set up AI wizard — built, in the integration, not released** (owner direction 2026-10-18; robot journey of the same day): one door with four choices (No AI / your own client over MCP / Claude inside, Safe or Full / both), checks with *Check again*, a live external-client check, the pending question placed at Finish; an `aiSetup` session node. Spec r2 after one independent review ([disposition](../handoff/review_m77_r1_7f3c.md): 30 findings, all folded); all owner decisions accepted 2026-10-18 (spec ACCEPTED r5: OD-77.1 superseded by M79 OD-79.5, no first-run AI block); 5 PRs with M77-5.
-- [M77-1] ◐ **built — [PR #157](https://github.com/telaminai/fluxtionauditlog-analyser/pull/157), in the integration, awaiting review**: the `aiSetup` node and the two read-only Claude checks; the auth parse drops email and organisation.
-- [M77-2] ◐ **built — [PR #159](https://github.com/telaminai/fluxtionauditlog-analyser/pull/159) (on #157), in the integration, awaiting review**: the wizard's inside path; T19 in 6 acts; the empty `selectedOptionExtra` slot for M77-5.
-- [M77-3] ◐ **built — [PR #162](https://github.com/telaminai/fluxtionauditlog-analyser/pull/162) (on #159), in the integration, awaiting review**: Screen 2b; one owner of external access, a confirmation at every door; registration; the live check; the additive `X-Analyser-Client` / `X-Analyser-Probe` headers (now pinned by `CustomerApiKeysTest`).
-- [M77-4] ◐ **built — [PR #165](https://github.com/telaminai/fluxtionauditlog-analyser/pull/165) (on #162, merges #161), in the integration, awaiting review**: the Assistant ▾ quick switch, the profile cards retired (`ProfileOverlay` deleted), one client door, the first-run block offered once, the diagram on Screen 2b, T20 (`capture-docs.py --setup-ai`), the symlinked-home capture guard. Docs screenshots not regenerated yet; the card-era CHANGELOG lines are folded on integration.
-- [M77-5] ◐ **Where data goes — built, [PR #161](https://github.com/telaminai/fluxtionauditlog-analyser/pull/161) (on #159), in the integration, awaiting review** ([spec §6.1a](spec-ai-setup-wizard.md), r4; OD-77.14–.21 accepted 2026-10-18): `FlowDiagram` (Full in amber, the palette, T25–T31); wired to external access by M77-4.
+- [M77] ☑ **Set up AI wizard, with M77-1…M77-5 — released in 1.36.0 (PR #168).**
+  ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
 ### M78 · The quiet assistant panel ([spec](spec-quiet-assistant-panel.md), ACCEPTED)
-- [M78] ◐ **Quiet assistant panel — built, in the integration, not released** (owner 2026-10-18: design for the 50th use): the docked panel at 1200×800 (216×431 px) cut from 33–80 chrome words per state to ≤15 (≤20 for error, no key and restart), with ≤4 controls when Ready, with the safety signals kept (◆ Full cue, *Claude · unverified*, permission dialog, Full consent); all 12 owner decisions OD-Q.1–.12 accepted. Scorecard S2 on integration: 6 words, 4 controls.
-- [M78-D1] ◐ **built — [PR #163](https://github.com/telaminai/fluxtionauditlog-analyser/pull/163) (on #159), in the integration, awaiting review**: the quiet panel; Ready 27 → 3 words; four deviations from the spec (the review map's flag 10).
-- [M78-D2] ◐ **built — [PR #166](https://github.com/telaminai/fluxtionauditlog-analyser/pull/166), `feature/m78-d2-one-chip` `209bf46c` (M77-4 + a merge of D1), the integration's base, awaiting review**: the mode chip is M77-4's quick switch.
+- [M78] ☑ **Quiet assistant panel, with D1 and D2 — released in 1.36.0 (PR #168).**
+  ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
 ### M79 · The first minute ([spec](spec-first-minute.md), r6)
 - [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers; r6 the second review, OD-79.20–.25 accepted): the real-run diamond walk autoplays once, its Spring XML beside the topology, three doors, a start page under 40 words; then a recorded, composition-first teaching conversation in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, and later the external teacher kit. 8 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`. No M79 code is in the integration.
@@ -195,11 +154,13 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M79-3] ☐ The broken-diamond quest: works with No AI, confirmed by record digest (§9).
 - [M79-4] ☐ The docs front door and a docs/app label parity test (§10).
 - [M79-5] ☐ *Connect your own Claude*: M77-3's client path with a prompt pack; no new verb (§11).
-- [M79-D1] ☑ **The diamond domains — done in another repo**: `telaminai/fluxtion-diamond` `main` `24d6d74`, mathematics, accounting, logistics and trading beside the generic run, all real runs.
-- [M79-D2] ☑ **The broken-diamond teaching run — published**: `telaminai/fluxtion-diamond` branch `teaching/broken-diamond` `6bff0d67`, not merged to `main` on purpose; record [3], digest `sha256:7e31f039…0d11`.
+- [M79-D1] ☑ The diamond domains — done in another repo. ▸ detail: *completed/tracker.md ▸ 1.36.0*.
+- [M79-D2] ☑ The broken-diamond teaching run — published. ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
 ### M76 · The authoring journey: build, run, explain, change, compare ([spec](spec-authoring-journey.md), r2)
 - [M76] ☐ **Specified** (r2, reviewed): the investigation checkpoint (replaces M74's handoff report), acceptance checks evaluated by the analyser, scenarios, the explanation tour, the start-page pathways S7/S8; eleven PRs A1–A8 (~44k lines, each ≤5k); OD-76.1–.19 open. [Review](../handoff/review_m76_r1_k4m9.md) folded.
+- ☐ **A scorecard starter-flow task**, and re-measuring the authoring approval count (still predicted, about 3; last
+  measured live at 14 before FIX-4/M77's fixes).
 
 ## Session and dispatch
 
@@ -212,9 +173,12 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M44.6] ☐ **(owner)** A superseded load's tail still installs its log. ▸ detail: *M44*.
 - ☐ _Proposed, not yet an item:_ make "this generation's store is installed" a session fact, removing
   `scanWhenInstalled`.
+- ☐ **Rule-9 status-bar leftovers:** `onLoaded` and `offerSourceGraph` append notes to the status bar outside the
+  `statusLine` node — the two hand-placed writers INTEG-R10 was meant to retire.
 
 ### M73 · Create a project over the action socket ([spec](spec-create-project.md))
-- [M73] ☑ `open {project, create}` preview/apply, decided by `sessionBoundary`; `assistant.createProjects` consent; G1–G3 fixed — accepted 2026-10-16 (built-jar socket run; owner's visual check of the Settings checkbox and the "Open it instead?" dialog); ships with PR #142. Follow-up: #143 (*Save project as* overwrite and nonce inheritance; `openSampleProject` routing).
+- [M73] ☑ `open {project, create}` — archived. ▸ detail: *completed/tracker.md*. Follow-up: #143 (*Save project as*
+  overwrite and nonce inheritance; `openSampleProject` routing).
 
 ### Tool agreement ([spec](spec-tool-agreement.md)) — TA-1…TA-8 shipped in 1.17.0
 - [TA-5b] ☐ Implement and vendor the chosen route (owner named in TA-5a); open until shipped in a starter.
@@ -298,13 +262,10 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   silently. [M46.4] ☐ U5–U8. [M46.8] ☐ X1–X4 doc gaps. [M46.9] ☐ H1–H2 harness. ▸ detail: *M46*.
 
 ### M47 · Start from a template
-- [INTEG-R4] ☑ Integration review: the sample pre-allow cannot expand through a linked sample/parent directory; genuine sample and home-alias controls retained. [Approval-boundary evidence](../handoff/evidence/integration-review-2026-10-18/f4-sample-anchor.md).
-- [OPT-2-R2] ☑ Integration review: starter design outcome waits for the actual read/display; a declined source root is not recorded as opened. Real-frame wrong-result witness and gates: [F2](../handoff/evidence/integration-review-2026-10-18/f2-design-outcome.md).
-- [OPT-2-R1] ☑ Integration review: a discovery failure settles the starter and its proposal; stale outcomes are ignored and another creation is admitted. Regression and executed red/green evidence: [F1](../handoff/evidence/integration-review-2026-10-18/f1-discovery.md).
 - [M47.1] ☐ Do the onboarding templates remove the four round-16 blockers structurally? ▸ detail: *M47*.
-- [OPT-2] ◐ **A starter proposed by Claude Code** (owner, 2026-10-18), draft [PR #167](https://github.com/telaminai/fluxtionauditlog-analyser/pull/167) `59220eee` with `fix/starter-followups` `3cf5beb8`, **in integration v2** (`test/usability-2026-10-18b`): `propose {kind: starter}`, `context.starters`, ONE `starterProject` chain (also *New project from template…*), the identity note, Full's docs-site WebFetch; follow-ups: add-a-node's regeneration marker filled from the first-run record, `.vendored.json` digests, the design row pre-ticked; flags 15–22 in the [review map](../handoff/review_map_integration_2026_10_18.md) §6.
-  `fix/fill-skill-placeholders` (owner, 2026-10-18): every marker the first-run record can answer is filled (Mongoose start, embedded run), the rest kept with a note each (flag 22).
-  **Acceptance open:** review, the owner's hands-on test (the first live run), a scorecard task; UP-PG-10 (the pages bundled with the publisher's permission, owner 2026-10-18; a stated licence pending).
+- [OPT-2] ☑ **A starter proposed by Claude Code, with INTEG-R4, OPT-2-R1, OPT-2-R2 — released in 1.36.0 (PR #168).**
+  **Acceptance open:** a scorecard task; UP-PG-10 (the pages bundled with the publisher's permission, owner
+  2026-10-18; a stated licence pending). ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
 ### M48 · Authoring modes ([spec](spec-authoring-modes.md)) — .1–.4, .7, .11 shipped
 - [M48.17] ☐ **(owner)** The shared-evidence-canvas thesis has had no independent read — now the Telamin Canvas product thesis; raised by M74.
@@ -329,10 +290,15 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M19.1] ◧ Released bundle; a refreshed final evidence artefact remains.
 - [M19.1a] ◧ Mongoose starter conformance bench (waits on D-02).
 - [M19.3] ◧ Tutorial screenshots (need a connected browser).
-- [M19.15] ☑ ~~The seeding prompt for step 2~~ — superseded by M74's start-page prompt and prompt packs.
 - [M19.19] ◧ Guided start — the person-watching check.
 - [M19.22] ◐ The generated header claims confidentiality — fluxtion#24.
 - [M19.23] ◧ UP-PG-02 landed; producer default-on not deployed. ▸ detail: *M19*.
+- ☐ **#155 virgin onboarding packs** (`docs/m74-virgin-onboarding-pack`): its own PR on main (Job 2 of the
+  post-1.36.0 tidy); `tools/m74_onboarding_runner.py` and the record-pack crosscheck.
+- ☐ **Non-transactional skill vendoring:** the copy-in has no all-or-nothing guarantee; a partial vendor leaves a
+  project with some skills placed and some not, undetected.
+- ☐ **Windows first-run records for skill placeholders:** FIX-10's filled-marker approach (flag 22) was built and
+  checked on the owner's Mac; confirm the same first-run record answers the markers on Windows (with M74 §11).
 
 ### M67 · The extension tour ([spec](spec-extension-tour.md)) — unblocked
 - [M67.1] ☐ The catalogue (cross-repo) · [M67.2] ☐ the tour's project (playground) · [M67.3] ☐ the skill and
@@ -366,7 +332,6 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M75] ☐ One layout, two backends (PDF + a document window) for reports and teaching lessons; owner decisions OD-75.1–.17 first, then P0–P3 (~15–20k lines, four PRs).
 
 ### M71 · Workspace Start — shipped ([spec](completed/spec-workspace-start.md))
-- [M71.F1] ☑ ~~Optional: the tour's instructional sequence, reading width, the template dialog's hierarchy~~ — superseded by M74's unified start page and packs.
 
 ### Project / Sources / Audit log menus — remaining follow-ups
 - ☐ Display stability (the second-menu spotlight flake) · ☐ optional menu guard refinements ·
@@ -376,13 +341,13 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 ### M21 · Topology view + step-through — core shipped
 - [M21.7] ☐ _(later)_ server-sourced GraphML · [M21.8] ☐ _(later)_ node → flag · [M21.9] ☐ use `ProcessorDescriptor` ·
   [M21.11] ☐ consume the declared trace flag (needs UP-FLX-11).
+- ☐ **GraphML text spotlights:** a spotlight target that names GraphML (not Java source or a chart/menu item).
 
 ### M22 · Topology view usability — 36 of 41 shipped
 - [M22.3] ☐ export the view as PNG · [M22.6] ☐ alternative layouts · [M22.11] ☐ show re-dispatch's cause ·
   [M22.20] ☐ a DataFlow `.push()` target renders as an orphan. ▸ detail: *M22*.
 
 ### M20 · M29 · M33 · M40 — follow-ups
-- [M20.5] ☑ ~~Project artifact pointers — offer, never act~~ — superseded by M74's `propose` onboarding (offer, checked, applied by the person).
 - [M29.5] ☐ **(owner, optional)** `embed: true` for small external series.
 - [M33.5] ☐ Fold M12.1's fix-brief onto the model (gated) · [M33.6] ☐ **YES — build it** (owner, 2026-08-27).
 - [M40.2c] ☐ _(optional)_ follow the supertype chain.
@@ -404,8 +369,8 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   ▸ detail: *Product discovery*.
 
 ### M12 · Diagnose → fix → prove ([spec](spec-closed-loop.md)) — design
-- [M12.1] ☐ `export_finding` · [M12.2] ☐ `export_test_fixture` · [M12.3] ☐ `DiffBuilder` additive-vs-value ·
-  [M12.4] ☑ ~~"Fix with agent…" launcher~~ — superseded by M74 (Claude Code in the analyser). M12.1/M12.2 move to M75 as document sources and the intent ledger.
+- [M12.1] ☐ `export_finding` · [M12.2] ☐ `export_test_fixture` · [M12.3] ☐ `DiffBuilder` additive-vs-value.
+  M12.1/M12.2 move to M75 as document sources and the intent ledger.
 
 ### M11 · Research → monitoring promotion (Grafana) — vision
 - [M11.1] ☐ `export_promotion` · [M11.2] ☐ a Telamin-side tap plugin (not analyser) · [M11.3] ☐ the closed loop.
