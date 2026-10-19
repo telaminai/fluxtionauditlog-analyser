@@ -64,6 +64,22 @@ class CustomerApiKeysTest {
                 "approvalPending", false), activity);
     }
 
+    @Test void pendingOutputOffersExposeOnlyTheDistinctLiveKinds() {
+        var graph = new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File(
+                telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.GRAPHML,
+                11, "DEMO-graph-digest", "…/DEMO.graphml",
+                new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Revision(1, 1, "DEMO-key"));
+        var log = new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File(
+                telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.LOG,
+                12, "DEMO-log-digest", "…/DEMO.yaml", graph.revision());
+        var state = new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState(1, 1, true, List.of(
+                new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Offer(1, graph, null),
+                new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Offer(2, log, graph),
+                new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Offer(3, log, graph)));
+        assertEquals(List.of("graphml", "log"), state.pendingKinds(), "no path, reference or prose in the additive field");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.NONE.pendingKinds().isEmpty());
+    }
+
     /** {@code ContextSections.SECTIONS} as released in 1.35.1 ({@code main}): the customer's contract. */
     static final Map<String, List<String>> CONTEXT_RELEASED;
     static {

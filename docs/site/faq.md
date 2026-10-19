@@ -13,6 +13,17 @@ in-app assistant's API key. A project's settings are in its own `<project>/.anal
 Fluxtion build key is in `~/.fluxtion/fluxtion.apiKeyFile`. [What is stored where, what leaves](admin/data.md) lists
 every file.
 
+## Will a build replace the log I am looking at?
+
+No. An open, person-owned project's settled GraphML or audit-log output raises an **Open / Not now** banner.
+Your current log stays open until you click **Open**; accepting a log uses the offered graph and existing pairing
+checks. **Not now** dismisses that revision, not future builds. These explicit local opens work with assistant file
+exchange off. The sample and evidence-bundle working copies are not watched.
+
+The watcher samples bounded project metadata every four seconds and needs another matching sample before
+offering. It does not read contents or prove that a paused writer finished; normal open validation still applies.
+See the [security boundary](admin/security.md#project-output-offers) for scope and detection limits.
+
 ## Is my API key safe? Does it leave my machine?
 
 There are two unrelated keys. The **LLM key** is stored locally, in cleartext in your config file, and used only to

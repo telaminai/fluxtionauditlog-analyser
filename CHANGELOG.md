@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- Open, person-owned projects now offer settled GraphML and audit-log outputs with Open / Not now banners. Nothing auto-switches your log; accepting a log uses the existing graph-pairing path, even with assistant file exchange off. The starter's first-build cue uses this same ongoing watcher.
+
+### Fixed
+
+- A graph that cannot be read now reports failure even when an older topology remains visible. That older view is not mistaken for a completed output open.
+
 ## [1.37.0] - 2026-10-19
 
 ### Added

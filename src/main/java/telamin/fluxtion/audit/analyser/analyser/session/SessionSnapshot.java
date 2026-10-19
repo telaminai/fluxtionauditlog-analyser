@@ -52,7 +52,28 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               ProfileState profiles, ListenerState listener, long logOpenedAt,
                               AiSetupState aiSetup,
                               telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView,
-                              StarterState starter, StatusLineState statusLine) {
+                              StarterState starter, StatusLineState statusLine, ProjectOutputsState projectOutputs) {
+
+    /** Earlier snapshot constructors carry no output offers; retained for existing clients and replay fixtures. */
+    public SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
+                           boolean graphOpen, String graphPath, String graphSource, long graphRevision,
+                           GraphPairing pairing, CoveragePolicy.Assessment claim, boolean pending,
+                           PairingQualifications qualifications, String filterKey, String logIdentity, String logIdentityReason,
+                           telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics producerFindings,
+                           telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrder,
+                           String provenance, String provenanceSource, boolean following, String contentSignature,
+                           String followReadFailure, boolean evidencePending, WalkPlaybackState walkPlayback,
+                           CaptureState capture, AssistantState assistant, BundleProvenance bundle, LocalAgentState localAgent,
+                           StartPageState startPage, ProposalState proposal, ExampleDownloadState example,
+                           PermissionState permission, ProfileState profiles, ListenerState listener, long logOpenedAt,
+                           AiSetupState aiSetup, telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView,
+                           StarterState starter, StatusLineState statusLine) {
+        this(logOpen, logPath, logGeneration, sampled, total, graphOpen, graphPath, graphSource, graphRevision,
+                pairing, claim, pending, qualifications, filterKey, logIdentity, logIdentityReason, producerFindings,
+                timeOrder, provenance, provenanceSource, following, contentSignature, followReadFailure, evidencePending,
+                walkPlayback, capture, assistant, bundle, localAgent, startPage, proposal, example, permission, profiles,
+                listener, logOpenedAt, aiSetup, recordsView, starter, statusLine, ProjectOutputsState.NONE);
+    }
 
     /**
      * Independent review R4: immutable in fact, not only by the reference that publishes it. A volatile field cannot make
@@ -75,6 +96,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
         if (aiSetup == null) aiSetup = AiSetupState.IDLE;
         if (starter == null) starter = StarterState.IDLE;
         if (statusLine == null) statusLine = StatusLineState.NONE;
+        if (projectOutputs == null) projectOutputs = ProjectOutputsState.NONE;
     }
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
@@ -113,7 +135,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.aiSetup.setupState(),             // M77: Set up AI, as aiSetup decided it
                 p.recordsView.counts(),             // the Records view's counts, as recordsView measured them
                 p.starterProject.state(),           // Option 2: the starter catalogue and chain, as starterProject decided
-                p.statusLine.state());              // INTEG-R10: the status bar's one line, as statusLine decided it
+                p.statusLine.state(),               // INTEG-R10: the status bar's one line, as statusLine decided it
+                p.projectOutputs.state());          // M81 D: explicit person-owned output offers, never auto-switches
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */

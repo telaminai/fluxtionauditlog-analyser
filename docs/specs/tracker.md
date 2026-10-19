@@ -106,7 +106,8 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ### M81 · Activity, recovery and project outputs ([spec](spec-assistant-activity-and-project-trust.md))
 - [M81.C/A] ☑ Recovery #173 and activity #176 merged to main 2026-10-19 (`5bb43b57`); each independently reviewed at its exact head.
-- [M81.B/D] ◧ B explicitly deferred, draft #184 closed unmerged; D proceeds without B. ▸ [disposition](../handoff/m81-b-deferral.md)
+- [M81.B] ◧ Explicitly deferred, draft #184 closed unmerged. ▸ [disposition](../handoff/m81-b-deferral.md)
+- [M81.D] ◐ General project-output watcher and person-accepted sync offers in implementation; separate safe branch, no B dependency. Not yet a reviewed or shipping feature.
 
 ### Onboard assistant and conversation journeys — released in 1.29.0; acceptance open ([spec](spec-onboard-assistant-journeys.md))
 - [OA-1] ◐ Session-owned live loop — the authorised live-provider run (OA-A2) is unverified.

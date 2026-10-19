@@ -215,6 +215,22 @@ creation. What keeps its mistakes recoverable is the bins: a deleted chart, repo
 definition a call replaced, can be restored. **An outside client** is asked only by its own approval settings: the analyser marks the six destructive
 tools, and the client decides.
 
+## Project output offers
+
+For an open, person-owned project, a local metadata watcher offers changed GraphML and audit-log files; it never
+opens them automatically, runs a build or grants an assistant a new permission. **Open** is the person's explicit
+local read/pairing action, allowed with file exchange off. **Not now** consumes only that revision. The sample
+project and a bundle's managed working copy are excluded. A hosted Full open suppresses a redundant offer only
+after actual successful application for its original admitted session/turn, project lifetime and exact revision;
+outside clients never acquire that hosted identity.
+
+The four-second scan stays under the real project root: depth 12, at most 10,000 entries and 100 candidate files,
+excluding `.git`, `.claude` and `node_modules`. Logs are candidates only in declared log directories or the current
+local log's directory inside that root. Escaping symlinks and incomplete scans do not confirm stability. Equal
+size/time/file-key metadata across two samples is **not semantic completeness** or protection from a subsequent
+rewrite: paused writers, malformed contents and metadata-preserving changes remain possible. Existing read,
+operation-supersession and pairing checks are retained when a person accepts.
+
 ## Not local-only
 
 **No assistant profile is local-only, Safe analysis included.** What you ask, and the evidence Claude reads through

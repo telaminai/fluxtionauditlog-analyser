@@ -138,6 +138,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
 
     /** Set to have the very next load throw rather than return a failure result. */
     boolean loadThrows;
+    boolean loadPending;
+    boolean outputOpensPending;
     /** M73: set to have the very next create throw, as a failed CREATE_NEW write does (G2). */
     boolean createThrows;
     /** M73: what sessionBoundary asked to be created, with the approved selection. */
@@ -183,6 +185,14 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     public SessionEvents.Result perform(SessionEffects effect) throws Exception {
         performed.add(effect);
         return switch (effect) {
+            case SessionEffects.ObserveProjectOutputsEffect e -> new SessionEvents.ProjectOutputsEffectStarted(e.opId(), e.watch(), "observe");
+            case SessionEffects.WatchProjectOutputsEffect e -> new SessionEvents.ProjectOutputsEffectStarted(e.opId(), e.watch(), "watch");
+            case SessionEffects.StopProjectOutputsWatchEffect e -> new SessionEvents.ProjectOutputsEffectStarted(e.opId(), e.watch(), "stop");
+            case SessionEffects.PublishProjectOutputChangedEffect e -> new SessionEvents.ProjectOutputChanged(e.watch(), e.projectGeneration(), e.change(), e.file());
+            case SessionEffects.OfferProjectOutputEffect e -> new SessionEvents.ProjectOutputsEffectStarted(e.opId(), e.watch(), "offer");
+            case SessionEffects.OpenProjectOutputEffect e -> outputOpensPending
+                    ? new SessionEvents.ProjectOutputsEffectStarted(e.opId(), e.watch(), "open")
+                    : new SessionEvents.ProjectOutputOpenObserved(e.opId(), e.watch(), e.offer(), true, null);
             case SessionEffects.AnswerHostedReportApplyEffect e -> new SessionEvents.LocalAgentEffectStarted(
                     e.opId(), 0, "answerHostedReportApply");
             case SessionEffects.PrepareBundleEffect e -> new SessionEvents.Pending(e.opId(), "verifying " + e.bundlePath());
@@ -503,18 +513,6 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 starterEffects.add(e);
                 yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
             }
-            case SessionEffects.WatchStarterGraphmlEffect e -> {
-                starterEffects.add(e);
-                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
-            }
-            case SessionEffects.OfferStarterGraphEffect e -> {
-                starterEffects.add(e);
-                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
-            }
-            case SessionEffects.OpenStarterGraphEffect e -> {
-                starterEffects.add(e);
-                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
-            }
             case SessionEffects.CancelStarterWorkEffect e -> {
                 starterEffects.add(e);
                 yield new SessionEvents.StarterCancelled(e.opId(), e.request());
@@ -537,6 +535,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 yield new SessionEvents.BundleDeleted(e.opId(), e.ticket(), true, null);
             }
             case SessionEffects.LoadProfileEffect e -> {
+                if (loadPending) yield new SessionEvents.Pending(e.opId(), "DEMO project load pending");
                 if (loadThrows) {
                     loadThrows = false;
                     throw new java.io.IOException("disk went away");

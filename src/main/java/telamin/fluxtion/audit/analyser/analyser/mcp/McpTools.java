@@ -176,6 +176,9 @@ public final class McpTools {
         return hostedCallKind(verb, params, charts, null);
     }
 
+    /** M81 D correlation metadata only: never an open permission or an execution receipt. */
+    public record OutputScope(long watch, long projectGeneration) { }
+
     /**
      * Owner, 2026-10-18: what the hosted session's {@code open} may do without asking — the session's REAL project folder
      * and whether it runs Full Claude Code, as observed for the call's own generation. Null: unknown, so every
@@ -183,7 +186,10 @@ public final class McpTools {
      * for a hosted call.
      */
     public record OpenScope(java.nio.file.Path projectRoot, boolean full, java.nio.file.Path sampleRoot, long generation,
-                            ReportState reports) {
+                            ReportState reports, OutputScope outputs) {
+        public OpenScope(java.nio.file.Path root, boolean full, java.nio.file.Path sample, long generation, ReportState reports) {
+            this(root, full, sample, generation, reports, null);
+        }
         /** The session's project folder only — no analyser-owned project is active. */
         public OpenScope(java.nio.file.Path projectRoot, boolean full) {
             this(projectRoot, full, null);
