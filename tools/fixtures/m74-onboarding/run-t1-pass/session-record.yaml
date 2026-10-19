@@ -1,0 +1,229 @@
+---
+eventLogRecord: 
+    eventTime: 1791900000000
+    logTime: 1791900000000
+    groupingId: null
+    event: StartPromptPackDropped
+    eventToString: StartPromptPackDropped[packRef=1, refusal=null, refusalLine=0]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - startPagePrompt: { startPromptPack: IN_FORCE}
+    endTime: 1791900000000
+---
+eventLogRecord: 
+    eventTime: 1791900001000
+    logTime: 1791900001000
+    groupingId: null
+    event: StartPagePromptSent
+    eventToString: StartPagePromptSent[request=1, entryId=NONE, textRef=2, consent=LocalAgentConsent[allowed=true, folderConfirmed=true, bundleWorkingCopy=false, postureRef=d1, budgetMicros=0, folder=OK, full=false, fullMode=DEFAULT, fullFolderConfirmed=false], claudeCodeFound=true, inAppCanAnswer=false, inProcessActions=true, workspaceOpen=true]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - startPagePrompt: { startPageSent: NONE, route: LOCAL_AGENT}
+    endTime: 1791900001000
+---
+eventLogRecord: 
+    eventTime: 1791900002000
+    logTime: 1791900002000
+    groupingId: null
+    event: LocalAgentDraftComposed
+    eventToString: LocalAgentDraftComposed[draftRef=3, questionId=START_PAGE, logIdentity=null, logGeneration=0, consent=null, origin=start page]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentDraft: START_PAGE, bound: false}
+    endTime: 1791900002000
+---
+eventLogRecord: 
+    eventTime: 1791900003000
+    logTime: 1791900003000
+    groupingId: null
+    event: LocalAgentStartRequested
+    eventToString: LocalAgentStartRequested[request=2, consent=null]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentSpawn: 1, resume: false}
+    endTime: 1791900003000
+---
+eventLogRecord: 
+    eventTime: 1791900004000
+    logTime: 1791900004000
+    groupingId: null
+    event: LocalAgentSpawned
+    eventToString: LocalAgentSpawned[generation=1, failure=NONE, detailRef=0]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentSpawned: 1}
+    endTime: 1791900004000
+---
+eventLogRecord: 
+    eventTime: 1791900005000
+    logTime: 1791900005000
+    groupingId: null
+    event: LocalAgentInitialized
+    eventToString: LocalAgentInitialized[generation=1, loggedIn=true, permissionMode=dontAsk, headerRef=4, billing=SUBSCRIPTION]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentHandshake: OK, generation: 1}
+    endTime: 1791900005000
+---
+eventLogRecord: 
+    eventTime: 1791900006000
+    logTime: 1791900006000
+    groupingId: null
+    event: LocalAgentStatusObserved
+    eventToString: LocalAgentStatusObserved[generation=1, elapsedMs=900, servers=[fluxtion-analyser-hosted], hostedStatus=connected, hostedNonceDigest=9f]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentBound: 1}
+    endTime: 1791900006000
+---
+eventLogRecord: 
+    eventTime: 1791900007000
+    logTime: 1791900007000
+    groupingId: null
+    event: LocalAgentSendRequested
+    eventToString: LocalAgentSendRequested[request=3, draft=3, slash=TEXT, command=null, consent=null, draftBinding=0]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentTurn: 1, generation: 1}
+    endTime: 1791900007000
+---
+eventLogRecord: 
+    eventTime: 1791900008000
+    logTime: 1791900008000
+    groupingId: null
+    event: LocalAgentInitObserved
+    eventToString: LocalAgentInitObserved[generation=1, ticket=1, sessionDigest=ab, permissionMode=dontAsk, tools=[Glob, Grep, Read, mcp__fluxtion-analyser-hosted__analyser_context, mcp__fluxtion-analyser-hosted__analyser_read], servers=[fluxtion-analyser-hosted:connected], capabilities=[interrupt_receipt_v1, msg_lifecycle_v1], headerRef=4]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentPosture: OK, ticket: 1, first: true}
+    endTime: 1791900008000
+---
+eventLogRecord: 
+    eventTime: 1791900009000
+    logTime: 1791900009000
+    groupingId: null
+    event: LocalAgentCostObserved
+    eventToString: LocalAgentCostObserved[generation=1, totalCostMicros=41000, ticket=1, durationMs=9000]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+    endTime: 1791900009000
+---
+eventLogRecord: 
+    eventTime: 1791900010000
+    logTime: 1791900010000
+    groupingId: null
+    event: LocalAgentTurnEnded
+    eventToString: LocalAgentTurnEnded[generation=1, ticket=1, outcome=COMPLETED]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentTurnEnded: COMPLETED, ticket: 1}
+    endTime: 1791900010000
+---
+eventLogRecord: 
+    eventTime: 1791900011000
+    logTime: 1791900011000
+    groupingId: null
+    event: LocalAgentSendRequested
+    eventToString: LocalAgentSendRequested[request=4, draft=6, slash=TEXT, command=null, consent=null, draftBinding=0]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentTurn: 2, generation: 1}
+    endTime: 1791900011000
+---
+eventLogRecord: 
+    eventTime: 1791900012000
+    logTime: 1791900012000
+    groupingId: null
+    event: LocalAgentInitObserved
+    eventToString: LocalAgentInitObserved[generation=1, ticket=2, sessionDigest=ab, permissionMode=dontAsk, tools=[Glob, Grep, Read, mcp__fluxtion-analyser-hosted__analyser_context, mcp__fluxtion-analyser-hosted__analyser_read], servers=[fluxtion-analyser-hosted:connected], capabilities=[interrupt_receipt_v1, msg_lifecycle_v1], headerRef=4]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentPosture: OK, ticket: 2, first: false}
+    endTime: 1791900012000
+---
+eventLogRecord: 
+    eventTime: 1791900013000
+    logTime: 1791900013000
+    groupingId: null
+    event: LocalAgentCallAdmissionRequested
+    eventToString: LocalAgentCallAdmissionRequested[call=1, generation=1]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentCall: ADMITTED, generation: 1}
+    endTime: 1791900013000
+---
+eventLogRecord: 
+    eventTime: 1791900014000
+    logTime: 1791900014000
+    groupingId: null
+    event: LocalAgentCallAdmissionRequested
+    eventToString: LocalAgentCallAdmissionRequested[call=2, generation=1]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentCall: ADMITTED, generation: 1}
+    endTime: 1791900014000
+---
+eventLogRecord: 
+    eventTime: 1791900015000
+    logTime: 1791900015000
+    groupingId: null
+    event: LocalAgentCallAdmissionRequested
+    eventToString: LocalAgentCallAdmissionRequested[call=3, generation=1]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentCall: ADMITTED, generation: 1}
+    endTime: 1791900015000
+---
+eventLogRecord: 
+    eventTime: 1791900016000
+    logTime: 1791900016000
+    groupingId: null
+    event: LocalAgentCallAdmissionRequested
+    eventToString: LocalAgentCallAdmissionRequested[call=4, generation=1]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentCall: REFUSED, generation: 1}
+    endTime: 1791900016000
+---
+eventLogRecord: 
+    eventTime: 1791900017000
+    logTime: 1791900017000
+    groupingId: null
+    event: LocalAgentNoted
+    eventToString: LocalAgentNoted[generation=1, ticket=2, note=PERMISSION_DENIED, epochSeconds=0]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+    endTime: 1791900017000
+---
+eventLogRecord: 
+    eventTime: 1791900018000
+    logTime: 1791900018000
+    groupingId: null
+    event: LocalAgentCostObserved
+    eventToString: LocalAgentCostObserved[generation=1, totalCostMicros=93000, ticket=2, durationMs=21000]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+    endTime: 1791900018000
+---
+eventLogRecord: 
+    eventTime: 1791900019000
+    logTime: 1791900019000
+    groupingId: null
+    event: LocalAgentTurnEnded
+    eventToString: LocalAgentTurnEnded[generation=1, ticket=2, outcome=COMPLETED]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentTurnEnded: COMPLETED, ticket: 2}
+    endTime: 1791900019000
+---
+eventLogRecord: 
+    eventTime: 1791900020000
+    logTime: 1791900020000
+    groupingId: null
+    event: LocalAgentDiagnostics
+    eventToString: LocalAgentDiagnostics[generation=1, unknownEvents=0, unclassifiedCommands=0, droppedLines=0]
+    thread: AWT-EventQueue-0
+    nodeLogs: 
+        - localAgentSession: { localAgentDiagnostics: 0, unclassified: 0}
+    endTime: 1791900020000
+---

@@ -235,7 +235,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ### Spring-side work block — one piece of work
 - ☐ **G14** — the acceptance run from a real download; the owner accepts three residual risks, then one supervised run.
-- ☐ **G14-W** — warm cache is the default for LLM runs; a README-faithful first-run check runs occasionally ([PROTOCOL ▸ Cache state](../proposals/beta-testing/g14/PROTOCOL.md)). Next: the runner flag `--seed-m2`, with its provenance check, tests and control. The M74 onboarding runner (branch `docs/m74-virgin-onboarding-pack`) already has the provenance check and seeding, importable by `g14_runner`.
+- ☐ **G14-W** — warm cache is the default for LLM runs; next: the G14 `--seed-m2` flag. PR #155's six fixes plus the independent review's answer-schema and current-control remainders are implemented, awaiting re-review; no live trial claimed. ▸ [response](../handoff/handoff_pr155_tooling_response2_2026_10_19.md)
 - [SG-2] ◧ Provisioning closed; **changed-graph generation and run on the hosted ZIP** open.
 - ☐ **The jars**, built once for BETA-B4 and M67.1.
 - ☐ Reconciler follow-ups **G12, G5, F5/G13/F10, G7, F9** and the non-blocking P1, NF1, G22, G23 (compiler-owned).

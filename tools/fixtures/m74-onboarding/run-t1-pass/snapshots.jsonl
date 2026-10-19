@@ -1,0 +1,2 @@
+{"t": 18.2, "afterTicket": 1, "recordSeq": 11, "pointers": [], "context": {"log": {"name": "demo-fixture.yaml"}}}
+{"t": 41.3, "afterTicket": 2, "recordSeq": 20, "pointers": [{"via": "selection", "event": "RiskBreachEvent", "logTime": 1000500}], "context": {"log": {"name": "demo-fixture.yaml"}}}

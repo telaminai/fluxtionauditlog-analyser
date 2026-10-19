@@ -142,6 +142,8 @@ nav:
       - Spring authoring step by step: spring-authoring-getting-started.md
       - Design and "what if?" conversations: spring-authoring-conversations.md
       - Producing an audit log: producing-a-log.md
+      - 'From a Mongoose server to the analyser': mongoose-audit-to-file.md
+      - What does auditing cost?: audit-cost.md
       - Composing a system from supplier jars: composing-a-system.md
       - 'Integrating a vendor component: a worked example': integrating-a-vendor-component.md
   - Get started:

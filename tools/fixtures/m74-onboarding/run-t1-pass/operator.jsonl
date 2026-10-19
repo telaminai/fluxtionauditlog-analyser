@@ -1,0 +1,8 @@
+{"t": 0.0, "kind": "dropPack", "source": "script", "packSha256": "synthetic-fixture", "fact": {"packRef": 1}}
+{"t": 1.1, "kind": "choose", "entry": 1, "source": "script", "expectFact": false}
+{"t": 2.0, "kind": "startPage", "source": "script", "fact": {"request": 1, "entryId": "NONE", "textRef": 2}}
+{"t": 4.5, "kind": "start", "source": "script", "fact": {"request": 2}}
+{"t": 8.0, "kind": "send", "source": "script", "textSha256": "synthetic-fixture", "fact": {"request": 3, "draft": 3}}
+{"t": 18.0, "kind": "snapshot", "source": "script", "expectFact": false}
+{"t": 19.0, "kind": "send", "source": "nudge", "nudge": true, "textSha256": "synthetic-fixture", "fact": {"request": 4, "draft": 6}}
+{"t": 41.0, "kind": "snapshot", "source": "script", "expectFact": false}

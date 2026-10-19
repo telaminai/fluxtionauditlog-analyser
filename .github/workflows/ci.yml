@@ -91,6 +91,13 @@ jobs:
       # no model session and contact no network.
       - name: G14 harness tests (key-leak scan, group reaping, refusals)
         run: python3 tools/test_g14_runner.py
+      # M74 onboarding virgin runs: the pack grammar pinned to the analyser's own parser, the warm-cache provenance
+      # check, the seal, and the scorecard over a recorded fixture with its wrong-result controls. No model, no key,
+      # no network (docs/proposals/beta-testing/m74-onboarding/PROTOCOL.md).
+      - name: M74 onboarding runner tests (pack grammar, provenance, seal, scorecard)
+        run: |
+          python3 tools/test_m74_onboarding_runner.py
+          python3 tools/test_m74_onboarding_integrity.py
       - name: Mutation policy and evidence tests (no mutation execution)
         run: |
           python3 tools/test_mutation_shards.py
@@ -113,6 +120,10 @@ jobs:
         run: python3 tools/test_audit_compare.py
       # UI classes are only constructed, never shown, so the headless ubuntu runner is fine.
       - run: mvn -B verify
+      - name: M74 current Java contracts (read-only, after compilation)
+        run: |
+          python3 tools/m74_record_pack_crosscheck.py . --check
+          python3 tools/test_m74_onboarding_contract.py
 
   loop-bench:
     # M19.8: this one DOES launch Swing. xvfb supplies the display while the stub and isolated home

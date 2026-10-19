@@ -1,0 +1,6 @@
+{
+ "track": "T1",
+ "note": "SYNTHETIC fixture oracle: these values describe the fixture records, not the DEMO log. A cycle's real oracle is measured at seal and kept out of the public repository until the cycle closes (PROTOCOL §3.3).",
+ "primary": [{"kind": "pointer", "match": {"event": "RiskBreachEvent", "logTime": 1000500}}],
+ "claims": {"require": ["ord-7"], "forbid": ["no breach", "never breached"]}
+}

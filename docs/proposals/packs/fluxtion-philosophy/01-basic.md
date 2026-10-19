@@ -1,0 +1,12 @@
+# What is Fluxtion?
+
+Basic track. Entry 1 is the published diamond, pinned by commit.
+
+1. **Teaching example: the diamond** — example: https://github.com/telaminai/fluxtion-diamond/archive/dad9b4382099a9ff26d9fe624f01fbbc80f67c50.zip
+2. **What is Fluxtion, in plain words?** — I'm new to Fluxtion. Using this project and the records on screen, explain in plain words what an event, an event handler and a trigger are, and point at one of each in this project. Please answer from what's here and the Fluxtion docs, not from general knowledge, and tell me if you can't tell from what's here.
+3. **Follow one event through** — Pick one event in this log and walk me through it: which handler received it first, which nodes ran after it, and in what order. Show me in the records. If a node wrote nothing to the log, please say whether that means it didn't run or only that you can't tell from what's here.
+4. **Show me in the records** — Open one audit record and tell me what each part means. Which values did my own code write, and which did Fluxtion add by itself? If a field's meaning isn't clear from the record or the docs, tell me if you can't tell from what's here rather than guessing.
+5. **What I wrote versus what Fluxtion generated** — Show me one of my node classes next to the generated processor code that calls it. Which part did I write, which part did the compiler write, and where is the order of calls decided? If the generated source isn't on screen, don't describe it from memory: tell me if you can't tell from what's here.
+6. **Who calls my methods?** — I never call my @OnEventHandler or @OnTrigger methods myself. Who does, and how does it decide when? Show me where that happens in the generated code or the records, and tell me if you can't tell from what's here.
+7. **Fluxtion as a DI container** — Is it fair to say Fluxtion wires my objects together at build time, a bit like a dependency-injection container? Show me in this project where my objects are created and connected: constructors, the registered roots, anything injected with @ServiceRegistered. Where does the comparison hold and where does it break down? Tell me if you can't tell from what's here.
+8. **How would my own code look?** — In my own application I have a class that reacts when a price changes and another that recalculates a total from it. Using this project as the pattern, how would those two classes look as Fluxtion nodes, and what would I stop writing by hand? Point at the matching parts of this project, and tell me if you can't tell from what's here.

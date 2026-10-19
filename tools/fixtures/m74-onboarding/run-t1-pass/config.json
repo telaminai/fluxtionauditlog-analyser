@@ -1,0 +1,15 @@
+{
+ "run": "run-t1-pass",
+ "track": "T1",
+ "trackName": "cold newcomer",
+ "needs": "P2",
+ "posture": "default",
+ "predictionsSha256": "synthetic-fixture",
+ "analyserJarSha256": "synthetic-fixture",
+ "claudeBinSha256": "synthetic-fixture",
+ "claudeVersion": "synthetic-fixture",
+ "model": "synthetic-fixture",
+ "pinned": {
+  "oracle.json": "18938c4f60fd1ad12e9e32189013a1ef80a0929f184f0c481a7cb958091d4255"
+ }
+}

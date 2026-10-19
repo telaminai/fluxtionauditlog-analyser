@@ -1,0 +1,120 @@
+VERDICT: REQUEST CHANGES
+Independent review of dd70ea80e933dab770a897d581a0c74c3736b091..
+3c8dd23e4eafa3a03e63233ffa0c8c3ff4d4d1e5, fix/pr155-tooling-integrity.
+2026-10-19. Reviewed in an isolated detached worktree
+The author's worktree and the main checkout were not modified or built.
+
+The six original witnesses are meaningfully addressed: sealed-byte oracle binding,
+count reconciliation/absent captures, ordered matching references and choices,
+seed symlink refusal, actual current permission records, and Java/Python NBSP
+agreement plus a non-writing post-compilation authority check. However, the
+completeness/schema and person-boundary corrections still have two PASS holes.
+These are unresolved weaknesses within the correction's stated guarantees, not
+claims that these two behaviors were newly introduced by this commit.
+
+FINDINGS, RANKED
+
+P2 — VERIFIED (executed) — Unsupported answer objects certify no contradiction.
+tools/m74_onboarding_runner.py:993, :919, :1022
+
+Starting from a newly sealed/init-run T1 control and the recorded passing
+fixture, replace answers.jsonl with this one JSON object:
+  {"ticket":1,"message":"never breached"}
+Leave the sealed oracle and all other evidence unchanged. score returns exit 0,
+verdict PASS, claims.available=true, answersRead=1, contradictions=0. The oracle
+forbids "never breached", but the reader defaults the absent text field to an
+empty string. An object such as {} behaves equivalently. The control's present
+empty capture is deliberately permitted; this finding concerns a nonempty capture
+in an unsupported schema being treated as understood evidence. The new JSONL
+validation checks only that each row is an object, not that answers carry strings
+under the expected text key. A harness field rename or malformed export can
+therefore suppress every answer while certifying a negative check.
+
+Expected: refuse/VOID unsupported nonempty answer rows, retain the intentional
+empty-file control and informational requiredFound behavior. Add an executable
+missing-text/wrong-text-type regression. This is still the F2 missing-evidence
+problem at the row/schema boundary; SCORECARD now promises unsupported schemas
+refuse with exit 2.
+
+P2 — VERIFIED (executed); legitimate UI use INFERRED (read) — The ordered boundary
+still ignores current person decisions outside its historical whitelist.
+tools/m74_onboarding_runner.py:705 (PERSON_ACT_EVENTS at :51)
+
+In independent disposable copies of the sealed passing T1 run, append one valid
+event record and increment session-record.meta.json total from 21 to 22:
+  ProposalItemAnswered[proposalId=p-DEMO, itemId=DEMO-1, yes=true]
+or:
+  LocalAgentRestartAnswered[request=99, offer=1, restart=true, consent=null]
+Do not add an operator act. Both return exit 0, verdict PASS, boundary.ok=true,
+factsWithoutAnAct={}, orderMatches=true. The event filter discards these facts
+before comparison, so there is no missing-operator, ordering or identity check.
+
+These are current Java person controls, not invented legacy fact names:
+SessionEvents.java:1683 and :1196 define the records. MainFrame.java:13376 posts
+ProposalItemAnswered for each Yes/No row immediately before ProposalApplyRequested
+in the ordinary T2 review flow; :5391 posts LocalAgentRestartAnswered for the
+restart answer. Other current omitted controls include StartPageNoLogAnswered
+(:13065 in MainFrame), LocalAgentNewChatRequested (:5373) and
+LocalAgentRestartOfferRequested (:5400). Source inspection, not a live UI run,
+establishes these production call sites. Per-row choices are especially relevant
+to the claimed correlation of decisions in the onboarding experiment.
+
+Expected: include current relevant person facts and their references/choices in
+the ordered contract, or explicitly refuse unsupported person controls. A policy
+for forbidden controls should fail closed rather than silently erase evidence.
+Add absent/reordered/wrong-choice and correlated-positive controls using current
+record types. The new basis correctly disclaims independent causal attestation;
+retain that distinction. Matching two recorded streams does not prove origin.
+
+EXECUTED VERIFICATION
+
+- Read CLAUDE.md and docs/ONBOARDING.md fully, the original review, correction
+  handoff, source delta, regression suites and the changed protocol/scorecard.
+- python3 tools/test_m74_onboarding_runner.py: 41 tests, 0 failures/errors/skips.
+- python3 tools/test_m74_onboarding_integrity.py: 20 tests, 0 failures/errors/skips.
+- mvn -o -q -DskipTests test-compile with Corretto 21.0.9 in my worktree:
+  success. Compilation only, not a full Maven test claim.
+- python3 tools/m74_record_pack_crosscheck.py . --check with JDK21:
+  90 current Java verdicts agree; fixture unchanged.
+- python3 tools/test_m74_onboarding_contract.py with JDK21:
+  2 tests, 0 failures/errors/skips. Includes actual Java permission records and
+  deliberate disposable expected-verdict drift; check refuses without rewriting.
+- Replayed eight named current integrity methods against unchanged baseline
+  runner source loaded from git into an isolated in-memory module: 8 methods,
+  11 assertion failures (subcases included), 0 errors/skips. Changed oracle,
+  count mismatch, missing answers, reversed acts, wrong/missing permission
+  identity, external file/directory aliases, obsolete permission shape, and NBSP
+  all fail at their intended assertions. No source/class replacement occurred.
+- Ran actual current Java RecordPermissionFacts against the baseline reader:
+  asked=4, granted=0, deniedBy={PERSON:3, PRE_ALLOWED:1}. Head contract gives
+  granted=1, deniedBy={PERSON:1}, allowedBy={PERSON:1, PRE_ALLOWED:1},
+  undelivered=1. This independently confirms the actual-Java F5 witness.
+- git diff --check dd70ea80..3c8dd23e: success. Own worktree source-clean.
+- New synthetic probes above are preserved at
+  docs/handoff/evidence/pr155-tooling-integrity-2026-10-19/independent-negative-probes.py (recreates temporary fixtures).
+
+CI READ INDEPENDENTLY
+
+https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/39253283880
+has headSha 3c8dd23e4eafa3a03e63233ffa0c8c3ff4d4d1e5. Latest independent read:
+overall in_progress; build, changes, loop-bench and mutation-selftest SUCCESS.
+Build specifically completed both the M74 runner tests and the current-Java
+contracts step successfully. ui-frame and all eight mutation-shards remain
+in_progress; collector completion is not yet established. mutation-feedback is
+SKIPPED. Do not treat this report as complete exact-head gate evidence.
+
+https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/39253255757
+is the same exact head and SUCCESS, but contains only a static job (finished
+project corpus and observer-clock checks). It is not the full gate.
+
+LIMITS
+
+No code fixes, commits, pushes, comments, merge, release or deployment. No full
+local Maven test suite, mutation battery or GUI run; the requested focused suites
+and current-Java checks were executed. No live operator harness, model, hosted
+generator, process reaping, login or sandbox integration was exercised. No
+credentials, home token files or participant projects were read. launch remains
+an explicit refusal and no live-trial readiness is implied. The source/destination
+filesystem trust limitation is documented; I did not test hostile concurrent
+filesystem writers. This review did not audit all teaching content or external
+examples. Full CI remains pending as described above.

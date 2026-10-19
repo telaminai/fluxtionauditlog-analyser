@@ -1,0 +1,29 @@
+PR #155 second response — author verification, NOT independent approval
+Baseline: 3c8dd23e4eafa3a03e63233ffa0c8c3ff4d4d1e5
+
+Before, unchanged baseline production Python:
+- Three new integrity methods: 13 assertion failures / 0 errors / 0 skips.
+  Missing text: two exit-0 false successes; wrong text types: five missing contextual-filename assertions
+  (these types ALREADY refused with exit 2, not false PASS); five missing-person-act false PASS results;
+  unknown fact-bearing operator kind: one false PASS.
+- New actual-Java inventory contract with baseline Python loaded in memory: 1 assertion failure / 0 errors.
+  The 34 added current control types are absent from the old Python map.
+- Preserved named before-fix assertions: response2-before.txt. No production source/class replacement occurred.
+
+After:
+- tools/test_m74_onboarding_runner.py: 41 / 0 / 0 / 0.
+- tools/test_m74_onboarding_integrity.py: 23 / 0 / 0 / 0.
+- tools/test_m74_onboarding_contract.py: 3 / 0 / 0 / 0.
+  Constructs 47 current Java onboarding controls; tests correlation, omissions, wrong fields/order and nested types.
+- m74_record_pack_crosscheck.py --check: 90 agree, no fixture rewrite.
+- Retained independent DEMO probes now return: missing-text exit 2; unaccounted review/restart VOID.
+- mvn -o test: 4255 / 0 / 0 / 348, BUILD SUCCESS; 599 source-mapped XML reports, no orphans.
+  The first sandbox run was 4255 / 0 / 81 / 348, failing local socket fixtures with Operation not permitted.
+  Re-run with normal loopback permission passed; no production/test workaround was applied.
+- Preflight: 73 frame suites / 688 anchors; chart harness unit tests: 5 / 0 / 0 / 0.
+- Python compilation and correction delta diff --check clean; public sweep required before commit and push.
+
+No application Java/generated GraphML change, GUI run, full local mutation battery, generator, live operator,
+provider call, credentials, participant data, merge, release or deploy. New control inventory is explicit,
+not a guarantee for future controls. Correlation is not independent causal attestation. Final exact-head CI
+must be read separately after push; no pre-push or static-only run is final-head approval.
