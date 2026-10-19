@@ -144,7 +144,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   `source {text}` (FIX-9) — confirm and close.
 
 ### M80 · Design definitions ([spec](spec-design-definitions.md))
-- [M80-1] ◧ Source-root discovery/additive context #175 approved at `34acee51`; capped-warning follow-up ▸ [evidence](../handoff/handoff_m80_pr1_2026_10_19.md). Header discovery stays gated; OD-2–OD-5 accepted.
+- [M80-1] ☑ Source-root discovery and additive context, #175 merged to main 2026-10-19 (`2ab4f1e6`), approved at `0cfd86a0`; ▸ [evidence](../handoff/handoff_m80_pr1_2026_10_19.md). Header discovery stays gated; OD-2–OD-5 accepted.
 - [M80-2/3] ☐ Bounded Java anchors/spotlight synonyms, then the multi-file chooser, as separate dependent PRs.
 
 ### M77 · Set up AI — the first-run wizard ([spec](spec-ai-setup-wizard.md), r5; OD-77.1 superseded by M79 OD-79.5)
