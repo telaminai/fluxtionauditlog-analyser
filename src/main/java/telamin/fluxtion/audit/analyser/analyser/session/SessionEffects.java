@@ -30,6 +30,10 @@ public sealed interface SessionEffects {
     record OpenProjectOutputEffect(long opId, long watch, long projectGeneration, long offer,
                                     ProjectOutputsState.File file, ProjectOutputsState.File graph)
             implements SessionEffects { }
+    /** M80: observe authorised definition candidates off the UI thread; the node owns the ticket and selection. */
+    record DiscoverDesignEffect(long opId, long generation) implements SessionEffects { }
+    /** Present the node's discovered zero/one/many state. No session design is silently replaced. */
+    record PresentDesignDiscoveryEffect(long opId, long generation, String file) implements SessionEffects { }
 
     /** Answer the final, EDT-confined report-write check. The adapter acts only on this verdict. */
     record AnswerHostedReportApplyEffect(long opId, String refusal) implements SessionEffects { }

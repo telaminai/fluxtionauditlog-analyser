@@ -54,6 +54,47 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class CustomerApiKeysTest {
 
+    static final Set<String> DESIGN_ECHO_RELEASED = Set.of("relationship", "note", "file", "revision", "beans",
+            "error", "diagnosticsError", "diagnosticsFile", "inputs");
+    static final Set<String> DESIGN_ECHO_ADDITIVE = Set.of("kind", "files", "nodes", "source");
+
+    @Test void designEchoKeepsItsReleasedKeysAndOnlyNamesTheFourAdditions() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/DesignSession.java"));
+        String echo = designEchoBody(source);
+        Set<String> keys = new LinkedHashSet<>();
+        Matcher puts = Pattern.compile("m\\.put\\(\"([^\"]+)\"").matcher(echo);
+        while (puts.find()) keys.add(puts.group(1));
+        Set<String> expected = new LinkedHashSet<>(DESIGN_ECHO_RELEASED); expected.addAll(DESIGN_ECHO_ADDITIVE);
+        assertEquals(expected, keys, "★ T9 nested design keys may only grow through named additive pins");
+        for (boolean java : List.of(false, true)) {
+            var state = new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(
+                    new telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate(),
+                    new telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue());
+            var xml = java ? null : telamin.fluxtion.audit.analyser.analyser.design.DesignDocument.parse("DEMO.xml", "<beans><bean id='a'/></beans>");
+            var builder = java ? telamin.fluxtion.audit.analyser.analyser.design.BuilderDocument.parse("DEMO.java", "class DEMO {}") : null;
+            state.read(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted(java ? "DEMO.java" : "DEMO.xml",
+                    xml, "", true, state.generation(), builder));
+            var actual = state.echo();
+            assertTrue(expected.containsAll(actual.keySet()));
+            assertTrue(actual.keySet().containsAll(DESIGN_ECHO_ADDITIVE.stream().filter(k -> !k.equals("files")).toList()));
+            List<String> released = new ArrayList<>(actual.keySet()); released.retainAll(DESIGN_ECHO_RELEASED);
+            assertEquals(List.of("relationship", "note", "file", "revision", "beans"), released);
+            assertEquals(java ? List.of() : List.of("a"), actual.get("beans"));
+        }
+    }
+
+    static String designEchoBody(String source) {
+        return telamin.fluxtion.audit.analyser.analyser.ui.OneDispatchModelTestAccess.bodyOf(source, "public Map<String, Object> echo()");
+    }
+
+    @Test void designEchoExtractionExcludesLaterMethods() {
+        String source = "class DEMO { public Map<String, Object> echo() { m.put(\"kind\", \"none\"); return m; } "
+                + "void later() { m.put(\"notAnEchoKey\", true); } }";
+        String body = designEchoBody(source);
+        assertTrue(body.contains("m.put(\"kind\""));
+        assertFalse(body.contains("notAnEchoKey"),"★ T9 must inspect only echo, not later methods");
+    }
+
     @Test
     void theHostedAssistantActivityHasFourAdditiveReadOnlyFields() {
         var activity = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ActivityText.context(

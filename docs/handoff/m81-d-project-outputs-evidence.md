@@ -31,17 +31,17 @@ paused writers, malformed contents and metadata-preserving rewrites remain possi
 used. Opening retains the existing read/parse checks.
 
 The candidate scans depth 12, at most 10,000 entries and 100 output candidates, excluding `.git`, `.claude` and
-`node_modules`. GraphML is discovered under the real project root. Declared/current local-log directories currently
-contribute candidates only inside that root. The interpretation of declared/current log directories outside the
-root has been surfaced for owner confirmation before publication; it is not silently treated as an answered scope
-decision. Escaping symlinks, empty files and incomplete/over-limit observations cannot confirm stability.
+`node_modules`. GraphML is discovered under the real project root. Declared/current local-log directories
+contribute candidates only inside that root. The owner explicitly approved this root-only scope on 2026-10-19;
+outside-root configured/current log folders are deferred to a later explicit opt-in. Escaping symlinks, empty files
+and incomplete/over-limit observations cannot confirm stability.
 The first complete observation is the baseline, not an offer for every pre-existing file. A file created and
 removed entirely between samples, or already present in that initial baseline, cannot be reconstructed from polling.
 Correlation retains eight known turn ids and at most 800 completed-open receipts, pruning absent/superseded
 revisions after complete scans. Missing/expired/over-limit proof leaves ordinary offers possible; it never invents
 permission or successful application.
 
-## Evidence so far
+## Evidence at retained checkpoint `1b346e804e0f56b423650de6ec7a7ba7f3691197`
 
 - Before implementation, `ProjectOutputsTest#normalProjectsUseTheGeneralWatch` failed its named assertion that an
   ordinary open project must request general output observations: one failure, no error or skip. The regenerated
@@ -82,4 +82,25 @@ permission or successful application.
 
 No live CLI, model, paid provider, participant project, real Claude configuration or credential inspection was used.
 Native tests use isolated DEMO projects and simulated CLI/session facts. CI and independent approval are not yet
-claimed; this file will be updated with exact committed-head gates before publication.
+claimed; they must be checked separately at the published PR head.
+
+## Current-main integration and publication gates
+
+The retained checkpoint was integrated by a normal merge, not a rebase, with main
+`e03d2028a941e38c92c6ee59e71a465cad6a5550`. Both M80 discovery effects and D output effects are retained, along
+with both frame-list registrations. The combined processor/GraphML were regenerated, never hand-merged. Main
+independently contains the introducing-release changelog-test fix; the maintained release-boundary control was
+adapted to its equivalent implementation without weakening the assertions.
+
+- Full merged-source Maven: **4,345 tests, zero failures/errors, 357 headless display skips**; 615 source-mapped
+  reports, zero orphans.
+- Nine sequential native suites: the eight listed above plus `M80DesignDiscoveryFrameTest`, **51 cases, zero
+  failures/errors/skips**, shared display lock held.
+- All **18** maintained controls caught named assertion RED and restored GREEN in **213.0 s**, with source and
+  class trees byte-identical after every control. This includes the actual Open listener, hosted HTTP-to-EDT
+  origin, successful application versus admission, pending/deferred/old-watch guards and the starter cue.
+- Strict MkDocs and preflight passed: **78 frame suites, 724 anchors**. Python onboarding contract: three tests
+  passed. D's changelog entries remain under the new `[Unreleased]`, not 1.37.0.
+
+These are local publication-tree gates, not an independent approval or a claim that the entire native/mutation
+matrix was run locally. Exact-head CI is reported separately. B remains excluded and closed unmerged.

@@ -23,9 +23,9 @@
     <key id="fluxtion.relationshipCount" for="edge" attr.name="fluxtion.relationshipCount" attr.type="int"/>
     <graph edgedefault="directed">
         <data key="fluxtion.metaVersion">1.0</data>
-        <data key="fluxtion.sourceFingerprint">9a7e5f7f1fbfa2113730e40723491eb86559f439a3bceeaebb8e2f57d10b74d3</data>
+        <data key="fluxtion.sourceFingerprint">3c61a755e7ee8bb43fe5b0da95de21c160951ab8f1430e4642caa44c7aced068</data>
         <data key="fluxtion.toolchainVersion">1.0.76</data>
-        <data key="fluxtion.nodeCount">252</data>
+        <data key="fluxtion.nodeCount">254</data>
         <data key="fluxtion.authoredNodeCount">36</data>
         <node id="ActionListenerConfigured">
             <data key="vertex_label">
@@ -664,6 +664,28 @@
             </data>
             <data key="fluxtion.kind">EVENT</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$CloseRequested</data>
+        </node>
+        <node id="DiscoveryCompleted">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;DiscoveryCompleted&#10;class:telamin.fluxtion.audit.analyser.analyser.design.DesignEvents$DiscoveryCompleted&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.design.DesignEvents$DiscoveryCompleted</data>
+        </node>
+        <node id="DiscoveryRequested">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;DiscoveryRequested&#10;class:telamin.fluxtion.audit.analyser.analyser.design.DesignEvents$DiscoveryRequested&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.design.DesignEvents$DiscoveryRequested</data>
         </node>
         <node id="DraftPlaced">
             <data key="vertex_label">
@@ -2372,7 +2394,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">29</data>
+            <data key="fluxtion.topologicalRank">28</data>
         </node>
         <node id="assistantLoop">
             <data key="vertex_label">
@@ -2388,7 +2410,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">26</data>
+            <data key="fluxtion.topologicalRank">25</data>
         </node>
         <node id="assistantMode">
             <data key="vertex_label">
@@ -2404,7 +2426,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">18</data>
+            <data key="fluxtion.topologicalRank">17</data>
         </node>
         <node id="auditInstallation">
             <data key="vertex_label">
@@ -2420,7 +2442,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">14</data>
+            <data key="fluxtion.topologicalRank">13</data>
         </node>
         <node id="bundleAnchor">
             <data key="vertex_label">
@@ -2436,7 +2458,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">40</data>
+            <data key="fluxtion.topologicalRank">39</data>
         </node>
         <node id="callbackDispatcher">
             <data key="vertex_label">
@@ -2482,7 +2504,7 @@
             <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
-            <data key="fluxtion.topologicalRank">36</data>
+            <data key="fluxtion.topologicalRank">35</data>
         </node>
         <node id="coverageClaim">
             <data key="vertex_label">
@@ -2498,7 +2520,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">22</data>
+            <data key="fluxtion.topologicalRank">21</data>
         </node>
         <node id="designSession">
             <data key="vertex_label">
@@ -2514,7 +2536,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">8</data>
+            <data key="fluxtion.topologicalRank">40</data>
         </node>
         <node id="effectOutcomes">
             <data key="vertex_label">
@@ -2530,7 +2552,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">9</data>
+            <data key="fluxtion.topologicalRank">8</data>
         </node>
         <node id="effectQueue">
             <data key="vertex_label">
@@ -2546,7 +2568,7 @@
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.callbackKinds">BATCH_END,SERVICE_REGISTERED</data>
-            <data key="fluxtion.topologicalRank">39</data>
+            <data key="fluxtion.topologicalRank">38</data>
         </node>
         <node id="eventLogger">
             <data key="vertex_label">
@@ -2578,7 +2600,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">16</data>
+            <data key="fluxtion.topologicalRank">15</data>
         </node>
         <node id="exampleDownload">
             <data key="vertex_label">
@@ -2626,7 +2648,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">10</data>
+            <data key="fluxtion.topologicalRank">9</data>
         </node>
         <node id="localAgentSession">
             <data key="vertex_label">
@@ -2642,7 +2664,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">17</data>
+            <data key="fluxtion.topologicalRank">16</data>
         </node>
         <node id="logArrival">
             <data key="vertex_label">
@@ -2658,7 +2680,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">23</data>
+            <data key="fluxtion.topologicalRank">22</data>
         </node>
         <node id="logEvidence">
             <data key="vertex_label">
@@ -2674,7 +2696,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT,ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">19</data>
+            <data key="fluxtion.topologicalRank">18</data>
         </node>
         <node id="logOpening">
             <data key="vertex_label">
@@ -2690,7 +2712,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">11</data>
+            <data key="fluxtion.topologicalRank">10</data>
         </node>
         <node id="nodeNameLookup">
             <data key="vertex_label">
@@ -2721,7 +2743,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">20</data>
+            <data key="fluxtion.topologicalRank">19</data>
         </node>
         <node id="openBundle">
             <data key="vertex_label">
@@ -2737,7 +2759,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">12</data>
+            <data key="fluxtion.topologicalRank">11</data>
         </node>
         <node id="openGraph">
             <data key="vertex_label">
@@ -2753,7 +2775,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">13</data>
+            <data key="fluxtion.topologicalRank">12</data>
         </node>
         <node id="openLog">
             <data key="vertex_label">
@@ -2769,7 +2791,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">15</data>
+            <data key="fluxtion.topologicalRank">14</data>
         </node>
         <node id="operationGate">
             <data key="vertex_label">
@@ -2801,7 +2823,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">21</data>
+            <data key="fluxtion.topologicalRank">20</data>
         </node>
         <node id="pairingQualifier">
             <data key="vertex_label">
@@ -2817,7 +2839,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT,ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">24</data>
+            <data key="fluxtion.topologicalRank">23</data>
         </node>
         <node id="projectOutputs">
             <data key="vertex_label">
@@ -2833,7 +2855,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">33</data>
+            <data key="fluxtion.topologicalRank">32</data>
         </node>
         <node id="projectReopenOffer">
             <data key="vertex_label">
@@ -2865,7 +2887,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT,ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">25</data>
+            <data key="fluxtion.topologicalRank">24</data>
         </node>
         <node id="serviceRegistry">
             <data key="vertex_label">
@@ -2881,7 +2903,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">EXPORT_SERVICE</data>
-            <data key="fluxtion.topologicalRank">37</data>
+            <data key="fluxtion.topologicalRank">36</data>
         </node>
         <node id="sessionBoundary">
             <data key="vertex_label">
@@ -2897,7 +2919,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">32</data>
+            <data key="fluxtion.topologicalRank">31</data>
         </node>
         <node id="sessionRecovery">
             <data key="vertex_label">
@@ -2913,7 +2935,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">27</data>
+            <data key="fluxtion.topologicalRank">26</data>
         </node>
         <node id="startPageNoLogHint">
             <data key="vertex_label">
@@ -2929,7 +2951,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">28</data>
+            <data key="fluxtion.topologicalRank">27</data>
         </node>
         <node id="startPagePrompt">
             <data key="vertex_label">
@@ -2945,7 +2967,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">30</data>
+            <data key="fluxtion.topologicalRank">29</data>
         </node>
         <node id="starterProject">
             <data key="vertex_label">
@@ -2961,7 +2983,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">31</data>
+            <data key="fluxtion.topologicalRank">30</data>
         </node>
         <node id="statusLine">
             <data key="vertex_label">
@@ -2977,7 +2999,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">34</data>
+            <data key="fluxtion.topologicalRank">33</data>
         </node>
         <node id="subscriptionManager">
             <data key="vertex_label">
@@ -2993,7 +3015,7 @@
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.callbackKinds">SERVICE_REGISTERED,SERVICE_DEREGISTERED,TEAR_DOWN</data>
-            <data key="fluxtion.topologicalRank">35</data>
+            <data key="fluxtion.topologicalRank">34</data>
         </node>
         <node id="walkPlayback">
             <data key="vertex_label">
@@ -3009,7 +3031,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT,ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">38</data>
+            <data key="fluxtion.topologicalRank">37</data>
         </node>
         <edge id="1" source="ActionListenerConfigured" target="actionListener">
             <data key="edge_label">
@@ -3571,7 +3593,23 @@
             <data key="fluxtion.handlerMethod">onCloseRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="71" source="DraftPlaced" target="localAgentSession">
+        <edge id="71" source="DiscoveryCompleted" target="designSession">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">discovered</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="72" source="DiscoveryRequested" target="designSession">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">discover</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="73" source="DraftPlaced" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3579,7 +3617,7 @@
             <data key="fluxtion.handlerMethod">onDraftPlaced</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="72" source="EffectFailed" target="assistantLoop">
+        <edge id="74" source="EffectFailed" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3587,7 +3625,7 @@
             <data key="fluxtion.handlerMethod">onEffectFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="73" source="EffectFailed" target="effectOutcomes">
+        <edge id="75" source="EffectFailed" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3595,7 +3633,7 @@
             <data key="fluxtion.handlerMethod">onEffectFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="74" source="EffectFailed" target="operationGate">
+        <edge id="76" source="EffectFailed" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3603,7 +3641,7 @@
             <data key="fluxtion.handlerMethod">onEffectFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="75" source="EffectFailed" target="sessionBoundary">
+        <edge id="77" source="EffectFailed" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3611,7 +3649,7 @@
             <data key="fluxtion.handlerMethod">onEffectFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="76" source="EventLogControlEvent" target="eventLogger">
+        <edge id="78" source="EventLogControlEvent" target="eventLogger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3619,7 +3657,7 @@
             <data key="fluxtion.handlerMethod">calculationLogConfig</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="77" source="ExampleDeadlinePassed" target="exampleDownload">
+        <edge id="79" source="ExampleDeadlinePassed" target="exampleDownload">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3627,7 +3665,7 @@
             <data key="fluxtion.handlerMethod">onDeadline</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="78" source="ExampleDownloadConfirmed" target="exampleDownload">
+        <edge id="80" source="ExampleDownloadConfirmed" target="exampleDownload">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3635,7 +3673,7 @@
             <data key="fluxtion.handlerMethod">onConfirmed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="79" source="ExampleDownloadRequested" target="exampleDownload">
+        <edge id="81" source="ExampleDownloadRequested" target="exampleDownload">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3643,7 +3681,7 @@
             <data key="fluxtion.handlerMethod">onRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="80" source="ExampleEffectStarted" target="exampleDownload">
+        <edge id="82" source="ExampleEffectStarted" target="exampleDownload">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3651,7 +3689,7 @@
             <data key="fluxtion.handlerMethod">onEffectStarted</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="81" source="ExampleFetched" target="exampleDownload">
+        <edge id="83" source="ExampleFetched" target="exampleDownload">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3659,7 +3697,7 @@
             <data key="fluxtion.handlerMethod">onFetched</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="82" source="ExampleUnpacked" target="exampleDownload">
+        <edge id="84" source="ExampleUnpacked" target="exampleDownload">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3667,7 +3705,7 @@
             <data key="fluxtion.handlerMethod">onUnpacked</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="83" source="ExternalAccessAnswered" target="actionListener">
+        <edge id="85" source="ExternalAccessAnswered" target="actionListener">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3675,7 +3713,7 @@
             <data key="fluxtion.handlerMethod">onExternalAccessAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="84" source="ExternalAccessAnswered" target="aiSetup">
+        <edge id="86" source="ExternalAccessAnswered" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3683,7 +3721,7 @@
             <data key="fluxtion.handlerMethod">onExternalAccessAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="85" source="ExternalAccessChosen" target="actionListener">
+        <edge id="87" source="ExternalAccessChosen" target="actionListener">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3691,7 +3729,7 @@
             <data key="fluxtion.handlerMethod">onExternalChosen</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="86" source="ExternalAccessChosen" target="aiSetup">
+        <edge id="88" source="ExternalAccessChosen" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3699,7 +3737,7 @@
             <data key="fluxtion.handlerMethod">onExternalChosen</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="87" source="ExternalAccessRequested" target="actionListener">
+        <edge id="89" source="ExternalAccessRequested" target="actionListener">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3707,7 +3745,7 @@
             <data key="fluxtion.handlerMethod">onExternalAccessRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="88" source="ExternalAccessRequested" target="aiSetup">
+        <edge id="90" source="ExternalAccessRequested" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3715,7 +3753,7 @@
             <data key="fluxtion.handlerMethod">onExternalAccessRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="89" source="ExternalClientSeen" target="aiSetup">
+        <edge id="91" source="ExternalClientSeen" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3723,7 +3761,7 @@
             <data key="fluxtion.handlerMethod">onClientSeen</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="90" source="Finished" target="sessionRecovery">
+        <edge id="92" source="Finished" target="sessionRecovery">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3731,7 +3769,7 @@
             <data key="fluxtion.handlerMethod">finished</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="91" source="FollowSet" target="evidenceCapture">
+        <edge id="93" source="FollowSet" target="evidenceCapture">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3739,7 +3777,7 @@
             <data key="fluxtion.handlerMethod">onFollowSet</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="92" source="FollowToggled" target="openLog">
+        <edge id="94" source="FollowToggled" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3747,7 +3785,7 @@
             <data key="fluxtion.handlerMethod">onFollowToggled</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="93" source="GraphCleared" target="assistantLoop">
+        <edge id="95" source="GraphCleared" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3755,7 +3793,7 @@
             <data key="fluxtion.handlerMethod">onGraphCleared</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="94" source="GraphCleared" target="openGraph">
+        <edge id="96" source="GraphCleared" target="openGraph">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3763,7 +3801,7 @@
             <data key="fluxtion.handlerMethod">onGraphCleared</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="95" source="GraphCleared" target="operationGate">
+        <edge id="97" source="GraphCleared" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3771,7 +3809,7 @@
             <data key="fluxtion.handlerMethod">onGraphCleared</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="96" source="GraphClosed" target="assistantLoop">
+        <edge id="98" source="GraphClosed" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3779,7 +3817,7 @@
             <data key="fluxtion.handlerMethod">onGraphClosed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="97" source="GraphClosed" target="effectOutcomes">
+        <edge id="99" source="GraphClosed" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3787,7 +3825,7 @@
             <data key="fluxtion.handlerMethod">onGraphClosed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="98" source="GraphClosed" target="openGraph">
+        <edge id="100" source="GraphClosed" target="openGraph">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3795,7 +3833,7 @@
             <data key="fluxtion.handlerMethod">onGraphClosed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="99" source="GraphClosed" target="operationGate">
+        <edge id="101" source="GraphClosed" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3803,7 +3841,7 @@
             <data key="fluxtion.handlerMethod">onGraphClosed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="100" source="GraphOpened" target="assistantLoop">
+        <edge id="102" source="GraphOpened" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3811,7 +3849,7 @@
             <data key="fluxtion.handlerMethod">onGraphOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="101" source="GraphOpened" target="onboardingProposal">
+        <edge id="103" source="GraphOpened" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3819,7 +3857,7 @@
             <data key="fluxtion.handlerMethod">onGraphOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="102" source="GraphOpened" target="openGraph">
+        <edge id="104" source="GraphOpened" target="openGraph">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3827,7 +3865,7 @@
             <data key="fluxtion.handlerMethod">onGraphOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="103" source="GraphOpened" target="operationGate">
+        <edge id="105" source="GraphOpened" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3835,7 +3873,7 @@
             <data key="fluxtion.handlerMethod">onGraphOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="104" source="GraphOpened" target="projectReopenOffer">
+        <edge id="106" source="GraphOpened" target="projectReopenOffer">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3843,7 +3881,7 @@
             <data key="fluxtion.handlerMethod">onGraphOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="105" source="HostedCallAbandoned" target="localAgentPermission">
+        <edge id="107" source="HostedCallAbandoned" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3851,7 +3889,7 @@
             <data key="fluxtion.handlerMethod">onHostedCallAbandoned</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="106" source="HostedCallPresented" target="localAgentPermission">
+        <edge id="108" source="HostedCallPresented" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3859,7 +3897,7 @@
             <data key="fluxtion.handlerMethod">onHostedCall</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="107" source="HostedCallRefusedByServer" target="localAgentSession">
+        <edge id="109" source="HostedCallRefusedByServer" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3867,7 +3905,7 @@
             <data key="fluxtion.handlerMethod">onHostedRefusedByServer</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="108" source="HostedProjectOutputOpened" target="projectOutputs">
+        <edge id="110" source="HostedProjectOutputOpened" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3875,7 +3913,7 @@
             <data key="fluxtion.handlerMethod">onHostedOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="109" source="HostedReportApplyRequested" target="localAgentPermission">
+        <edge id="111" source="HostedReportApplyRequested" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3883,7 +3921,7 @@
             <data key="fluxtion.handlerMethod">onHostedReportApply</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="110" source="HostedReportWritten" target="localAgentPermission">
+        <edge id="112" source="HostedReportWritten" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3891,7 +3929,7 @@
             <data key="fluxtion.handlerMethod">onHostedReportWritten</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="111" source="LocalAgentActivityAcknowledged" target="localAgentSession">
+        <edge id="113" source="LocalAgentActivityAcknowledged" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3899,7 +3937,7 @@
             <data key="fluxtion.handlerMethod">onActivityAcknowledged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="112" source="LocalAgentActivityTick" target="localAgentSession">
+        <edge id="114" source="LocalAgentActivityTick" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3907,7 +3945,7 @@
             <data key="fluxtion.handlerMethod">onActivityTick</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="113" source="LocalAgentAskAgainRequested" target="localAgentSession">
+        <edge id="115" source="LocalAgentAskAgainRequested" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3915,7 +3953,7 @@
             <data key="fluxtion.handlerMethod">onAskAgain</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="114" source="LocalAgentBridgeServed" target="actionListener">
+        <edge id="116" source="LocalAgentBridgeServed" target="actionListener">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3923,7 +3961,7 @@
             <data key="fluxtion.handlerMethod">onBridgeServed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="115" source="LocalAgentBridgeServed" target="localAgentSession">
+        <edge id="117" source="LocalAgentBridgeServed" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3931,7 +3969,7 @@
             <data key="fluxtion.handlerMethod">onBridgeServed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="116" source="LocalAgentCallAdmissionRequested" target="localAgentSession">
+        <edge id="118" source="LocalAgentCallAdmissionRequested" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3939,7 +3977,7 @@
             <data key="fluxtion.handlerMethod">onCallAdmission</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="117" source="LocalAgentConsentChanged" target="localAgentPermission">
+        <edge id="119" source="LocalAgentConsentChanged" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3947,7 +3985,7 @@
             <data key="fluxtion.handlerMethod">onConsentChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="118" source="LocalAgentConsentChanged" target="localAgentSession">
+        <edge id="120" source="LocalAgentConsentChanged" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3955,7 +3993,7 @@
             <data key="fluxtion.handlerMethod">onConsentChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="119" source="LocalAgentCostObserved" target="localAgentSession">
+        <edge id="121" source="LocalAgentCostObserved" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3963,7 +4001,7 @@
             <data key="fluxtion.handlerMethod">onCostObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="120" source="LocalAgentDiagnostics" target="localAgentSession">
+        <edge id="122" source="LocalAgentDiagnostics" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3971,7 +4009,7 @@
             <data key="fluxtion.handlerMethod">onDiagnostics</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="121" source="LocalAgentDraftComposed" target="localAgentSession">
+        <edge id="123" source="LocalAgentDraftComposed" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3979,7 +4017,7 @@
             <data key="fluxtion.handlerMethod">onDraftComposed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="122" source="LocalAgentEffectStarted" target="localAgentSession">
+        <edge id="124" source="LocalAgentEffectStarted" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3987,7 +4025,7 @@
             <data key="fluxtion.handlerMethod">onEffectStarted</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="123" source="LocalAgentExited" target="localAgentPermission">
+        <edge id="125" source="LocalAgentExited" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -3995,7 +4033,7 @@
             <data key="fluxtion.handlerMethod">onExited</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="124" source="LocalAgentExited" target="localAgentSession">
+        <edge id="126" source="LocalAgentExited" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4003,7 +4041,7 @@
             <data key="fluxtion.handlerMethod">onExited</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="125" source="LocalAgentExited" target="projectOutputs">
+        <edge id="127" source="LocalAgentExited" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4011,7 +4049,7 @@
             <data key="fluxtion.handlerMethod">onExited</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="126" source="LocalAgentFolderAnswered" target="localAgentSession">
+        <edge id="128" source="LocalAgentFolderAnswered" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4019,7 +4057,7 @@
             <data key="fluxtion.handlerMethod">onFolderAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="127" source="LocalAgentGrantExpired" target="localAgentPermission">
+        <edge id="129" source="LocalAgentGrantExpired" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4027,7 +4065,7 @@
             <data key="fluxtion.handlerMethod">onGrantExpired</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="128" source="LocalAgentHookObserved" target="localAgentSession">
+        <edge id="130" source="LocalAgentHookObserved" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4035,7 +4073,7 @@
             <data key="fluxtion.handlerMethod">onHookObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="129" source="LocalAgentInitObserved" target="localAgentSession">
+        <edge id="131" source="LocalAgentInitObserved" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4043,7 +4081,7 @@
             <data key="fluxtion.handlerMethod">onInitObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="130" source="LocalAgentInitialized" target="localAgentSession">
+        <edge id="132" source="LocalAgentInitialized" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4051,7 +4089,7 @@
             <data key="fluxtion.handlerMethod">onInitialized</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="131" source="LocalAgentInterruptAcked" target="localAgentSession">
+        <edge id="133" source="LocalAgentInterruptAcked" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4059,7 +4097,7 @@
             <data key="fluxtion.handlerMethod">onInterruptAcked</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="132" source="LocalAgentModeObserved" target="localAgentSession">
+        <edge id="134" source="LocalAgentModeObserved" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4067,7 +4105,7 @@
             <data key="fluxtion.handlerMethod">onModeObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="133" source="LocalAgentNewChatRequested" target="localAgentPermission">
+        <edge id="135" source="LocalAgentNewChatRequested" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4075,7 +4113,7 @@
             <data key="fluxtion.handlerMethod">onNewChat</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="134" source="LocalAgentNewChatRequested" target="localAgentSession">
+        <edge id="136" source="LocalAgentNewChatRequested" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4083,7 +4121,7 @@
             <data key="fluxtion.handlerMethod">onNewChatRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="135" source="LocalAgentNoted" target="localAgentSession">
+        <edge id="137" source="LocalAgentNoted" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4091,7 +4129,7 @@
             <data key="fluxtion.handlerMethod">onNoted</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="136" source="LocalAgentPermissionAnswered" target="localAgentPermission">
+        <edge id="138" source="LocalAgentPermissionAnswered" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4099,7 +4137,7 @@
             <data key="fluxtion.handlerMethod">onAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="137" source="LocalAgentPermissionCancelled" target="localAgentPermission">
+        <edge id="139" source="LocalAgentPermissionCancelled" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4107,7 +4145,7 @@
             <data key="fluxtion.handlerMethod">onCancelled</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="138" source="LocalAgentPermissionChosen" target="localAgentPermission">
+        <edge id="140" source="LocalAgentPermissionChosen" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4115,7 +4153,7 @@
             <data key="fluxtion.handlerMethod">onChosen</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="139" source="LocalAgentPermissionDeadline" target="localAgentPermission">
+        <edge id="141" source="LocalAgentPermissionDeadline" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4123,7 +4161,7 @@
             <data key="fluxtion.handlerMethod">onDeadline</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="140" source="LocalAgentPermissionRequested" target="localAgentPermission">
+        <edge id="142" source="LocalAgentPermissionRequested" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4131,7 +4169,7 @@
             <data key="fluxtion.handlerMethod">onRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="141" source="LocalAgentProgressObserved" target="localAgentSession">
+        <edge id="143" source="LocalAgentProgressObserved" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4139,7 +4177,7 @@
             <data key="fluxtion.handlerMethod">onProgress</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="142" source="LocalAgentRestartAnswered" target="localAgentSession">
+        <edge id="144" source="LocalAgentRestartAnswered" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4147,7 +4185,7 @@
             <data key="fluxtion.handlerMethod">onRestartAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="143" source="LocalAgentRestartOfferRequested" target="localAgentSession">
+        <edge id="145" source="LocalAgentRestartOfferRequested" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4155,7 +4193,7 @@
             <data key="fluxtion.handlerMethod">onRestartOfferRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="144" source="LocalAgentSendRequested" target="aiSetup">
+        <edge id="146" source="LocalAgentSendRequested" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4163,7 +4201,7 @@
             <data key="fluxtion.handlerMethod">onLocalAgentSend</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="145" source="LocalAgentSendRequested" target="localAgentSession">
+        <edge id="147" source="LocalAgentSendRequested" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4171,7 +4209,7 @@
             <data key="fluxtion.handlerMethod">onSendRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="146" source="LocalAgentSetupDirectoryChosen" target="localAgentSession">
+        <edge id="148" source="LocalAgentSetupDirectoryChosen" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4179,7 +4217,7 @@
             <data key="fluxtion.handlerMethod">onSetupDirectoryChosen</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="147" source="LocalAgentSpawned" target="localAgentSession">
+        <edge id="149" source="LocalAgentSpawned" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4187,7 +4225,7 @@
             <data key="fluxtion.handlerMethod">onSpawned</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="148" source="LocalAgentSpawned" target="starterProject">
+        <edge id="150" source="LocalAgentSpawned" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4195,7 +4233,7 @@
             <data key="fluxtion.handlerMethod">onSpawned</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="149" source="LocalAgentStartDeadline" target="localAgentSession">
+        <edge id="151" source="LocalAgentStartDeadline" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4203,7 +4241,7 @@
             <data key="fluxtion.handlerMethod">onStartDeadline</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="150" source="LocalAgentStartRequested" target="aiSetup">
+        <edge id="152" source="LocalAgentStartRequested" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4211,7 +4249,7 @@
             <data key="fluxtion.handlerMethod">onStartRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="151" source="LocalAgentStartRequested" target="localAgentSession">
+        <edge id="153" source="LocalAgentStartRequested" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4219,7 +4257,7 @@
             <data key="fluxtion.handlerMethod">onStartRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="152" source="LocalAgentStatusObserved" target="localAgentSession">
+        <edge id="154" source="LocalAgentStatusObserved" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4227,7 +4265,7 @@
             <data key="fluxtion.handlerMethod">onStatusObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="153" source="LocalAgentStopDeadline" target="localAgentSession">
+        <edge id="155" source="LocalAgentStopDeadline" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4235,7 +4273,7 @@
             <data key="fluxtion.handlerMethod">onStopDeadline</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="154" source="LocalAgentStopRequested" target="localAgentPermission">
+        <edge id="156" source="LocalAgentStopRequested" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4243,7 +4281,7 @@
             <data key="fluxtion.handlerMethod">onStopRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="155" source="LocalAgentStopRequested" target="localAgentSession">
+        <edge id="157" source="LocalAgentStopRequested" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4251,7 +4289,7 @@
             <data key="fluxtion.handlerMethod">onStopRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="156" source="LocalAgentSwitchChosen" target="localAgentSession">
+        <edge id="158" source="LocalAgentSwitchChosen" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4259,7 +4297,7 @@
             <data key="fluxtion.handlerMethod">onSwitchChosen</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="157" source="LocalAgentSwitchChosen" target="sessionBoundary">
+        <edge id="159" source="LocalAgentSwitchChosen" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4267,7 +4305,7 @@
             <data key="fluxtion.handlerMethod">onSwitchChosen</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="158" source="LocalAgentTextUpdated" target="localAgentSession">
+        <edge id="160" source="LocalAgentTextUpdated" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4275,7 +4313,7 @@
             <data key="fluxtion.handlerMethod">onTextUpdated</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="159" source="LocalAgentToolFinished" target="localAgentSession">
+        <edge id="161" source="LocalAgentToolFinished" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4283,7 +4321,7 @@
             <data key="fluxtion.handlerMethod">onToolFinished</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="160" source="LocalAgentToolStarted" target="localAgentSession">
+        <edge id="162" source="LocalAgentToolStarted" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4291,7 +4329,7 @@
             <data key="fluxtion.handlerMethod">onToolStarted</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="161" source="LocalAgentTurnEnded" target="localAgentPermission">
+        <edge id="163" source="LocalAgentTurnEnded" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4299,7 +4337,7 @@
             <data key="fluxtion.handlerMethod">onTurnEnded</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="162" source="LocalAgentTurnEnded" target="localAgentSession">
+        <edge id="164" source="LocalAgentTurnEnded" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4307,7 +4345,7 @@
             <data key="fluxtion.handlerMethod">onTurnEnded</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="163" source="LocalAgentTurnEnded" target="projectOutputs">
+        <edge id="165" source="LocalAgentTurnEnded" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4315,7 +4353,7 @@
             <data key="fluxtion.handlerMethod">onTurnEnded</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="164" source="LocalAgentTurnStarted" target="localAgentSession">
+        <edge id="166" source="LocalAgentTurnStarted" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4323,7 +4361,7 @@
             <data key="fluxtion.handlerMethod">onTurnStarted</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="165" source="LocalAgentTurnStarted" target="projectOutputs">
+        <edge id="167" source="LocalAgentTurnStarted" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4331,7 +4369,7 @@
             <data key="fluxtion.handlerMethod">onTurnStarted</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="166" source="LogAppended" target="logEvidence">
+        <edge id="168" source="LogAppended" target="logEvidence">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4339,7 +4377,7 @@
             <data key="fluxtion.handlerMethod">onLogAppended</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="167" source="LogAppended" target="openLog">
+        <edge id="169" source="LogAppended" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4347,7 +4385,7 @@
             <data key="fluxtion.handlerMethod">onLogAppended</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="168" source="LogAppended" target="operationGate">
+        <edge id="170" source="LogAppended" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4355,7 +4393,7 @@
             <data key="fluxtion.handlerMethod">onLogAppended</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="169" source="LogAppended" target="recordsView">
+        <edge id="171" source="LogAppended" target="recordsView">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4363,7 +4401,7 @@
             <data key="fluxtion.handlerMethod">onLogAppended</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="170" source="LogCleared" target="assistantLoop">
+        <edge id="172" source="LogCleared" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4371,7 +4409,7 @@
             <data key="fluxtion.handlerMethod">onLogCleared</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="171" source="LogCleared" target="openLog">
+        <edge id="173" source="LogCleared" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4379,7 +4417,7 @@
             <data key="fluxtion.handlerMethod">onLogCleared</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="172" source="LogCleared" target="operationGate">
+        <edge id="174" source="LogCleared" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4387,7 +4425,7 @@
             <data key="fluxtion.handlerMethod">onLogCleared</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="173" source="LogClosed" target="assistantLoop">
+        <edge id="175" source="LogClosed" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4395,7 +4433,7 @@
             <data key="fluxtion.handlerMethod">onLogClosed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="174" source="LogClosed" target="effectOutcomes">
+        <edge id="176" source="LogClosed" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4403,7 +4441,7 @@
             <data key="fluxtion.handlerMethod">onLogClosed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="175" source="LogClosed" target="openLog">
+        <edge id="177" source="LogClosed" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4411,7 +4449,7 @@
             <data key="fluxtion.handlerMethod">onLogClosed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="176" source="LogClosed" target="operationGate">
+        <edge id="178" source="LogClosed" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4419,7 +4457,7 @@
             <data key="fluxtion.handlerMethod">onLogClosed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="177" source="LogContentObserved" target="logEvidence">
+        <edge id="179" source="LogContentObserved" target="logEvidence">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4427,7 +4465,7 @@
             <data key="fluxtion.handlerMethod">onLogContentObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="178" source="LogIdentityObserved" target="openLog">
+        <edge id="180" source="LogIdentityObserved" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4435,7 +4473,7 @@
             <data key="fluxtion.handlerMethod">onLogIdentityObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="179" source="LogOpenFailed" target="assistantLoop">
+        <edge id="181" source="LogOpenFailed" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4443,7 +4481,7 @@
             <data key="fluxtion.handlerMethod">onLogOpenFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="180" source="LogOpenFailed" target="effectOutcomes">
+        <edge id="182" source="LogOpenFailed" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4451,7 +4489,7 @@
             <data key="fluxtion.handlerMethod">onLogOpenFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="181" source="LogOpenFailed" target="logOpening">
+        <edge id="183" source="LogOpenFailed" target="logOpening">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4459,7 +4497,7 @@
             <data key="fluxtion.handlerMethod">onLogOpenFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="182" source="LogOpenFailed" target="onboardingProposal">
+        <edge id="184" source="LogOpenFailed" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4467,7 +4505,7 @@
             <data key="fluxtion.handlerMethod">onLogOpenFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="183" source="LogOpenFailed" target="operationGate">
+        <edge id="185" source="LogOpenFailed" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4475,7 +4513,7 @@
             <data key="fluxtion.handlerMethod">onLogOpenFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="184" source="LogOpened" target="assistantLoop">
+        <edge id="186" source="LogOpened" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4483,7 +4521,7 @@
             <data key="fluxtion.handlerMethod">onLogOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="185" source="LogOpened" target="effectOutcomes">
+        <edge id="187" source="LogOpened" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4491,7 +4529,7 @@
             <data key="fluxtion.handlerMethod">onLogOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="186" source="LogOpened" target="logArrival">
+        <edge id="188" source="LogOpened" target="logArrival">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4499,7 +4537,7 @@
             <data key="fluxtion.handlerMethod">onLogOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="187" source="LogOpened" target="onboardingProposal">
+        <edge id="189" source="LogOpened" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4507,7 +4545,7 @@
             <data key="fluxtion.handlerMethod">onLogOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="188" source="LogOpened" target="openLog">
+        <edge id="190" source="LogOpened" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4515,7 +4553,7 @@
             <data key="fluxtion.handlerMethod">onLogOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="189" source="LogOpened" target="operationGate">
+        <edge id="191" source="LogOpened" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4523,7 +4561,7 @@
             <data key="fluxtion.handlerMethod">onLogOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="190" source="LogOpened" target="startPageNoLogHint">
+        <edge id="192" source="LogOpened" target="startPageNoLogHint">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4531,7 +4569,7 @@
             <data key="fluxtion.handlerMethod">onLogOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="191" source="McpReadinessObserved" target="aiSetup">
+        <edge id="193" source="McpReadinessObserved" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4539,7 +4577,7 @@
             <data key="fluxtion.handlerMethod">onReadiness</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="192" source="McpRegistrationChanged" target="aiSetup">
+        <edge id="194" source="McpRegistrationChanged" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4547,7 +4585,7 @@
             <data key="fluxtion.handlerMethod">onRegistrationChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="193" source="McpRegistrationObserved" target="aiSetup">
+        <edge id="195" source="McpRegistrationObserved" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4555,7 +4593,7 @@
             <data key="fluxtion.handlerMethod">onRegistrationObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="194" source="MembershipCompared" target="pairingQualifier">
+        <edge id="196" source="MembershipCompared" target="pairingQualifier">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4563,7 +4601,7 @@
             <data key="fluxtion.handlerMethod">onMembershipCompared</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="195" source="OfferLoaded" target="sessionRecovery">
+        <edge id="197" source="OfferLoaded" target="sessionRecovery">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4571,7 +4609,7 @@
             <data key="fluxtion.handlerMethod">offer</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="196" source="OpenLogRequested" target="assistantLoop">
+        <edge id="198" source="OpenLogRequested" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4579,7 +4617,7 @@
             <data key="fluxtion.handlerMethod">onOpenLogRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="197" source="OpenLogRequested" target="logArrival">
+        <edge id="199" source="OpenLogRequested" target="logArrival">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4587,7 +4625,7 @@
             <data key="fluxtion.handlerMethod">onOpenLogRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="198" source="OpenLogRequested" target="logOpening">
+        <edge id="200" source="OpenLogRequested" target="logOpening">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4595,7 +4633,7 @@
             <data key="fluxtion.handlerMethod">onOpenLogRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="199" source="OpenLogRequested" target="operationGate">
+        <edge id="201" source="OpenLogRequested" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4603,7 +4641,7 @@
             <data key="fluxtion.handlerMethod">onOpenLogRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="200" source="OpenLogRequested" target="projectReopenOffer">
+        <edge id="202" source="OpenLogRequested" target="projectReopenOffer">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4611,7 +4649,7 @@
             <data key="fluxtion.handlerMethod">onOpenLogRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="201" source="OpenProjectRequested" target="assistantLoop">
+        <edge id="203" source="OpenProjectRequested" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4619,7 +4657,7 @@
             <data key="fluxtion.handlerMethod">onOpenProjectRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="202" source="OpenProjectRequested" target="openBundle">
+        <edge id="204" source="OpenProjectRequested" target="openBundle">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4627,7 +4665,7 @@
             <data key="fluxtion.handlerMethod">onOpenProjectRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="203" source="OpenProjectRequested" target="operationGate">
+        <edge id="205" source="OpenProjectRequested" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4635,7 +4673,7 @@
             <data key="fluxtion.handlerMethod">onOpenProjectRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="204" source="OpenProjectRequested" target="projectReopenOffer">
+        <edge id="206" source="OpenProjectRequested" target="projectReopenOffer">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4643,7 +4681,7 @@
             <data key="fluxtion.handlerMethod">onOpenProjectRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="205" source="OpenProjectRequested" target="sessionBoundary">
+        <edge id="207" source="OpenProjectRequested" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4651,7 +4689,7 @@
             <data key="fluxtion.handlerMethod">onOpenProjectRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="206" source="OpenRequestReceived" target="ignoredParameters">
+        <edge id="208" source="OpenRequestReceived" target="ignoredParameters">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4659,7 +4697,7 @@
             <data key="fluxtion.handlerMethod">onOpenRequestReceived</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="207" source="Pending" target="effectOutcomes">
+        <edge id="209" source="Pending" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4667,7 +4705,7 @@
             <data key="fluxtion.handlerMethod">onPending</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="208" source="Pending" target="operationGate">
+        <edge id="210" source="Pending" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4675,7 +4713,7 @@
             <data key="fluxtion.handlerMethod">onPending</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="209" source="ProducerFindingsObserved" target="logEvidence">
+        <edge id="211" source="ProducerFindingsObserved" target="logEvidence">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4683,7 +4721,7 @@
             <data key="fluxtion.handlerMethod">onProducerFindingsObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="210" source="ProfileApplied" target="activeProject">
+        <edge id="212" source="ProfileApplied" target="activeProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4691,7 +4729,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="211" source="ProfileApplied" target="assistantLoop">
+        <edge id="213" source="ProfileApplied" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4699,7 +4737,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="212" source="ProfileApplied" target="bundleAnchor">
+        <edge id="214" source="ProfileApplied" target="bundleAnchor">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4707,7 +4745,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="213" source="ProfileApplied" target="designSession">
+        <edge id="215" source="ProfileApplied" target="designSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4715,7 +4753,7 @@
             <data key="fluxtion.handlerMethod">project</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="214" source="ProfileApplied" target="effectOutcomes">
+        <edge id="216" source="ProfileApplied" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4723,7 +4761,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="215" source="ProfileApplied" target="openBundle">
+        <edge id="217" source="ProfileApplied" target="openBundle">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4731,7 +4769,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="216" source="ProfileApplied" target="operationGate">
+        <edge id="218" source="ProfileApplied" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4739,7 +4777,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="217" source="ProfileApplied" target="projectOutputs">
+        <edge id="219" source="ProfileApplied" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4747,7 +4785,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="218" source="ProfileApplied" target="projectReopenOffer">
+        <edge id="220" source="ProfileApplied" target="projectReopenOffer">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4755,7 +4793,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="219" source="ProfileApplied" target="sessionBoundary">
+        <edge id="221" source="ProfileApplied" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4763,7 +4801,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="220" source="ProfileApplied" target="starterProject">
+        <edge id="222" source="ProfileApplied" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4771,7 +4809,7 @@
             <data key="fluxtion.handlerMethod">onProfileApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="221" source="ProfileLoaded" target="assistantLoop">
+        <edge id="223" source="ProfileLoaded" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4779,7 +4817,7 @@
             <data key="fluxtion.handlerMethod">onProfileLoaded</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="222" source="ProfileLoaded" target="effectOutcomes">
+        <edge id="224" source="ProfileLoaded" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4787,7 +4825,7 @@
             <data key="fluxtion.handlerMethod">onProfileLoaded</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="223" source="ProfileLoaded" target="openBundle">
+        <edge id="225" source="ProfileLoaded" target="openBundle">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4795,7 +4833,7 @@
             <data key="fluxtion.handlerMethod">onProfileLoaded</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="224" source="ProfileLoaded" target="operationGate">
+        <edge id="226" source="ProfileLoaded" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4803,7 +4841,7 @@
             <data key="fluxtion.handlerMethod">onProfileLoaded</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="225" source="ProfileLoaded" target="sessionBoundary">
+        <edge id="227" source="ProfileLoaded" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4811,7 +4849,7 @@
             <data key="fluxtion.handlerMethod">onProfileLoaded</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="226" source="ProjectOutputChanged" target="projectOutputs">
+        <edge id="228" source="ProjectOutputChanged" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4819,7 +4857,7 @@
             <data key="fluxtion.handlerMethod">onChange</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="227" source="ProjectOutputChanged" target="starterProject">
+        <edge id="229" source="ProjectOutputChanged" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4827,7 +4865,7 @@
             <data key="fluxtion.handlerMethod">onProjectOutputChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="228" source="ProjectOutputOfferAnswered" target="projectOutputs">
+        <edge id="230" source="ProjectOutputOfferAnswered" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4835,7 +4873,7 @@
             <data key="fluxtion.handlerMethod">onAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="229" source="ProjectOutputOpenObserved" target="projectOutputs">
+        <edge id="231" source="ProjectOutputOpenObserved" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4843,7 +4881,7 @@
             <data key="fluxtion.handlerMethod">onOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="230" source="ProjectOutputsBasisObserved" target="projectOutputs">
+        <edge id="232" source="ProjectOutputsBasisObserved" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4851,7 +4889,7 @@
             <data key="fluxtion.handlerMethod">onBasis</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="231" source="ProjectOutputsScanned" target="projectOutputs">
+        <edge id="233" source="ProjectOutputsScanned" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4859,7 +4897,7 @@
             <data key="fluxtion.handlerMethod">onScan</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="232" source="ProjectReopenPresented" target="projectReopenOffer">
+        <edge id="234" source="ProjectReopenPresented" target="projectReopenOffer">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4867,7 +4905,7 @@
             <data key="fluxtion.handlerMethod">onProjectReopenPresented</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="233" source="ProjectReopenReady" target="projectReopenOffer">
+        <edge id="235" source="ProjectReopenReady" target="projectReopenOffer">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4875,7 +4913,7 @@
             <data key="fluxtion.handlerMethod">onProjectReopenReady</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="234" source="ProjectReopenRequested" target="projectOutputs">
+        <edge id="236" source="ProjectReopenRequested" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4883,7 +4921,7 @@
             <data key="fluxtion.handlerMethod">onStartup</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="235" source="ProjectReopenRequested" target="projectReopenOffer">
+        <edge id="237" source="ProjectReopenRequested" target="projectReopenOffer">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4891,7 +4929,7 @@
             <data key="fluxtion.handlerMethod">onProjectReopenRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="236" source="ProposalApplyRequested" target="onboardingProposal">
+        <edge id="238" source="ProposalApplyRequested" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4899,7 +4937,7 @@
             <data key="fluxtion.handlerMethod">onApplyRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="237" source="ProposalChecked" target="onboardingProposal">
+        <edge id="239" source="ProposalChecked" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4907,7 +4945,7 @@
             <data key="fluxtion.handlerMethod">onChecked</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="238" source="ProposalDismissed" target="onboardingProposal">
+        <edge id="240" source="ProposalDismissed" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4915,7 +4953,7 @@
             <data key="fluxtion.handlerMethod">onDismissed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="239" source="ProposalEffectStarted" target="onboardingProposal">
+        <edge id="241" source="ProposalEffectStarted" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4923,7 +4961,7 @@
             <data key="fluxtion.handlerMethod">onEffectStarted</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="240" source="ProposalItemAnswered" target="onboardingProposal">
+        <edge id="242" source="ProposalItemAnswered" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4931,7 +4969,7 @@
             <data key="fluxtion.handlerMethod">onItemAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="241" source="ProposalItemApplied" target="localAgentSession">
+        <edge id="243" source="ProposalItemApplied" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4939,7 +4977,7 @@
             <data key="fluxtion.handlerMethod">onProposalItemApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="242" source="ProposalItemApplied" target="onboardingProposal">
+        <edge id="244" source="ProposalItemApplied" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4947,7 +4985,7 @@
             <data key="fluxtion.handlerMethod">onApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="243" source="ProposalItemPreviewed" target="onboardingProposal">
+        <edge id="245" source="ProposalItemPreviewed" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4955,7 +4993,7 @@
             <data key="fluxtion.handlerMethod">onPreviewed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="244" source="ProposalPreviewDone" target="onboardingProposal">
+        <edge id="246" source="ProposalPreviewDone" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4963,7 +5001,7 @@
             <data key="fluxtion.handlerMethod">onPreviewDone</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="245" source="ProposalReceived" target="onboardingProposal">
+        <edge id="247" source="ProposalReceived" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4971,7 +5009,7 @@
             <data key="fluxtion.handlerMethod">onReceived</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="246" source="ReadCompleted" target="designSession">
+        <edge id="248" source="ReadCompleted" target="designSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4979,7 +5017,7 @@
             <data key="fluxtion.handlerMethod">read</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="247" source="ReadRequested" target="designSession">
+        <edge id="249" source="ReadRequested" target="designSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4987,7 +5025,7 @@
             <data key="fluxtion.handlerMethod">requested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="248" source="RecordFlagsChanged" target="recordsView">
+        <edge id="250" source="RecordFlagsChanged" target="recordsView">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -4995,7 +5033,7 @@
             <data key="fluxtion.handlerMethod">onRecordFlagsChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="249" source="RecordsViewInstalled" target="recordsView">
+        <edge id="251" source="RecordsViewInstalled" target="recordsView">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5003,7 +5041,7 @@
             <data key="fluxtion.handlerMethod">onRecordsViewInstalled</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="250" source="RecordsViewMeasured" target="assistantLoop">
+        <edge id="252" source="RecordsViewMeasured" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5011,7 +5049,7 @@
             <data key="fluxtion.handlerMethod">onRecordsViewMeasured</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="251" source="RecordsViewMeasured" target="recordsView">
+        <edge id="253" source="RecordsViewMeasured" target="recordsView">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5019,7 +5057,7 @@
             <data key="fluxtion.handlerMethod">onRecordsViewMeasured</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="252" source="RegisterAnswered" target="aiSetup">
+        <edge id="254" source="RegisterAnswered" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5027,7 +5065,7 @@
             <data key="fluxtion.handlerMethod">onRegisterAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="253" source="Requested" target="sessionRecovery">
+        <edge id="255" source="Requested" target="sessionRecovery">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5035,7 +5073,7 @@
             <data key="fluxtion.handlerMethod">request</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="254" source="RestSwitchObserved" target="actionListener">
+        <edge id="256" source="RestSwitchObserved" target="actionListener">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5043,7 +5081,7 @@
             <data key="fluxtion.handlerMethod">onRestSwitch</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="255" source="RestSwitchObserved" target="aiSetup">
+        <edge id="257" source="RestSwitchObserved" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5051,7 +5089,7 @@
             <data key="fluxtion.handlerMethod">onRestSwitch</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="256" source="ResultReadCompleted" target="designSession">
+        <edge id="258" source="ResultReadCompleted" target="designSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5059,7 +5097,7 @@
             <data key="fluxtion.handlerMethod">result</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="257" source="ReturnToMainOptions" target="startPagePrompt">
+        <edge id="259" source="ReturnToMainOptions" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5067,7 +5105,7 @@
             <data key="fluxtion.handlerMethod">onReturnToMainOptions</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="258" source="ScanScheduled" target="logEvidence">
+        <edge id="260" source="ScanScheduled" target="logEvidence">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5075,20 +5113,12 @@
             <data key="fluxtion.handlerMethod">onScanScheduled</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="259" source="ServiceListener" target="serviceRegistry">
+        <edge id="261" source="ServiceListener" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="260" source="SettingsRestored" target="activeProject">
-            <data key="edge_label">
-                <jGraph:ShapeEdge/>
-            </data>
-            <data key="fluxtion.propagates">true</data>
-            <data key="fluxtion.handlerMethod">onSettingsRestored</data>
-            <data key="fluxtion.filterType">matched</data>
-        </edge>
-        <edge id="261" source="SettingsRestored" target="assistantLoop">
+        <edge id="262" source="SettingsRestored" target="activeProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5096,7 +5126,15 @@
             <data key="fluxtion.handlerMethod">onSettingsRestored</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="262" source="SettingsRestored" target="designSession">
+        <edge id="263" source="SettingsRestored" target="assistantLoop">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onSettingsRestored</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="264" source="SettingsRestored" target="designSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5104,7 +5142,7 @@
             <data key="fluxtion.handlerMethod">restored</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="263" source="SettingsRestored" target="effectOutcomes">
+        <edge id="265" source="SettingsRestored" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5112,7 +5150,7 @@
             <data key="fluxtion.handlerMethod">onSettingsRestored</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="264" source="SettingsRestored" target="openBundle">
+        <edge id="266" source="SettingsRestored" target="openBundle">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5120,7 +5158,7 @@
             <data key="fluxtion.handlerMethod">onSettingsRestored</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="265" source="SettingsRestored" target="operationGate">
+        <edge id="267" source="SettingsRestored" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5128,7 +5166,7 @@
             <data key="fluxtion.handlerMethod">onSettingsRestored</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="266" source="SettingsRestored" target="projectOutputs">
+        <edge id="268" source="SettingsRestored" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5136,7 +5174,7 @@
             <data key="fluxtion.handlerMethod">onClosed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="267" source="SettingsRestored" target="starterProject">
+        <edge id="269" source="SettingsRestored" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5144,7 +5182,7 @@
             <data key="fluxtion.handlerMethod">onSettingsRestored</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="268" source="SkillsVendored" target="starterProject">
+        <edge id="270" source="SkillsVendored" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5152,7 +5190,7 @@
             <data key="fluxtion.handlerMethod">onSkillsVendored</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="269" source="SourceRootsObserved" target="bundleAnchor">
+        <edge id="271" source="SourceRootsObserved" target="bundleAnchor">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5160,7 +5198,15 @@
             <data key="fluxtion.handlerMethod">onSourceRootsObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="270" source="StartPageAvailability" target="aiSetup">
+        <edge id="272" source="SourceRootsObserved" target="designSession">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">roots</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="273" source="StartPageAvailability" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5168,7 +5214,7 @@
             <data key="fluxtion.handlerMethod">onAvailability</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="271" source="StartPageAvailability" target="startPagePrompt">
+        <edge id="274" source="StartPageAvailability" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5176,7 +5222,7 @@
             <data key="fluxtion.handlerMethod">onAvailability</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="272" source="StartPageEffectStarted" target="startPagePrompt">
+        <edge id="275" source="StartPageEffectStarted" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5184,7 +5230,7 @@
             <data key="fluxtion.handlerMethod">onEffectStarted</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="273" source="StartPageFlowDone" target="startPageNoLogHint">
+        <edge id="276" source="StartPageFlowDone" target="startPageNoLogHint">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5192,7 +5238,7 @@
             <data key="fluxtion.handlerMethod">onFlowDone</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="274" source="StartPageFlowDone" target="startPagePrompt">
+        <edge id="277" source="StartPageFlowDone" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5200,7 +5246,7 @@
             <data key="fluxtion.handlerMethod">onFlowDone</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="275" source="StartPageNoLogAnswered" target="startPageNoLogHint">
+        <edge id="278" source="StartPageNoLogAnswered" target="startPageNoLogHint">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5208,7 +5254,7 @@
             <data key="fluxtion.handlerMethod">onAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="276" source="StartPagePromptSent" target="aiSetup">
+        <edge id="279" source="StartPagePromptSent" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5216,7 +5262,7 @@
             <data key="fluxtion.handlerMethod">onStartPageSent</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="277" source="StartPagePromptSent" target="startPageNoLogHint">
+        <edge id="280" source="StartPagePromptSent" target="startPageNoLogHint">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5224,7 +5270,7 @@
             <data key="fluxtion.handlerMethod">onSent</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="278" source="StartPagePromptSent" target="startPagePrompt">
+        <edge id="281" source="StartPagePromptSent" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5232,7 +5278,7 @@
             <data key="fluxtion.handlerMethod">onSent</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="279" source="StartPromptPackDropped" target="startPagePrompt">
+        <edge id="282" source="StartPromptPackDropped" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5240,7 +5286,7 @@
             <data key="fluxtion.handlerMethod">onPackDropped</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="280" source="StarterCancelled" target="onboardingProposal">
+        <edge id="283" source="StarterCancelled" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5248,7 +5294,7 @@
             <data key="fluxtion.handlerMethod">onStarterCancelled</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="281" source="StarterCatalogueObserved" target="starterProject">
+        <edge id="284" source="StarterCatalogueObserved" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5256,7 +5302,7 @@
             <data key="fluxtion.handlerMethod">onCatalogueObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="282" source="StarterChosen" target="starterProject">
+        <edge id="285" source="StarterChosen" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5264,7 +5310,7 @@
             <data key="fluxtion.handlerMethod">onChosen</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="283" source="StarterConfigured" target="starterProject">
+        <edge id="286" source="StarterConfigured" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5272,7 +5318,7 @@
             <data key="fluxtion.handlerMethod">onConfigured</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="284" source="StarterDefaultsObserved" target="onboardingProposal">
+        <edge id="287" source="StarterDefaultsObserved" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5280,7 +5326,7 @@
             <data key="fluxtion.handlerMethod">onStarterDefaults</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="285" source="StarterDefaultsObserved" target="starterProject">
+        <edge id="288" source="StarterDefaultsObserved" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5288,7 +5334,7 @@
             <data key="fluxtion.handlerMethod">onDefaultsObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="286" source="StarterDesignOpened" target="starterProject">
+        <edge id="289" source="StarterDesignOpened" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5296,7 +5342,7 @@
             <data key="fluxtion.handlerMethod">onDesignOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="287" source="StarterDestinationChosen" target="starterProject">
+        <edge id="290" source="StarterDestinationChosen" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5304,7 +5350,7 @@
             <data key="fluxtion.handlerMethod">onDestinationChosen</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="288" source="StarterDirectoryObserved" target="starterProject">
+        <edge id="291" source="StarterDirectoryObserved" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5312,7 +5358,7 @@
             <data key="fluxtion.handlerMethod">onDirectoryObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="289" source="StarterDiscoveryObserved" target="starterProject">
+        <edge id="292" source="StarterDiscoveryObserved" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5320,7 +5366,7 @@
             <data key="fluxtion.handlerMethod">onDiscoveryObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="290" source="StarterEffectStarted" target="starterProject">
+        <edge id="293" source="StarterEffectStarted" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5328,7 +5374,7 @@
             <data key="fluxtion.handlerMethod">onEffectStarted</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="291" source="StarterInstallFailed" target="onboardingProposal">
+        <edge id="294" source="StarterInstallFailed" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5336,7 +5382,7 @@
             <data key="fluxtion.handlerMethod">onStarterInstallFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="292" source="StarterInstallFailed" target="starterProject">
+        <edge id="295" source="StarterInstallFailed" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5344,7 +5390,7 @@
             <data key="fluxtion.handlerMethod">onInstallFailed</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="293" source="StarterInstalled" target="starterProject">
+        <edge id="296" source="StarterInstalled" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5352,7 +5398,7 @@
             <data key="fluxtion.handlerMethod">onInstalled</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="294" source="StarterMenuRequested" target="starterProject">
+        <edge id="297" source="StarterMenuRequested" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5360,7 +5406,7 @@
             <data key="fluxtion.handlerMethod">onMenuRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="295" source="StarterProjectOpened" target="onboardingProposal">
+        <edge id="298" source="StarterProjectOpened" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5368,7 +5414,7 @@
             <data key="fluxtion.handlerMethod">onStarterProjectOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="296" source="StarterProjectOpened" target="starterProject">
+        <edge id="299" source="StarterProjectOpened" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5376,7 +5422,7 @@
             <data key="fluxtion.handlerMethod">onProjectOpened</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="297" source="StarterReviewAnswered" target="onboardingProposal">
+        <edge id="300" source="StarterReviewAnswered" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5384,7 +5430,7 @@
             <data key="fluxtion.handlerMethod">onStarterReviewAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="298" source="StarterReviewAnswered" target="starterProject">
+        <edge id="301" source="StarterReviewAnswered" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5392,7 +5438,7 @@
             <data key="fluxtion.handlerMethod">onReviewAnswered</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="299" source="StatusShown" target="effectOutcomes">
+        <edge id="302" source="StatusShown" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5400,7 +5446,7 @@
             <data key="fluxtion.handlerMethod">onStatusShown</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="300" source="StatusShown" target="operationGate">
+        <edge id="303" source="StatusShown" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5408,7 +5454,7 @@
             <data key="fluxtion.handlerMethod">onStatusShown</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="301" source="TimeOrderObserved" target="logEvidence">
+        <edge id="304" source="TimeOrderObserved" target="logEvidence">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5416,7 +5462,7 @@
             <data key="fluxtion.handlerMethod">onTimeOrderObserved</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="302" source="ViewFilterChanged" target="assistantLoop">
+        <edge id="305" source="ViewFilterChanged" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5424,7 +5470,7 @@
             <data key="fluxtion.handlerMethod">onViewFilterChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="303" source="ViewFilterChanged" target="pairingQualifier">
+        <edge id="306" source="ViewFilterChanged" target="pairingQualifier">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5432,7 +5478,7 @@
             <data key="fluxtion.handlerMethod">onViewFilterChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="304" source="ViewFilterChanged" target="recordsView">
+        <edge id="307" source="ViewFilterChanged" target="recordsView">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5440,7 +5486,7 @@
             <data key="fluxtion.handlerMethod">onViewFilterChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="305" source="WalkAcknowledged" target="walkPlayback">
+        <edge id="308" source="WalkAcknowledged" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5448,7 +5494,7 @@
             <data key="fluxtion.handlerMethod">onWalkAcknowledged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="306" source="WalkDefinitionChanged" target="walkPlayback">
+        <edge id="309" source="WalkDefinitionChanged" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5456,7 +5502,7 @@
             <data key="fluxtion.handlerMethod">onWalkDefinitionChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="307" source="WalkEndRequested" target="walkPlayback">
+        <edge id="310" source="WalkEndRequested" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5464,7 +5510,7 @@
             <data key="fluxtion.handlerMethod">onWalkEndRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="308" source="WalkNavigated" target="walkPlayback">
+        <edge id="311" source="WalkNavigated" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5472,7 +5518,7 @@
             <data key="fluxtion.handlerMethod">onWalkNavigated</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="309" source="WalkPlayRequested" target="projectReopenOffer">
+        <edge id="312" source="WalkPlayRequested" target="projectReopenOffer">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5480,7 +5526,7 @@
             <data key="fluxtion.handlerMethod">onWalkPlayRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="310" source="WalkPlayRequested" target="walkPlayback">
+        <edge id="313" source="WalkPlayRequested" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5488,7 +5534,7 @@
             <data key="fluxtion.handlerMethod">onWalkPlayRequested</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="311" source="WalkStepPrepared" target="walkPlayback">
+        <edge id="314" source="WalkStepPrepared" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5496,7 +5542,7 @@
             <data key="fluxtion.handlerMethod">onWalkStepPrepared</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="312" source="WalkTargetsLit" target="walkPlayback">
+        <edge id="315" source="WalkTargetsLit" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5504,7 +5550,7 @@
             <data key="fluxtion.handlerMethod">onWalkTargetsLit</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="313" source="WalkViewApplied" target="walkPlayback">
+        <edge id="316" source="WalkViewApplied" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5512,7 +5558,7 @@
             <data key="fluxtion.handlerMethod">onWalkViewApplied</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="314" source="WalkViewChanged" target="walkPlayback">
+        <edge id="317" source="WalkViewChanged" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5520,7 +5566,7 @@
             <data key="fluxtion.handlerMethod">onWalkViewChanged</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="315" source="actionListener" target="aiSetup">
+        <edge id="318" source="actionListener" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5528,7 +5574,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">actionListener</data>
         </edge>
-        <edge id="316" source="actionListener" target="effectQueue">
+        <edge id="319" source="actionListener" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5536,7 +5582,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="317" source="actionListener" target="localAgentSession">
+        <edge id="320" source="actionListener" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5544,7 +5590,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">actionListener</data>
         </edge>
-        <edge id="318" source="activeProject" target="assistantLoop">
+        <edge id="321" source="activeProject" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5552,7 +5598,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">activeProject</data>
         </edge>
-        <edge id="319" source="activeProject" target="localAgentPermission">
+        <edge id="322" source="activeProject" target="localAgentPermission">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5560,7 +5606,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">activeProject</data>
         </edge>
-        <edge id="320" source="activeProject" target="projectOutputs">
+        <edge id="323" source="activeProject" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5568,7 +5614,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">project</data>
         </edge>
-        <edge id="321" source="activeProject" target="sessionBoundary">
+        <edge id="324" source="activeProject" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5576,7 +5622,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">activeProject</data>
         </edge>
-        <edge id="322" source="activeProject" target="starterProject">
+        <edge id="325" source="activeProject" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5584,7 +5630,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">activeProject</data>
         </edge>
-        <edge id="323" source="aiSetup" target="effectQueue">
+        <edge id="326" source="aiSetup" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5592,7 +5638,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="324" source="aiSetup" target="startPagePrompt">
+        <edge id="327" source="aiSetup" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5600,7 +5646,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">aiSetup</data>
         </edge>
-        <edge id="325" source="assistantLoop" target="aiSetup">
+        <edge id="328" source="assistantLoop" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5608,7 +5654,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">assistantLoop</data>
         </edge>
-        <edge id="326" source="assistantLoop" target="effectQueue">
+        <edge id="329" source="assistantLoop" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5616,7 +5662,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="327" source="assistantLoop" target="walkPlayback">
+        <edge id="330" source="assistantLoop" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5624,7 +5670,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">assistantLoop</data>
         </edge>
-        <edge id="328" source="assistantMode" target="assistantLoop">
+        <edge id="331" source="assistantMode" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5632,7 +5678,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">assistantMode</data>
         </edge>
-        <edge id="329" source="assistantMode" target="startPagePrompt">
+        <edge id="332" source="assistantMode" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5640,7 +5686,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">mode</data>
         </edge>
-        <edge id="330" source="auditInstallation" target="coverageClaim">
+        <edge id="333" source="auditInstallation" target="coverageClaim">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5648,7 +5694,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">auditInstallation</data>
         </edge>
-        <edge id="331" source="callbackDispatcher" target="context">
+        <edge id="334" source="callbackDispatcher" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5656,7 +5702,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">dirtyStateMonitor</data>
         </edge>
-        <edge id="332" source="callbackDispatcher" target="context">
+        <edge id="335" source="callbackDispatcher" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5664,7 +5710,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">eventDispatcher</data>
         </edge>
-        <edge id="333" source="clock" target="context">
+        <edge id="336" source="clock" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5672,7 +5718,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">clock</data>
         </edge>
-        <edge id="334" source="clock" target="eventLogger">
+        <edge id="337" source="clock" target="eventLogger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5680,7 +5726,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">clock</data>
         </edge>
-        <edge id="335" source="context" target="effectQueue">
+        <edge id="338" source="context" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5688,7 +5734,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">dataFlowContext</data>
         </edge>
-        <edge id="336" source="context" target="serviceRegistry">
+        <edge id="339" source="context" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5696,7 +5742,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">dataFlowContext</data>
         </edge>
-        <edge id="337" source="effectQueue" target="bundleAnchor">
+        <edge id="340" source="effectQueue" target="bundleAnchor">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5704,7 +5750,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="338" source="effectQueue" target="projectReopenOffer">
+        <edge id="341" source="effectQueue" target="designSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5712,7 +5758,15 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="339" source="evidenceCapture" target="effectQueue">
+        <edge id="342" source="effectQueue" target="projectReopenOffer">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">DATA</data>
+            <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.referenceField">effects</data>
+        </edge>
+        <edge id="343" source="evidenceCapture" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5720,7 +5774,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="340" source="exampleDownload" target="effectQueue">
+        <edge id="344" source="exampleDownload" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5728,7 +5782,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="341" source="localAgentPermission" target="effectQueue">
+        <edge id="345" source="localAgentPermission" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5736,7 +5790,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="342" source="localAgentPermission" target="localAgentSession">
+        <edge id="346" source="localAgentPermission" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5744,7 +5798,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">localAgent</data>
         </edge>
-        <edge id="343" source="localAgentSession" target="aiSetup">
+        <edge id="347" source="localAgentSession" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5752,7 +5806,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">localAgent</data>
         </edge>
-        <edge id="344" source="localAgentSession" target="assistantMode">
+        <edge id="348" source="localAgentSession" target="assistantMode">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5760,7 +5814,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">mode</data>
         </edge>
-        <edge id="345" source="localAgentSession" target="effectQueue">
+        <edge id="349" source="localAgentSession" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5768,7 +5822,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="346" source="localAgentSession" target="onboardingProposal">
+        <edge id="350" source="localAgentSession" target="onboardingProposal">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5776,7 +5830,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">localAgent</data>
         </edge>
-        <edge id="347" source="localAgentSession" target="projectOutputs">
+        <edge id="351" source="localAgentSession" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5784,7 +5838,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">assistant</data>
         </edge>
-        <edge id="348" source="localAgentSession" target="sessionBoundary">
+        <edge id="352" source="localAgentSession" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5792,7 +5846,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">localAgentSession</data>
         </edge>
-        <edge id="349" source="localAgentSession" target="startPagePrompt">
+        <edge id="353" source="localAgentSession" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5800,7 +5854,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">localAgent</data>
         </edge>
-        <edge id="350" source="logArrival" target="effectQueue">
+        <edge id="354" source="logArrival" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5808,7 +5862,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="351" source="logEvidence" target="effectQueue">
+        <edge id="355" source="logEvidence" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5816,7 +5870,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="352" source="logEvidence" target="statusLine">
+        <edge id="356" source="logEvidence" target="statusLine">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5824,7 +5878,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">logEvidence</data>
         </edge>
-        <edge id="353" source="logOpening" target="effectQueue">
+        <edge id="357" source="logOpening" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5832,7 +5886,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="354" source="nodeNameLookup" target="context">
+        <edge id="358" source="nodeNameLookup" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5840,7 +5894,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">nodeNameLookup</data>
         </edge>
-        <edge id="355" source="onboardingProposal" target="effectQueue">
+        <edge id="359" source="onboardingProposal" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5848,7 +5902,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="356" source="onboardingProposal" target="sessionBoundary">
+        <edge id="360" source="onboardingProposal" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5856,7 +5910,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">onboardingProposal</data>
         </edge>
-        <edge id="357" source="onboardingProposal" target="starterProject">
+        <edge id="361" source="onboardingProposal" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5864,7 +5918,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">starter</data>
         </edge>
-        <edge id="358" source="openBundle" target="bundleAnchor">
+        <edge id="362" source="openBundle" target="bundleAnchor">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5872,7 +5926,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openBundle</data>
         </edge>
-        <edge id="359" source="openBundle" target="projectOutputs">
+        <edge id="363" source="openBundle" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5880,7 +5934,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">bundle</data>
         </edge>
-        <edge id="360" source="openBundle" target="projectReopenOffer">
+        <edge id="364" source="openBundle" target="projectReopenOffer">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5888,7 +5942,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openBundle</data>
         </edge>
-        <edge id="361" source="openGraph" target="assistantLoop">
+        <edge id="365" source="openGraph" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5896,7 +5950,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openGraph</data>
         </edge>
-        <edge id="362" source="openGraph" target="auditInstallation">
+        <edge id="366" source="openGraph" target="auditInstallation">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5904,7 +5958,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openGraph</data>
         </edge>
-        <edge id="363" source="openGraph" target="coverageClaim">
+        <edge id="367" source="openGraph" target="coverageClaim">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5912,7 +5966,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openGraph</data>
         </edge>
-        <edge id="364" source="openGraph" target="logArrival">
+        <edge id="368" source="openGraph" target="logArrival">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5920,7 +5974,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openGraph</data>
         </edge>
-        <edge id="365" source="openGraph" target="pairing">
+        <edge id="369" source="openGraph" target="pairing">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5928,7 +5982,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openGraph</data>
         </edge>
-        <edge id="366" source="openGraph" target="pairingQualifier">
+        <edge id="370" source="openGraph" target="pairingQualifier">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5936,7 +5990,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openGraph</data>
         </edge>
-        <edge id="367" source="openGraph" target="sessionBoundary">
+        <edge id="371" source="openGraph" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5944,7 +5998,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openGraph</data>
         </edge>
-        <edge id="368" source="openGraph" target="statusLine">
+        <edge id="372" source="openGraph" target="statusLine">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5952,7 +6006,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openGraph</data>
         </edge>
-        <edge id="369" source="openLog" target="aiSetup">
+        <edge id="373" source="openLog" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5960,7 +6014,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="370" source="openLog" target="assistantLoop">
+        <edge id="374" source="openLog" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5968,7 +6022,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="371" source="openLog" target="coverageClaim">
+        <edge id="375" source="openLog" target="coverageClaim">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5976,7 +6030,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="372" source="openLog" target="evidenceCapture">
+        <edge id="376" source="openLog" target="evidenceCapture">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5984,7 +6038,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="373" source="openLog" target="localAgentSession">
+        <edge id="377" source="openLog" target="localAgentSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -5992,7 +6046,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="374" source="openLog" target="logEvidence">
+        <edge id="378" source="openLog" target="logEvidence">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6000,7 +6054,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="375" source="openLog" target="pairing">
+        <edge id="379" source="openLog" target="pairing">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6008,7 +6062,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="376" source="openLog" target="pairingQualifier">
+        <edge id="380" source="openLog" target="pairingQualifier">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6016,7 +6070,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="377" source="openLog" target="recordsView">
+        <edge id="381" source="openLog" target="recordsView">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6024,7 +6078,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="378" source="openLog" target="sessionBoundary">
+        <edge id="382" source="openLog" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6032,7 +6086,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="379" source="openLog" target="startPageNoLogHint">
+        <edge id="383" source="openLog" target="startPageNoLogHint">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6040,7 +6094,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="380" source="openLog" target="startPagePrompt">
+        <edge id="384" source="openLog" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6048,7 +6102,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="381" source="openLog" target="statusLine">
+        <edge id="385" source="openLog" target="statusLine">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6056,7 +6110,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="382" source="openLog" target="walkPlayback">
+        <edge id="386" source="openLog" target="walkPlayback">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6064,7 +6118,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">openLog</data>
         </edge>
-        <edge id="383" source="operationGate" target="activeProject">
+        <edge id="387" source="operationGate" target="activeProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6072,7 +6126,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="384" source="operationGate" target="assistantLoop">
+        <edge id="388" source="operationGate" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6080,7 +6134,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="385" source="operationGate" target="designSession">
+        <edge id="389" source="operationGate" target="designSession">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6088,7 +6142,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="386" source="operationGate" target="effectOutcomes">
+        <edge id="390" source="operationGate" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6096,7 +6150,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="387" source="operationGate" target="evidenceCapture">
+        <edge id="391" source="operationGate" target="evidenceCapture">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6104,7 +6158,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="388" source="operationGate" target="logArrival">
+        <edge id="392" source="operationGate" target="logArrival">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6112,7 +6166,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="389" source="operationGate" target="logOpening">
+        <edge id="393" source="operationGate" target="logOpening">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6120,7 +6174,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="390" source="operationGate" target="openBundle">
+        <edge id="394" source="operationGate" target="openBundle">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6128,7 +6182,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="391" source="operationGate" target="openGraph">
+        <edge id="395" source="operationGate" target="openGraph">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6136,7 +6190,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="392" source="operationGate" target="openLog">
+        <edge id="396" source="operationGate" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6144,7 +6198,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="393" source="operationGate" target="projectOutputs">
+        <edge id="397" source="operationGate" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6152,7 +6206,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="394" source="operationGate" target="sessionBoundary">
+        <edge id="398" source="operationGate" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6160,7 +6214,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="395" source="operationGate" target="sessionRecovery">
+        <edge id="399" source="operationGate" target="sessionRecovery">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6168,7 +6222,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="396" source="operationGate" target="starterProject">
+        <edge id="400" source="operationGate" target="starterProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6176,7 +6230,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">gate</data>
         </edge>
-        <edge id="397" source="pairing" target="coverageClaim">
+        <edge id="401" source="pairing" target="coverageClaim">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6184,7 +6238,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">pairing</data>
         </edge>
-        <edge id="398" source="pairing" target="logArrival">
+        <edge id="402" source="pairing" target="logArrival">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6192,7 +6246,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">pairing</data>
         </edge>
-        <edge id="399" source="pairing" target="pairingQualifier">
+        <edge id="403" source="pairing" target="pairingQualifier">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6200,7 +6254,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">pairing</data>
         </edge>
-        <edge id="400" source="pairing" target="statusLine">
+        <edge id="404" source="pairing" target="statusLine">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6208,7 +6262,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">pairing</data>
         </edge>
-        <edge id="401" source="projectOutputs" target="effectQueue">
+        <edge id="405" source="projectOutputs" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6216,7 +6270,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="402" source="recordsView" target="assistantLoop">
+        <edge id="406" source="recordsView" target="assistantLoop">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6224,7 +6278,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">recordsView</data>
         </edge>
-        <edge id="403" source="recordsView" target="effectQueue">
+        <edge id="407" source="recordsView" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6232,7 +6286,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="404" source="sessionBoundary" target="effectQueue">
+        <edge id="408" source="sessionBoundary" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6240,7 +6294,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="405" source="sessionBoundary" target="projectOutputs">
+        <edge id="409" source="sessionBoundary" target="projectOutputs">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6248,7 +6302,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">boundary</data>
         </edge>
-        <edge id="406" source="startPageNoLogHint" target="aiSetup">
+        <edge id="410" source="startPageNoLogHint" target="aiSetup">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6256,7 +6310,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">noLogHint</data>
         </edge>
-        <edge id="407" source="startPageNoLogHint" target="effectQueue">
+        <edge id="411" source="startPageNoLogHint" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6264,7 +6318,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="408" source="startPageNoLogHint" target="startPagePrompt">
+        <edge id="412" source="startPageNoLogHint" target="startPagePrompt">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6272,7 +6326,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">noLogHint</data>
         </edge>
-        <edge id="409" source="startPagePrompt" target="effectQueue">
+        <edge id="413" source="startPagePrompt" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6280,7 +6334,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="410" source="starterProject" target="effectQueue">
+        <edge id="414" source="starterProject" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6288,7 +6342,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">effects</data>
         </edge>
-        <edge id="411" source="starterProject" target="sessionBoundary">
+        <edge id="415" source="starterProject" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6296,7 +6350,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">starterProject</data>
         </edge>
-        <edge id="412" source="subscriptionManager" target="context">
+        <edge id="416" source="subscriptionManager" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -6304,7 +6358,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">subscriptionManager</data>
         </edge>
-        <edge id="413" source="walkPlayback" target="effectQueue">
+        <edge id="417" source="walkPlayback" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>

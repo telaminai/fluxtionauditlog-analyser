@@ -295,6 +295,8 @@ public final class SessionDriver {
             case SessionEffects.PublishProjectOutputChangedEffect ignored -> "projectOutputChanged";
             case SessionEffects.OfferProjectOutputEffect ignored -> "offerProjectOutput";
             case SessionEffects.OpenProjectOutputEffect ignored -> "openProjectOutput";
+            case SessionEffects.DiscoverDesignEffect ignored -> "discoverDesign";
+            case SessionEffects.PresentDesignDiscoveryEffect ignored -> "presentDesignDiscovery";
             case SessionEffects.AnswerHostedReportApplyEffect ignored -> "answerHostedReportApply";
             case SessionEffects.LoadProfileEffect ignored -> "loadProfile";
             case SessionEffects.PrepareBundleEffect ignored -> "prepareBundle";

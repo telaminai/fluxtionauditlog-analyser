@@ -1,0 +1,47 @@
+[
+  {
+    "name": "m80-source-scan-without-header",
+    "baselineGreen": true,
+    "verdict": "caught",
+    "sourceRestored": true,
+    "classesRestored": true,
+    "failures": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoveryTest",
+        "method": "scanFindsTheBuilderWithoutAnyGeneratedProcessorOrHeader",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: \u2605 T2 discovery must not depend on a processor header ==> expected: <builder> but was: <none>"
+      }
+    ]
+  },
+  {
+    "name": "m80-design-additive-key-pin",
+    "baselineGreen": true,
+    "verdict": "caught",
+    "sourceRestored": true,
+    "classesRestored": true,
+    "failures": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.mcp.CustomerApiKeysTest",
+        "method": "designEchoKeepsItsReleasedKeysAndOnlyNamesTheFourAdditions",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: \u2605 T9 nested design keys may only grow through named additive pins ==> expected: <[note, diagnosticsFile, beans, inputs, revision, file, error, diagnosticsError, relationship, files, nodes, source, kind]> but was: <[relationship, note, file, revision, beans, error, diagnosticsError, diagnosticsFile, inputs, kind, files, anchors, source]>"
+      }
+    ]
+  },
+  {
+    "name": "m80-xml-released-value",
+    "baselineGreen": true,
+    "verdict": "caught",
+    "sourceRestored": true,
+    "classesRestored": true,
+    "failures": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoverySessionTest",
+        "method": "xmlsReleasedValuesAndTheirOrderAreUnchanged",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: \u2605 T8 every released XML value is unchanged ==> expected: <{relationship=unverified, note=working copy; matched by name; relationship to this run unknown, file=DEMO.xml, revision=dc29edcb10b696ae543c98ea724b5dd83f0ba766c3b636a9dcc6342f5f499bd7, beans=[a, b]}> but was: <{relationship=verified, note=working copy; matched by name; relationship to this run unknown, file=DEMO.xml, revision=dc29edcb10b696ae543c98ea724b5dd83f0ba766c3b636a9dcc6342f5f499bd7, beans=[a, b]}>"
+      }
+    ]
+  }
+]

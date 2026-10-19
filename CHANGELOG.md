@@ -9,6 +9,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Added
 
 - Open, person-owned projects now offer settled GraphML and audit-log outputs with Open / Not now banners. Nothing auto-switches your log; accepting a log uses the existing graph-pairing path, even with assistant file exchange off. The starter's first-build cue uses this same ongoing watcher.
+- M80: Design discovers Spring XML and Java builder definitions under authorised source roots when a project opens or roots change, without relying on generated headers. Context adds kind/files/nodes/source while keeping released keys; a single candidate opens as a read-only glance, and absent or unavailable discovery is stated. Java anchors and the multi-file chooser follow separately.
+- M80 discovery keeps readable candidates when individual files fail and names up to ten failed files, with an
+  omitted count, in the Design pane and context note. Scan-limit exhaustion remains unavailable with a distinct
+  reason. A failed first design read no
+  longer invents a Spring kind, and the empty Design message uses plain, shorter wording.
 
 ### Fixed
 

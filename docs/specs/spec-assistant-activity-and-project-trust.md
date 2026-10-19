@@ -471,8 +471,9 @@ The first complete observation establishes the baseline. Polling does not recons
 between samples, or distinguish a pre-existing baseline file from one created before that initial observation.
 Correlation retains eight known turns and at most 800 successful-open receipts, pruning absent/changed revisions
 on complete scans; missing or expired proof permits an ordinary offer, never an invented successful open.
-The interpretation of declared/current local-log directories outside the project root has been surfaced for owner
-confirmation before publication; this candidate currently excludes them, not an inferred policy approval.
+**Owner scope decision (2026-10-19): D watches inside the real project root only.** This includes declared/current
+local-log directories only when they are inside that root. Outside-root configured/current log folders are deferred
+to a later, explicit opt-in design; they are not silently watched by this feature.
 
 ---
 
@@ -754,6 +755,7 @@ followed by a further 60 s of silence (§3.1, §4.1). | accepted (owner, 2026-10
 | **OD-81.11** | **Truthful modal approval presentation.** Preserve existing application-modal approvals. Do not imply that a composer Show action is clickable while blocked. Test truthful status and native interaction; supersedes the original A5 Show affordance, not the permission policy. | accepted (owner, 2026-10-19) |
 | **OD-81.12** | Both root-reset and no-background safeguards were authorised only for explicitly opted-in Full script-trusting sessions, with no running-session retrofit. A bounded per-call helper investigation was subsequently authorised, not a self-report acceptance claim or execution proxy. | historical authorisation; implementation withheld by OD-81.13 |
 | **OD-81.13** | **Defer B, close #184 unmerged and preserve its evidence/WIP.** The absolute-path-only alternative was assessed read-only before implementation and does not close documented wrapper, shell-prelude or auto-background gaps. Do not ship pre-approval. Any future broader build consent, explicitly including assistant-edited build inputs, requires a separate design/security review. D proceeds without B. | explicitly confirmed by owner, 2026-10-19; supersedes B delivery/OD-81.3–6 in this milestone |
+| **OD-81.14** | **D watches inside the real project root only.** Declared/current local-log folders outside that root are deferred to a later explicit opt-in; the current root-only implementation may proceed to its own PR. | accepted (owner, 2026-10-19) |
 
 ### 8.3 Open questions
 
@@ -803,5 +805,6 @@ followed by a further 60 s of silence (§3.1, §4.1). | accepted (owner, 2026-10
 
 - **2026-10-19, DRAFT r6**: D implementation clarifies metadata stability versus semantic completeness, bounded
   observation scope, node-owned lifetime/supersession, actual completed hosted-open correlation and the general
-  watcher's starter migration. No `streamEnd` shortcut or new open privilege is introduced.
+  watcher's starter migration. Records owner-approved root-only scope (OD-81.14), with outside-root log folders
+  deferred to a later explicit opt-in. No `streamEnd` shortcut or new open privilege is introduced.
 

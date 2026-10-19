@@ -87,8 +87,8 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
 CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
     ('release-assistant-changelog-introducing-boundary',
      'src/test/java/telamin/fluxtion/audit/analyser/analyser/mcp/DocsExternalAccessClaimsTest.java',
-     'int introducedVersion = log.indexOf("\\n## [1.36.0]", at);',
-     'int introducedVersion = log.indexOf("\\n## [", at + 1);',
+     'int shipped = log.indexOf("\\n## [1.36.0]", at + 1);',
+     'int shipped = log.indexOf("\\n## [", at + 1);',
      'DocsExternalAccessClaimsTest#theChangelogReadsCoherently'),
     # M81 D: maintained named wrong-result controls, including the real banner button's listener.
     ('m81-output-four-second-stability', NODE + 'ProjectOutputs.java',
@@ -160,6 +160,18 @@ CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
      'if (!"OPEN".equals(phase) || !graphWatch || e.projectGeneration() != ownProjectGeneration',
      'if (true || !"OPEN".equals(phase) || !graphWatch || e.projectGeneration() != ownProjectGeneration',
      'StarterProjectTest#theChainRunsInItsOrder'),
+    ('m80-source-scan-without-header', J + 'design/DesignDiscovery.java',
+     'return new DesignDiscovery(kind, List.copyOf(found.values()), found.isEmpty() && unreadable.isEmpty() ? "none" : "source-scan",\n'
+     '                List.copyOf(unreadable));',
+     'return DesignDiscovery.none();',
+     'DesignDiscoveryTest#scanFindsTheBuilderWithoutAnyGeneratedProcessorOrHeader'),
+    ('m80-design-additive-key-pin', NODE + 'DesignSession.java',
+     'm.put("nodes", List.of());', 'm.put("anchors", List.of());',
+     'CustomerApiKeysTest#designEchoKeepsItsReleasedKeysAndOnlyNamesTheFourAdditions'),
+    ('m80-xml-released-value', NODE + 'DesignSession.java',
+     'm.put("relationship", "unverified");', 'm.put("relationship", "verified");',
+     'DesignDiscoverySessionTest#xmlsReleasedValuesAndTheirOrderAreUnchanged'),
+
     # M81 A review P2: a rendered stall is not evidence that the real button reports its acknowledgement.
     ('m81-stall-keep-waiting-button-wired', UI + 'LocalAgentPanel.java',
      '            if (intents != null && rendered != null) intents.keepWaiting(rendered.generation(), rendered.openTicket());',
@@ -2652,6 +2664,39 @@ CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
 WALKREEL_NOTE = (
     'The reel page is pure (records in, one string out), so its controls are string-level and read oddly; that is '
     'the point -- every one of them is a sentence a recipient either sees or does not.')
+
+# PR175 independent review: failed form, bounded-but-partial discovery, and the exact static/human boundaries.
+CONTROLS += [
+    ('m80-warning-name-cap', J + 'design/DesignDiscovery.java',
+     'String.join(", ", unreadableFiles.subList(0, shown))', 'String.join(", ", unreadableFiles)',
+     'DesignDiscoveryTest#unreadableWarningsShowAtMostTenNamesAndCountTheRest'),
+    ('m80-failed-read-no-invented-form', NODE + 'DesignSession.java',
+     'if (path == null || document != null || builder != null)', 'if (true)',
+     'DesignDiscoverySessionTest#failedDesignReadNeverInventsASpringForm'),
+    ('m80-file-failure-keeps-candidates', J + 'design/DesignDiscovery.java',
+     'new DesignDiscovery(kind, List.copyOf(found.values()), found.isEmpty() && unreadable.isEmpty()',
+     'new DesignDiscovery(kind, unreadable.isEmpty() ? List.copyOf(found.values()) : List.of(), found.isEmpty() && unreadable.isEmpty()',
+     'DesignDiscoveryTest#individualReadFailuresKeepCandidatesAndNameEveryUnreadableFile'),
+    ('m80-file-warning-in-context', NODE + 'DesignSession.java',
+     '        if (!discovery.warning().isEmpty()) m.put("note", m.get("note") + "\\n" + discovery.warning());', '',
+     'DesignDiscoveryTest#individualReadFailuresKeepCandidatesAndNameEveryUnreadableFile'),
+    ('m80-file-cap-distinct-reason', J + 'design/DesignDiscovery.java',
+     'catch (ScanLimit limit) { return unavailable(limit.getMessage()); }',
+     'catch (ScanLimit limit) { return unavailable(); }',
+     'DesignDiscoveryTest#anExceededBudgetNeverReturnsAPartialCandidateList'),
+    ('m80-echo-body-only', 'src/test/java/telamin/fluxtion/audit/analyser/analyser/mcp/CustomerApiKeysTest.java',
+     'return telamin.fluxtion.audit.analyser.analyser.ui.OneDispatchModelTestAccess.bodyOf(source, "public Map<String, Object> echo()");',
+     'return source.substring(source.indexOf("public Map<String, Object> echo()"));',
+     'CustomerApiKeysTest#designEchoExtractionExcludesLaterMethods'),
+    ('m80-no-dead-root-budget', J + 'design/DesignDiscovery.java',
+     '            for (String root : access.roots()) {',
+     '            if (access.roots().size() > MAX_FILES) return unavailable();\n            for (String root : access.roots()) {',
+     'DesignDiscoveryTest#theFileBudgetHasNoDeadRootCountGuard'),
+    ('m80-short-human-empty-line', NODE + 'DesignSession.java',
+     'No design found. Add a source folder or open a design.',
+     'No Spring XML or Java builder found under the authorised source roots. Add source roots with source_root {add: [...]} or open {design: <path>}.',
+     'DesignDiscoverySessionTest#emptyDiscoveryUsesAShortHumanMessageWithoutJsonSyntax'),
+]
 
 # PR #174 review: bounded table expansion and widths from the final displayed runs, not the Markdown source.
 CONTROLS += [

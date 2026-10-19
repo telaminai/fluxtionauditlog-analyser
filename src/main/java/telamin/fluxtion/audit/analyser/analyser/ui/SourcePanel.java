@@ -158,7 +158,7 @@ public final class SourcePanel extends JPanel {
         JToggleButton node = new JToggleButton("Node");
         JToggleButton both = new JToggleButton("Split", true);
         JToggleButton design = new JToggleButton("Design");
-        design.setToolTipText("The working XML design; relationship to a loaded run is unverified");
+        design.setToolTipText("The working Spring XML or Java definition; relationship to a loaded run is unverified");
         design.addActionListener(e -> setMode(Mode.DESIGN));
         modeButtons.put(Mode.PROCESSOR, processor); modeButtons.put(Mode.NODE, node);
         modeButtons.put(Mode.SPLIT, both); modeButtons.put(Mode.DESIGN, design);
