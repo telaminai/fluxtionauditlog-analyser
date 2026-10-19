@@ -48,6 +48,19 @@ class SessionGraphShapeTest {
                 "slice 1's nodes are all present: " + ids);
     }
 
+    @Test void projectOutputLifetimeAndEffectsHaveOneNodeOwnedHome() throws Exception {
+        ProcessorTopology graph = topology();
+        for (String parent : Set.of("activeProject", "openBundle", "localAgentSession", "operationGate", "sessionBoundary"))
+            assertTrue(hasEdge(graph, parent, "projectOutputs"), parent + " must precede the output decision");
+        assertTrue(hasEdge(graph, "projectOutputs", "effectQueue"), "only the node requests output effects");
+        String generated = java.nio.file.Files.readString(Path.of(
+                "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.java"));
+        assertFalse(generated.contains("onGraphmlAppeared"), "the starter-only watcher is retired, not duplicated");
+        assertFalse(generated.contains("onGraphOfferAnswered"), "the starter modal answer has no live handler");
+        assertTrue(generated.contains("projectOutputs.onScan(typedEvent)"));
+        assertTrue(generated.contains("starterProject.onProjectOutputChanged(typedEvent)"));
+    }
+
     @Test
     @DisplayName("effects descend FROM the decision — the @PushReference is what makes this true")
     void effectsDescendFromTheDecision() {

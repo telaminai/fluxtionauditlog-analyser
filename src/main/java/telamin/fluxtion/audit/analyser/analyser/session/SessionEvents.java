@@ -35,7 +35,6 @@ public final class SessionEvents {
     }
 
     // ---------------------------------------------------------------- requests
-
     /**
      * @param opId        correlates this request with the results that answer it
      * @param profilePath the profile being opened, as a string — the graph never holds a {@code Path}
@@ -2072,4 +2071,26 @@ public final class SessionEvents {
     /** Review S7: the deadline a {@link SessionEffects.StartExampleClockEffect} started has passed. */
     public record ExampleDeadlinePassed(long request, String phase) {
     }
+
+    // M81 D: raw observations, never an instruction to switch the open log or graph.
+    public record ProjectOutputsBasisObserved(long opId, long watch, long projectGeneration, long rootRef,
+                                              boolean analyserOwned, java.util.List<Long> logDirRefs) implements Result {
+        public ProjectOutputsBasisObserved { logDirRefs = java.util.List.copyOf(logDirRefs); }
+    }
+    public record ProjectOutputsScanned(long watch, long projectGeneration, long atMillis,
+                                        java.util.List<ProjectOutputsState.File> files, boolean complete) {
+        public ProjectOutputsScanned { files = java.util.List.copyOf(files); }
+    }
+    public record ProjectOutputChanged(long watch, long projectGeneration, long change,
+                                        ProjectOutputsState.File file) implements Result {
+        @Override public long opId() { return 0; }
+    }
+    public record ProjectOutputOfferAnswered(long watch, long offer, boolean open) { }
+    public record ProjectOutputOpenObserved(long opId, long watch, long offer, boolean opened, String why)
+            implements Result { }
+    public record ProjectOutputsEffectStarted(long opId, long watch, String what) implements Result { }
+    /** Actual successful hosted open, original scope preserved through async load; never just a requested open. */
+    public record HostedProjectOutputOpened(long watch, long projectGeneration, long generation, long ticket,
+                                            ProjectOutputsState.File file) { }
+
 }

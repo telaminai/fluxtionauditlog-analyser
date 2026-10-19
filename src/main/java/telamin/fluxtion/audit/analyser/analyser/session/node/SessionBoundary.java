@@ -93,6 +93,9 @@ public class SessionBoundary implements EventLogSource {
     private long inFlightOpId = -1;
     private SessionEvents.BundlePlan inFlightBundle;
 
+    /** M81 D: offers cannot borrow a project transition's still-undecided context. */
+    public boolean projectTransitionPending() { return held != null || inFlightKind != null; }
+
     public SessionBoundary(OperationGate gate, ActiveProject activeProject, OpenLog openLog,
                            OpenGraph openGraph, EffectQueue effects) {
         this.gate = gate;

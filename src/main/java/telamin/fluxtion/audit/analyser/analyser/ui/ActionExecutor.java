@@ -1947,6 +1947,13 @@ public final class ActionExecutor implements RenderExecutor {
     private static final ThreadLocal<java.util.function.BooleanSupplier> GUARD = new ThreadLocal<>();
     private static final ThreadLocal<telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin>
             ASSISTANT_ORIGIN = new ThreadLocal<>();
+    private static final ThreadLocal<telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.HostedOpenOrigin>
+            HOSTED_OPEN_ORIGIN = new ThreadLocal<>();
+
+    public static telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.HostedOpenOrigin hostedOpenOrigin() {
+        var local = HOSTED_OPEN_ORIGIN.get();
+        return local == null ? telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.hostedOpenOrigin() : local;
+    }
 
     /** Bind (or, with null, clear) the calling worker's guard. */
     public static void bindGuard(java.util.function.BooleanSupplier guard) {
@@ -1994,12 +2001,15 @@ public final class ActionExecutor implements RenderExecutor {
         if (SwingUtilities.isEventDispatchThread()) return call(body);
         final java.util.function.BooleanSupplier guard = GUARD.get();
         final var origin = ASSISTANT_ORIGIN.get();
+        final var hostedOpen = hostedOpenOrigin();
         @SuppressWarnings("unchecked") final T[] out = (T[]) new Object[1];
         final RuntimeException[] err = new RuntimeException[1];
         try {
             SwingUtilities.invokeAndWait(() -> {
                 var previous = ASSISTANT_ORIGIN.get();
+                var previousHosted = HOSTED_OPEN_ORIGIN.get();
                 try {
+                    if (hostedOpen == null) HOSTED_OPEN_ORIGIN.remove(); else HOSTED_OPEN_ORIGIN.set(hostedOpen);
                     bindAssistantOrigin(origin);
                     checkGuard(guard);
                     out[0] = body.call();
@@ -2007,6 +2017,7 @@ public final class ActionExecutor implements RenderExecutor {
                     err[0] = e instanceof RuntimeException re ? re : new RuntimeException(e);
                 } finally {
                     bindAssistantOrigin(previous);
+                    if (previousHosted == null) HOSTED_OPEN_ORIGIN.remove(); else HOSTED_OPEN_ORIGIN.set(previousHosted);
                 }
             });
         } catch (InterruptedException | InvocationTargetException e) {

@@ -211,17 +211,17 @@ class StarterProjectTest {
         d.post(new SessionEvents.StarterProjectOpened(req, true, null));
         List<String> order = a.starterEffects.stream().map(SessionDriver::name).toList();
         assertEquals(List.of("readStarterDefaults", "observeStarterDirectory", "downloadStarter", "vendorSkills",
-                "runDiscovery", "reviewStarterProject", "openStarterProject", "openStarterDesign", "watchStarterGraphml",
+                "runDiscovery", "reviewStarterProject", "openStarterProject", "openStarterDesign",
                 "armStarterDraft"), order.subList(order.indexOf("readStarterDefaults"), order.size()));
         assertEquals(ProposalState.ItemState.APPLIED, d.snapshot().proposal().items().get(0).state());
-        assertTrue(d.snapshot().starter().graphWatch(), "the GraphML watch is armed");
-        // the first build's graph is offered once
-        d.post(new SessionEvents.StarterGraphmlAppeared(req, REFS.put("/work/new-app/x.graphml"), "…/x.graphml"));
-        d.post(new SessionEvents.StarterGraphmlAppeared(req, REFS.put("/work/new-app/x.graphml"), "…/x.graphml"));
-        assertEquals(1, of(a, SessionEffects.OfferStarterGraphEffect.class).size(), "offered once");
-        d.post(new SessionEvents.StarterGraphOfferAnswered(req, true));
-        d.post(new SessionEvents.StarterGraphOfferAnswered(req, true));
-        assertEquals(1, of(a, SessionEffects.OpenStarterGraphEffect.class).size(), "a current Yes opens exactly once");
+        assertTrue(d.snapshot().starter().graphWatch(), "the starter awaits the general watch's first graph");
+        var file = ProjectOutputsTest.graph(1);
+        d.post(new SessionEvents.ProjectOutputChanged(0, -1, 1, file));
+        assertTrue(d.snapshot().starter().graphWatch(), "another project's graph cannot advance this starter");
+        d.post(new SessionEvents.ProjectOutputChanged(0, 0, 1, file));
+        assertFalse(d.snapshot().starter().graphWatch(), "the general change fact advances the first-build cue");
+        assertTrue(a.performed.stream().noneMatch(SessionEffects.OpenProjectOutputEffect.class::isInstance),
+                "the starter never opens merely from a stable-change fact");
     }
 
     @Test

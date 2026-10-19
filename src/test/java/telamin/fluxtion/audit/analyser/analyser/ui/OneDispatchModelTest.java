@@ -28,6 +28,18 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class OneDispatchModelTest {
 
+    @Test void outputPanelsRenderAndOnlyTheNodeDecidesStabilityAndAcceptance() throws Exception {
+        String panel = Files.readString(UI.resolve("ProjectOutputsPanel.java"));
+        for (String forbidden : List.of("Files.", "new javax.swing.Timer", "openGraphml(", "requestOpenLog(",
+                "currentTimeMillis", "POLL_MILLIS", "OpenProjectOutputEffect"))
+            assertFalse(panel.contains(forbidden), "the output banner must render, not decide: " + forbidden);
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        assertFalse(frame.contains("watchStarterGraphml("), "no parallel starter watcher");
+        assertFalse(frame.contains("askStarterGraph("), "no starter-only modal");
+        assertTrue(frame.contains("projectOutputs.permitsOpen(e.watch(), e.offer(), e.projectGeneration())"),
+                "deferred acceptance must consult its original node permission");
+    }
+
     @Test
     void activityDecisionsAndWordsBelongToTheNodeNotThePanels() throws Exception {
         for (String name : List.of("LocalAgentPanel.java", "AssistantPanel.java", "AssistantSurface.java")) {

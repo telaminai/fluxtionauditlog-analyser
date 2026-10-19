@@ -96,6 +96,8 @@ PERSON_ACT_EVENTS = {
     'starterDestination': 'StarterDestinationChosen',
     'starterReview': 'StarterReviewAnswered',
     'starterGraph': 'StarterGraphOfferAnswered',
+    # M81: current banner choice; the preceding kind remains readable in historical sealed captures only.
+    'projectOutput': 'ProjectOutputOfferAnswered',
 }
 EVENT_TO_ACT = {v: k for k, v in PERSON_ACT_EVENTS.items()}
 
@@ -127,6 +129,7 @@ ACT_FIELDS = {
     'starterDestination': ('proposalId', 'itemId', 'dirRef'),
     'starterReview': ('request', 'open', 'sourceRoots', 'skills', 'graphRef', 'offerDigest', 'designRoot'),
     'starterGraph': ('request', 'open'),
+    'projectOutput': ('watch', 'offer', 'open'),
 }
 
 # Node-log keys that carry a refusal, and how the reason is named (read from the P2 branch's session nodes).

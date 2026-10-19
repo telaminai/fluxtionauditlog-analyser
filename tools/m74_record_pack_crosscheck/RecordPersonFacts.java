@@ -19,7 +19,7 @@ public class RecordPersonFacts {
             "AiSetupRegisterRequested", "AiSetupMoreOptions", "AiSetupBuildModeAnswered", "AiSetupAlsoTurnOffChosen",
             "ExternalAccessRequested", "ExternalAccessAnswered", "RegisterAnswered", "StarterMenuRequested",
             "StarterChosen", "StarterConfigured", "StarterDestinationChosen", "StarterReviewAnswered",
-            "StarterGraphOfferAnswered"
+            "StarterGraphOfferAnswered", "ProjectOutputOfferAnswered"
         };
         for (String name : names) {
             Class<?> type = Class.forName("telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$" + name);

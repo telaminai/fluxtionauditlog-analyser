@@ -156,6 +156,8 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(actionListener, "actionListener");
         localAgent.setActionListener(actionListener);
         cfg.addNode(localAgent, "localAgentSession");
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectOutputs(
+                activeProject, openBundle, localAgent, gate, boundary, effects), "projectOutputs");
         // M74 P3 (§5.7, §8.3): permission prompts in the analyser — which requests reach the person, the one dialog, the
         // single-use grants. It PUSHES into localAgentSession, so it runs first for a fact both handle: on Stop the
         // pending request is answered deny before the interrupt is asked for (§4.5)
@@ -168,6 +170,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         telamin.fluxtion.audit.analyser.analyser.session.node.StarterProject starterProject =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.StarterProject(effects);
         starterProject.setGate(gate);
+        starterProject.setActiveProject(activeProject);
         telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal onboarding =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal(localAgent, effects,
                         starterProject);
