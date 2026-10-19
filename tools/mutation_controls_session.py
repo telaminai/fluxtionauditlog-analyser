@@ -901,8 +901,9 @@ CONTROLS = [
     ('m44-5-line-waits-for-the-session', UI + 'MainFrame.java',
      '        if (next.total() != s.size()) return;', '',
      'LogFindingsOnEverySurfaceFrameTest#theLineNeverCountsNewRowsBesideTheOldFindings'),
-    ('m44-5-line-waits-for-the-scan', UI + 'MainFrame.java',
-     'next.evidencePending()', 'false',
+    # INTEG-R10: the wait moved into the statusLine node (WAITING while a scan is outstanding); the renderer reads it
+    ('m44-5-line-waits-for-the-scan', NODE + 'StatusLine.java',
+     '                && !logEvidence.scanPending();', ';',
      'LogFindingsOnEverySurfaceFrameTest#theLineNeverCountsNewRowsBesideTheOldFindings'),
     # acceptance 4: the environment's provenance is resolved BEFORE the log is reported open, into the one copy
     ('m44-5-environment-before-open', UI + 'MainFrame.java',

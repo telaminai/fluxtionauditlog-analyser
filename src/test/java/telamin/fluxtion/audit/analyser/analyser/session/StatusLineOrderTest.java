@@ -114,6 +114,11 @@ class StatusLineOrderTest {
         evidenceLands(d);
         openGraph(d);
         long g = d.snapshot().logGeneration();
+        // records appended: a rescan is outstanding, so the line waits rather than count new rows beside old findings
+        d.post(new SessionEvents.LogAppended(g, Set.of("a"), 2, 2, "TRACE"));
+        assertEquals(WAITING, d.snapshot().statusLine().subject(), "the line waits for the rescan");
+        evidenceLands(d);
+        assertEquals(LOG_AND_GRAPH, d.snapshot().statusLine().subject(), "and states the graph line again once it lands");
         d.post(new SessionEvents.FollowToggled(g, true));
         assertEquals(LOG, d.snapshot().statusLine().subject(), "a live tail is about the log");
         d.post(new SessionEvents.FollowToggled(g, false));
