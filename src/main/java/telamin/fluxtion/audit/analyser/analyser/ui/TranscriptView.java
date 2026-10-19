@@ -486,6 +486,11 @@ public final class TranscriptView extends JTextPane {
 
     private void renderRun(StyledDocument doc, SafeMarkdown.Run r, SimpleAttributeSet around, Item item, boolean dark,
                            boolean stale, int[] candidates) throws BadLocationException {
+        renderRun(doc, r, around, item, dark, stale, candidates, false);
+    }
+
+    private void renderRun(StyledDocument doc, SafeMarkdown.Run r, SimpleAttributeSet around, Item item, boolean dark,
+                           boolean stale, int[] candidates, boolean tableCell) throws BadLocationException {
         TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
         SimpleAttributeSet a = new SimpleAttributeSet(around);
         switch (r.kind()) {
@@ -510,27 +515,33 @@ public final class TranscriptView extends JTextPane {
                 mono(a);
                 StyleConstants.setBackground(a, p.codeBackground());
                 StyleConstants.setForeground(a, p.codeText());
-                put(doc, VisibleMarks.show(code), a, item);
+                put(doc, inlineText(code, tableCell), a, item);
                 return;
             }
             case LINK, IMAGE -> {
                 if (r.kind() == SafeMarkdown.Kind.IMAGE) {          // never fetched: its words, and the URL as a link
-                    put(doc, VisibleMarks.show(r.text().substring(0, r.text().lastIndexOf(']') + 1)) + " ", a, item);
+                    put(doc, inlineText(r.text().substring(0, r.text().lastIndexOf(']') + 1), tableCell) + " ", a, item);
                 }
                 SimpleAttributeSet link = new SimpleAttributeSet(a);
                 StyleConstants.setUnderline(link, true);
                 StyleConstants.setForeground(link, p.link());
                 link.addAttribute(LINK_ATTR, r.url());
                 String shown = r.kind() == SafeMarkdown.Kind.IMAGE ? r.url() : r.text();
-                put(doc, VisibleMarks.show(shown), link, item);
+                put(doc, inlineText(shown, tableCell), link, item);
                 if (r.kind() == SafeMarkdown.Kind.LINK && !r.text().equals(r.url())) {
-                    put(doc, " (" + VisibleMarks.show(r.url()) + ")", smaller(base(p.muted(), dark)), item);
+                    put(doc, " (" + inlineText(r.url(), tableCell) + ")", smaller(base(p.muted(), dark)), item);
                 }
                 return;
             }
             default -> { }
         }
-        renderProse(doc, r.text(), a, item, stale, candidates);
+        renderProse(doc, r.text(), a, item, stale, candidates, tableCell);
+    }
+
+    private static String inlineText(String text, boolean tableCell) {
+        String shown = VisibleMarks.show(text);
+        // A cell's literal tab is content, not one of the grid's structural tab stops. Copy still uses the source.
+        return tableCell ? shown.replace("\t", "⟨U+0009⟩") : shown;
     }
 
     // ---- GFM tables -----------------------------------------------------------------------------------------------
@@ -550,12 +561,21 @@ public final class TranscriptView extends JTextPane {
         int cols = table.header().size();
         if (cols == 0) return;
         FontMetrics plainFm = getFontMetrics(new Font(UiTheme.monoFamily(), Font.PLAIN, fontSize()));
-        FontMetrics boldFm = getFontMetrics(new Font(UiTheme.monoFamily(), Font.BOLD, fontSize()));
+        TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
+        SimpleAttributeSet plain = mono(base(p.codeText(), dark));
+        SimpleAttributeSet muted = mono(base(p.muted(), dark));
+        SimpleAttributeSet headerAttr = bold(plain);
+        // Run the SAME renderer against a scratch document. This includes URL disclosures, VisibleMarks and
+        // component substitution. Use a private counter: measurement must not consume the answer's chip budget.
+        StyledDocument measuring = new javax.swing.text.DefaultStyledDocument();
+        int[] measuredCandidates = {candidates[0]};
         int[] colPx = new int[cols];
-        for (int c = 0; c < cols; c++) colPx[c] = cellWidthPx(table.header().get(c), true, plainFm, boldFm);
+        for (int c = 0; c < cols; c++) colPx[c] = cellWidthPx(table.header().get(c), headerAttr, measuring,
+                item, dark, stale, measuredCandidates);
         for (List<SafeMarkdown.Cell> row : table.rows()) {
             for (int c = 0; c < cols && c < row.size(); c++) {
-                colPx[c] = Math.max(colPx[c], cellWidthPx(row.get(c), false, plainFm, boldFm));
+                colPx[c] = Math.max(colPx[c], cellWidthPx(row.get(c), plain, measuring,
+                        item, dark, stale, measuredCandidates));
             }
         }
         int spacePx = Math.max(1, plainFm.stringWidth(" "));
@@ -611,11 +631,6 @@ public final class TranscriptView extends JTextPane {
                 new javax.swing.text.TabSet(contentStops.toArray(new javax.swing.text.TabStop[0]));
         javax.swing.text.TabSet ruleTabs = new javax.swing.text.TabSet(ruleStops.toArray(new javax.swing.text.TabStop[0]));
 
-        TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
-        SimpleAttributeSet plain = mono(base(p.codeText(), dark));
-        SimpleAttributeSet muted = mono(base(p.muted(), dark));
-        SimpleAttributeSet headerAttr = bold(plain);
-
         int headerStart = doc.getLength();
         renderTableContentRow(doc, table.header(), table.aligns(), headerAttr, muted, item, dark, stale, candidates);
         put(doc, "\n", plain, item);
@@ -647,7 +662,7 @@ public final class TranscriptView extends JTextPane {
         for (int c = 0; c < cols; c++) {
             if (!(c == 0 && aligns.get(c) == SafeMarkdown.Align.LEFT)) put(doc, "\t", pipeAttr, item);
             SafeMarkdown.Cell cell = c < cells.size() ? cells.get(c) : new SafeMarkdown.Cell(List.of());
-            for (SafeMarkdown.Run r : cell.runs()) renderRun(doc, r, cellAttr, item, dark, stale, candidates);
+            for (SafeMarkdown.Run r : cell.runs()) renderRun(doc, r, cellAttr, item, dark, stale, candidates, true);
             if (c < cols - 1) {
                 put(doc, "\t", pipeAttr, item);
                 put(doc, "│", pipeAttr, item);
@@ -688,10 +703,10 @@ public final class TranscriptView extends JTextPane {
         for (int r = 0; r < rows.size(); r++) {
             List<SafeMarkdown.Cell> row = rows.get(r);
             for (int c = 0; c < cols; c++) {
-                for (SafeMarkdown.Run run : table.header().get(c).runs()) renderRun(doc, run, label, item, dark, stale, candidates);
+                for (SafeMarkdown.Run run : table.header().get(c).runs()) renderRun(doc, run, label, item, dark, stale, candidates, true);
                 put(doc, ": ", plain, item);
                 SafeMarkdown.Cell cell = c < row.size() ? row.get(c) : new SafeMarkdown.Cell(List.of());
-                for (SafeMarkdown.Run run : cell.runs()) renderRun(doc, run, plain, item, dark, stale, candidates);
+                for (SafeMarkdown.Run run : cell.runs()) renderRun(doc, run, plain, item, dark, stale, candidates, true);
                 put(doc, "\n", plain, item);
             }
             if (r < rows.size() - 1) put(doc, "\n", plain, item);
@@ -699,16 +714,24 @@ public final class TranscriptView extends JTextPane {
     }
 
     /**
-     * A cell's displayed PIXEL width (post-Markdown, pre-{@link VisibleMarks}), measured per run in the metrics it
-     * will actually be painted in — bold for a header cell or a {@code STRONG} run, plain mono otherwise — so a
-     * non-monospace glyph (an emoji, an em dash) is sized by what it really occupies, not by its character count.
+     * Measure the renderer's final character runs, not the Markdown model. Links include their smaller destination,
+     * images include their caption, controls have already become visible marks, and a chip occupies its button's
+     * preferred width once (its underlying copyable text is not a second painted string).
      */
-    private static int cellWidthPx(SafeMarkdown.Cell cell, boolean boldContext, FontMetrics plainFm, FontMetrics boldFm) {
+    private int cellWidthPx(SafeMarkdown.Cell cell, SimpleAttributeSet around, StyledDocument measuring,
+                            Item item, boolean dark, boolean stale, int[] candidates) throws BadLocationException {
+        measuring.remove(0, measuring.getLength());
+        for (SafeMarkdown.Run run : cell.runs()) renderRun(measuring, run, around, item, dark, stale, candidates, true);
         int w = 0;
-        for (SafeMarkdown.Run r : cell.runs()) {
-            String text = r.kind() == SafeMarkdown.Kind.IMAGE ? r.url() : r.text();
-            FontMetrics fm = boldContext || r.kind() == SafeMarkdown.Kind.STRONG ? boldFm : plainFm;
-            w += fm.stringWidth(text);
+        for (int at = 0; at < measuring.getLength();) {
+            Element e = measuring.getCharacterElement(at);
+            int end = Math.min(e.getEndOffset(), measuring.getLength());
+            AttributeSet attributes = e.getAttributes();
+            java.awt.Component component = StyleConstants.getComponent(attributes);
+            w += component == null
+                    ? getFontMetrics(measuring.getFont(attributes)).stringWidth(measuring.getText(at, end - at))
+                    : component.getPreferredSize().width;
+            at = end;
         }
         return w;
     }
@@ -742,6 +765,11 @@ public final class TranscriptView extends JTextPane {
     /** Prose with its chips: {@code record #12}, {@code node riskMonitor}, a quoted chart name — nothing else. */
     private void renderProse(StyledDocument doc, String text, SimpleAttributeSet a, Item item, boolean stale,
                              int[] candidates) throws BadLocationException {
+        renderProse(doc, text, a, item, stale, candidates, false);
+    }
+
+    private void renderProse(StyledDocument doc, String text, SimpleAttributeSet a, Item item, boolean stale,
+                             int[] candidates, boolean tableCell) throws BadLocationException {
         Matcher m = REFERENCE.matcher(text);
         int at = 0;
         while (m.find() && candidates[0] < MAX_CANDIDATES) {
@@ -759,7 +787,7 @@ public final class TranscriptView extends JTextPane {
             } else if (m.group(2) != null) {
                 String id = trimPunctuation(m.group(2));
                 if (chips.isNode(id)) {
-                    put(doc, VisibleMarks.show(text.substring(at, m.start())) + "node ", a, item);
+                    put(doc, inlineText(text.substring(at, m.start()), tableCell) + "node ", a, item);
                     chip(doc, id, "node " + id + " — selects and spotlights the node", item, stale,
                             () -> navigator.revealNode(id));
                     at = m.start(2) + id.length();
@@ -774,12 +802,12 @@ public final class TranscriptView extends JTextPane {
             if (chipLabel == null) continue;
             // a quoted chart name keeps its quotes as text around the chip: every character the model wrote stays
             boolean quoted = m.group(3) != null;
-            put(doc, VisibleMarks.show(text.substring(at, m.start())) + (quoted ? "\"" : ""), a, item);
+            put(doc, inlineText(text.substring(at, m.start()), tableCell) + (quoted ? "\"" : ""), a, item);
             chip(doc, chipLabel, tip, item, stale, go);
             if (quoted) put(doc, "\"", a, item);
             at = m.end();
         }
-        put(doc, VisibleMarks.show(text.substring(at)), a, item);
+        put(doc, inlineText(text.substring(at), tableCell), a, item);
     }
 
     private static String trimPunctuation(String id) {

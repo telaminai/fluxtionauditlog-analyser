@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Transcript tables bound cell and repeated-label expansion, preserving oversized tables as raw text. Pixel widths
+  include displayed link destinations, image captions, visible character disclosures and navigation chips, so grid
+  alignment and narrow-panel stacking match what is actually rendered.
+
 - **The transcript renders Markdown tables, not raw pipes.** A GFM table (a header row plus a valid separator row —
   `:---`, `---:`, `:---:` or `---` per column) draws as an aligned, bordered monospace grid, with alignment from the
   separator row and `**bold**`/`` `code` ``/links working inside cells; `\|` stays a literal pipe. When the grid would

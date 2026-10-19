@@ -659,4 +659,82 @@ class TranscriptViewTest {
                             + "whatever the Status glyph's own width is: " + probe.lastPipeXPerRow());
         }
     }
+
+    @Test
+    void raggedTablesKeepOnlySuppliedCells() {
+        var table = SafeMarkdown.parse("| a | b | c |\n|---|---|---|\n| x |\n| y | z |").getFirst().table();
+        assertNotNull(table);
+        assertEquals(List.of(1, 2), table.rows().stream().map(List::size).toList(),
+                "missing cells must not be allocated for every row");
+    }
+
+    @Test
+    void tableExpansionBeyondBudgetFallsBackToExactRawText() {
+        for (int n : List.of(128, 4_000)) {
+            // Empty header cells isolate the cell-count bound from the independent repeated-label bound.
+            String raw = "|" + "|".repeat(n) + "\n|" + "---|".repeat(n) + "\n" + "| x |\n".repeat(n).stripTrailing();
+            var block = SafeMarkdown.parse(raw).getFirst();
+            assertTrue(block.table() == null, "a small ragged input must not expand to a rectangular cell matrix");
+            assertEquals(raw, block.code(), "the bounded fallback preserves every character");
+        }
+    }
+
+    @Test
+    void stackedTableCannotMultiplyALongHeaderAcrossShortRows() {
+        String raw = "| " + "long header ".repeat(100) + "|\n|---|\n" + "| x |\n".repeat(100).stripTrailing();
+        var block = SafeMarkdown.parse(raw).getFirst();
+        assertTrue(block.table() == null, "stacked labels must not multiply source text without a bound");
+        assertEquals(raw, block.code());
+    }
+
+    @Test
+    void tableMeasuresDisplayedLinksMarksImagesAndChipsInBothThemes() throws Exception {
+        onEdt(() -> {
+            boolean wasDark = ThemeManager.isDark();
+            try {
+                for (String theme : List.of("Light", "Dark")) {
+                    ThemeManager.apply(theme);
+                    for (String value : List.of("[x](https://example.invalid/destination)",
+                            "![a long image caption](https://example.invalid/image)", "a\u202Eb", "👩\u200D💻", "`demoNode`", "a\tb")) {
+                        TranscriptView v = new TranscriptView();
+                        v.setChips(new TranscriptView.Chips() {
+                            public boolean isRecord(int i) { return false; }
+                            public boolean isNode(String id) { return id.equals("demoNode"); }
+                            public boolean isChart(String id) { return false; }
+                            public long generation() { return 0; }
+                        });
+                        v.setSize(900, 600);
+                        v.render(List.of(answer("a", "| A | B |\n|---|---|\n| " + value + " | ok |\n| y | ok |")));
+                        paint(v);
+                        String shown = all(v);
+                        List<Double> separators = new ArrayList<>();
+                        for (int i = 0; i < shown.length(); i++) {
+                            if (shown.charAt(i) == '│' || shown.charAt(i) == '┼') {
+                                separators.add(v.modelToView2D(i).getX());
+                            }
+                        }
+                        assertEquals(4, separators.size(), "fixture fits as a grid: " + theme + ": " + value);
+                        for (double x : separators) assertEquals(separators.getFirst(), x, .75,
+                                "measure the displayed runs, including components: " + theme + ": " + value + ": " + separators);
+                    }
+                }
+            } finally {
+                ThemeManager.apply(wasDark ? "Dark" : "Light");
+            }
+            return null;
+        });
+    }
+
+    @Test
+    void displayedLinkDestinationsDetermineStackingAtDefaultWidth() throws Exception {
+        onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.setSize(520, 600);
+            String value = "[x](https://example.invalid/" + "destination/".repeat(12) + ")";
+            v.render(List.of(answer("a", "| A | B | C | D |\n|---|---|---|---|\n| " + value + " | b | c | d |")));
+            assertTrue(all(v).contains("A: x (https://"), "displayed destination requires the stacked representation");
+            assertFalse(all(v).contains("┼"), "the raw one-letter link label must not make this look narrow");
+            return null;
+        });
+    }
 }

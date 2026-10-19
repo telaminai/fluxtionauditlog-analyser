@@ -17,7 +17,9 @@ import java.util.Locale;
  * separator row (per-column {@code :---}/{@code ---:}/{@code :---:}/{@code ---} cells, same column count as the
  * header); its cells become inline runs (so {@code **bold**} etc. work inside a cell), {@code \|} is a literal pipe,
  * and missing trailing pipes are tolerated. A pipe run with no valid separator row stays the literal, raw monospace
- * text it always was — the view draws that as-is, never interpreted.
+ * text it always was — the view draws that as-is, never interpreted. Tables whose rectangular display would exceed
+ * 4,096 cells, or whose repeated stacked labels exceed four times the source size (with a 1,024-character floor),
+ * also stay raw. This bounds display expansion as well as parsing; missing cells are never allocated.
  *
  * <p><b>Linear</b> (r8 F21): it runs again on every streamed revision, so pathological input (64 KB of unclosed
  * emphasis, or a huge pipe-delimited line) must not go quadratic. Each delimiter's NEXT occurrence is precomputed in
@@ -28,6 +30,8 @@ import java.util.Locale;
  * or format character is {@link VisibleMarks}' job, applied by the view.
  */
 public final class SafeMarkdown {
+
+    static final int MAX_TABLE_CELLS = 4_096;
 
     private SafeMarkdown() {
     }
@@ -52,7 +56,7 @@ public final class SafeMarkdown {
         }
     }
 
-    /** A parsed GFM table: the header row, each column's alignment, and the body rows (ragged rows are padded empty). */
+    /** A parsed GFM table: the header row, each column's alignment, and sparse body rows (no missing-cell padding). */
     public record Table(List<Cell> header, List<Align> aligns, List<List<Cell>> rows) {
         public Table {
             header = List.copyOf(header == null ? List.of() : header);
@@ -187,6 +191,15 @@ public final class SafeMarkdown {
         List<String> headerCells = splitRow(lines.get(0));
         List<String> sepCells = splitRow(lines.get(1));
         if (headerCells.isEmpty() || sepCells.size() != headerCells.size()) return null;
+        // The view may stack every row and repeat its labels. Refuse expansion BEFORE allocating cell runs:
+        // a wide header followed by thousands of one-cell rows is small input, not a licence for a huge matrix.
+        long bodyRows = lines.size() - 2L;
+        long sourceChars = lines.size() - 1L;
+        for (String line : lines) sourceChars += line.length();
+        long labelChars = 0;
+        for (String cell : headerCells) labelChars += cell.length();
+        if ((bodyRows + 1) * headerCells.size() > MAX_TABLE_CELLS
+                || bodyRows * labelChars > Math.max(1_024L, 4L * sourceChars)) return null;
         List<Align> aligns = new ArrayList<>();
         for (String raw : sepCells) {
             String c = raw.strip();
@@ -201,8 +214,8 @@ public final class SafeMarkdown {
         for (int r = 2; r < lines.size(); r++) {
             List<String> raw = splitRow(lines.get(r));
             List<Cell> row = new ArrayList<>();
-            for (int c = 0; c < headerCells.size(); c++) {
-                row.add(new Cell(inline(c < raw.size() ? raw.get(c).strip() : "")));
+            for (int c = 0; c < headerCells.size() && c < raw.size(); c++) {
+                row.add(new Cell(inline(raw.get(c).strip())));
             }
             rows.add(row);
         }
