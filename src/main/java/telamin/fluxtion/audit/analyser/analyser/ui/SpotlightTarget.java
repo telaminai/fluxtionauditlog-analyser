@@ -44,9 +44,11 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
         TAB("tab:<summary|source|graph|topology|reports|assistant>", true),
         DESIGN("source:design", false),
         DESIGN_BEAN("source:design:bean:<id>", true),
-        DESIGN_LINE("source:design:line:<n>", true),
+        /** M80: {@code line:<n>} is the range n-n; {@code line:<from>-<to>} lights every line from first to last. */
+        DESIGN_LINE("source:design:line:<n|from-to>", true),
         JAVA("source:java:<fqn>", true),
-        JAVA_LINE("source:java:<fqn>:line:<n>", true),
+        /** M80: {@code line:<n>} is the range n-n; {@code line:<from>-<to>} lights every line from first to last. */
+        JAVA_LINE("source:java:<fqn>:line:<n|from-to>", true),
         RECORDS("records", false),
         RECORDS_ROW("records:row:<recordIndex>", true),
         DETAIL("detail", false),
@@ -132,17 +134,22 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
                     if (!fqn.matches("[\\p{javaJavaIdentifierStart}][\\p{javaJavaIdentifierPart}]*(\\.[\\p{javaJavaIdentifierStart}][\\p{javaJavaIdentifierPart}]*)*"))
                         yield unknown("Java target requires a fully qualified source name");
                     if (parts.length == 1) yield new Parsed(new SpotlightTarget(Family.JAVA, null, name, null, fqn), null);
-                    if (parts.length != 3 || !parts[1].equalsIgnoreCase("line") || !parts[2].matches("[1-9][0-9]*"))
-                        yield unknown("expected source:java:<fqn>[:line:<positive integer>]");
-                    try { Integer.parseInt(parts[2]); } catch (NumberFormatException ex) { yield unknown("Java line is out of range"); }
+                    if (parts.length != 3 || !parts[1].equalsIgnoreCase("line"))
+                        yield unknown("expected " + Family.JAVA.form() + "[:line:<n>|<from>-<to>]");
+                    String javaLineError = lineRangeError(parts[2]);
+                    if (javaLineError != null) yield unknown(javaLineError);
                     yield new Parsed(new SpotlightTarget(Family.JAVA_LINE, parts[2], name, null, fqn), null);
                 }
                 if ("design".equalsIgnoreCase(rest)) yield ok(Family.DESIGN, null, name);
-                if (rest == null || !rest.toLowerCase(Locale.ROOT).startsWith("design:")) yield unknown("expected source:design[:bean:<id>|:line:<n>]");
+                if (rest == null || !rest.toLowerCase(Locale.ROOT).startsWith("design:"))
+                    yield unknown("expected source:design[:bean:<id>|:line:<n>|<from>-<to>]");
                 String part = rest.substring(7);
-                yield part.toLowerCase(Locale.ROOT).startsWith("line:")
-                        ? oneBased(sub(part, "line", Family.DESIGN_LINE, name, true))
-                        : sub(part, "bean", Family.DESIGN_BEAN, name, false);
+                if (part.toLowerCase(Locale.ROOT).startsWith("line:")) {
+                    String arg = part.substring(5);
+                    String designLineError = lineRangeError(arg);
+                    yield designLineError != null ? unknown(designLineError) : ok(Family.DESIGN_LINE, arg, name);
+                }
+                yield sub(part, "bean", Family.DESIGN_BEAN, name, false);
             }
             case "tab" -> member(Family.TAB, rest, TABS, name);
             case "toolbar" -> member(Family.TOOLBAR, rest, TOOLBAR_BUTTONS, name);
@@ -239,6 +246,32 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
         return parsed;
     }
 
+    /** M80 — the largest line SPAN a {@code line:<from>-<to>} may light at once; owned, with the vocabulary, by LLM. */
+    public static final int MAX_LINE_SPAN = telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.MAX_LINE_SPAN;
+
+    /**
+     * {@code <n>} or {@code <from>-<to>}, the grammar shared by JAVA_LINE and DESIGN_LINE's line argument. Returns
+     * the refusal, or null when the syntax, order and span are all fine — whether the line(s) exist in the
+     * document is found out later, once the document is known (JavaSpotlightPlan, designNotVisible).
+     */
+    private static String lineRangeError(String arg) {
+        if (!arg.matches("[1-9][0-9]*(-[1-9][0-9]*)?"))
+            return "'" + arg + "': a line is a positive integer, or a range '<from>-<to>'";
+        int dash = arg.indexOf('-');
+        try {
+            if (dash < 0) { Integer.parseInt(arg); return null; }
+            int from = Integer.parseInt(arg.substring(0, dash));
+            int to = Integer.parseInt(arg.substring(dash + 1));
+            if (from > to) return "'" + arg + "': a range's first line (" + from + ") must not be after its last (" + to + ")";
+            if (to - from + 1 > MAX_LINE_SPAN)
+                return "'" + arg + "' spans " + (to - from + 1) + " lines — at most " + MAX_LINE_SPAN
+                        + " at once; light a narrower range";
+            return null;
+        } catch (NumberFormatException ex) {
+            return "'" + arg + "': line is out of range";
+        }
+    }
+
     private static Parsed quotedGraph(String rest, String name) {
         int close = rest.indexOf('"', 1);
         if (close < 0) return unknown("'" + name + "' opens a quoted chart name and never closes it");
@@ -310,6 +343,24 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
     /** The argument as a number, for the two numeric families. */
     public int number() {
         return Integer.parseInt(argument);
+    }
+
+    /**
+     * M80 — JAVA_LINE / DESIGN_LINE: the first line of the target (equal to {@link #lineTo()} for a plain
+     * {@code line:<n>}, which is the range n-n).
+     */
+    public int lineFrom() {
+        int dash = argument.indexOf('-');
+        return dash < 0 ? Integer.parseInt(argument) : Integer.parseInt(argument.substring(0, dash));
+    }
+
+    /**
+     * M80 — JAVA_LINE / DESIGN_LINE: the last line of the target (equal to {@link #lineFrom()} for a plain
+     * {@code line:<n>}).
+     */
+    public int lineTo() {
+        int dash = argument.indexOf('-');
+        return dash < 0 ? Integer.parseInt(argument) : Integer.parseInt(argument.substring(dash + 1));
     }
 
     // ---- resolution ---------------------------------------------------------------------------------

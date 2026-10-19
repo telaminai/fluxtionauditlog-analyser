@@ -22,6 +22,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   include displayed link destinations, image captions, visible character disclosures and navigation chips, so grid
   alignment and narrow-panel stacking match what is actually rendered.
 - Docs: a new page, *The audit log ▸ From a Mongoose server to the analyser*, explains how a Mongoose-hosted processor's audit records reach a `---`-separated file that the analyser opens. It covers two routes: your own `LogRecordListener` passed at boot, and Mongoose's audit capture exported by `svc-admin-web`. It also covers where the audit level comes from. Steps that the Mongoose sources do not settle are marked *To confirm*.
+- A spotlight source line target may now light a RANGE, not only a single line: `source:java:<fqn>:line:<from>-<to>` and `source:design:line:<from>-<to>` (plain `line:<n>` is unchanged, the range n-n). The range must have its first line at or before its last, and spans at most 200 lines. The cut-out covers the whole range, first line's top to last line's bottom; a range taller than the visible area clips to it and shows the range's start, reported as `partial` in the spotlight reply (as a single tall Java line already was) — a design range may now show partly too, where a single design line still refuses outright unless it is fully on screen. A range whose last line is past the end of the file or design is refused whole, never silently clamped.
 
 ### Changed
 

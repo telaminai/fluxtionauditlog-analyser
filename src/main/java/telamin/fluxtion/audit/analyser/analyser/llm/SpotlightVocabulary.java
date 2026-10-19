@@ -20,6 +20,12 @@ public final class SpotlightVocabulary {
     public static final int MAX_CAPTION = 160;
 
     /**
+     * M80 — the largest line SPAN a {@code line:<from>-<to>} may light at once (owner choice): wide enough for a
+     * real excerpt, narrow enough that "light a range" never becomes a back door to "light nearly the whole file".
+     */
+    public static final int MAX_LINE_SPAN = 200;
+
+    /**
      * WHEN to point — the general guidance, said once and printed at every entrance an assistant arrives
      * through: the in-app assistant's action manifest, the copy-prompt REST manifest, and the MCP bridge's
      * server instructions. Until M64.6 this lived only in the verb's own description and in one skill, so an
@@ -45,7 +51,7 @@ public final class SpotlightVocabulary {
                     + CAPTION_LENGTH;
 
     public static final String TEXT =
-            "tab:<summary|source|graph|topology|reports|assistant> · source:design · source:design:bean:<id> · source:design:line:<n> · source:java:<fqn> · source:java:<fqn>:line:<n> · records · records:row:<recordIndex> · "
+            "tab:<summary|source|graph|topology|reports|assistant> · source:design · source:design:bean:<id> · source:design:line:<n|from-to> · source:java:<fqn> · source:java:<fqn>:line:<n|from-to> · records · records:row:<recordIndex> · "
                     + "detail · detail:node:<instanceId> · topology · topology:node:<instanceId> · topology:verdict · "
                     + "graph[:<name>] · graph[:<name>]:note:<n> · graph[:<name>]:series:<label> · project · "
                     + "project:<log|graph|processors|roots> · toolbar:<open|flag|explain|follow> · menu:<Menu> · "

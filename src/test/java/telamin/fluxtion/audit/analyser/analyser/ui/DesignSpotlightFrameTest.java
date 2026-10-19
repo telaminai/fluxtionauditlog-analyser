@@ -92,6 +92,83 @@ class DesignSpotlightFrameTest {
             onEdt(()->{});onEdt(()->assertFalse(((SpotlightOverlay)field(f.frame,"spotlight")).isLit(),"design viewport hook must extinguish the partial band"));
         }
     }
+    /** M80 ★ — witness: red before the range grammar (the target was UNKNOWN), green after. Unlike a single design
+     * line, a range may show PARTLY: here it fits, so the cut-out is the whole band, not partial. */
+    @Test void designLineRangeSpansFirstLineTopToLastLineBottomAndEchoesExactly(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- context -->\n".repeat(150)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            String RANGE="source:design:line:2-6";
+            var r=f.ex.render("spotlight",Map.of("target",RANGE));
+            assertTrue(r.ok(),r.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)r.payload().get("lit")).getFirst();
+            assertEquals(RANGE,lit.get("target"),"the range is echoed back exactly");
+            assertEquals(2,lit.get("line"));assertEquals(6,lit.get("toLine"));
+            assertEquals(false,lit.get("partial"),"five short lines fit the design panel");
+            onEdt(()->{
+                var panel=(SourcePanel)field(f.frame,"sourcePanel");var design=(DesignSourcePanel)panel.designComponent();
+                try {
+                    var root=design.text.getDocument().getDefaultRootElement();
+                    var first=design.text.modelToView2D(root.getElement(1).getStartOffset());
+                    var last=design.text.modelToView2D(root.getElement(5).getEndOffset()-1);
+                    int expectedHeight=(int)Math.ceil(last.getMaxY())-(int)Math.floor(first.getY());
+                    assertEquals(expectedHeight,((SpotlightOverlay)field(f.frame,"spotlight")).lit().getFirst().bounds().height,
+                            "the cut-out spans first line's top to last line's bottom");
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
+    /** M80 ★ — a design range taller than the panel clips to it, shows the START of the range, and reports partial:
+     * unlike a single design line (refused outright when not fully visible, see the test above it in this file). */
+    @Test void tallDesignLineRangeClipsToViewportShowsItsStartAndReportsPartial(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- context -->\n".repeat(150)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            String RANGE="source:design:line:2-120";
+            var r=f.ex.render("spotlight",Map.of("target",RANGE));
+            assertTrue(r.ok(),r.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)r.payload().get("lit")).getFirst();
+            assertEquals(true,lit.get("partial"),"a range taller than the design panel reports partial");
+            onEdt(()->{
+                var panel=(SourcePanel)field(f.frame,"sourcePanel");var design=(DesignSourcePanel)panel.designComponent();
+                var viewport=SwingUtilities.convertRectangle(design.text,design.text.getVisibleRect(),(SpotlightOverlay)field(f.frame,"spotlight"));
+                var cut=((SpotlightOverlay)field(f.frame,"spotlight")).lit().getFirst().bounds();
+                assertTrue(viewport.contains(cut),"clipped range band must stay inside the viewport: "+cut+" / "+viewport);
+                assertTrue(cut.height>50,"a tall range lights the visible rows, not just one line");
+                try {
+                    int lineTwoStart=design.text.getDocument().getDefaultRootElement().getElement(1).getStartOffset();
+                    var lineTwoRect=design.text.modelToView2D(lineTwoStart).getBounds();
+                    var visible=design.text.getVisibleRect();
+                    assertTrue(visible.y<=lineTwoRect.y && lineTwoRect.y<visible.y+visible.height,
+                            "too tall to fit: the START of the range (line 2) stays on screen — line2.y="+lineTwoRect.y
+                                    +", visible="+visible);
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
+    @Test void refusesADesignRangePastTheSpanLimitAndOutsideTheDocument(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- context -->\n".repeat(150)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            var tooWide=f.ex.render("spotlight",Map.of("target","source:design:line:1-"+(SpotlightTarget.MAX_LINE_SPAN+1)));
+            assertFalse(tooWide.ok());assertTrue(String.valueOf(tooWide.error()).contains(String.valueOf(SpotlightTarget.MAX_LINE_SPAN)),tooWide.toMap().toString());
+            var pastEnd=f.ex.render("spotlight",Map.of("target","source:design:line:145-160"));
+            assertFalse(pastEnd.ok());assertTrue(String.valueOf(pastEnd.error()).contains("outside"),pastEnd.toMap().toString());
+            assertFalse(((SpotlightOverlay)field(f.frame,"spotlight")).isLit(),"a refused range never lights anything");
+        }
+    }
+
     private static String designGeometry(Frame f, int line) {
         SourcePanel source = (SourcePanel) field(f.frame, "sourcePanel");
         DesignSourcePanel design = (DesignSourcePanel) source.designComponent();

@@ -3264,7 +3264,8 @@ public final class MainFrame extends JFrame {
                    && key.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) javaSpotlightTicket++;
     };
     private boolean applyingJavaSpotlight, sourceRemeasureQueued;
-    private record JavaBinding(SourcePanel viewer, SourcePanel.JavaAnchor anchor, Integer line,
+    /** M80: {@code lineFrom}/{@code lineTo} are equal for a single line, both null for the whole document. */
+    private record JavaBinding(SourcePanel viewer, SourcePanel.JavaAnchor anchor, Integer lineFrom, Integer lineTo,
                                String destination, telamin.fluxtion.audit.analyser.analyser.source.SourceService.Lookup lookup) { }
     private final Map<String, JavaBinding> javaSpotlightBindings = new java.util.LinkedHashMap<>();
 
@@ -3794,13 +3795,16 @@ public final class MainFrame extends JFrame {
         if (SwingUtilities.isEventDispatchThread()) report.run();
         else SwingUtilities.invokeLater(report);
     }
-    private static Integer javaLine(SpotlightTarget t) {
-        return t.family() == SpotlightTarget.Family.JAVA_LINE ? t.number() : null;
+    private static Integer javaLineFrom(SpotlightTarget t) {
+        return t.family() == SpotlightTarget.Family.JAVA_LINE ? t.lineFrom() : null;
+    }
+    private static Integer javaLineTo(SpotlightTarget t) {
+        return t.family() == SpotlightTarget.Family.JAVA_LINE ? t.lineTo() : null;
     }
     private java.util.Optional<java.awt.Rectangle> javaSpotlightBounds(SpotlightTarget t) {
         JavaBinding binding = javaSpotlightBindings.get(t.name());
         if (binding == null || !sourceService.isCurrent(binding.lookup())) return java.util.Optional.empty();
-        return binding.viewer().javaBounds(binding.anchor(), binding.line()).flatMap(b -> inOverlay(binding.viewer(), b.bounds()));
+        return binding.viewer().javaBounds(binding.anchor(), binding.lineFrom(), binding.lineTo()).flatMap(b -> inOverlay(binding.viewer(), b.bounds()));
     }
 
     /** EDT capture / background immutable preparation / EDT apply. Never wait on the event thread. */
@@ -3920,8 +3924,8 @@ public final class MainFrame extends JFrame {
                         for (var prepared : plan.targets().values()) {
                             var anchor = viewer.showJavaSnapshot(prepared.target().sourceFqn(), prepared.document(), prepared.model());
                             sourceService.acceptSpotlightModel(lookup, prepared.target().sourceFqn(), prepared.model());
-                            staged.put(prepared.target().name(), new JavaBinding(viewer, anchor, javaLine(prepared.target()),
-                                    topology ? "topology-source" : "source-tab", lookup));
+                            staged.put(prepared.target().name(), new JavaBinding(viewer, anchor, javaLineFrom(prepared.target()),
+                                    javaLineTo(prepared.target()), topology ? "topology-source" : "source-tab", lookup));
                         }
                         result.complete(applySpotlight(params, staged));
                     } catch (RuntimeException ex) {
@@ -3999,8 +4003,9 @@ public final class MainFrame extends JFrame {
                 }
                 case JAVA_LINE -> {
                     JavaBinding binding = javaSpotlightBindings.get(t.name());
-                    if (binding != null && binding.line() != null && sourceService.isCurrent(binding.lookup())) {
-                        for (int line : new int[]{binding.line() - 1, binding.line() + 1}) {
+                    if (binding != null && binding.lineFrom() != null && sourceService.isCurrent(binding.lookup())) {
+                        // M80: a range's neighbours are the lines just above its first and just below its last
+                        for (int line : new int[]{binding.lineFrom() - 1, binding.lineTo() + 1}) {
                             if (line < 1) continue;
                             binding.viewer().javaBounds(binding.anchor(), line)
                                     .flatMap(b -> inOverlay(binding.viewer(), b.bounds())).ifPresent(keep::add);
@@ -4086,6 +4091,12 @@ public final class MainFrame extends JFrame {
                 case JAVA, JAVA_LINE -> javaSpotlightBounds(t);
                 case DESIGN, DESIGN_BEAN, DESIGN_LINE -> {
                     var doc = session().processor().designSession.document();
+                    if (doc != null && t.family() == SpotlightTarget.Family.DESIGN_LINE && t.lineFrom() != t.lineTo()) {
+                        // M80: a range may show PARTLY (unlike a single design line, all-or-nothing below)
+                        yield sourcePanel.designBounds(doc.file(), t.lineFrom(), t.lineTo())
+                                .map(DesignSourcePanel.DesignBand::bounds)
+                                .flatMap(r -> inOverlay(sourcePanel.designComponent(), r));
+                    }
                     Integer line = designTargetLine(t);
                     yield doc == null || line == null ? java.util.Optional.empty()
                             : sourcePanel.designBounds(doc.file(), t.family() == SpotlightTarget.Family.DESIGN ? null : line)
@@ -4218,19 +4229,26 @@ public final class MainFrame extends JFrame {
             if (n > 1) return "bean id '" + t.argument() + "' is declared " + n + " times in " + doc.file()
                     + "; light it by line with source:design:line:<n>";
         }
-        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && (t.number() < 1 || t.number() > doc.lines()))
-            return "line " + t.number() + " is outside " + doc.file() + " (1–" + doc.lines() + ")";
+        // M80: a range's TO line past the end refuses the whole range (not clamped) — the single-line policy, said
+        // for the range it was asked for.
+        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && t.lineTo() > doc.lines())
+            return "line " + (t.lineFrom() == t.lineTo() ? String.valueOf(t.lineFrom()) : t.lineFrom() + "-" + t.lineTo())
+                    + " is outside " + doc.file() + " (1–" + doc.lines() + ")";
         if (t.family() == SpotlightTarget.Family.DESIGN)
             return "the design is open but its view is not on screen: the Source pane is hidden or too small";
+        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && t.lineFrom() != t.lineTo())
+            return "the design is open but that range is not on screen: the Source pane is too small to show it. "
+                    + "Widen the window or the side panel, or light source:design";
         return "the design is open but that line is not on screen: the Source pane is too small to show it. "
                 + "Widen the window or the side panel, or light source:design";
     }
 
+    /** M80: for DESIGN_LINE, the reveal/scroll target is always the FIRST line — the range's start. */
     private Integer designTargetLine(SpotlightTarget target) {
         var doc = session().processor().designSession.document();
         if (doc == null) return null;
         if (target.family() == SpotlightTarget.Family.DESIGN) return 1;
-        if (target.family() == SpotlightTarget.Family.DESIGN_LINE) return target.number() <= doc.lines() ? target.number() : null;
+        if (target.family() == SpotlightTarget.Family.DESIGN_LINE) return target.lineTo() <= doc.lines() ? target.lineFrom() : null;
         var beans = doc.beans(target.argument());
         return beans.size() == 1 ? beans.getFirst().line() : null;
     }
@@ -4491,12 +4509,12 @@ public final class MainFrame extends JFrame {
             public void reveal(SpotlightTarget target) {
                 JavaBinding binding = prepared.get(target.name());
                 if (binding == null) spotlightSurface.reveal(target);
-                else binding.viewer().revealJava(binding.anchor(), binding.line());
+                else binding.viewer().revealJava(binding.anchor(), binding.lineFrom(), binding.lineTo());
             }
             public java.util.Optional<java.awt.Rectangle> bounds(SpotlightTarget target) {
                 JavaBinding binding = prepared.get(target.name());
                 return binding == null ? spotlightSurface.bounds(target)
-                        : binding.viewer().javaBounds(binding.anchor(), binding.line()).flatMap(b -> inOverlay(binding.viewer(), b.bounds()));
+                        : binding.viewer().javaBounds(binding.anchor(), binding.lineFrom(), binding.lineTo()).flatMap(b -> inOverlay(binding.viewer(), b.bounds()));
             }
             public String whyNotVisible(SpotlightTarget target) {
                 return target.javaSource() ? "Java source anchor is no longer visible in its bound document" : spotlightSurface.whyNotVisible(target);
@@ -4582,6 +4600,18 @@ public final class MainFrame extends JFrame {
                 one.put("file", doc.file()); one.put("revision", doc.revision());
                 one.put("captionRevision", designSpotlightRevisions.getOrDefault(l.target(), doc.revision()));
                 one.put("relationship", "unverified");
+                // M80: a design line range echoes its bounds (line/toLine) and, like a Java range, whether the
+                // viewport clipped it — unlike a single design line, which is all-or-nothing and never partial
+                SpotlightTarget.Parsed dp = SpotlightTarget.parse(l.target());
+                if (dp.ok() && dp.target().family() == SpotlightTarget.Family.DESIGN_LINE) {
+                    SpotlightTarget dt = dp.target();
+                    one.put("line", dt.lineFrom());
+                    if (dt.lineFrom() != dt.lineTo()) {
+                        one.put("toLine", dt.lineTo());
+                        sourcePanel.designBounds(doc.file(), dt.lineFrom(), dt.lineTo())
+                                .ifPresent(band -> one.put("partial", band.partial()));
+                    }
+                }
             }
             JavaBinding binding = javaSpotlightBindings.get(l.target());
             if (binding != null) {
@@ -4591,10 +4621,11 @@ public final class MainFrame extends JFrame {
                 one.put("lookup", "source-viewer"); one.put("selectionPolicy", "first-match");
                 one.putAll(doc.origin()); one.put("relationship", "unverified");
                 one.put("destination", binding.destination());
-                one.put("anchor", binding.line() == null ? "document" : "line");
-                if (binding.line() != null) {
-                    one.put("line", binding.line());
-                    binding.viewer().javaBounds(binding.anchor(), binding.line())
+                one.put("anchor", binding.lineFrom() == null ? "document" : "line");
+                if (binding.lineFrom() != null) {
+                    one.put("line", binding.lineFrom());
+                    if (!binding.lineFrom().equals(binding.lineTo())) one.put("toLine", binding.lineTo());
+                    binding.viewer().javaBounds(binding.anchor(), binding.lineFrom(), binding.lineTo())
                             .ifPresent(band -> one.put("partial", band.partial()));
                 }
             }

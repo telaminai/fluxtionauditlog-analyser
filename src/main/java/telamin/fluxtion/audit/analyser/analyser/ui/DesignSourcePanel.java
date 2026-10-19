@@ -130,6 +130,29 @@ final class DesignSourcePanel extends JPanel {
             return Optional.of(SwingUtilities.convertRectangle(text, at, this));
         } catch (javax.swing.text.BadLocationException e) { return Optional.empty(); }
     }
+
+    /** M80: a line RANGE's band and whether the viewport clipped it — unlike {@link #lineBounds(int)}, a range
+     * may show PARTLY: the cut-out is the union of its lines' rects, clipped to what is on screen. */
+    record DesignBand(Rectangle bounds, boolean partial) { }
+
+    Optional<DesignBand> lineBounds(int from, int to) {
+        if (!text.isShowing() || file == null) return Optional.empty();
+        String content = text.getText();
+        int totalLines = 1 + (int) content.chars().filter(c -> c == '\n').count();
+        if (from < 1 || to < from || to > totalLines) return Optional.empty();
+        try {
+            int start = DesignDocument.offset(content, from, 1);
+            int end = to < totalLines ? DesignDocument.offset(content, to + 1, 1) - 1 : content.length();
+            end = Math.max(start, end);
+            var first = text.modelToView2D(start);
+            var last = text.modelToView2D(end);
+            if (first == null || last == null) return Optional.empty();
+            Rectangle view = text.getVisibleRect();
+            Rectangle band = JavaLineGeometry.band(first, last, view);
+            return JavaLineGeometry.visible(band, view).map(v -> new DesignBand(
+                    SwingUtilities.convertRectangle(text, v.bounds(), this), v.partial()));
+        } catch (javax.swing.text.BadLocationException e) { return Optional.empty(); }
+    }
     private String selectedBean() {
         if (document == null) return null;
         int offset = text.getCaretPosition();

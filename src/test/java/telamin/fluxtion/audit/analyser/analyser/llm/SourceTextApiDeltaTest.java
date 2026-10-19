@@ -20,6 +20,11 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>Witness: change any other part of the source schema (a word of {@code fqn}'s description), or add a second
  * parameter — the reverted digest no longer matches {@link #BEFORE} and the named surface fails.
+ *
+ * <p>{@link #AFTER} was this change's live pin at the time ({@code WorkModeKeepsTheApiTest.PINNED} held exactly these
+ * values, and this test said so). A later change — {@code SpotlightLineRangeApiDeltaTest} (M80) — moved four of these
+ * five pins again, so that check now belongs there, not here; {@link #AFTER} stays as the historical record of what
+ * this change alone produced.
  */
 class SourceTextApiDeltaTest {
 
@@ -80,18 +85,23 @@ class SourceTextApiDeltaTest {
     @Test
     @DisplayName("★ source gains only the optional text parameter and one sentence: undone, every surface is as before")
     void theOnlyDeltaIsSourceText() throws Exception {
-        assertEquals(BEFORE.get("VerbSchemas.all"), WorkModeKeepsTheApiTest.sha(revertSchemas(VerbSchemas.all())));
-        assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(revertSchemas(VerbSchemas.hosted())));
-        assertEquals(BEFORE.get("McpTools.list"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.list())));
-        assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.hostedList())));
-        String manifest = PromptBuilder.inProcessActionManifest(3);
+        // M80's line-range grammar is its own LATER delta (SpotlightLineRangeApiDeltaTest), undone first everywhere
+        assertEquals(BEFORE.get("VerbSchemas.all"), WorkModeKeepsTheApiTest.sha(
+                revertSchemas(SpotlightLineRangeApiDeltaTest.revertSchemas(VerbSchemas.all()))));
+        assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(
+                revertSchemas(SpotlightLineRangeApiDeltaTest.revertSchemas(VerbSchemas.hosted()))));
+        assertEquals(BEFORE.get("McpTools.list"), WorkModeKeepsTheApiTest.sha(
+                revertTools(SpotlightLineRangeApiDeltaTest.revertTools(McpTools.list()))));
+        assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(
+                revertTools(SpotlightLineRangeApiDeltaTest.revertTools(McpTools.hostedList()))));
+        String manifest = PromptBuilder.inProcessActionManifest(3).replace(
+                SpotlightVocabulary.TEXT, SpotlightLineRangeApiDeltaTest.OLD_TARGETS_TEXT);
         String added = "  source {file, bean, line, fqn, method, text} -> ";
         assertTrue(manifest.contains(added), "the in-process manifest lists the parameter");
         assertEquals(BEFORE.get("PromptBuilder.inProcessActionManifest"), WorkModeKeepsTheApiTest.sha(
                 manifest.replace(added, "  source {file, bean, line, fqn, method} -> ")));
-        for (var e : AFTER.entrySet()) {
-            assertEquals(e.getValue(), WorkModeKeepsTheApiTest.PINNED.get(e.getKey()), "the pin now: " + e.getKey());
-        }
+        // "the pin now" moved to SpotlightLineRangeApiDeltaTest (M80): AFTER above is kept as the historical record
+        // of what source {text} alone produced, not a claim about the live pin any more.
     }
 
     @Test

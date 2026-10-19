@@ -92,11 +92,12 @@ class StarterProposeApiDeltaTest {
     @Test
     @DisplayName("★ the hosted propose gains only the starter kind and its fields: undone, both hosted surfaces are as before")
     void theOnlyDeltaIsTheStarterKind() throws Exception {
+        // M80's line-range grammar is a LATER delta (SpotlightLineRangeApiDeltaTest), undone first of all
         // owner 2026-10-18: source {text} is its own later delta (SourceTextApiDeltaTest), undone first
         assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(revertSchemas(
-                SourceTextApiDeltaTest.revertSchemas(VerbSchemas.hosted()))));
+                SourceTextApiDeltaTest.revertSchemas(SpotlightLineRangeApiDeltaTest.revertSchemas(VerbSchemas.hosted())))));
         assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(
-                SourceTextApiDeltaTest.revertTools(McpTools.hostedList()))));
+                SourceTextApiDeltaTest.revertTools(SpotlightLineRangeApiDeltaTest.revertTools(McpTools.hostedList())))));
     }
 
     @Test

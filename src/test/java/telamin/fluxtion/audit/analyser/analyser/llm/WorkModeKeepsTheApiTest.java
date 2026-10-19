@@ -71,14 +71,17 @@ class WorkModeKeepsTheApiTest {
     // the two tool lists and the in-process manifest; SourceTextApiDeltaTest proves undoing exactly that gives the pins
     // before it back (its BEFORE), and holds the pins after (its AFTER)
     static final Map<String, String> PINNED = Map.ofEntries(
-            Map.entry("VerbSchemas.all", "7c0cfc883f7b0dbb52a94f972f4b676d0cdeb7541ae40d30a4096459e5e93772"),
+            // M80 (owner): a spotlight line target may be a range, :line:<from>-<to>; SpotlightLineRangeApiDeltaTest
+            // proves undoing exactly that text gives the earlier pins back (its BEFORE), and holds the pins after
+            // (its AFTER) — the four it touches are these next four
+            Map.entry("VerbSchemas.all", "1bd5d0a63fdcf1619e1d9b48ad243c37601ec8180ce8fcbb509683e724d55104"),
             // Option 2 (owner, 2026-10-18): the HOSTED propose gained the starter kind — never an external client's
             // surface (propose is hosted-only); StarterProposeApiDeltaTest proves undoing it gives the earlier pins back
-            Map.entry("VerbSchemas.hosted", "e939a7ab31794f339718b9cf03e9d2b31c8257fee288eab5293039f86f5d40ce"),
-            Map.entry("McpTools.list", "ee123c503dc3225505b0bacccb0f24335617bf0698a138801cfc6ea76f4c79b3"),
-            Map.entry("McpTools.hostedList", "e4d2cb45af519154c41289bc5d564bc183bc8ac202681f13bc88253d667cc251"),
+            Map.entry("VerbSchemas.hosted", "febb41834b5a151a6b12259e6e18e9fe9de4431cb06f762a9ec4fd4aa7479f84"),
+            Map.entry("McpTools.list", "c64dfa256e64f1ff3196c19534cc9524fded7046afadd37c790d9e06fd1bdaea"),
+            Map.entry("McpTools.hostedList", "0a62468a2a4dd1efc3bb9014dc9a76c13927a041bc77d233b03c84ae4345746b"),
             Map.entry("McpBridge.INSTRUCTIONS", "fdcf8b03dab8d45d9c197d230961a41518faa0319b6f5a9cc6a51662cfdf144a"),
-            Map.entry("PromptBuilder.inProcessActionManifest", "01a161d22a7ea6dca8d83a0e4a0446d68236028603112c7597b989b49d3cae7e"),
+            Map.entry("PromptBuilder.inProcessActionManifest", "1cd93bb24ceccd21ef2e18055350e1a3776362a68173da94618d8a0b7e7ce54c"),
             Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
             Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),
             Map.entry("context.handoff derived, none", "1623b4af915aef11455cfc7a7587804fa90504f869dde67de3f5177393a04679"),
