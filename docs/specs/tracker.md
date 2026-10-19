@@ -151,13 +151,17 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M78] ☑ **Quiet assistant panel, with D1 and D2 — released in 1.36.0 (PR #168).**
   ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
-### M79 · The first minute ([spec](spec-first-minute.md), r6)
-- [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers; r6 the second review, OD-79.20–.25 accepted): the real-run diamond walk autoplays once, its Spring XML beside the topology, three doors, a start page under 40 words; then a recorded, composition-first teaching conversation in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, and later the external teacher kit. 8 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`. No M79 code is in the integration.
-- [M79-1] ☐ The first launch: the `firstMinute` node, the diamond walk autoplayed once, three doors, a start page under 40 words (spec §5; spec under independent review on [#164](https://github.com/telaminai/fluxtionauditlog-analyser/pull/164)).
-- [M79-2] ☐ Quiet evidence wording: the verdict chip and glossary tooltips (§8).
-- [M79-3] ☐ The broken-diamond quest: works with No AI, confirmed by record digest (§9).
-- [M79-4] ☐ The docs front door and a docs/app label parity test (§10).
-- [M79-5] ☐ *Connect your own Claude*: M77-3's client path with a prompt pack; no new verb (§11).
+### M79 · The first minute ([spec](spec-first-minute.md), r7)
+- [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers; r6 the second review, OD-79.20–.25 accepted; r7 brought up to date for implementation and adds M79-7, OD-79.26–.28 open): the real-run diamond walk autoplays once, its Spring XML beside the topology, three doors, a start page under 40 words; then a recorded, composition-first teaching conversation in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, the external teacher kit, and three published philosophy packs. 9 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`. No M79 code is in the integration; the first slice to start is M79-1a-i.
+- [M79-1a-i] ☐ The first launch, generic domain: `firstMinute`, the diamond walk autoplayed once, the topology-centre layout, Spring XML beside it, three doors, no recovery offer (spec §5, §7).
+- [M79-1a-ii] ☐ The four other domains: runs, GraphMLs, the caption template, the five tiles (spec §6.3).
+- [M79-1b] ☐ The start page under 40 words, against M77's shipped wizard/AI line (spec §5.4).
+- [M79-2] ☐ The teaching conversation in the onboard assistant: a shipped, recorded walk, *Continue with Claude*, the passive log (spec §11).
+- [M79-3] ☐ Quiet evidence wording: the three-state chip, accessible descriptions (spec §8).
+- [M79-4] ☐ The broken-diamond quest: works with No AI, confirmed by record digest, teacher mode (spec §9).
+- [M79-5] ☐ *Start here*, its GIF and the docs/app label parity test (spec §10).
+- [M79-6] ☐ The external teacher kit: *Connect your own Claude*, the bridge instructions addition, `teach-fluxtion` (spec §11.6; after M79-2 and M77-3, both prerequisites now shipped).
+- [M79-7] ☐ **(new, r7, owner)** The first philosophy packs: 01, 02, 04 published and build-tested on the docs site; no code dependency beyond M79-1a-i (spec §19; OD-79.26–.28 open).
 - [M79-D1] ☑ The diamond domains — done in another repo. ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 - [M79-D2] ☑ The broken-diamond teaching run — published. ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 

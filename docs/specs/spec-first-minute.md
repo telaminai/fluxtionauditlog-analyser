@@ -1,6 +1,13 @@
 # M79 — The first minute: the diamond, then three doors
 
-**Status:** ACCEPTED r1, 2026-10-18; **r2 the same day folds in the first independent review** (corrections and code
+**Status:** ACCEPTED r1, 2026-10-18; **r7, 2026-10-19, brings the spec up to date for implementation** and adds the
+Fluxtion philosophy packs to M79's scope as **M79-7** (owner, 2026-10-19): M77's wizard (M77-2's AI line, M77-3's
+client path) shipped complete in 1.36.0, so D-3/D-4 are satisfied, not conditional; M75 and M76's specs are now on
+`main`, not on branches, and M76's OD-76.7 publish condition is met by §6.4's pin; a new §4 D-8 records the M80
+Design-pane overlap (M80 is PROPOSED, not yet merged); M79-7 brings packs 01, 02 and 04 of the already-drafted
+`docs/proposals/packs/fluxtion-philosophy/` set into M79, to be published on the docs site as valid, build-tested
+prompt packs, with owner questions OD-79.26–.28 raised and left open. No earlier owner decision is revisited. **r2
+the same day folds in the first independent review** (corrections and code
 facts in place; owner questions OD-79.11–.19, §16: all accepted; effort as relative sizes, §17). The
 owner accepted OD-79.1–.6 on 2026-10-18, then OD-79.7 and the three decisions on the colleague follow-on (OD-79.8–.10,
 recorded as an extension of M15 Settings share, §13) the same day (§16). **r5, the same day**: the owner accepted every open decision, OD-79.11–.19, and decided the key questions. **r3, the same day, folds in the lead's creative round 2**: the teacher path moves to phase 2 with a
@@ -101,11 +108,12 @@ teach it again.
 |---|---|---|
 | **D-1. The diamond variants** | `telaminai/fluxtion-diamond`, **published on `main` at `24d6d74` (2026-10-18)**, merged from its `domains` branch; the pin and digests are in §6.4 | Five real runs: generic, mathematics, accounting, logistics and trading. Each is one topology with domain-named classes and fields, compiled and run once. M79-1 bundles them **at that commit**, with their GraphML and source, and writes the jar's manifest from §6.4. No stand-in log is ever shipped in their place. **The generic domain ships its Spring-authored run** (OD-79.21): the same pin also carries the diamond declared as Spring XML (`src/main/spring/diamond.xml`), compiled and run once (`sample/diamond-spring-audit.yaml`), so the generic first minute can show the XML beside the topology (§6.4). |
 | **D-2. The broken diamond** | the same repo, branch `teaching/broken-diamond`, commit **`6bff0d67b9d8eb190d404330fe7c5f52d2018e7a`** on top of the `main` pin `24d6d74`: one commit with a deliberate defect, and its run (`teaching/broken-diamond-audit.yaml`). **Published** on GitHub (`git ls-remote` shows `refs/heads/teaching/broken-diamond` at `6bff0d67`, checked 2026-10-18), so M79-4 can pin it (§9.1) | M79-4's teaching bundle (§9). |
-| **D-3. M77-2's AI line** | M77 | M79-1 renders the line's short form (§5.4). If M77-2 has not merged, M79-1 shows today's assistant fallback collapsed under *Or open directly*, and adds no AI text of its own. |
-| **D-4. M77-3's client path** | M77 | M79-6 starts the client path at Screen 2b. It does not merge before M77-3. M79-2's *Continue with Claude* uses the wizard only when nothing is set up (M77-2); before M77-2 merges, that branch opens today's assistant set-up instead. |
+| **D-3. M77-2's AI line** | M77 | **Satisfied** (r7): M77-2 shipped complete in 1.36.0 (PR #159, tracker ▸ M77). M79-1 renders the line's short form (§5.4) against the real six-state `AiSetupLines.aiLine()` on `main`; the fallback clause (*"if M77-2 has not merged"*) no longer applies. |
+| **D-4. M77-3's client path** | M77 | **Satisfied** (r7): M77-3 shipped complete in 1.36.0 (PR #162, tracker ▸ M77). M79-6 starts the client path at Screen 2b against the real wizard; the fallback clause (*"before M77-2 merges, that branch opens today's assistant set-up instead"*) no longer applies, since M77-2 has also shipped. |
 | **D-5. The capture harness** | `tools/capture-docs.py` | The *Start here* GIF and every new screenshot are generated under an isolated `user.home` (rule 1). |
-| **D-7. M76 and M75, not yet on `main`'s line** | M76 `spec-authoring-journey.md` (r2, branch `docs/m76-checkpoint-and-completion`); M75 `spec-document-renderer.md` (branch `docs/m75-document-renderer`) | **Overlaps to settle before M79-1 opens** (review, 2026-10-18): M76 uses **the same diamond** for its S8 *Teach me by building an example* and leaves its pin open (OD-76.7), which §6.4's pin settles; M76 has its own analyser-composed explanation tour of the diamond, which must not become a second set of diamond captions; M76 adds S7/S8 to the start page's numbered list, which §5.4 moves behind *Ask…*; and M76 §5.4/§9.1/§10.5 say an absent entry is *not* proof and avoid *proof/proves*, while step 4 here says *proof, not silence*. **This is a difference of wording policy, not a test collision** (second review, 2026-10-18): M76's `CompletionWordingTest` (its T13) checks only M76's own acceptance bundle and acceptance docs page, so M79's caption does not trip it. Both are right in their scope: absence is proof **only in a traced record** (*Format specification* §8; `AuditTrace`), and E4 pins that the diamond's are traced. OD-79.14 keeps *proof*, conditioned; M76's prose may carry the condition when it is next revised. M75 places bundled lessons, the diamond included, under `/teaching/`, while §6 extends `/demo`: one location is chosen in whichever lands first |
+| **D-7. M76 and M75, now on `main`** | M76 [`spec-authoring-journey.md`](spec-authoring-journey.md) (DRAFT r2, merged to `main` via PR #153, 2026-10-19); M75 [`spec-document-renderer.md`](spec-document-renderer.md) (DRAFT r2, merged to `main` the same PR) | **Both specs are DRAFT r2 on `main`** (r7: checked with `git log --oneline -- docs/specs/spec-authoring-journey.md docs/specs/spec-document-renderer.md` and `gh pr list --state all`; neither spec is ACCEPTED, but both are implementable reference, not branch-only text). **Overlaps still to settle before M79-1a-ii or M76/M75's own implementation PRs land** (unchanged substance from r6, re-confirmed against the merged text): M76 uses **the same diamond** for its S8 *Teach me by building an example*, and **OD-76.7's own precondition is now met**: the diamond is published and pinned (§6.4's `24d6d74`), so M76's spec can cite that pin directly rather than leaving S8 disabled; M76 has its own analyser-composed explanation tour of the diamond, which must not become a second set of diamond captions; M76 adds S7/S8 to the start page's numbered list, which §5.4 moves behind *Ask…*; and M76 §5.4/§9.1/§10.5 say an absent entry is *not* proof and avoid *proof/proves*, while step 4 here says *proof, not silence* (the wording-policy difference, not a test collision, stands as r6 recorded it). M75's OD-75.7 is **decided** (not open, as r6's phrasing implied): *"Bundled `/teaching/` plus a dropped `.lesson.md`"* — so M75 ships bundled lessons under `/teaching/`, while M79's §6 ships the diamond assets under `/demo`. **This is still two bundled-asset locations, unresolved between the two specs**; r7 does not decide it (no owner decision names one), and flags it for whichever of M75, M76 or M79-1a-i lands first to either adopt the other's location or record why both are needed. |
 | **D-6. Rule 6 reading** | `docs/claude.txt` | Before M79-1 is implemented, the implementer reads the framework reference and the variants' generated dispatcher, and confirms §6.2's claim from them. The rule is that `@OnTrigger` fires when an upstream node signalled a change. This spec states the claim; it does not infer the generated code. |
+| **D-8. M80 — Design shows the graph's definition** (new, r7) | `spec-design-definitions.md` on branch `docs/spec-design-definitions` — **PROPOSED**, not yet on `main` (no relative link here: the file does not exist on `main` for `SpecLinksResolveTest` to resolve): spec PR [#170](https://github.com/telaminai/fluxtionauditlog-analyser/pull/170) open, first implementation PR1 [#175](https://github.com/telaminai/fluxtionauditlog-analyser/pull/175) in review (checked 2026-10-19) | M80 extends M66's Design canvas from Spring XML only to a Java `FluxtionGraphBuilder` and multi-file designs, and changes how a design is **discovered** (a source-root scan, with an opportunistic header check). M79-1a-i's generic domain already opens `diamond.xml` read-only beside the topology through M66's existing `open {design}` path (§5.2 item 1, OD-79.21) — that is unchanged by M80. **The coordination M80 needs from M79, stated so neither builds a second path:** the Design pane and its discovery stay M66/M80's alone; M79 is a **consumer** of `open {design}` and never adds its own design-reading or discovery code (the other four domains, which have no Spring variant, open with no design, per §5.2 item 1 — not a second, M79-owned discovery route for when one is added later). If M80 ships a Java-authored design before M79-1a-ii adds Spring variants for the other four domains, a domain's design (if any) is opened the M80 way, not a new M79 way. No action is needed from M79-1a-i today beyond this statement; a future domain's design support reads this row first. |
 
 ## 5. M79-1 — the first launch
 
@@ -240,14 +248,18 @@ from about 225 words to **at most 39**. The budget is pinned by A1.6.
   The drop hint moves into *Or open directly*.
 - Before M79-2, M79-4 and M79-6 merge, their links are absent, not disabled. The budget holds in every phase.
 - **Reuse.** *Or open directly* is already the heading over today's groups (`start.or`); M79-1 turns that heading
-  into the collapse. **Today's baseline, re-derived from `feature/m78-d2-one-chip`** (second review): the strip under
+  into the collapse. **Today's baseline, re-derived from `feature/m78-d2-one-chip`** (second review), **re-confirmed
+  on `main` at 1.37.0** (r7: that branch merged in 1.36.0, PR #168, and nothing in 1.37.0 touches `StartPanel`;
+  `StartPanel.java` is still 1,358 lines): the strip under
   *Or open directly* has **4 groups and 10 chips**: *Explore DEMO* (Guided tour, Sample project), *Open* (Project,
   Evidence bundle, Audit log, GraphML), *Create* (Project profile, From template) and *Settings* (Settings, and the
   Fluxtion key card). M77-4 removed the *Connect an assistant* group (§14.4 of that spec); r5's *13 chips in five
   groups* was `feature/claude-code-p3`'s page. The hero keeps *What would you like to do?* (`start.title`), its lede
   (`start.lede`), the prompt and its numbered list, M77-2's AI block on a first run or its AI line otherwise
   (`AiSetupBlock`; OD-79.5 removes the block), and two always-visible paragraphs (*Open evidence, return to a
-  project…* and the drop hint). No test counts its words today; A1.6 is new.
+  project…* and the drop hint). No test counts its words today; A1.6 is new. **The AI line's six `Choice` states**
+  (`NONE`, `NO_AI`, `CLIENT`, `INSIDE`, `BOTH`, `IN_APP`) are confirmed unchanged on `main`
+  (`AiSetupState.Choice`), so §5.4's six short-form lines still cover every state.
 - **The doors do not set the work mode.** {Product} already has *Work mode: Investigate / Build* (the session's
   posture, `open {posture}`, *AI ▸ Work mode*). In M79 the **Investigate** and **Build** doors open what they say
   and leave the posture as it is, so the doors add no second path to a session intent; whether a door should also
@@ -678,9 +690,11 @@ the home page's words and the *Packs* page are recorded below as what M79 asks o
 - *For DOCS-IA, not M79-5:* **packs defined and listed:** a *Packs* page says what a **prompt pack** is. It is learning entries: words placed in a
   draft, or copied for your own client. Nothing runs them. The page lists the packs that exist: the sample pack (a
   docs page today, `user-guide/sample-prompt-pack.md`; no pack ships in the jar yet), M79-6's *Your project, for your
-  own Claude*, and the M74 *Fluxtion philosophy* packs when PR #155 merges (they teach with this same diamond, at
-  `dad9b43`, whose generic log is byte-identical to §6.4's). DOCS-IA puts this page at `start/prompt-packs.md`. **Packs stay what they are**; sharing a set-up is Settings share's job
-  (§13).
+  own Claude*, and **M79-7's three philosophy packs** (01, 02, 04 — §19), published once M79-7 ships on the docs
+  site (the eight drafted packs and their tooling merged at PR #155, 2026-10-19; M79-7, not PR #155 by itself, is
+  what publishes 01/02/04). They teach with this same diamond, at `dad9b43`, whose generic log is byte-identical to
+  §6.4's (§19 reconciles the two pins). DOCS-IA puts this page at `start/prompt-packs.md`. **Packs stay what they
+  are**; sharing a set-up is Settings share's job (§13).
 - **Labels match:** `DocsLabelParityTest` reads every bold control label on the docs pages that describe the start
   page, the first-minute card and the quest. Each must equal a **visible** label in the app's label registry. Today
   `StartPanel`'s labels are inline literals, and each chip has a *title* (*Take a guided tour*, *Open sample
@@ -750,6 +764,27 @@ secondary route, for people who prefer it (§11.6, phase M79-6).
 | **Prompt packs:** dropped Markdown, words-only entries plus one pinned *example* entry kind; session-only | `PromptPack`, `StartPromptPackDropped` | the entry that starts the teaching conversation (§11.3) |
 | **Real captures:** `tools/capture-conversations.py` (tool calls and echoes recorded live under an isolated home) and `tools/capture-journey.py` (a journey built and played from a real run, re-checked by `JourneyCatalogueTest`) | `tools/` | the recording harness and its re-derivation test (§11.4) |
 | **Replay for tests:** `FixtureAgent` replays recorded Claude Code streams through the real adapter and session processor | `src/test/…/localagent/FixtureAgent.java` | the witness that recorded turns are never resent (A2.3); it is a test fake, not a product path |
+
+**Two 1.37.0 additions M79-2 builds on, not around** (r7, new facts since r6):
+
+- **The docked panel now renders Markdown tables, not raw pipes** (1.37.0): a GFM table draws as an aligned grid, or
+  stacks `Header: value` lines when it would not fit. If the recorded teaching conversation's turns ever include a
+  table (for example, listing the four node ids against their record entries), it renders through this path like any
+  live turn; M79-2 adds no second table renderer.
+- **The docked assistant's chrome budgets are pinned by `AssistantChromeBudgetFrameTest`** (M78 TQ1, extended for
+  M81's activity line): Ready/Safe/Full states hold to 15 words and 4 controls, a running turn or a waiting
+  permission to 15 words, and an alert state (exited, no key, a restart offered) to 20 words. **The passive log's
+  band label (*"Recorded teaching · not part of this conversation"*) and the basis sentence (§11.3) are chrome too**:
+  M79-2's own acceptance (A2.1, A2.3) must show them render within whichever of these budgets is current when the
+  band or the hand-off's opening context is visible, so M79-2 extends `AssistantChromeBudgetFrameTest` with a
+  *recorded teaching, before hand-off* state rather than asserting the band's word count separately. Which bucket
+  the band belongs in (closest to Ready, since nothing is running) is the implementer's call, recorded in that test.
+- **Restart now recovers a stuck or interrupted Claude Code process and preserves its conversation** (1.37.0, and
+  #171's fix: a project switch while Claude Code is running always offers the same restart question, including from
+  the log-offer path). *Continue with Claude*'s hand-off (§11.3) starts or attaches to the live session through the
+  same path a person's own Start/Restart uses; M79-2 does not special-case the attach because of this fix, it
+  benefits from it: an interrupted hand-off recovers like any other interrupted turn, with the last request preserved
+  and re-sent rather than silently dropped.
 
 ### 11.3 The gaps, and how each is closed
 
@@ -998,7 +1033,7 @@ out what to do, and an act that leads nowhere.
 | **SC-C2** *(insider; human or stranger runs only)* | **The right flag:** the broken-diamond quest with No AI, the person's own flag | — | {Product} confirms the flag in **≥ 4 of 5 runs**, **median ≤ 5 min** | M79-4 |
 | SC-E1 | Auditor-prose hesitations on the first view | the stranger's F5 | **0**; F5's sentence not visible without a click | M79-3 |
 | SC-D1 | Docs/app label mismatches on the pages M79-5 touches (*Start here* and the start-page pages) | F2's pairs | **0** (the nav's page count is DOCS-IA's, not M79's) | M79-5 |
-| SC-T10 *(new)* | **Connect your own Claude:** from the start page to the person's client making its first `context` call, with `claude` installed | the M77-3 count (not yet measured: M77-3 is unbuilt) | **≤ 5 acts in {Product}, 0 dead ends**; the acts in the person's own client (opening it, pasting the prompt) are counted separately, since M77-3's own confirmations (external access, then registration) already use two | M79-6 |
+| SC-T10 *(new)* | **Connect your own Claude:** from the start page to the person's client making its first `context` call, with `claude` installed | the M77-3 count (r7: M77-3 shipped complete in 1.36.0, PR #162; its own acceptance count was not run as an SC-T10 scorecard task, so the baseline is still not yet measured — it is now measurable against the real wizard, not blocked on M77-3 being built) | **≤ 5 acts in {Product}, 0 dead ends**; the acts in the person's own client (opening it, pasting the prompt) are counted separately, since M77-3's own confirmations (external access, then registration) already use two | M79-6 |
 | **SC-T11** *(new)* | **The teacher:** with the person's own Claude and the `teach-fluxtion` skill, solve the broken diamond | — | measured, not yet targeted: **minutes** to *Solved*; **solved by the person's own flag** (yes/no); **the client's claims graded against §11.7's teaching rules and §11.6(a)'s confirmed callback rules** from the transcript, captured by the `capture-conversations` harness under an isolated home. **Witness:** a run in which only the client flags the answer record must score *not solved* | M79-6 (skill), M79-4 (quest) |
 | **SC-T12** *(new)* | **The onboard teaching conversation, then live:** follow the teaching pack in the docked assistant panel to its end, press *Continue with Claude*, and ask one question live | — | measured, not yet targeted: **acts** from the pack entry to the first live answer; **the hand-off works** (a live turn completes, and its opening context carries the fixed basis sentence); **the recorded turns are never resent**: none of their text appears in any request the session sends (the in-app request, or the stream written to Claude Code). **Witness:** a build that appends the passive log to the request must score *resent* | M79-2 |
 
@@ -1261,6 +1296,15 @@ A6.4 is a **periodic, measured check, not a CI gate**: its transcript comes from
   newcomer first generates their *own* diamond (*Make the diamond yours*, §14), and a commercial follow-on for the
   owner's gateway / RapidAPI work, outside M79.
 
+**Raised by the philosophy-packs scope (r7, 2026-10-19), for the owner — OPEN, not decided here** (§19 gives the
+full reasoning each recommendation rests on):
+
+| # | Question | Recommendation | Owner |
+|---|---|---|---|
+| **OD-79.26** | Do 01, 02 and 04 **move** out of `docs/proposals/packs/fluxtion-philosophy/` into their docs-site location (§19.2 item 1), or stay there and get **copied**, with the site holding the published copy? | Move, with a one-line pointer left in the README's table (the CLAUDE.md rule 7 / DOCS-IA pattern for a retired location): a copy drifts, and `proposals/` is pre-acceptance text these three have left. | **OPEN** |
+| **OD-79.27** | Which pack (if any) gets the first `teach:` entry once M79-2 ships the *The diamond* teaching conversation, and does that land as part of M79-2's own PR or a small follow-up after it? | 04 (*Audit logs and evidence*) is the closest fit — the teaching conversation's content is composition-and-silence, which 04's entries already probe — as a small follow-up PR after M79-2, not inside it, so M79-2 is not gated on a packs edit. | **OPEN** |
+| **OD-79.28** | Should the Python lint harness (`tools/m74_onboarding_runner.py lint-pack`, cross-checked against the Java parser by `tools/m74_record_pack_crosscheck.py`) also gain fixture rows for 01, 02 and 04 at their new published paths, duplicating A7.1 in the existing dual-check pattern? | Yes, for parity: the existing 89-input cross-check would otherwise cover every pack except the three that actually ship. | **OPEN** |
+
 ## 17. Phasing and size — one PR each, under about 5,000 hand-written lines
 
 Generated `SessionProcessor` lines are not counted. Each PR is a reviewed feature branch with its CHANGELOG lines
@@ -1270,13 +1314,14 @@ Generated `SessionProcessor` lines are not counted. Each PR is a reviewed featur
 |---|---|---|---|
 | **M79-1a-i — the first minute, generic domain** | `firstMinute` (with `sessionRecovery` as a parent); `Launch.FIRST_MINUTE` and `LogOpened.launch`; `stage`, `origin`, autoplay advance, the record-basis caption rule and first contact in `walkPlayback`; the **new topology-centre layout** (the canvas moves out of the right-hand tabs), with the generic design beside it (OD-79.21); `WalkReelRecorder` onto the advance effect; the generic Spring-authored run, its XML and GraphML, the manifest and digest-checked extraction; **one hand-written generic walk** (§5.2), played through the generalised journey effect; the end card; no recovery offer for a first-minute session; A1.1–A1.3, A1.5 and A1.7–A1.10 for the generic domain | D-1, D-6, D-7 | **L** |
 | **M79-1a-ii — the four other domains** | the mathematics, accounting, logistics and trading runs and GraphMLs; the caption template filled from each GraphML's structure (§6.3); the five tiles and `firstMinute.domain`; A1.4, and A1.5 per domain | M79-1a-i | **M** |
-| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,358 lines on `feature/m78-d2-one-chip`), the collapse, the visible-label changes and constants, the short AI line (or D-3's fallback); A1.6 | M79-1a-i; coordinate with M77-2 and M77-4, which change the same page | **M** |
+| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,358 lines, re-confirmed on `main` at 1.37.0), the collapse, the visible-label changes and constants, the short AI line against the real six-state `aiLine()` (D-3, satisfied); A1.6 | M79-1a-i; M77-2 and M77-4 have already shipped (1.36.0), so this PR edits the page as it stands, not a moving target | **M** |
 | **M79-2 — the teaching conversation in the onboard assistant** (phase 2, owner) | the teaching conversation as a shipped walk with a recorded conversation, its real capture (the `capture-conversations` extension) and its re-derivation test; the pack's `teach:` entry; *Continue with Claude* (`AssistantHandoffRequested(origin=TEACHING)` for in-app and Claude Code, the wizard branch); `TeachingLog` and its read-only band; the basis sentence; A2.1–A2.7 | M79-1a-i; M77-2 for the wizard branch (D-4) | **L** |
 | **M79-3 — quiet evidence wording** | the three-state chip, `EvidenceChipLines`, the details popover; **the metadata observation moved into the session** (§8.1, rule 9); the accessible descriptions (tooltips cut); A3.1–A3.4 | — | **M** |
 | **M79-4 — the broken-diamond quest** | the teaching bundle and quest manifest; **flags routed through the session** (a fact, a node, both entrances; §9.2); the `quest` node with teacher mode (OD-79.17); the quest card; A4.1–A4.6 | D-2 (published at `6bff0d67`), M79-1a-i | **L** |
 | **M79-5 — the docs front door** | *Start here*, its GIF and `DocsLabelParityTest` only (the restructure is DOCS-IA's); A5.1–A5.3 | M79-1b (labels, GIF); OD-79.11 | **S** |
-| **M79-6 — the external teacher kit** (phase 3 or later) | *Connect your own Claude* and its wizard `origin` (`START_CONNECT`); the shipped pack and its load fact; the Summary's first action (M77 §6.4 amended); the instructions paragraph after its rule-6 check and `BridgeInstructionsTest`; the `teach-fluxtion` skill (its quest step once M79-4 has merged); `context.learning` and the *Learning* row; A6.1–A6.5 | M79-2; **M77-3**; OD-79.12 | **M** |
-| **Total** | **8 PRs**, in the order below | | |
+| **M79-6 — the external teacher kit** (phase 3 or later) | *Connect your own Claude* and its wizard `origin` (`START_CONNECT`); the shipped pack and its load fact; the Summary's first action (M77 §6.4 amended); the instructions paragraph after its rule-6 check and `BridgeInstructionsTest`; the `teach-fluxtion` skill (its quest step once M79-4 has merged); `context.learning` and the *Learning* row; A6.1–A6.5 | M79-2; M77-3 (shipped, 1.36.0); OD-79.12 | **M** |
+| **M79-7 — the first philosophy packs** (owner, 2026-10-19, §19) | 01, 02 and 04 published on the docs site as valid, build-tested prompt packs; both *Coming* notes retired; A7.1–A7.3. No `teach:` entry in this PR (§19.2 item 4; OD-79.27 is a later follow-up, not this PR) | M79-1a-i (the diamond this round's example and the first minute's own diamond are the same evidence, §19.1); **not** M79-2 | **S** |
+| **Total** | **9 PRs**, in the order below | | |
 
 **Sizes, not days** (owner, 2026-10-18). S, M and L are relative: an L carries a new node or a migration of a
 surface the customer uses, an M extends existing nodes and surfaces, an S is docs and tests. Calendar-day estimates
@@ -1291,8 +1336,13 @@ into the first PR; it is split out as M79-1b so that the first minute can be rev
 round 2) adds the teacher kit to phase 2 and teacher mode to the quest, and takes out the tooltips, four of the five
 hand-written walks and the docs restructure; the net change is small. **r4** (the owner's correction) makes phase 2 the onboard teaching session and moves the external kit
 to M79-6, adding the teaching conversation's real capture and the hand-off. **r6** (the second review) splits M79-1a into 1a-i and 1a-ii (OD-79.23), so the first minute can ship on the
-generic domain while the template and the tiles follow. **Order:** M79-1a-i, M79-1b, M79-1a-ii, M79-2, M79-3, M79-4,
-M79-5, then M79-6 (phase 3 or later, any time after M79-2). M79-1a-ii may land any time after M79-1a-i.
+generic domain while the template and the tiles follow. **r7** adds M79-7 (§19, owner, 2026-10-19): three of the
+eight drafted philosophy packs, published and build-tested, with no code dependency beyond the diamond M79-1a-i
+already ships; it also records D-3/D-4 as satisfied (M77-2 and M77-3 shipped in 1.36.0), D-7's two specs as now on
+`main`, and a new D-8 for M80's Design-pane overlap. **Order:** M79-1a-i, M79-1b, M79-1a-ii, M79-2, M79-3, M79-4,
+M79-5, then M79-6 (phase 3 or later, any time after M79-2). M79-1a-ii and M79-7 may each land any time after
+M79-1a-i; M79-7 needs nothing else. **The first slice to start: M79-1a-i** — it is the one PR every other phase
+depends on, directly or through the diamond it ships.
 
 ## 18. Public-repo rules for every M79 asset (rule 1)
 
@@ -1304,6 +1354,97 @@ M79-5, then M79-6 (phase 3 or later, any time after M79-2). M79-1a-ii may land a
 - The capture harness runs under an isolated `user.home`, with only the demo and diamond fixtures, from a jar copied
   under the isolated root, and `firstMinute.played` unset only for its first-minute run. Every frame of the GIF is read
   before commit.
+
+## 19. M79-7 — the first philosophy packs (owner, 2026-10-19)
+
+**Scope, named by the owner.** Of the eight drafted *Fluxtion philosophy* prompt packs
+(`docs/proposals/packs/fluxtion-philosophy/`, drafted and merged at PR #155, 2026-10-19), **three ship with M79**:
+
+| File | Title | Audience |
+|---|---|---|
+| `01-basic.md` | **What is Fluxtion?** | a Java developer who has never used Fluxtion |
+| `02-intermediate.md` | **Local knowledge, global behaviour** | someone who has run a processor and read its records |
+| `04-audit-and-evidence.md` | **Audit logs and evidence** | anyone reading a log in the analyser, or handed one |
+
+They teach with the diamond and the broken diamond, the same evidence M79-1 and M79-4 already ship. **03 and 05–08
+stay drafts**, out of M79-7's scope:
+
+- **03 — *Thinking in Fluxtion*** also pins the same teaching example, but the owner's list names only 01, 02 and
+  04 for this round; it is left for a later round, not excluded for a technical reason;
+- **05 (Mongoose), 06 (embedded), 08 (plugins)** depend on material outside this repo (a Mongoose server
+  configuration, a `Main` plus a JUnit test for 06, and the `telaminai/mongoose-plugins` reference repository for
+  08 — whose README item 5, employer-domain SPDX headers at the pinned commit, is a rule-1 concern for *that*
+  repository, not this one, and stays open there);
+- **07 (C++ preview)** depends on `telaminai/fluxtion#44` (the public *C++ target: what works today* page), still
+  open for review, and on the C++ toolchain's public availability (README items 2–3).
+
+None of README's six *Needs owner input* items touch 01, 02 or 04: items 2–6 are 07's, 08's and 05's; item 1 (*"none
+of the seven placeholder examples exists"*) is now **stale for 01, 02, 03, 04 and 06** — commit `d1e38e2b` (2026-10-18,
+before PR #155 merged) pinned their entry 1 to the real archive — and still true, unchanged, for 07 only. This spec
+does not edit the README; its own open questions are below (OD-79.26–.28).
+
+### 19.1 What was replaced, and what was found already done
+
+The task this section was written to close — *"replace each pack's placeholder teaching examples with the published
+runs"* — **is already done for 01, 02 and 04**, found so by reading them (r7, 2026-10-19), not by editing them. Each
+pack's entry 1 reads:
+
+```
+1. **Teaching example: the diamond** — example: https://github.com/telaminai/fluxtion-diamond/archive/dad9b4382099a9ff26d9fe624f01fbbc80f67c50.zip
+```
+
+**`dad9b43…` is the commit §6.4 already reconciles**, not a second, unpinned reference: §6.4 records that
+`sample/diamond-audit.yaml` is byte-identical at `dad9b43` to the generic run at the first-minute's pin, `24d6d74`,
+*"the commit the M74 Fluxtion philosophy packs pin"* — written in r6, before this section existed, from the same
+fact. The packs pin the **builder-authored** run (`sample/diamond-audit.yaml`), not the Spring-authored twin M79-1
+re-pins the generic first minute to (OD-79.21); §6.4 already says why that is fine (*"twin runs of one graph, not
+one file"*) and this section makes no change to it. **Verified again for r7**: `python3
+tools/m74_onboarding_runner.py lint-pack docs/proposals/packs/fluxtion-philosophy/01-basic.md` (and `02-`, `04-`)
+each print a parsed pack with that example entry and no refusal, 2026-10-19.
+
+### 19.2 What M79-7 actually adds
+
+1. **Publish 01, 02 and 04 on the docs site**, as downloadable `.md` files, the way `user-guide/sample-prompt-pack.md`
+   is today (§10, *packs defined and listed*). They move out of `docs/proposals/packs/fluxtion-philosophy/` — a
+   `proposals/` location is pre-acceptance text, and these three are now accepted, shipping packs — leaving a
+   one-line pointer in the README's table for each moved file, in the pattern CLAUDE.md's rule 7 and the DOCS-IA
+   restructure already use for a retired page. 03 and 05–08 keep their README entries and stay under `proposals/`
+   unmoved.
+2. **A build test per pack, mirroring `PromptPackTest.theDocsSampleIsValid`**: each of the three published files is
+   read with `PromptPack.parse` and asserted `ok()`, with its entry count re-checked (01 has 8 entries, 02 and 04
+   have 9; `MAX_ENTRIES` is 9, so none has room to grow without trimming). A pack that stops parsing — a bad edit, a
+   stray link, a label over 60 characters — fails the build, exactly as a bad edit to the sample pack would (★
+   A7.1).
+3. **The "Coming: the Fluxtion philosophy packs" note retires in both places it exists** — `docs/site/start/prompt-packs.md`
+   (the `!!! info` admonition right after *The sample pack* section) and `docs/site/teach/index.md` (its *2. A
+   prompt pack* step carries the same admonition) — and
+   is replaced by three links to the published files, in the pattern the sample pack already uses (a relative link
+   plus a `raw.githubusercontent.com` download link). This is this PR's scope, as the owner asked (not a separate
+   DOCS-IA follow-up): both notes are small, self-contained edits, and leaving either stale after publishing would
+   repeat F4 (*"packs are invisible"*, §1).
+4. **The teach: constraint, stated for these packs specifically** (not a new rule — OD-79.19 and A2.2 already state
+   it generally): a pack may name, with a `teach:` entry (§11.3), only a teaching conversation **shipped in the
+   jar** when the pack is read. None of 01, 02 or 04 has a `teach:` entry today, and **M79-7 adds none**: it ships
+   before M79-2 in §17's order (M79-7 depends only on M79-1a-i, below), so no teaching conversation exists yet to
+   name. Whichever pack later gains a `teach:` entry pointing at M79-2's *The diamond* teaching conversation is a
+   small follow-up **scheduled with or after M79-2**, per the owner's instruction; this spec does not pick which
+   pack or build it now (OD-79.27).
+5. **Acceptance:** ★ A7.1–A7.3, in §15's style, added below.
+
+### 19.3 Acceptance tests
+
+| # | Test | Catches | Witness |
+|---|---|---|---|
+| ★ A7.1 | 01, 02 and 04, at their published docs-site paths, each parse as a valid `PromptPack` (`theDocsSampleIsValid`'s pattern, one test per file or one parameterised test); each has at least one entry and at most `MAX_ENTRIES` | a pack that silently stops being droppable | edit one pack's entry 1 to drop the leading `example:` keyword, or push its entry count to 10 |
+| ★ A7.2 | a pack with a `teach:` entry naming an id that is not a shipped teaching conversation is refused by the pack parser (A2.2's rule, exercised against a philosophy pack rather than a synthetic fixture) | a published pack that looks droppable but fails at runtime, or a `teach:` entry added before M79-2 ships | add a `teach:` entry to a fixture copy of 01 naming an unshipped id, and assert the parse refuses it |
+| ★ A7.3 | the commit named in 01/02/04's entry 1 (`dad9b43…`) equals the commit §6.4 records as byte-identical to the generic run at the pin `24d6d74` | the packs' example drifting from the pin §6.4 documents, silently | change one pack's pinned commit without updating §6.4, or vice versa, and the cross-reference test must fail |
+
+### 19.4 Owner questions this round raises (OPEN — not decided here)
+
+Recorded with the spec's other owner decisions, as **OD-79.26–.28**, in §16 (*Raised by the philosophy-packs scope*).
+None blocks writing M79-7's tests or its docs-site publish step; each blocks only the part it names (the move vs
+copy question, which pack gets the first `teach:` entry, and whether the Python lint harness grows fixtures to
+match).
 
 ## Revision history
 
@@ -1382,3 +1523,27 @@ M79-5, then M79-6 (phase 3 or later, any time after M79-2). M79-1a-ii may land a
   **Found wrong in the review when checked:** the membership rule's short form (*a bean in no list is not in the
   graph*; a referenced bean is in it); N1's *start-here.md is new* is right, but its outline does carry four cards;
   N4's *17 verbs* is already *18* in ONBOARDING on this branch (only `main` still says 17). N5 left as it was.
+- **r7, 2026-10-19** — **brings the spec up to date for implementation, and adds M79-7** (owner, 2026-10-19). No
+  OD-79.1–.25 decision is revisited. **Facts updated, each re-checked against `main` at 1.37.0:** D-3 and D-4 are
+  **satisfied**, not conditional (M77-2 and M77-3 shipped complete in 1.36.0, PRs #159 and #162); D-7's two specs
+  (M75, M76) are **on `main`**, DRAFT r2, not on branches, and M76's OD-76.7 publish condition is met by §6.4's pin;
+  a new **D-8** records M80 (*Design shows the graph's definition*) as PROPOSED, not merged (spec PR #170, PR1 #175
+  open), and states that the Design pane and its discovery stay M66/M80's, with M79 only a consumer of `open
+  {design}`; SC-T10's baseline note corrected (M77-3 is built, just not yet scored); the start-page baseline (4
+  groups, 10 chips; `StartPanel` 1,358 lines) and the AI line's six states are **re-confirmed unchanged** on `main`
+  post-1.36.0/1.37.0; §11.2 gains two 1.37.0 facts M79-2 builds on (the transcript's Markdown tables; the docked
+  panel's chrome-budget test, `AssistantChromeBudgetFrameTest`, which M79-2's passive-log band and basis sentence
+  must fit within) and a note that M79-2's hand-off benefits from 1.37.0's restart-and-recovery fix (#171) without
+  needing to special-case it. **New scope, §19: M79-7 — the first philosophy packs** (owner, 2026-10-19). Of the
+  eight drafted *Fluxtion philosophy* packs (PR #155, merged 2026-10-19), three ship with M79 — 01 *What is
+  Fluxtion?*, 02 *Local knowledge, global behaviour*, 04 *Audit logs and evidence* — published on the docs site as
+  valid, build-tested prompt packs (★ A7.1–A7.3), with both *Coming* notes retired. 03 and 05–08 stay drafts (03 by
+  the owner's chosen scope; 05, 06 and 08 need material outside this repo; 07 awaits `fluxtion#44`). **Found already
+  done, not left for this PR to redo:** 01, 02 and 04's entry-1 teaching example is **already pinned** to the
+  published diamond (`dad9b43…`, commit `d1e38e2b`, before PR #155 merged) — the task's premise that they still held
+  a placeholder did not hold once the files were read; §6.4 already reconciles that commit against the first
+  minute's pin, so no pin conflict existed to fix. M79-7 adds no `teach:` entry (none exists yet to point at, and
+  none is shipped until M79-2); OD-79.27 leaves which pack gets one, and when, open. §17 gains M79-7 (9 PRs,
+  depending only on M79-1a-i) and a *first slice to start* pointer (M79-1a-i). §16 gains **OD-79.26–.28** (where the
+  published packs live; which pack's `teach:` follow-up; whether the Python lint harness grows matching fixtures),
+  each **OPEN**, not decided here.
