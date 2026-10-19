@@ -52,4 +52,22 @@ class ModalSequenceTest {
         });
         assertEquals(List.of("threw", "next"), order);
     }
+
+    @Test
+    void aModalQueuedByOneThatThrowsStillRuns() throws Exception {
+        ModalSequence seq = new ModalSequence();
+        List<String> order = new ArrayList<>();
+        SwingUtilities.invokeAndWait(() -> {
+            try {
+                seq.offer(() -> {
+                    seq.offer(() -> order.add("queued"));
+                    throw new IllegalStateException("boom");
+                });
+            } catch (IllegalStateException expected) {
+                order.add("threw");
+            }
+        });
+        SwingUtilities.invokeAndWait(() -> { });             // the resumed drain was queued behind this
+        assertEquals(List.of("threw", "queued"), order);
+    }
 }

@@ -28,13 +28,25 @@ final class ModalSequence {
     /** EDT: run {@code modal} now if none of this sequence is showing, otherwise after the ones before it. */
     void offer(Runnable modal) {
         waiting.add(modal);
-        if (showing) return;                  // a nested event loop of the one showing: it runs when that one closes
+        drain();
+    }
+
+    /**
+     * Run the waiting modals in order. A nested call (from the event loop of the one showing) returns at once: the
+     * outer loop runs what it queued. If a modal throws, the rest resume on a later EDT turn (delta review P3) — a
+     * queued question is never stranded waiting for an unrelated offer.
+     */
+    private void drain() {
+        if (showing) return;
         while (!waiting.isEmpty()) {
             showing = true;
+            boolean closed = false;
             try {
                 waiting.poll().run();
+                closed = true;
             } finally {
                 showing = false;
+                if (!closed && !waiting.isEmpty()) SwingUtilities.invokeLater(this::drain);
             }
         }
     }
