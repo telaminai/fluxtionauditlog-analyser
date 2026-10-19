@@ -1,8 +1,8 @@
 # M81 — Live activity, per-project build-script trust, a restart that always works, and staying in sync
 
 **Status:** DRAFT r5, 2026-10-19; **Feature B explicitly deferred by the owner, not shipping** (see disposition below).
-The B sections remain the historical proposed design, not current permission authority. C/A are implemented in
-unmerged PRs #173/#176; D proceeds without B. (r2 added Feature C, from an investigation of the 1.36.0 release; r3 adds Feature
+The B sections remain the historical proposed design, not current permission authority. C/A (#173/#176) are merged
+in main `5bb43b57`, release pending; D proceeds without B. (r2 added Feature C, from an investigation of the 1.36.0 release; r3 adds Feature
 D, approved by the owner the same day). Four owner-approved features (2026-10-19) for the onboard Claude Code
 assistant, specified together because all four touch the same machinery: the local-agent session's rule-9 node
 (`localAgentSession` / `assistantLoop`), the stream adapter's observation boundary, and the Full-posture

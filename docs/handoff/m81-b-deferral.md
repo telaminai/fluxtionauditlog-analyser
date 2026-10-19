@@ -55,12 +55,18 @@ script-identity feature. D's output offers proceed independently; they do not ru
 ## Verification of this disposition
 
 This branch starts at safe A head `c393891e90f754e4e58f866bd6f90b056fe672fa`, which includes C and the explicitly
-integrated working-folder prerequisite, but no B production ancestry. C/A are unmerged and remain explicit stack
-dependencies. Documentation gates and exact-head CI are reported in the disposition PR; historical B results
-are not reused as evidence that this different source was tested.
+integrated working-folder prerequisite, but no B production ancestry. The owner subsequently merged C/A and that
+prerequisite into main `5bb43b573e425f2b6041d95302caf0e62fed7ef7`. Both active branches integrated that exact main
+by normal merge before further work; the disposition's against-main diff is now documentation-only. Documentation
+gates and exact-head CI are reported in the disposition PR; historical B results are not reused as evidence that
+this different source was tested.
 
-Local disposition gates: full `mvn -o -q test` passed **608 suites, 4,288 tests, zero failures/errors,
+Initial disposition `17f126c9` gates: full `mvn -o -q test` passed **608 suites, 4,288 tests, zero failures/errors,
 352 headless display skips**; preflight found **76 frame suites, 689 anchors**; strict MkDocs passed.
 An earlier sandboxed attempt encountered denied socket/process probes and was stopped; it is an environment
 failure, not a regression witness or a green gate. The correctly permissioned fixture-only rerun is the result above.
 No new runtime behavior or regression closure is claimed by this documentation-only change.
+
+After integrating main `5bb43b57`, the updated-source full run passed **608 suites, 4,302 tests, zero
+failures/errors, 352 headless skips**, with all 608 reports source-mapped and no orphan reports. Strict MkDocs
+passed again; preflight found **76 frame suites, 695 anchors**. Exact updated-head CI is separate from these local gates.
