@@ -196,4 +196,42 @@ class LocalAgentSwitchTest {
         assertTrue(d.snapshot().logOpen(), "its result is accepted");
         assertEquals("/logs/run.yaml", d.snapshot().logPath());
     }
+
+    /**
+     * The owner's 1.36.0 report, root cause: a log opened with no project active offers "this log sits inside the
+     * project X — load it?" ({@code MainFrame.maybeOfferProject}, person-driven, {@code TransitionKind
+     * .ADOPT_FOR_OPEN_LOG}). {@code holds()} checked only {@code EXPLICIT_SWITCH}, {@code CLOSE}, {@code CREATE} and
+     * {@code FORK} — so accepting that offer while Claude Code was running applied the project switch AT ONCE, with no
+     * restart offer, leaving the running session bound to whatever folder it started in (here: a Claude Code session
+     * started before any project was open, so its folder is the scratch one — exactly {@code LocalAgentFolders
+     * .workingDirectory} returns with no project). The owner's own transcripts confirm the mechanism otherwise works:
+     * a FRESH session (Start, or New chat) after the project is active correctly gets the project's own folder; what
+     * was missing is the offer to restart the ALREADY-RUNNING one.
+     *
+     * <p>★ Witness: the fix adds {@code TransitionKind.ADOPT_FOR_OPEN_LOG} to {@code holds()}'s kind check. Revert
+     * that one line and this test goes red again: the adoption loads at once, no offer is made, and Claude Code keeps
+     * running in its original folder with no warning.
+     */
+    @Test
+    @DisplayName("★ the owner's 1.36.0 report: accepting \"this log sits inside project X\" while Claude Code runs is "
+            + "held too, not applied at once")
+    void adoptingTheProjectForAnOpenLogIsHeldWhileClaudeCodeRuns() {
+        FakeSessionAdapter a = new FakeSessionAdapter().withProfile(TARGET);
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        LocalAgentSessionTest.startToReady(d, a);
+        // the person opened a log with no project active (as the owner's session did — "what can you do?" with no
+        // project — then the log-offer dialog's Yes adopts the project the log sits inside)
+        d.submit(new SessionEvents.OpenProjectRequested(d.nextOpId(), TARGET, TransitionKind.ADOPT_FOR_OPEN_LOG,
+                "log-offer", null, PERSON));
+        assertEquals(1, a.switchOffers.size(), "the same restart offer EXPLICIT_SWITCH gets");
+        assertEquals("other", a.switchOffers.get(0).targetName());
+        assertEquals(0, loads(a), "held: the project is not adopted until the person answers");
+        assertTrue(d.snapshot().localAgent().running(), "the running session is untouched until answered");
+        // Stop and arm: the project adopts, exactly as an EXPLICIT_SWITCH would
+        d.post(new SessionEvents.LocalAgentSwitchChosen(a.switchOffers.get(0).request(),
+                SessionEvents.SwitchChoice.STOP_AND_ARM));
+        assertEquals(1, loads(a), "released: the adoption now proceeds");
+        assertEquals(TARGET, a.appliedProfile);
+        assertFalse(d.snapshot().localAgent().running(), "Stop ended the session that was bound to the old folder");
+    }
 }

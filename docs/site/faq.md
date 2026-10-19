@@ -51,6 +51,13 @@ analyser itself was started with reach it. Full Claude Code also reads your Clau
 terminal; Safe analysis does not load them. How long Anthropic keeps your conversations, and whether they train
 models, depends on your account; the same page says so for each plan.
 
+## How can I tell whether Claude Code is still working?
+
+The composer shows the last observed step and its elapsed time. After a minute without a stream event, it offers
+**Keep waiting** or **Stop**; elapsed time alone is not proof of life. Keep waiting stays dismissed until a new event
+followed by another minute of silence. An approval has its own status and the existing modal question, not a stall
+warning or an unusable Show button. *⋯ ▸ About this session…* lists tool-call and turn totals.
+
 ## Is the assistant's action socket safe to enable?
 
 *External MCP/REST access* is off by default. When on, it listens on `127.0.0.1` only, needs a per-run token, rejects

@@ -48,6 +48,63 @@ class ClaudeCodeTabFrameTest {
     static final String DIALOG_TITLE = "Claude Code — confirm this folder";
 
     @Test
+    void aRecoveryDraftKeepsThePersonsWordsAndIsNeverSent(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        Path home = Files.createDirectories(tmp.resolve("home"));
+        Path claude = Files.createDirectories(home.resolve(".local/bin")).resolve("claude");
+        Files.writeString(claude, "#!/bin/sh\nexit 0\n");
+        Files.setPosixFilePermissions(claude, PosixFilePermissions.fromString("rwx------"));
+        Files.writeString(Files.createDirectories(home.resolve(".jbang/bin")).resolve("analyser"), "#!/bin/sh\n");
+        String before = System.getProperty("user.home");
+        MainFrame[] made = new MainFrame[1];
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        String request = "Check the DEMO validation first.\nThen explain what changed.";
+        System.setProperty("user.home", home.toString());
+        try {
+            onEdt(() -> {
+                MainFrame f = made[0] = new MainFrame();
+                f.localAgentLauncher = agent;
+                f.setSize(1200, 800);
+                f.setVisible(true);
+                ((AppConfig) field(f, "config")).claudeCodeAllowed = true;
+                ((AssistantPanel) field(f, "assistantPanel")).chooseModeForTest(AssistantMode.LOCAL_AGENT);
+                var store = (telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript)
+                        field(f, "localAgentStore");
+                long ref = store.add(telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER,
+                        request);
+                try {
+                    var method = MainFrame.class.getDeclaredMethod("performSessionEffect",
+                            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.class);
+                    method.setAccessible(true);
+                    method.invoke(f, new telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlaceRecoveryDraftEffect(
+                            0, 0, ref, telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession.RECOVERY_LINE));
+                } catch (ReflectiveOperationException e) {
+                    throw new AssertionError(e);
+                }
+            });
+            onEdt(() -> {
+                var panel = (LocalAgentPanel) field(made[0], "localAgentPanel");
+                assertEquals(request + "\n\n" + telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession.RECOVERY_LINE,
+                        ((JTextArea) field(panel, "draft")).getText(), "the original request is placed verbatim and unsent");
+                assertTrue(agent.processes.isEmpty(), "placing a recovery draft starts no Claude process");
+                assertEquals(0, ((SessionDriver) field(made[0], "session")).snapshot().localAgent().openTicket());
+                ((JButton) field(panel, "send")).doClick();
+            });
+            awaitState(made[0], s -> "READY".equals(s.phase()) && s.openTicket() == 0
+                            && s.entries().stream().anyMatch(e -> LocalAgentState.USER.equals(e.kind())),
+                    "the recovered draft can be sent by the person");
+            assertEquals(1, agent.processes.size());
+            var lines = agent.last().stdin.stream().filter(line -> line.contains("\"type\":\"user\"")).toList();
+            assertEquals(1, lines.size(), "only the person's Send writes the recovered question");
+            assertTrue(lines.getFirst().contains("Check the DEMO validation first."));
+        } finally {
+            if (made[0] != null) onEdt(made[0]::dispose);
+            System.setProperty("user.home", before);
+        }
+    }
+
+    @Test
     @DisplayName("H8: Start → folder dialog → Yes → READY over a hosted-only bridge; Send then Stop; a reveal starts nothing")
     void startConfirmReadyStopAndReveal(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");

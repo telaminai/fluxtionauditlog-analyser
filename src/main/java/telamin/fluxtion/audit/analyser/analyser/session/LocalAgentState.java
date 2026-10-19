@@ -126,7 +126,9 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
      *                    running …") is never a banner: the chip word carries it
      */
     public record Guide(String primary, String instruction, String action, boolean refusal, String chipWord,
-                        String banner) {
+                        String banner, String currentStep, int secondsSinceLastEvent, boolean stalled,
+                        boolean approvalPending, int toolCallCount, int turnCount, long stepWordsRef,
+                        String stallBanner) {
         public static final String SEND = "SEND";
         public static final String STOP = "STOP";
         public static final String ASK_AGAIN = "ASK_AGAIN";
@@ -146,6 +148,18 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
             action = action == null ? "" : action;
             chipWord = chipWord == null ? CHIP_READY : chipWord;
             banner = banner == null ? "" : banner;
+            currentStep = currentStep == null ? "" : currentStep;
+            stallBanner = stallBanner == null ? "" : stallBanner;
+        }
+
+        public Guide(String primary, String instruction, String action, boolean refusal, String chipWord, String banner,
+                     String currentStep, int secondsSinceLastEvent) {
+            this(primary, instruction, action, refusal, chipWord, banner, currentStep, secondsSinceLastEvent,
+                    false, false, 0, 0, 0, "");
+        }
+
+        public Guide(String primary, String instruction, String action, boolean refusal, String chipWord, String banner) {
+            this(primary, instruction, action, refusal, chipWord, banner, "", 0);
         }
 
         /** The shape before M78 D1: no chip word, no banner. */
@@ -153,6 +167,10 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
             this(primary, instruction, action, refusal, CHIP_READY, "");
         }
     }
+
+    public int toolCallCount() { return extra.guide().toolCallCount(); }
+
+    public int turnCount() { return extra.guide().turnCount(); }
 
     /** A copy with {@code extra} — the node publishes the guide computed from the state it describes. */
     public LocalAgentState withExtra(Extra extra) {

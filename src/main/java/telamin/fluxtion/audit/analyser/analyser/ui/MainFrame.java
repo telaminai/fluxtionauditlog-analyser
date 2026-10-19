@@ -165,6 +165,9 @@ public final class MainFrame extends JFrame {
 
     telamin.fluxtion.audit.analyser.analyser.assistant.localagent.AgentProcess.Launcher localAgentLauncher =
             new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.OsAgentLauncher();
+    /** Test seam: what a spawn's child sees as its own environment — a real-process frame test isolates {@code PATH}
+     * so {@code claude} can never resolve to the person's own installed CLI. Null: the real {@code System.getenv()}. */
+    java.util.Map<String, String> localAgentEnvironmentForTest;
     private long localAgentRequest;
     private long localAgentSendRequest;
     private long localAgentDraftCleared;
@@ -5337,7 +5340,9 @@ public final class MainFrame extends JFrame {
             @Override public String restUrl() { return restUrl; }
             @Override public String restToken() { return restToken; }
             @Override public java.util.Optional<java.util.List<String>> bridgeLauncher() { return localAgentBridgeLauncher(); }
-            @Override public java.util.Map<String, String> environment() { return System.getenv(); }
+            @Override public java.util.Map<String, String> environment() {
+                return localAgentEnvironmentForTest != null ? localAgentEnvironmentForTest : System.getenv();
+            }
             @Override public Path userHome() { return Path.of(System.getProperty("user.home")); }
             @Override public void post(Object fact) {
                 SwingUtilities.invokeLater(() -> { if (session != null) session().post(fact); });
@@ -5351,6 +5356,11 @@ public final class MainFrame extends JFrame {
             @Override public Path sampleProjectRoot() { return sampleProjectRootNow(); }
             @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports() {
                 return hostedReportState;
+            }
+            @Override public boolean activityCurrent(long generation, long ticket) {
+                var s = session == null ? null : session.snapshot().localAgent();
+                return s != null && s.generation() == generation
+                        && (ticket == 0 ? s.starting() : s.openTicket() == ticket);
             }
         };
         localAgentAdapter = new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter(
@@ -5386,6 +5396,10 @@ public final class MainFrame extends JFrame {
             }
             @Override public void newChat() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested("New chat"));
+            }
+            @Override public void keepWaiting(long generation, long ticket) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentActivityAcknowledged(
+                        generation, ticket));
             }
             @Override public void closeExternalAccess(long generation) {
                 // review B2: the person's choice, reported; actionListener decides
@@ -7625,7 +7639,7 @@ public final class MainFrame extends JFrame {
             // who asked for this log. Queued, so the modal never runs inside the snapshot's publication.
             if (!order.isClean()) {
                 java.util.List<String> lines = order.summarise();
-                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this, UiText.inert(String.join("\n", lines)),
+                modals.later(() -> JOptionPane.showMessageDialog(this, UiText.inert(String.join("\n", lines)),
                         "Time-order report", JOptionPane.WARNING_MESSAGE));
             }
         }
@@ -9261,6 +9275,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AiSetupTimerEffect e -> startSetupTimer(e);
             // M74: the local agent's effects have ONE performer, the adapter (OneDispatchModelTest pins it)
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartLocalAgentEffect e -> performLocalAgent(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartActivityClockEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PollLocalAgentStatusEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SendLocalAgentTurnEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StopLocalAgentEffect e -> performLocalAgent(e);
@@ -9272,6 +9287,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e -> confirmLocalAgentFolder(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferLocalAgentRestartEffect e -> offerLocalAgentRestart(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlacePendingDraftEffect e -> placePendingDraft(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlaceRecoveryDraftEffect e -> placeRecoveryDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RecomposeLocalAgentDraftsEffect e -> recomposeLocalAgentDrafts(e);
             // M74 P2: the Ask catalogue's drafts and the start page — the nodes decided; the frame performs and reports
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeLocalAgentDraftEffect e -> primeLocalAgentDraft(e);
@@ -11080,6 +11096,8 @@ public final class MainFrame extends JFrame {
                 proj.put("note", "your own settings — no project is open");
             }
             out.put("project", proj);
+            if (session != null) proj.put("assistant", telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ActivityText
+                    .context(sessionSnapshot().localAgent(), localAgentStore::text));
             // #73: what this machine has been sent. A recipient could not otherwise find out what bundles they
             // hold — there is no list verb, and an unpacked working copy appears only as a recent LOG path.
             // need.test: up to 25 stat calls, so do not run them for a projection that did not ask. The same
@@ -11964,6 +11982,13 @@ public final class MainFrame extends JFrame {
         var content = PermissionText.of(localAgentStore.permission(ref), e.toolClass(), e.name(), projectRoot());
         SwingUtilities.invokeLater(() -> {
             if (permissionClosed.remove(ref) || session == null) return;   // answered before it could show
+            if (sessionSnapshot().permission().pendingRef() != ref) return;
+            LocalAgentPermissionDialog existing = permissionDialogs.get(ref);
+            if (existing != null && existing.isDisplayable()) {
+                existing.toFront();
+                existing.requestFocusInWindow();
+                return;
+            }
             Window owner = SwingUtilities.getWindowAncestor(localAgentPanel);
             LocalAgentPermissionDialog d = new LocalAgentPermissionDialog(owner == null ? this : owner, content,
                     e.deadlineMs(), new LocalAgentPermissionDialog.Answers() {
@@ -12253,6 +12278,16 @@ public final class MainFrame extends JFrame {
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), e.draftRef(),
                 c != null, c != null ? "" : "the question is no longer held");
+    }
+
+    /** PlaceRecoveryDraftEffect: the node chose the interrupted request and its fixed recovery line; nothing is sent. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result placeRecoveryDraft(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlaceRecoveryDraftEffect e) {
+        String text = localAgentStore.text(e.draftRef());
+        String recovered = text + "\n\n" + e.fixedLine();
+        composeFor(true, new telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft(
+                "RECOVERY", recovered, null, 0), "recovery");
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
     }
 
     /** RecomposeLocalAgentDraftsEffect: localAgentSession asked for these questions again, composed for Claude Code. */
@@ -14044,6 +14079,9 @@ public final class MainFrame extends JFrame {
 
     // ---- M74 P2b: a project switch while Claude Code runs (the simplified Move) ---------------------------------------
 
+    /** PR #171 review: the questions effects queue are shown one at a time, never one over another. */
+    final ModalSequence modals = new ModalSequence();
+
     static final String SWITCH_STOP = "Stop, and get Start ready in the new project";
     static final String SWITCH_KEEP = "Keep it running here";
     static final String SWITCH_CANCEL = "Cancel";
@@ -14051,7 +14089,7 @@ public final class MainFrame extends JFrame {
     /** OfferLocalAgentSwitchEffect: the person's own switch was held; ask, outside the dispatch, and report the choice. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result offerLocalAgentSwitch(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferLocalAgentSwitchEffect e) {
-        SwingUtilities.invokeLater(() -> {
+        modals.later(() -> {
             var choice = LocalAgentSwitchDialog.ask(this, e.currentName(), e.targetName());
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSwitchChosen(
                     e.request(), choice));

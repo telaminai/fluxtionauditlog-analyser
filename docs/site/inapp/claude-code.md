@@ -25,10 +25,12 @@ conversation to resume). What happens:
   Dock — the tab lists every place it looked.
 - The first time in a folder, it asks: *"Claude Code will read this folder's CLAUDE.md as instructions. Trust <folder>
   for Claude Code in the analyser?"* — **Trust this folder** or **Don't trust** (the default, at the right, as in every
-  consent dialog here). Your answer is remembered on this machine. With no project open — or with the sample project or
-  a bundle open — Claude Code works in a private, empty scratch folder instead, and the question says so in words before
-  its path. Claude Code is never started inside a bundle's working copy: with a bundle open it works in an empty
-  scratch folder, and the working copy's `CLAUDE.md` is never loaded.
+  consent dialog here). Your answer is remembered on this machine. **With your own project open, Claude Code works in
+  that project's own folder** — once you trust it, it reads that folder's `CLAUDE.md` (and, in Full Claude Code, its
+  `.claude/skills`, hooks and `.mcp.json`) the same way your own terminal's Claude Code would. Only with no project
+  open — or with the sample project or a bundle open — does Claude Code work in a private, empty scratch folder
+  instead, and the question says so in words before its path. Claude Code is never started inside a bundle's working
+  copy: with a bundle open it works in an empty scratch folder, and the working copy's `CLAUDE.md` is never loaded.
 - Claude Code does **not** need *External MCP/REST access* turned on. With it off, the analyser opens a private listener that
   serves only this Claude Code session — it refuses every external client, even one holding the REST token, and
   publishes no endpoint file for other tools to find — and closes it when the session stops. With it on, the session
@@ -130,6 +132,15 @@ When Claude Code proposes a starter, the review and what follows are in
 
 ## Using it
 
+While a turn runs, the composer shows the step Claude Code started — reading, searching, running a command,
+checking the log or answering — with elapsed time after three seconds. Names are shortened and paths redacted.
+After a minute without a stream event, **Keep waiting** dismisses the inactivity cue without stopping anything;
+the clock keeps counting, and only a new event followed by another minute of silence can show the cue again.
+Elapsed time is not proof that the process is alive. While an approval waits, the cue instead says **Needs your
+approval**; answer the existing modal question. There is no Show control behind a dialog that blocks it.
+*⋯ ▸ About this session…* lists tool-call and turn totals.
+`context {sections: ["project"]}` exposes the same activity under `project.assistant`.
+
 - **Send** (or Enter; Shift+Enter is a new line) sends one turn. While Claude is answering, Send is refused — *"Claude is still answering — Stop
   or wait."* — and your draft stays; nothing is queued.
 - **Stop** interrupts the turn. If Claude Code does not acknowledge within 5 s, or the turn has not ended within 15 s,
@@ -179,7 +190,10 @@ When Claude Code proposes a starter, the review and what follows are in
   runs asks first: **Stop, and get Start ready in the new project** (the session ends; nothing starts until you press
   *Start a new session in this project*, and the new folder is confirmed then), **Keep it running here** (the switch
   happens; the session keeps working in its own folder, and its context describes the previous project), or
-  **Cancel**. An assistant's `open {project}` is never held this way. (A handoff report from the old session to the new
-  one is planned for later.)
+  **Cancel**. The same question is asked when you say yes to *"This log sits inside the project '\<name\>' — load it?"*
+  (the offer a log gets when you open it with no matching project active) — accepting that while a session is running
+  no longer applies the project at once; it asks first too, so a session that started before any project was open (and
+  so began in the scratch folder) is never left silently bound to it. An assistant's `open {project}` is never held
+  this way. (A handoff report from the old session to the new one is planned for later.)
 - **Don't resume this conversation in a terminal while it is open here** — the history would fork. A second analyser
   window cannot open it either: *"This conversation is open in another analyser window."*

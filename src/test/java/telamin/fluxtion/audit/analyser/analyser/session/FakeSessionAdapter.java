@@ -78,6 +78,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.OfferLocalAgentRestartEffect> restartOffers = new ArrayList<>();
     /** Robot walkthrough #1: the pending drafts placed, and the drafts composed again. */
     final List<SessionEffects.PlacePendingDraftEffect> pendingPlaced = new ArrayList<>();
+    final List<SessionEffects.PlaceRecoveryDraftEffect> recoveryPlaced = new ArrayList<>();
+    final List<SessionEffects.StartActivityClockEffect> activityClocks = new ArrayList<>();
     final List<SessionEffects.RecomposeLocalAgentDraftsEffect> recomposed = new ArrayList<>();
     /** M74 P2: what the Ask catalogue and the start page asked the adapter to do, in order. */
     final List<SessionEffects.PrimeLocalAgentDraftEffect> agentPrimes = new ArrayList<>();
@@ -307,6 +309,14 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.PollLocalAgentStatusEffect e -> {
                 agentPolls.add(e);
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "poll");
+            }
+            case SessionEffects.StartActivityClockEffect e -> {
+                activityClocks.add(e);
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "activityClock", 1_000);
+            }
+            case SessionEffects.PlaceRecoveryDraftEffect e -> {
+                recoveryPlaced.add(e);
+                yield new SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
             }
             case SessionEffects.SendLocalAgentTurnEffect e -> {
                 agentSends.add(e);

@@ -66,6 +66,21 @@ either is filed.
 
 **Filed 2026-08-16:** all nine fluxtion-owned asks are open as [telaminai/fluxtion issues 8–13](https://github.com/telaminai/fluxtion/issues) (some grouped: 11 covers UP-FLX-11+12, 12 covers UP-FLX-14+SHARED-01, 8 covers UP-FLX-01+SHARED-02). The four `svc-admin-web` asks (UP-WEB-01…04) belong to `telaminai/mongoose-plugins` and are **not yet filed** — see below.
 
+**REFRESH 2026-10-19, before filing the tranche below.** `gh issue list`/`gh pr list` against `telaminai/fluxtion`,
+`telaminai/fluxtion-web` and `telaminai/fluxtion-compiler` (a separate repo for the hosted-generator/C++ work, not
+previously listed here). All of UP-FLX-01…58's filed numbers (issues 8–33 on `telaminai/fluxtion`) are still **OPEN**;
+none has landed since the last count in this file. `telaminai/fluxtion` issue **#24**, *"Generated processors carry a
+'confidential / all rights reserved' header into the user's own repository,"* is already filed — it is the exact
+subject of this tranche's licensing item, so it is linked below rather than re-filed; it was not previously linked
+from this file. `telaminai/fluxtion-compiler` carries its own numbering (**#104–112**) for hosted-generator/C++
+work the tracker cites as *"compiler#106–109"*: confirmed live — #106–109 are the C++-target items, #105 is a
+second filing of the same processing-flag defect as UP-FLX-42 (`fluxtion` #30), #104/#110/#112 are unrelated to this
+tranche. `fluxtion-web` PR #15, *"Pin templates to Fluxtion 1.0.79; document the starter's withdraw command,"* shows
+`withdraw` already exists and is documented — checked against the PR title only, not its diff — so the tranche's
+`withdraw` item below asks only for its two missing modes, not for the command itself. **Not re-verified, per "don't
+spend long":** UP-MNG-01…04's landed/open split (`telaminai/mongoose` issues #46/#50 are open but match neither by
+title) and UP-RDR-01 — left exactly as this file already states them.
+
 ---
 
 
@@ -310,6 +325,21 @@ _Filed: https://github.com/telaminai/fluxtion/issues/9_
 `FLX-1008` is the one with a direct analyser consequence: it produces a log that is *misleading* rather
 than merely absent, and no downstream tool can distinguish it from a node that legitimately stayed quiet.
 
+**Extended 2026-10-19 (authoring-loop feedback — see §3's note for the source and its caveat).** Two more
+rows for the same table, plus one correction to the FLX-1007 row already above:
+
+| Suggested code | Rule | Why it matters |
+|---|---|---|
+| `FLX-10xx` | generated code references an inaccessible (package-private) node type or constructor | fails as a `javac` error on *generated* source, pointing the author at a file they did not write; should be a coded build-time diagnostic naming the node and the fix (make the class and its constructor public) |
+| `FLX-10xx` | `@OnTrigger` method declares parameters | same failure shape — a `javac` error on generated code rather than a build-time diagnostic |
+
+Document the **opaque-vendor contract** the first row makes necessary: every node class and its constructor must
+be public, because the generator constructs vendor nodes from outside their package.
+
+**FLX-1007 correction:** reported as printing node identity via default `Object.toString()` (e.g.
+`…Window@1a8e9ed9`) — unstable across runs and machines, and a leak of a supplier's internal object into
+diagnostic text. Name nodes by their declared graph id instead.
+
 ---
 
 ## 1b · Fluxtion compiler — the maintenance manoeuvre
@@ -400,6 +430,13 @@ than a stale artefact. The fix — delete the generated file and rebuild — is 
 
 **Cost to us if unfixed.** One wasted iteration per structural change, every time, for anyone who
 checks generated source into their repo — which the golden-path examples encourage.
+
+**Recurred 2026-10-19, with a new trigger (authoring-loop feedback — see §3's note for the source).** A
+stale generated processor committed to `src/main/java` was reported to survive `mvn clean` and break
+compilation after a **dependency version bump**, before `mvn -Pregen process-classes` ran again to
+regenerate it — the same defect as above, but triggered by a dependency upgrade rather than an edited
+constructor. Strengthens rather than replaces this ask's existing preferred fix (generate into
+`target/generated-sources/fluxtion`, which `clean` removes, or scan before compile).
 
 ### UP-FLX-22 ◐ Give the dirty contract and reference-kind an artefact
 
@@ -864,6 +901,14 @@ steers authors away from the annotation it leads with, for want of a package nam
 (UP-FLX-01/#19). An agent applying the fix from JSON has no autocomplete, so the one field the message
 omits is exactly the one a non-human reader cannot recover. It is one token per annotation.
 
+**Extended 2026-10-19 (authoring-loop feedback — see §3's note for the source), against FLX-1009 and
+UP-FLX-32 together.** The same field-inclusion predicate (non-static, non-transient, **final**) was
+reported to also reject a node-local derived **collection** held only for the node's own bookkeeping — the
+same shape UP-FLX-32 already documents for scalar state, now confirmed for collections. Worth one more
+line on the same page covering the final case explicitly, and one unrelated line while there: a single
+Maven module may host more than one `FluxtionGraphBuilder`, which is unremarked anywhere in the triage
+material and was not obvious to the agent until it tried it.
+
 ### UP-FLX-33 ◐ A Spring bean that is neither selected nor ignored is silently not a node
 
 _Filed: https://github.com/telaminai/fluxtion/issues/20_
@@ -1044,6 +1089,13 @@ by decompiling the builder.
 **Cost to us if unfixed** the analyser recomputes layout layers rather than reading a declared order, so
 its ordering is reconstructed where the compiler's is authoritative — see the dispatch-order-index note in
 §2c, which this ask now has evidence for.
+
+**Extended 2026-10-19 (authoring-loop feedback — see §3's note for the source).** Same finding, restated
+for the maintenance case: because the tie-break is **node-name** dependent, a benign rename of one sibling
+can change the generated linear extension of siblings that share no declared dependency. Worth a build-time
+warning specifically when two unordered siblings both read and write shared mutable state (a parent field,
+a shared collection) — that is the shape where the undocumented order becomes an undocumented *behaviour*,
+not merely an undocumented fact.
 
 ### UP-FLX-44 ● A node inside a COLLECTION argument is default-constructed, silently
 
@@ -1261,6 +1313,15 @@ the analyser pair a log with the right graphml automatically instead of asking t
 and would let it say *this graph is not the build that produced this log* with certainty rather than by
 counting unmatched instance ids. The reviewer noted `sourceFingerprint` is also the natural carrier for a
 provenance stamp.
+
+**Narrowed 2026-10-19 (authoring-loop feedback — see §3's note for the source and its caveat; not
+independently re-measured against bytecode here).** `fluxtion.sourceFingerprint` is reported as no longer
+unconditionally absent on starter-core 1.0.79 — it appears to be computed from the assembled graph
+(without the class name). What it is reported as not yet doing is reaching the artefacts that would make
+it useful: write it, and the generated class's FQCN, into the audit-log header and the GraphML, and report
+the installed `Auditor` set (`auditors`) separately from `authoredNodeCount` wherever that count surfaces.
+**Direct analyser payoff:** this closes analyser issue #180 (the source pane holding the profile's
+processor next to a different opened graph) at the root, instead of at the analyser's own workaround.
 
 ### UP-FLX-13 ◐ One spelling for exported-call signatures
 
@@ -1990,6 +2051,137 @@ if you disagree — but the trade-off should not go unstated, and hoisting audit
 
 ---
 
+## Fluxtion compiler / maven plugin / runtime — authoring-loop feedback, 2026-10-19
+
+_Source for every item below: authoring-loop feedback from an LLM agent driving the Spring starter,
+starter-core 1.0.79 and the analyser over MCP on an external research project, 2026-10-15; triaged
+2026-10-19. The extensions to UP-FLX-02, UP-FLX-12, UP-FLX-21, UP-FLX-32/38 and UP-FLX-36 above are from
+the same feedback. Not independently re-measured against bytecode or a live artefact the way earlier
+rounds in this file were, unless a cross-reference says otherwise._
+
+**Licensing item — not filed as a new ask.** The tranche's brief included a licensing item (generated
+processors carry a confidential/all-rights-reserved header, which blocks publishing them as evidence) with
+the instruction to record it as an owner decision and propose nothing further. It already exists as
+`telaminai/fluxtion` **[issue #24](https://github.com/telaminai/fluxtion/issues/24)**, found during this
+tranche's refresh above and not previously linked from this file. Recorded, not re-filed.
+
+### UP-FLX-59 ☐ No per-event dispatch plan with guard expressions
+
+**Target** `fluxtion` (compiler, diagnostics) · **Priority** medium
+
+A generated processor's guard expressions (e.g. `guardCheck_d = isDirty_b | isDirty_c`) exist only in the
+generated Java; nothing states the per-event dispatch plan in a form a person or an agent can read without
+reading generated output. **Ask:** emit it as diagnostics JSON (or a sibling `*.dispatch.json`) and,
+optionally, a `fluxtion.guard` GraphML attribute per node.
+
+**Cost to us if unfixed.** The analyser's topology view can show *that* a node ran but not *why* — which
+guard passed — without reading generated source, which M40/M21 already avoid wherever possible.
+
+### UP-FLX-60 ☐ No runtime trace binding from a cycle id to the generated graph it ran on
+
+**Target** `fluxtion` (runtime) · **Priority** medium — **owner decision: runtime API change**
+
+Nothing ties a specific `LogRecord` back to the exact graph/processor build that produced it, or states
+which guard evaluation led to which outcome. **Ask:** a cycle id shared between `Auditor.eventReceived` and
+the `LogRecord` it produces; optional `Auditor.guardEvaluated(node, boolean)` /
+`callbackReturned(node, boolean)` hooks; the processor's FQCN and graph fingerprint (see the UP-FLX-12
+extension above) stamped into the first record of a run.
+
+**Cost to us if unfixed.** The analyser can report "this node never logged" but not "this node was
+considered and its guard said no" — the latter is a stronger, rarer finding this would make possible.
+
+### UP-FLX-61 ☐ A PUSH edge's GraphML `propagates=false` was observed set although the source's change did trigger the target
+
+**Target** `fluxtion` (compiler, GraphML emission) · **Priority** medium
+
+Reported against a `.push(...)` edge whose target's dirty state visibly changed on the source's update,
+while the emitted GraphML carried `propagates=false` on that edge — the opposite of what ran. This is the
+same edge class the §2c probe above already found "worse than unmarked" for rendering; this report, if it
+holds up, is a correctness defect in the attribute itself rather than only a documentation gap — **flagged
+as reported, not independently reproduced here.**
+
+**The ask.** Either document precisely what `propagates` means for a push edge (if `false` was itself
+correct for a reason not visible from outside), or set it from the actual trigger effect rather than from
+the edge kind alone.
+
+### UP-FLX-62 ☐ GraphML written to `src/main/resources` at `process-classes` is not on the same build's own classpath
+
+**Target** `fluxtion-maven-plugin` · **Priority** medium
+
+Reported: the plugin writes GraphML under `src/main/resources` during `process-classes`, after
+`resources:resources` has already copied that directory's earlier contents to `target/classes` — so the
+file the current build just produced is stale or absent from the classpath the *current* build's own
+tests/runtime see, and only the next build picks it up.
+
+**The ask.** Also write it to `target/classes` directly (or write it before `resources:resources` runs),
+and stamp it with the processor id and a build id so a consumer can tell which build it came from.
+
+### UP-FLX-63 ☐ No route for a reviewer to reproduce a committed generation without a fresh paid run
+
+**Target** `fluxtion-maven-plugin` · **Priority** medium · **framing: this is a request for ACCESS to
+paid output, not for keyless or local generation — generation stays on the hosted compiler and always
+requires a key**
+
+A reviewer re-running a submitted project's build today either holds a key and regenerates (spending paid
+usage to re-check someone else's already-paid-for output) or trusts the committed generated source
+unverified. **Ask:** `-Dfluxtion.skip` / `<skip>` to bypass generation entirely, plus a `replay` goal that
+compiles a **committed** generation (generated sources, GraphML, and a manifest carrying input
+fingerprints), refusing if the current inputs' fingerprint does not match the manifest's. The starter
+should emit that manifest as part of a normal generate. This lets a reviewer or grader verify what was
+actually produced and paid for, without re-paying for it or taking it on trust.
+
+### UP-FLX-64 ☐ The maven plugin was reported ignoring C++-target output settings, writing C++ source as `.java`
+
+**Target** `fluxtion-maven-plugin` (relates to `fluxtion-compiler` [#108](https://github.com/telaminai/fluxtion-compiler/issues/108)/[#109](https://github.com/telaminai/fluxtion-compiler/issues/109), the C++ target's open
+decisions, confirmed open during this tranche's refresh) · **Priority** low — the target is pre-GA
+
+With the C++ target selected, `setOutputDirectory`/`setCompileSource(false)` on the plugin were reported
+ignored: C++ source written with a `.java` extension into the Java output tree, and a second compile pass
+then fails against it.
+
+**The ask.** Honour those two settings for the C++ target, or refuse with a diagnostic naming the ignored
+option, rather than writing invalid output silently. Filed against the plugin specifically because
+`fluxtion-compiler` #106–109 are about the generated C++'s *content*; this is the plugin's handling of
+*where it is written*.
+
+### UP-FLX-65 ☐ Plugin source scan was reported failing on an abstract `FluxtionGraphBuilder` on the classpath
+
+**Target** `fluxtion-maven-plugin` · **Priority** low
+
+The plugin's scan step instantiates every `FluxtionGraphBuilder` it finds, including (as reported) abstract
+classes and interfaces meant only as a shared base for several concrete builders, and fails trying to
+construct one.
+
+**The ask.** Skip non-instantiable types during scan, or accept an explicit list of builder classes to use
+instead of scanning.
+
+### UP-FLX-66 ☐ `EventLogControlEvent.toString()` embeds the sink lambda's identity hash
+
+**Target** `fluxtion` (runtime) · **Priority** low
+
+Reported: `EventLogControlEvent.toString()` includes the configured sink's default `Object.toString()`,
+which for a lambda sink is an identity hash that differs between runs of the same code, so a replayed run's
+printed control-event text differs from the original even when nothing about the configuration changed.
+
+**The ask.** Print a stable description of the sink (its declared type, or a name the caller supplies)
+instead of the default `toString()`.
+
+---
+
+**Analyser-side, not upstream.** Several findings from the same feedback are defects in this repo, not
+another one, and were filed here instead: analyser issues
+[#177](https://github.com/telaminai/fluxtionauditlog-analyser/issues/177) (profile overwrite),
+[#178](https://github.com/telaminai/fluxtionauditlog-analyser/issues/178) (evidence bundles drop flag
+text), [#179](https://github.com/telaminai/fluxtionauditlog-analyser/issues/179) (a saved walk goes
+historical on reopen), [#180](https://github.com/telaminai/fluxtionauditlog-analyser/issues/180) (source
+pane vs. the opened graph — see the UP-FLX-12 extension above for its upstream root cause),
+[#181](https://github.com/telaminai/fluxtionauditlog-analyser/issues/181) (nothing creates a saved
+analysis), [#182](https://github.com/telaminai/fluxtionauditlog-analyser/issues/182) (exchange directory
+default) and [#183](https://github.com/telaminai/fluxtionauditlog-analyser/issues/183) (a report's topology
+section silently skipped).
+
+---
+
 ## UP-PG-04 ☐ The starter schema has no way to say "native", so the native template is not one
 
 **Target** `fluxtion-web` (playground) · **Spec** [`spec-native-ready-template.md`](upstream-specs/spec-native-ready-template.md) §D1–D2 · **Milestone** M51.2
@@ -2158,6 +2350,157 @@ starters' and the analyser's redistribution of them). (3) Version the two pages,
 **What the analyser does meanwhile.** `StarterSkills` writes its copy and never overwrites a file the starter shipped;
 `CanonicalSkillsTest` pins the jar's copies to the index and the playground pins. Once (1) lands, a starter's own
 skills are kept and the analyser writes only what is missing.
+
+## Starter / templates / playground — authoring-loop feedback, 2026-10-19
+
+_Source for every item in this section: authoring-loop feedback from an LLM agent driving the Spring starter,
+starter-core 1.0.79 and the analyser over MCP on an external research project, 2026-10-15; triaged 2026-10-19.
+Not independently re-measured against the live artefact the way earlier rounds in this file were — read as a
+single session's report, not as a verified-twice finding, unless noted otherwise._
+
+### UP-PG-11 ☐ Template audit sink writes unseparated records — the analyser reads N as one
+
+**Target** `fluxtion-web` (starter templates, `FluxtionMain`) · **Priority** high
+
+The template's `FluxtionMain` wires its audit sink as `flow.setAuditLogProcessor(r -> System.out.println(r))` (or a
+file-sink equivalent copying the same lambda), printing each `LogRecord` with no `---` document separator between
+records. A run that produced six cycles writes six YAML documents concatenated with nothing between them.
+
+**Cost to us if unfixed.** The analyser's own producer diagnostic catches it — it reports six records read as one
+— but the first thing a newly-scaffolded project shows an author who opens its own log in the analyser is a
+warning about its own template's output.
+
+**The ask.** Emit `\n---\n` between records (the same fix already asked for `mongoose-plugins` under UP-MON-01,
+for the same reason), or ship a provided sink in the template's own code that writes valid Format-1 records
+instead of `System.out.println`.
+
+### UP-PG-12 ☐ Template `.gitignore` excludes the generated AOT shell a fresh clone needs to compile
+
+**Target** `fluxtion-web` · **Priority** high
+
+The template's `.gitignore` excludes `src/main/java/<pkg>/generated/`, which holds the AOT-generated processor
+`FluxtionMain` imports by name. A fresh clone — no prior `mvn -Pregen process-classes`, no committed generated
+source — fails at `compile`, before generation ever runs. It is the same ordering trap as UP-FLX-21 one step
+earlier: there, regeneration runs after `compile` against a *stale* file; here there is no file at all.
+
+**The ask.** Generate into a tracked source root, or load the generated processor by class name so `compile`
+does not need the file to pre-exist; add a clean-clone build to the template's own CI so this regresses loudly.
+
+**Cost to us if unfixed.** Every onboarding path that starts "clone the starter, open it" inherits this — it is
+the first command a newcomer runs, and it fails before the analyser is ever involved.
+
+### UP-PG-13 ☐ "Open in Playground" produces a project that does not compile there
+
+**Target** `fluxtion-web` · **Priority** high
+
+A design authored in the Spring starter, sent to "Open in Playground," fails to compile in the in-browser
+compiler: the generated class carries `@javax.annotation.processing.Generated("fluxtion-starter")`, which that
+toolchain cannot resolve, and Java records in the generated model are rejected outright on that path.
+
+**The ask.** Omit the `@Generated` marker on the Playground-bound artefact, or emit plain classes (no records)
+for that target. Add a CI check that walks the actual path a person takes — design link → Playground → compile →
+run — rather than trusting each half separately, and document the project-link format so a third party can build
+the same link.
+
+**Cost to us if unfixed.** The analyser's onboarding and the starter catalogue both point at "Open in Playground"
+as the fast look; a broken link at the end of that path is discovered by the person it was meant to help.
+
+### UP-PG-14 ☐ Standalone (non-Mongoose) templates have no direct log sink, and don't say where one lands
+
+**Target** `fluxtion-web` · **Priority** medium
+
+The standalone templates (no Mongoose server) have no file-sink audit log wired by default — an author adds one
+by hand, following UP-PG-11's fix once it lands — and `run.sh` prints nothing about where a log, if any, went.
+
+**The ask.** Ship a file sink by default (`logs/audit-<processor>.yaml`, Format 1, separated records); have
+`run.sh` print the path at exit; let the template's committed analyser profile pre-declare it.
+
+### UP-PG-15 ☐ `withdraw` has no bulk undeclared/unmodified mode, so one conflict is one block per class
+
+**Target** `fluxtion-web` / `fluxtion-compiler` (the starter's `withdraw` command — documented, PR #15) ·
+**Priority** medium
+
+`withdraw` removes one declared, owned class at a time. Reverting an experiment that touched several classes
+means reading one `SPRING_RECONCILE_CONFLICT` block per class and withdrawing each by name — the reconciler
+already tracks the ownership/modification state this would need.
+
+**The ask.** `withdraw --undeclared` (every owned class no longer referenced in the design XML, in one call) and
+an optional `--delete-unmodified-sources` (also remove the backing file when its content has not diverged from
+what the generator would re-emit), replacing one conflict block per class with one combined fix line.
+
+### UP-PG-16 ☐ `validate --xml variant.xml` discards the main design's receipt
+
+**Target** `fluxtion-web` / `fluxtion-compiler` · **Priority** medium
+
+A project with several candidate designs (an A/B variant, a scratch design kept beside the shipped one) loses the
+main design's validation receipt the moment `validate --xml variant.xml` runs against a different file — there
+is one receipt slot, and the last `validate` call owns it.
+
+**The ask.** Let the authoring record hold several named designs, each with its own receipt and owned-class set,
+so validating a variant does not require re-validating and re-trusting the main design afterward.
+
+### UP-PG-17 ☐ No minimal/empty Spring AOT template, and the scaffold call can't accept a starting XML
+
+**Target** `fluxtion-web` · **Priority** medium
+
+Every Spring starter scaffold ships a worked example (the demo graph); there is no empty/minimal AOT scaffold,
+and the scaffold request has no way to carry an agent's own XML in place of the sample.
+
+**The ask.** Either a minimal/empty Spring AOT template, or accept a starting XML in the scaffold call, so
+authoring from scratch does not begin by deleting the sample graph node by node.
+
+### UP-PG-18 ☐ `eventTypes` entries cannot declare fields
+
+**Target** `fluxtion-web` / `fluxtion-compiler` (Spring XML schema) · **Priority** low
+
+The XML `eventTypes` declaration has no way to give a declared event record fields — `record XEvent() {}` is as
+far as the schema reaches; fields must be added by hand afterward, outside the declarative route.
+
+**The ask.** Let an `eventTypes` entry carry a field list (name/type pairs), so a fully XML-declared event
+vocabulary is possible without a manual source edit.
+
+### UP-PG-19 ☐ Every Spring template's analyser profile should list the design source root
+
+**Target** `fluxtion-web` · **Priority** low
+
+The project profile a Spring template writes for the analyser (the M38 portable-context profile) does not
+include `src/main/fluxtion/designer` as a source root, so navigating to the design's own authored sources is one
+manual root-add away from working out of the box.
+
+**The ask.** Add it to the template's committed profile.
+
+### UP-PG-20 ☐ A PUSH-only node gets a dead `@OnTrigger` the dispatcher never calls
+
+**Target** `fluxtion-web` / `fluxtion-compiler` · **Priority** low
+
+A node reached only via `.push(...)` (never a normal trigger/data edge) is scaffolded with an `@OnTrigger`
+callback the generated dispatcher never calls, because nothing triggers it — dead code that reads like a bug in
+the generated project.
+
+**The ask.** Don't generate the dead callback for a push-only target, or, if it stays for symmetry, emit a
+one-line comment or build warning saying the dispatcher never calls it.
+
+### UP-PG-21 ☐ Renaming a processor leaves stale generated artefacts and a stale profile entry
+
+**Target** `fluxtion-web` / `fluxtion-compiler` · **Priority** low
+
+Renaming the generated processor (editing `configureGeneration`'s class name) leaves the old generated
+class/GraphML on disk and the project's analyser profile still naming the old processor.
+
+**The ask.** On a rename, remove the unclaimed generated artefacts for the old name and update the profile's
+declared processor from the new `configureGeneration` value, in the same regeneration step.
+
+### UP-PG-22 ☐ No way to share a pinned, runnable project snapshot
+
+**Target** `fluxtion-web` · **Priority** low
+
+There is no single artefact that captures "this project, as it built and ran, including its generated bodies
+and tests" for handing to someone else to run unchanged — each recipient regenerates against whatever the hosted
+compiler currently does.
+
+**The ask.** A shareable snapshot (bodies + tests, pinned), still built via the hosted compiler at capture time —
+not a local or keyless generation path: the snapshot is a pinned *result* of a paid generation, never an
+alternate way to generate one.
 
 ## Spring authoring edit loop — 2026-09-25 intake
 

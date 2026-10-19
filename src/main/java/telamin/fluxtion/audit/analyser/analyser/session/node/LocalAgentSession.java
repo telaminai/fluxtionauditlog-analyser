@@ -84,6 +84,22 @@ public class LocalAgentSession implements EventLogSource {
     private boolean killRequested;
     private long ticket;
     private long openTicket;
+    private long openTicketSendRef;
+    private long recoveryDraftRef;
+    private SessionEvents.LocalAgentConsent launchConsent;
+    private boolean resumeAttempt;
+    private long lastEventAtMillis = -1;
+    private long activityAtMillis;
+    private long stepAtMillis = -1;
+    private boolean activityAcknowledged;
+    private boolean answering;
+    private long startedTicket;
+    private int toolCallCount;
+    private int turnCount;
+    private Map<Long, SessionEvents.LocalAgentToolStarted> activityTools = new LinkedHashMap<>();
+    private List<Long> seenActivityCalls = new ArrayList<>();
+    public static final String RECOVERY_LINE =
+            "This was interrupted part-way. Check what has already changed before continuing.";
     private boolean interruptAcked;
     private long pendingDraft;
     private long pendingRequest;
@@ -165,6 +181,7 @@ public class LocalAgentSession implements EventLogSource {
     private boolean folderKept;
     /** M78 D1 (§5.1): a permission dialog is open (localAgentPermission's state), for the header's "needs you". */
     private boolean permissionWaiting;
+    private String permissionName;
     /** M78 D1 (§5.2): the process generation whose first READY appended the PLAN note (0: none yet). */
     private long planNoted;
     private LocalAgentState published = LocalAgentState.IDLE;
@@ -297,12 +314,25 @@ public class LocalAgentSession implements EventLogSource {
 
     private boolean start(long request, SessionEvents.LocalAgentConsent consent) {
         if (running()) {
-            auditLog.info("noOp", "LocalAgentStartRequested").info("phase", phase);
-            answer(request, true, "");
-            return changed();
+            if ("READY".equals(phase) || "BUSY".equals(phase)) {
+                note("ALREADY_RUNNING", "Claude Code is already running.");
+                auditLog.info("alreadyRunning", "LocalAgentStartRequested").info("phase", phase);
+                answer(request, true, "");
+                return changed();
+            }
+            // M81: Restart recovers an unfinished start/Stop, retaining the resumable conversation's identity.
+            kill(null, "RECOVERING");
         }
         String refusal = startRefusal(consent, request);
         if (refusal != null) {
+            if (refusal.startsWith("POSTURE_CHANGED:") && recoveryDraftRef != 0) {
+                beginConversation();
+                spawn(consent);
+                note("RESUME_UNAVAILABLE", "This conversation can't be resumed here (the mode or folder changed) — "
+                        + "starting a new chat.");
+                answer(request, true, "");
+                return changed();
+            }
             refuse(request, refusal);
             return changed();
         }
@@ -727,6 +757,12 @@ public class LocalAgentSession implements EventLogSource {
 
     /** A new conversation: a new id at the next spawn, an empty transcript. */
     private void beginConversation() {
+        long recover = recoveryDraftRef;
+        recoveryDraftRef = 0;
+        toolCallCount = 0;
+        turnCount = 0;
+        startedTicket = 0;
+        clearActivity();
         conversation++;
         sessionId = null;
         resumable = false;
@@ -736,14 +772,91 @@ public class LocalAgentSession implements EventLogSource {
         entries = new ArrayList<>();
         trimmed = 0;
         turns = new LinkedHashMap<>();
+        if (recover != 0) effects.request(new SessionEffects.PlaceRecoveryDraftEffect(0L, generation, recover, RECOVERY_LINE));
     }
 
     // ---- the adapter's facts --------------------------------------------------------------------------------------
 
-    @OnEventHandler(propagate = false)
+    @OnEventHandler
     public boolean onEffectStarted(SessionEvents.LocalAgentEffectStarted e) {
         auditLog.info("localAgentEffect", e.what()).info("generation", e.generation());
+        if (e.generation() == generation && (starting() || openTicket != 0)
+                && lastEventAtMillis < 0 && "activityClock".equals(e.what())) {
+            lastEventAtMillis = e.atMillis();
+            activityAtMillis = e.atMillis();
+            return changed();
+        }
         return false;
+    }
+
+    @OnEventHandler
+    public boolean onActivityTick(SessionEvents.LocalAgentActivityTick e) {
+        if (stale(e.generation(), "LocalAgentActivityTick")) return false;
+        if (e.ticket() == 0 ? !starting() : e.ticket() != openTicket || openTicket == 0) return false;
+        activityAtMillis = Math.max(activityAtMillis, e.atMillis());
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onToolStarted(SessionEvents.LocalAgentToolStarted e) {
+        if (stale(e.generation(), "LocalAgentToolStarted") || staleTicket(e.ticket(), "LocalAgentToolStarted")) return false;
+        if (seenActivityCalls.contains(e.callRef())) return false;
+        seenActivityCalls.add(e.callRef());
+        if (seenActivityCalls.size() > 2_000) seenActivityCalls.removeFirst();
+        activityTools.put(e.callRef(), e);
+        if (activityTools.size() > 128) activityTools.remove(activityTools.keySet().iterator().next());
+        toolCallCount = increment(toolCallCount);
+        streamEvent(e.atMillis());
+        stepAtMillis = e.atMillis();
+        answering = false;
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onToolFinished(SessionEvents.LocalAgentToolFinished e) {
+        if (stale(e.generation(), "LocalAgentToolFinished") || staleTicket(e.ticket(), "LocalAgentToolFinished")) return false;
+        if (activityTools.remove(e.callRef()) == null) return false;
+        streamEvent(e.atMillis());
+        stepAtMillis = e.atMillis();
+        answering = false;
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onProgress(SessionEvents.LocalAgentProgressObserved e) {
+        if (stale(e.generation(), "LocalAgentProgressObserved") || staleTicket(e.ticket(), "LocalAgentProgressObserved")) return false;
+        streamEvent(e.atMillis());
+        if (e.text()) {
+            answering = true;
+            if (activityTools.isEmpty()) stepAtMillis = e.atMillis();
+        }
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onActivityAcknowledged(SessionEvents.LocalAgentActivityAcknowledged e) {
+        if (stale(e.generation(), "LocalAgentActivityAcknowledged")
+                || staleTicket(e.ticket(), "LocalAgentActivityAcknowledged")) return false;
+        activityAcknowledged = true;
+        return changed();
+    }
+
+    private void streamEvent(long atMillis) {
+        lastEventAtMillis = Math.max(lastEventAtMillis, atMillis);
+        activityAtMillis = Math.max(activityAtMillis, atMillis);
+        activityAcknowledged = false;
+    }
+
+    private static int increment(int n) { return n == Integer.MAX_VALUE ? n : n + 1; }
+
+    private void clearActivity() {
+        activityTools.clear();
+        seenActivityCalls.clear();
+        answering = false;
+        activityAcknowledged = false;
+        lastEventAtMillis = -1;
+        stepAtMillis = -1;
+        activityAtMillis = 0;
     }
 
     @OnEventHandler
@@ -779,6 +892,7 @@ public class LocalAgentSession implements EventLogSource {
             return changed();
         }
         phase = "HANDSHAKE";
+        lastEventAtMillis = e.atMillis() != 0 ? e.atMillis() : activityAtMillis;
         auditLog.info("localAgentSpawned", generation);
         return changed();
     }
@@ -798,6 +912,7 @@ public class LocalAgentSession implements EventLogSource {
             return changed();
         }
         phase = "BINDING";
+        lastEventAtMillis = e.atMillis() != 0 ? e.atMillis() : activityAtMillis;
         auditLog.info("localAgentHandshake", "OK").info("generation", generation);
         effects.request(new SessionEffects.PollLocalAgentStatusEffect(0L, generation, 0));
         return changed();
@@ -831,6 +946,7 @@ public class LocalAgentSession implements EventLogSource {
                 } else {
                     bound = true;
                     phase = "READY";
+                    if (resumeAttempt) recoveryDraftRef = 0; // the conversation continued; no later recovery draft
                     verdict = "BOUND";
                     reason = "";
                     auditLog.info("localAgentBound", generation);
@@ -924,6 +1040,14 @@ public class LocalAgentSession implements EventLogSource {
     public boolean onTurnStarted(SessionEvents.LocalAgentTurnStarted e) {
         if (stale(e.generation(), "LocalAgentTurnStarted") || staleTicket(e.ticket(), "LocalAgentTurnStarted")) return false;
         auditLog.info("localAgentTurnStarted", e.ticket());
+        boolean first = startedTicket != e.ticket();
+        if (first) {
+            startedTicket = e.ticket();
+            turnCount = increment(turnCount);
+            streamEvent(e.atMillis());
+            stepAtMillis = e.atMillis();
+            effects.request(new SessionEffects.StartActivityClockEffect(0L, generation, e.ticket()));
+        }
         // owner, 2026-10-18: the person's turn is stamped with the time the adapter saw it start — the transcript renders it
         boolean stamped = false;
         if (e.atMillis() > 0) {
@@ -940,7 +1064,7 @@ public class LocalAgentSession implements EventLogSource {
         }
         // review M2: a conversation is resumable only once the CLI has started one of its turns — before that it has no
         // transcript, and --resume on it would fail
-        if (resumable) return stamped && changed();
+        if (resumable) return (stamped || first) && changed();
         resumable = true;
         return changed();
     }
@@ -948,6 +1072,7 @@ public class LocalAgentSession implements EventLogSource {
     @OnEventHandler
     public boolean onTextUpdated(SessionEvents.LocalAgentTextUpdated e) {
         if (stale(e.generation(), "LocalAgentTextUpdated") || staleTicket(e.ticket(), "LocalAgentTextUpdated")) return false;
+        streamEvent(e.atMillis());
         for (int i = entries.size() - 1; i >= 0; i--) {
             LocalAgentState.Entry x = entries.get(i);
             if (LocalAgentState.ANSWER.equals(x.kind()) && x.ticket() == e.ticket()) {
@@ -970,7 +1095,8 @@ public class LocalAgentSession implements EventLogSource {
         switch (e.note()) {
             case COMPACTED -> note("COMPACTED", "Claude Code compacted the conversation");
             case RATE_LIMITED -> note("RATE_LIMITED", "Claude Code reports a rate or usage limit"
-                    + (e.epochSeconds() > 0 ? "; it resets at " + java.time.Instant.ofEpochSecond(e.epochSeconds()) : ""));
+                    + (e.epochSeconds() > 0 ? "; it resets at " + java.time.Instant.ofEpochSecond(e.epochSeconds()) : "")
+                    + ". This does not block Start or Restart.");
             case AUTH_FAILED -> note("AUTH_FAILED", "Claude Code could not authenticate (an invalid inherited API key, "
                     + "or a login that expired): run `claude` in a terminal to log in again");
             case PERMISSION_DENIED -> note("DENIED", posture.isFull()
@@ -1099,6 +1225,7 @@ public class LocalAgentSession implements EventLogSource {
     @OnEventHandler
     public boolean onExited(SessionEvents.LocalAgentExited e) {
         if (stale(e.generation(), "LocalAgentExited")) return false;
+        boolean unknownResume = e.resumeSessionUnknown() && resumeAttempt && starting();
         stderrRef = e.stderrRef();
         if ("OFF".equals(phase)) {               // we asked for it: the kill already said why
             auditLog.info("localAgentExited", e.code()).info("requested", true);
@@ -1111,8 +1238,20 @@ public class LocalAgentSession implements EventLogSource {
         bound = false;
         postureChecked = false;
         pendingDraft = 0;
+        if (unknownResume && launchConsent != null) {
+            SessionEvents.LocalAgentConsent consent = launchConsent;
+            beginConversation();
+            spawn(consent);
+            note("RESUME_UNAVAILABLE", "This conversation can't be resumed here (Claude Code no longer knows it) — "
+                    + "starting a new chat.");
+            auditLog.info("localAgentResume", "UNKNOWN_SESSION");
+            return changed();
+        }
         verdict = "EXITED";
-        reason = "Claude Code exited (code " + e.code() + ")" + (e.stderrRef() != 0 ? "; its last error line is below" : "");
+        String exit = e.code() == 143 || e.code() == 137
+                ? "Claude Code was stopped from outside the analyser (signal " + (e.code() - 128) + ")."
+                : "Claude Code exited (code " + e.code() + ")";
+        reason = exit + (e.stderrRef() != 0 ? "; its last error line is below" : "");
         note("EXITED", reason);
         auditLog.info("localAgentExited", e.code()).info("requested", false);
         return changed();
@@ -1432,6 +1571,7 @@ public class LocalAgentSession implements EventLogSource {
 
     private void spawn(SessionEvents.LocalAgentConsent c) {
         generation++;
+        launchConsent = c;
         if (sessionId == null) sessionRef++;
         if (sessionId == null || !resumable) {
             // review M2: a conversation that never had a turn has nothing to resume, so it starts afresh — a new id
@@ -1441,6 +1581,7 @@ public class LocalAgentSession implements EventLogSource {
             resumable = false;
         }
         nonce = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        resumeAttempt = resumable;
         budgetMicros = c.budgetMicros();
         posture = c.posture();
         // owner, 2026-10-18: what this process starts with, for the restart offer's comparison
@@ -1464,6 +1605,8 @@ public class LocalAgentSession implements EventLogSource {
         killRequested = false;
         interruptAcked = false;
         bindingElapsedMs = 0;
+        lastEventAtMillis = -1;
+        activityAtMillis = 0;
         detailRef = 0;
         stderrRef = 0;
         verdict = "";
@@ -1477,11 +1620,14 @@ public class LocalAgentSession implements EventLogSource {
         needBridge(generation);
         effects.request(new SessionEffects.StartLocalAgentEffect(0L, generation, sessionId, resumable, nonce, remaining,
                 c.postureRef(), posture));
+        effects.request(new SessionEffects.StartActivityClockEffect(0L, generation, 0));
     }
 
     private void sendTurn(long draft, long request, long logGeneration) {
+        clearActivity();
         ticket++;
         openTicket = ticket;
+        openTicketSendRef = draft;
         phase = "BUSY";
         interruptAcked = false;
         verdict = "";
@@ -1494,6 +1640,9 @@ public class LocalAgentSession implements EventLogSource {
 
     private void endTurn(SessionEvents.TurnOutcome outcome) {
         long was = openTicket;
+        if (outcome == SessionEvents.TurnOutcome.PROCESS_EXIT && openTicketSendRef != 0)
+            recoveryDraftRef = openTicketSendRef;
+        openTicketSendRef = 0;
         openTicket = 0;
         // a Send refused while this turn ran is answered by the turn ending: the refusal no longer describes anything
         // (P1a live smoke: "Ready — Claude is still answering" stayed on the status line after Stop)
@@ -1587,6 +1736,8 @@ public class LocalAgentSession implements EventLogSource {
         clearRestart();                                  // an offer belongs to the process it was made for
         long was = openTicket;
         if (was != 0) {
+            recoveryDraftRef = openTicketSendRef;
+            openTicketSendRef = 0;
             openTicket = 0;
             note("STOPPED", "the turn in progress ended when Claude Code was stopped");
         }
@@ -1789,8 +1940,13 @@ public class LocalAgentSession implements EventLogSource {
      * Called by that node earlier in the same cycle, as {@link #permissionNoted} is; a change re-publishes the state.
      */
     public void permissionWaiting(boolean waiting) {
-        if (waiting == permissionWaiting) return;
+        permissionWaiting(waiting, null);
+    }
+
+    public void permissionWaiting(boolean waiting, String name) {
+        if (waiting == permissionWaiting && java.util.Objects.equals(name, permissionName)) return;
         permissionWaiting = waiting;
+        permissionName = name;
         dirty = true;
     }
 
@@ -1810,7 +1966,7 @@ public class LocalAgentSession implements EventLogSource {
                             attention(verdict, detailRef, stderrRef, unknownEvents + unclassifiedCommands + droppedLines),
                             new LocalAgentState.Restart(restartOffer, restartState, restartChanged, restartNewChat)));
             // robot walkthrough #3: the one primary action and the one instruction line, decided here from the state
-            published = published.withExtra(withGuide(published.extra(), guide(published, permissionWaiting)));
+            published = published.withExtra(withGuide(published.extra(), activityGuide(guide(published, permissionWaiting))));
             dirty = false;
         }
         return published;
@@ -1883,6 +2039,60 @@ public class LocalAgentSession implements EventLogSource {
     /** As {@link #guide(LocalAgentState)} with no permission dialog open (the node's tests and the panel's). */
     public static LocalAgentState.Guide guide(LocalAgentState s) {
         return guide(s, false);
+    }
+
+    private LocalAgentState.Guide activityGuide(LocalAgentState.Guide g) {
+        String step = switch (phase) {
+            case "SPAWNING" -> "Starting Claude Code…";
+            case "HANDSHAKE" -> "Checking Claude Code is ready…";
+            case "BINDING" -> "Connecting to the analyser's tools…";
+            default -> "";
+        };
+        long wordsRef = 0;
+        long elapsed = openTicket != 0 ? stepAtMillis : lastEventAtMillis;
+        boolean approval = openTicket != 0 && permissionWaiting;
+        if (openTicket != 0) {
+            if (approval) {
+                step = "Needs your approval — " + (permissionName == null ? "action" : permissionName);
+            } else if (!activityTools.isEmpty()) {
+                var tool = new ArrayList<>(activityTools.values()).getLast();
+                wordsRef = tool.wordsRef();
+                elapsed = tool.atMillis();
+                step = toolStep(tool);
+            } else {
+                step = answering ? "Answering…" : "Thinking…";
+            }
+        }
+        int seconds = step.isEmpty() || lastEventAtMillis < 0 ? 0
+                : (int) Math.min(Integer.MAX_VALUE, Math.max(0, activityAtMillis - lastEventAtMillis) / 1_000);
+        long stepSeconds = elapsed < 0 ? 0 : Math.max(0, activityAtMillis - elapsed) / 1_000;
+        if (!step.isEmpty() && !approval && stepSeconds >= 3) step += " " + minutes(stepSeconds);
+        boolean stalled = openTicket != 0 && seconds >= 60 && !approval && !activityAcknowledged;
+        String stall = stalled ? "No activity for " + minutes(seconds) + " — still working, or stalled?" : "";
+        return new LocalAgentState.Guide(g.primary(), g.instruction(), g.action(), g.refusal(), g.chipWord(), g.banner(),
+                step, seconds, stalled, approval, toolCallCount, turnCount, wordsRef, stall);
+    }
+
+    private static String minutes(long seconds) {
+        return seconds / 60 + ":" + String.format(java.util.Locale.ROOT, "%02d", seconds % 60);
+    }
+
+    private static String toolStep(SessionEvents.LocalAgentToolStarted tool) {
+        if (tool.toolClass() == SessionEvents.ToolClass.BUILT_IN) {
+            return switch (tool.name() == null ? "" : tool.name()) {
+                case "Read" -> tool.wordsRef() != 0 ? "Reading {step}…" : "Reading…";
+                case "Glob", "Grep" -> "Searching…";
+                case "Bash" -> tool.wordsRef() != 0 ? "Running {step}…" : "Running a command…";
+                default -> "Using a tool…";
+            };
+        }
+        if (tool.toolClass() != SessionEvents.ToolClass.HOSTED_DESTRUCTIVE
+                && tool.toolClass() != SessionEvents.ToolClass.HOSTED_OTHER) return "Using a tool…";
+        return switch (tool.name() == null ? "" : tool.name()) {
+            case "report", "screenshot" -> "Writing the report…";
+            case "read", "context", "inspect", "search", "stats", "compare", "trace", "explain", "graph" -> "Checking the log…";
+            default -> "Using the analyser…";
+        };
     }
 
     private static LocalAgentState.Guide guide(LocalAgentState s, String primary, String instruction, String action,

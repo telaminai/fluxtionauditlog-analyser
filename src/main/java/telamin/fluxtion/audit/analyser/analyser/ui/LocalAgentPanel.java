@@ -75,6 +75,9 @@ public final class LocalAgentPanel extends JPanel {
 
         /** Robot walkthrough #1: "Ask again for Claude Code" — the composer's drafts, by binding. */
         default void askAgain(java.util.List<Long> draftBindings) { }
+
+        default void keepWaiting(long generation, long ticket) { }
+
     }
 
     /**
@@ -110,6 +113,10 @@ public final class LocalAgentPanel extends JPanel {
         return lockWarning;
     }
     private final WrapLine status = new WrapLine(" ");
+    private final JPanel activityStall = new JPanel(new BorderLayout(6, 2));
+    private final WrapLine activityStallText = new WrapLine(" ");
+    private final JButton keepWaiting = UiText.button("Keep waiting");
+    private final JButton stallStop = UiText.button("Stop");
     private final JTextArea detail = new JTextArea(2, 40);
     private final TranscriptView view;
     private final JScrollPane viewScroll;
@@ -338,10 +345,22 @@ public final class LocalAgentPanel extends JPanel {
         restartAfterExit.setToolTipText(UiText.tooltip("Start Claude Code again; the conversation is resumed"));
         restartAfterExit.getAccessibleContext().setAccessibleName("Restart Claude Code");
         restartAfterExit.addActionListener(e -> onStart());
+        activityStall.setOpaque(false);
+        activityStall.add(activityStallText, BorderLayout.CENTER);
+        JPanel stallActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        stallActions.setOpaque(false);
+        stallActions.add(keepWaiting);
+        stallActions.add(stallStop);
+        activityStall.add(stallActions, BorderLayout.SOUTH);
+        activityStall.setVisible(false);
+        keepWaiting.addActionListener(e -> {
+            if (intents != null && rendered != null) intents.keepWaiting(rendered.generation(), rendered.openTicket());
+        });
+        stallStop.addActionListener(e -> onStop());
         java.util.List<JComponent> lines = new java.util.ArrayList<>();
         if (standalone) lines.add(chips);
         lines.addAll(java.util.List.of(header, posture, lockWarning, actions, closeExternal, restartBanner,
-                buildModeBanner, proposalBanner, status, askAgain, bannerRow, detailsBody));
+                buildModeBanner, proposalBanner, status, activityStall, askAgain, bannerRow, detailsBody));
         for (JComponent c : lines) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
@@ -363,6 +382,7 @@ public final class LocalAgentPanel extends JPanel {
             composer.add(above, BorderLayout.NORTH);
             composer.add(draftScroll, BorderLayout.CENTER);
             JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+            buttons.add(surface.activityRow);
             buttons.add(send);
             composer.add(buttons, BorderLayout.SOUTH);
             add(composer, BorderLayout.SOUTH);
@@ -384,6 +404,7 @@ public final class LocalAgentPanel extends JPanel {
     void setActive(boolean active) {
         if (this.active == active) return;
         this.active = active;
+        if (!active) surface.activityRow.setVisible(false);
         if (active && rendered != null) {
             LocalAgentState last = rendered;
             rendered = null;
@@ -532,6 +553,7 @@ public final class LocalAgentPanel extends JPanel {
         }
         LocalAgentTranscript.Header h = shownHeader(s, store);
         out.add(headerLine(h, s));
+        out.add(s.toolCallCount() + " tool calls · " + s.turnCount() + " turns");
         if (h != null && h.scratchForProject()) out.add(SCRATCH_NOTE);
         out.add(postureLine(h, s));
         if (s.resumable()) out.add(LOCK_WARNING);
@@ -864,6 +886,9 @@ public final class LocalAgentPanel extends JPanel {
         boolean running = s.running();
         LocalAgentState.Guide guide = s.extra().guide();
         if (active) {
+            UiText.plain(surface.activityLine).setText(telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ActivityText
+                    .step(guide, store::text));
+            surface.activityRow.setVisible(!guide.currentStep().isEmpty());
             // the shared parts are drawn by the mode the panel shows (M74 UX: one composer, one Start/Stop/Send).
             // Robot walkthrough #3: ONE primary action — Send, which starts Claude Code when it is not running, or Stop.
             // Start is secondary, its label fixed, and it is not shown while Claude Code runs (no disabled "Running…")
@@ -889,6 +914,8 @@ public final class LocalAgentPanel extends JPanel {
             renderFullCue(s);
         }
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
+        activityStallText.setText(guide.stallBanner());
+        activityStall.setVisible(guide.stalled());
         renderRestart(s);
         // M78 D1 (§2.3): the line shows only as the node's conditional banner; the routine phase is the chip word
         status.setText(statusText(s));

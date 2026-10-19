@@ -28,6 +28,17 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class OneDispatchModelTest {
 
+    @Test
+    void activityDecisionsAndWordsBelongToTheNodeNotThePanels() throws Exception {
+        for (String name : List.of("LocalAgentPanel.java", "AssistantPanel.java", "AssistantSurface.java")) {
+            String source = Files.readString(UI.resolve(name));
+            for (String forbidden : List.of("Thinking…", "Answering…", "No activity for ", "secondsSinceLastEvent() >=",
+                    "activityAcknowledged", "new javax.swing.Timer")) {
+                assertFalse(source.contains(forbidden), name + " must render, not decide activity: " + forbidden);
+            }
+        }
+    }
+
     private static final Path UI = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui");
 
     /**
