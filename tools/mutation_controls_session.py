@@ -29,6 +29,19 @@ COMPARE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayCompare.ja
 RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
+# Release review: the CLI must not bypass the node's stricter documentation URL admission, and an old CLI session
+# carrying that allow must not resume under the new policy. Both are headless, named wrong-result witnesses.
+RELEASE_DOCS_FETCH_CONTROLS = [
+    ('release-docs-fetch-no-cli-bypass', J + 'assistant/localagent/ClaudeCodeProvider.java',
+     '        c.add(toolList(posture.cliAllowedVerbs(schemaVerbs)));',
+     '        c.add(toolList(posture.cliAllowedVerbs(schemaVerbs)) + (posture.isFull() ? ",WebFetch(domain:fluxtion-playground.dev)" : ""));',
+     'ClaudeCodeProviderTest#docsFetchCannotBypassTheUrlApprovalBoundary'),
+    ('release-docs-fetch-new-posture', SESSION + 'LocalAgentPosture.java',
+     '    public static final String DOCS_FETCH_POLICY = "host-url-approval-v2:https://" + DOCS_DOMAIN + ":443/no-user-info";',
+     '    public static final String DOCS_FETCH_POLICY = "WebFetch(domain:" + DOCS_DOMAIN + ")";',
+     'ClaudeCodeProviderTest#aSessionWithTheOldDomainOnlyAllowCannotResume'),
+]
+
 # Reintroduce the review's complete pathname-only defect. Removing only operation correlation
 # leaves the independent digest check in force, an intentionally surviving partial mutation.
 PROVENANCE_APPLICATION = """    @OnEventHandler
@@ -71,7 +84,7 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
                         pending.limits(), pending.notes(), pending.processor())
                 : BundleProvenance.NONE;"""
 
-CONTROLS = [
+CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
     ("integration-c-source-window", J + 'design/SourceText.java',
      'to = (int) Math.min(Integer.MAX_VALUE, (long) around + request.context());',
      'to = around + request.context();',

@@ -127,10 +127,10 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
         c.add("--mcp-config");
         c.add(mcpConfig(spec.bridgeLauncher(), spec.endpointFile()));
         c.add("--allowedTools");
-        // owner, 2026-10-18: in FULL only, the public Fluxtion docs at exactly one host are read without a prompt — one
-        // fixed rule (LocalAgentPosture.DOCS_FETCH_RULE), never WebSearch, another domain or a Bash network command
-        c.add(posture.isFull() ? toolList(posture.cliAllowedVerbs(schemaVerbs)) + "," + LocalAgentPosture.DOCS_FETCH_RULE
-                : toolList(posture.cliAllowedVerbs(schemaVerbs)));
+        // A CLI WebFetch(domain:...) allow runs before the host callback and checks only the hostname, not the
+        // scheme, user info or port. Leave WebFetch out: the adapter observes the URL and the permission node
+        // pre-allows only LocalAgentPosture.docsFetch. The person's own rules/mode still apply in Full.
+        c.add(toolList(posture.cliAllowedVerbs(schemaVerbs)));
         // P3 (§4.3): the default posture hides nothing today (every hosted verb is pre-allowed or asked), so the flag is
         // omitted; a verb the schema gains is still hidden (review H5). The full posture always hides the person's own
         // registration, and the destructive verbs under auto and plan (OD-74.16)

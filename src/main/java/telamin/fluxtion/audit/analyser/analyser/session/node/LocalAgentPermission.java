@@ -221,7 +221,7 @@ public class LocalAgentPermission implements EventLogSource {
                 && localAgent.currentPosture() != null && localAgent.currentPosture().isFull()) {
             // owner, 2026-10-18: in Full, a WebFetch of the public Fluxtion docs — https, exactly fluxtion-playground.dev,
             // as the adapter observed it (LocalAgentPosture.docsFetch) — is the one built-in read allowed without asking,
-            // as the CLI's own DOCS_FETCH_RULE allows it; any other URL reaches the person as before
+            // not through a hostname-only CLI allow rule; any other URL reaches the person as before
             allowWithoutAsking(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.PRE_ALLOWED);
             return changed();
         }

@@ -132,8 +132,8 @@ class ClaudeCodeProviderTest {
                     "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--replay-user-messages",
                     "--session-id", "11111111-2222-4333-8444-555555555555", "--model", "sonnet",
                     "--mcp-config", c.get(c.indexOf("--mcp-config") + 1),
-                    // owner, 2026-10-18: Full reads the public Fluxtion docs at exactly one host without a prompt
-                    "--allowedTools", (asks ? allowed : allowedNoAsk) + ",WebFetch(domain:fluxtion-playground.dev)",
+                    // WebFetch reaches the host's URL-specific approval; no domain-only CLI bypass.
+                    "--allowedTools", asks ? allowed : allowedNoAsk,
                     "--disallowedTools", asks ? "mcp__fluxtion-analyser" : "mcp__fluxtion-analyser," + destructive,
                     "--permission-mode", mode.cli(), "--permission-prompts", "host", "--permission-prompt-tool", "stdio",
                     "--append-system-prompt", ClaudeCodeProvider.FULL_SYSTEM_NOTE);
@@ -398,19 +398,17 @@ class ClaudeCodeProviderTest {
     }
 
     /**
-     * ★ Owner, 2026-10-18: Full's argv carries exactly ONE docs rule — WebFetch, exactly fluxtion-playground.dev — and
-     * Safe's carries none (Safe has no web tool at all). Witness: widen the rule to {@code WebFetch} or
-     * {@code WebFetch(domain:*.fluxtion-playground.dev)}, or add WebSearch — the exact-rule assertions fail.
+     * The analyser must not add CLI web allows: those run before the host's URL-specific decision. Safe has no web
+     * tool at all. Witness: restore the previous domain-only allow, or add a bare WebFetch/WebSearch allow.
      */
     @Test
-    @DisplayName("★ Full's argv pre-allows exactly WebFetch(domain:fluxtion-playground.dev); Safe's has no web rule")
+    @DisplayName("★ Full's docs pre-allow goes through the host; neither posture adds a CLI web allow")
     void onlyFullReadsTheDocsWithoutAsking() {
-        assertEquals("WebFetch(domain:fluxtion-playground.dev)", LocalAgentPosture.DOCS_FETCH_RULE);
         for (LocalAgentPosture.FullMode mode : LocalAgentPosture.FullMode.values()) {
             List<String> c = new ClaudeCodeProvider().command(fullSpec(mode, 0));
             String allowed = c.get(c.indexOf("--allowedTools") + 1);
             List<String> web = java.util.Arrays.stream(allowed.split(",")).filter(t -> t.startsWith("Web")).toList();
-            assertEquals(List.of("WebFetch(domain:fluxtion-playground.dev)"), web, "exactly one web rule: " + mode);
+            assertEquals(List.of(), web, "no CLI bypass of the URL decision: " + mode);
             assertFalse(String.join(" ", c).contains("WebSearch"), "never WebSearch");
             assertFalse(String.join(" ", c).contains("Bash("), "never a Bash network rule");
         }
@@ -439,6 +437,38 @@ class ClaudeCodeProviderTest {
         }
         assertFalse(LocalAgentPosture.docsFetch(null));
         assertFalse(LocalAgentPosture.docsFetch(42));
+    }
+
+    /** A domain-only CLI rule runs before the host callback: it cannot enforce docsFetch's URL checks. */
+    @Test
+    void docsFetchCannotBypassTheUrlApprovalBoundary() {
+        for (LocalAgentPosture.FullMode mode : LocalAgentPosture.FullMode.values()) {
+            List<String> command = new ClaudeCodeProvider().command(fullSpec(mode, 0));
+            String allowed = command.get(command.indexOf("--allowedTools") + 1);
+            assertTrue(java.util.Arrays.stream(allowed.split(",")).noneMatch(t -> t.startsWith("WebFetch")),
+                    "the analyser must not bypass its URL checks with a CLI allow rule: " + mode);
+            assertPromptsGoToTheAnalyser(command);
+        }
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED,
+                LocalAgentAdapter.builtInKind("WebFetch", "{\"url\":\"https://fluxtion-playground.dev/guide\"}"));
+        for (String url : List.of("http://fluxtion-playground.dev/guide",
+                "https://fluxtion-playground.dev:8443/guide", "https://user@fluxtion-playground.dev/guide")) {
+            assertEquals(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.CHANGES,
+                    LocalAgentAdapter.builtInKind("WebFetch", Json.write(Map.of("url", url))), url);
+        }
+    }
+
+    @Test
+    void aSessionWithTheOldDomainOnlyAllowCannotResume() {
+        for (LocalAgentPosture.FullMode mode : LocalAgentPosture.FullMode.values()) {
+            var posture = LocalAgentPosture.full(mode);
+            String folder = ClaudeCodeProvider.realPath(tmp);
+            String oldRef = LocalAgentPosture.digest(posture.kind() + "|" + mode.cli() + "|" + folder + "|"
+                    + ClaudeCodeProvider.FULL_SYSTEM_NOTE + "|" + LocalAgentPosture.preAllowedVerbs()
+                    + "|WebFetch(domain:fluxtion-playground.dev)");
+            assertNotEquals(oldRef, ClaudeCodeProvider.postureRef(tmp, posture),
+                    "a resumed CLI must not retain the old broader allow: " + mode);
+        }
     }
 
     /** The adapter observes a docs fetch as PRE_ALLOWED and every other built-in call as one that changes something. */
