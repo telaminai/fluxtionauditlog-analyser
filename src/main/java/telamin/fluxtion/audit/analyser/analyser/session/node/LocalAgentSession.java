@@ -297,9 +297,14 @@ public class LocalAgentSession implements EventLogSource {
 
     private boolean start(long request, SessionEvents.LocalAgentConsent consent) {
         if (running()) {
-            auditLog.info("noOp", "LocalAgentStartRequested").info("phase", phase);
-            answer(request, true, "");
-            return changed();
+            if ("READY".equals(phase) || "BUSY".equals(phase)) {
+                note("ALREADY_RUNNING", "Claude Code is already running.");
+                auditLog.info("alreadyRunning", "LocalAgentStartRequested").info("phase", phase);
+                answer(request, true, "");
+                return changed();
+            }
+            // M81: Restart recovers an unfinished start/Stop, retaining the resumable conversation's identity.
+            kill(null, "RECOVERING");
         }
         String refusal = startRefusal(consent, request);
         if (refusal != null) {
@@ -970,7 +975,8 @@ public class LocalAgentSession implements EventLogSource {
         switch (e.note()) {
             case COMPACTED -> note("COMPACTED", "Claude Code compacted the conversation");
             case RATE_LIMITED -> note("RATE_LIMITED", "Claude Code reports a rate or usage limit"
-                    + (e.epochSeconds() > 0 ? "; it resets at " + java.time.Instant.ofEpochSecond(e.epochSeconds()) : ""));
+                    + (e.epochSeconds() > 0 ? "; it resets at " + java.time.Instant.ofEpochSecond(e.epochSeconds()) : "")
+                    + ". This does not block Start or Restart.");
             case AUTH_FAILED -> note("AUTH_FAILED", "Claude Code could not authenticate (an invalid inherited API key, "
                     + "or a login that expired): run `claude` in a terminal to log in again");
             case PERMISSION_DENIED -> note("DENIED", posture.isFull()
@@ -1112,7 +1118,10 @@ public class LocalAgentSession implements EventLogSource {
         postureChecked = false;
         pendingDraft = 0;
         verdict = "EXITED";
-        reason = "Claude Code exited (code " + e.code() + ")" + (e.stderrRef() != 0 ? "; its last error line is below" : "");
+        String exit = e.code() == 143 || e.code() == 137
+                ? "Claude Code was stopped from outside the analyser (signal " + (e.code() - 128) + ")."
+                : "Claude Code exited (code " + e.code() + ")";
+        reason = exit + (e.stderrRef() != 0 ? "; its last error line is below" : "");
         note("EXITED", reason);
         auditLog.info("localAgentExited", e.code()).info("requested", false);
         return changed();
