@@ -96,14 +96,14 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
 
     /**
      * Owner, 2026-10-18: the one documentation host FULL Claude Code may read without a prompt. Exactly this host —
-     * the CLI's {@code domain:} rule matches the hostname only, so no subdomain and no other domain
-     * (code.claude.com/docs/en/permissions, read 2026-10-18) — and the analyser's own approval layer pre-allows only an
-     * https URL whose host is exactly this ({@link #docsFetch}). Safe analysis has no web tool at all.
+     * the analyser's approval layer pre-allows only an https URL whose host is exactly this ({@link #docsFetch}).
+     * No CLI domain allow is installed: those rules bypass the callback and cannot enforce the URL restrictions.
+     * Safe analysis has no web tool at all.
      */
     public static final String DOCS_DOMAIN = "fluxtion-playground.dev";
 
-    /** The {@code --allowedTools} rule FULL carries for it, fixed: WebFetch, that host, nothing wider. */
-    public static final String DOCS_FETCH_RULE = "WebFetch(domain:" + DOCS_DOMAIN + ")";
+    /** Part of the Full posture identity: a session started with the old domain-only CLI allow must not resume. */
+    public static final String DOCS_FETCH_POLICY = "host-url-approval-v2:https://" + DOCS_DOMAIN + ":443/no-user-info";
 
     /**
      * Whether a WebFetch request's {@code url} is the documentation the analyser pre-allows in FULL: {@code https}, the
@@ -167,7 +167,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
      */
     public String ref(String realFolder, String systemNote) {
         return digest(kind + "|" + (fullMode == null ? "-" : fullMode.cli()) + "|" + realFolder + "|" + systemNote + "|"
-                + preAllowedVerbs() + (isFull() ? "|" + DOCS_FETCH_RULE : ""));
+                + preAllowedVerbs() + (isFull() ? "|" + DOCS_FETCH_POLICY : ""));
     }
 
     /** What the posture check found. */
