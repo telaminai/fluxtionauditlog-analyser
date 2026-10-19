@@ -211,7 +211,13 @@ class DocsExternalAccessClaimsTest {
     void theChangelogReadsCoherently() throws Exception {
         String log = read(Path.of("CHANGELOG.md"));
         int at = log.indexOf("## [Unreleased]");
-        String unreleased = flat(log.substring(at, log.indexOf("\n## [", at + 1)));
+        // The release workflow stamps [Unreleased] into a dated version section at release time, so the lines this
+        // test holds to coherence may now be the start of that just-released section rather than [Unreleased]
+        // itself. Read through the end of the first versioned section after [Unreleased], not just up to it.
+        int firstVersion = log.indexOf("\n## [", at + 1);
+        int afterFirstVersion = firstVersion < 0 ? log.length() : log.indexOf("\n## [", firstVersion + 1);
+        if (afterFirstVersion < 0) afterFirstVersion = log.length();
+        String unreleased = flat(log.substring(at, afterFirstVersion));
         for (String gone : List.of("Choose **Claude Code** at the top of the Assistant tab", "analyser-assistant posture",
                 "Or choose directly", "its switch is shown, disabled", "Profile…", "Claude Code · your plan",
                 "In-app · API key", "the questions need in-process actions",
