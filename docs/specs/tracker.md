@@ -105,7 +105,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 ## Assistant
 
 ### M81 · Activity, recovery and project outputs ([spec](spec-assistant-activity-and-project-trust.md))
-- [M81.C/A] ◐ Recovery #173 and activity #176 implemented, unmerged; exact-head approval/evidence remain scoped to their recorded revisions.
+- [M81.C/A] ☑ Recovery #173 and activity #176 merged to main 2026-10-19 (`5bb43b57`); each independently reviewed at its exact head.
 - [M81.B/D] ◧ B explicitly deferred, draft #184 closed unmerged; D proceeds without B. ▸ [disposition](../handoff/m81-b-deferral.md)
 
 ### Onboard assistant and conversation journeys — released in 1.29.0; acceptance open ([spec](spec-onboard-assistant-journeys.md))

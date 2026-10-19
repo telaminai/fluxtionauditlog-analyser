@@ -38,7 +38,7 @@ line, and update this index in the same change.
 | [spec-assistant-actions-mcp.md](spec-assistant-actions-mcp.md) | M13.1–13.4 shipped; only M13.5 open | M13 |
 | [spec-ai-setup-wizard.md](spec-ai-setup-wizard.md) | ACCEPTED r5 (2026-10-18); OD-77.1 superseded by M79 OD-79.5; M77-1–5 built (PRs #157, #159, #161, #162, #165), in the 2026-10-18 integration; not released | M77 |
 | [spec-quiet-assistant-panel.md](spec-quiet-assistant-panel.md) | ACCEPTED (2026-10-18), all 12 owner decisions accepted; D1 (#163) and D2 (#166) built, in the 2026-10-18 integration; not released | M78 |
-| [spec-assistant-activity-and-project-trust.md](spec-assistant-activity-and-project-trust.md) | r5: C/A implemented in unmerged PRs; B explicitly deferred, no pre-approval ships; D next without B | M81 |
+| [spec-assistant-activity-and-project-trust.md](spec-assistant-activity-and-project-trust.md) | r5: C/A merged (#173, #176); B explicitly deferred, no pre-approval ships; D next without B | M81 |
 
 ## Authoring
 
