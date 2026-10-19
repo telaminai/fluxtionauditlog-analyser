@@ -5,7 +5,7 @@ facts in place; owner questions OD-79.11–.19, §16: all accepted; effort as re
 owner accepted OD-79.1–.6 on 2026-10-18, then OD-79.7 and the three decisions on the colleague follow-on (OD-79.8–.10,
 recorded as an extension of M15 Settings share, §13) the same day (§16). **r5, the same day**: the owner accepted every open decision, OD-79.11–.19, and decided the key questions. **r3, the same day, folds in the lead's creative round 2**: the teacher path moves to phase 2 with a
 teacher kit (§11.6), the chip has three states (OQ-1), domain tiles, one caption template, the tooltips cut, the docs
-slice narrowed, SC-T11; OD-79.17–.18 and two key questions are open. **r4, the same day, the owner's correction**: phase 2 is the teaching session in the onboard assistant (§11), the external teacher kit becomes M79-6; OD-79.19 is open. Each phase PR gets its own review (the
+slice narrowed, SC-T11; OD-79.17–.18 and two key questions are open. **r4, the same day, the owner's correction**: phase 2 is the teaching session in the onboard assistant (§11), the external teacher kit becomes M79-6; OD-79.19 is open. **r6, the same day, folds in the second independent review**: code facts re-derived (the start page, the AI line, the launch carrier, the stage field), the `@AfterEvent` probe recorded, and OD-79.20–.25 accepted by the owner: composition-first teaching led by the Spring XML contract (§11.7), the generic run re-pinned to its Spring-authored twin, M79-2's artifact renamed the **teaching conversation**, M79-1a split, the passive log gated on a shipped conversation, and a security review before the private-repository category. Each phase PR gets its own review (the
 reviewed-PR rule).
 
 **Tracker:** M79. **Builds on:** M77 ([`spec-ai-setup-wizard.md`](spec-ai-setup-wizard.md): the wizard, the AI line,
@@ -39,7 +39,7 @@ The stranger also found:
 | F1 | The Guided tour was demoted: the docs' own screenshot shows it as the primary blue card, the app shows it as one chip among fourteen | **M79-1** (the Learn door) |
 | F2 | Docs and app labels disagree: *"Open the demo log"* / *"Take a guided tour"* in the docs, *"Guided tour"* / *"Sample project"* in the app | **M79-5** (a parity test) |
 | F3 | The docs never say *canvas*, *build* or *learn*; they run to about 66,000 words, with five getting-started pages | **M79-5** |
-| F4 | Packs are invisible: nothing says what a prompt pack is, or lists one | **M79-5**, **M79-2** (a pack that starts a lesson), **M79-6** |
+| F4 | Packs are invisible: nothing says what a prompt pack is, or lists one | **M79-5**, **M79-2** (a pack that starts a teaching conversation), **M79-6** |
 | F5 | The first view uses auditor prose, for example *"unchanged metadata does not prove identical bytes"* | **M79-3** |
 
 The owner added a sixth finding from the field (OD-79.6). **The paying customer's developers reached zero-to-hero
@@ -69,7 +69,7 @@ teach it again.
   packs defined and listed, and a test that docs labels match app labels (M79-5).
 - G8. **Teach in the onboard assistant, then continue live.** A pack (or the Learn door) plays a real, recorded
   teaching conversation in the docked panel, with spotlights on the diamond; *Continue with Claude* starts the live
-  session, with the lesson kept as a passive log (M79-2, owner, 2026-10-18).
+  session, with the teaching conversation kept as a passive log (M79-2, owner, 2026-10-18).
 - G9. **"Connect your own Claude" as a secondary path.** One action connects the person's own client and points it at
   the project context (M79-6, OD-79.6).
 
@@ -88,8 +88,8 @@ teach it again.
 |---|---|---|
 | **M77 OD-77.1** | The first run shows the wizard's first screen *inline on the start page*. | **Superseded by OD-79.5** (owner, 2026-10-18, confirmed the same day). The first-run AI block is removed before it ships: M77-2 builds the AI line only. **Reason:** the reviews found the AI question was the second thing standing between a newcomer and the picture. Asking how AI should work before the person has seen what {Product} shows makes the question abstract, and it cost the stranger the aha. M77's own entry 5 (the wizard opens at the first Send, Ask or Start) already catches everyone who wants AI, at the moment they want it. OD-77.9 (offer the block to upgraders) and OD-77.19 (no picture in the block) fall with it. M77's §3, §5, §6.0 and §20 record this. |
 | **M36 D-S1 / onboarding R6** | The start page IS the first run; no first-run dialog. | **Amended by OD-79.2.** The *no dialog* half is kept: the first minute is a load in the main window, through the ordinary open path, with no window or modal. The *start page is the first run* half changes: with no recent project, the first run is the diamond, and the start page is one door away. |
-| **M35.7 / M35.9** | No modal in the load path; nothing fires at an empty screen. | Kept. The diamond opens with an `OpenRequest` whose `launch` is a new `OpenRequest.Launch.FIRST_MINUTE` (the record has no *kind* today: `Launch` is `NONE · COMMAND_LINE · RESTORED · EXPLICIT_RESTORE`). `suppressDialogs()` must return true for it, or the load path's own dialogs (time order, project offer) can still fire over the first minute. A failure lands on the start page as one line (§5.5), never a dialog. **Today's sample-project install failure is a `JOptionPane` (`MainFrame.openSampleProject`), so the diamond must not reuse that path.** |
-| **M69 §3.3** | The step view is a fixed allow-list. | **Extended by one field:** `stage` (§7.2). Nothing else is added; a walk still never opens a log. |
+| **M35.7 / M35.9** | No modal in the load path; nothing fires at an empty screen. | Kept. The diamond opens with an `OpenRequest` whose `launch` is a new `OpenRequest.Launch.FIRST_MINUTE` (the record has no *kind* today: `Launch` is `NONE · COMMAND_LINE · RESTORED · EXPLICIT_RESTORE`). `suppressDialogs()` must return true for it, or the load path's own dialogs (time order, project offer) can still fire over the first minute. `OpenRequest` is frame-side and stops at the frame: the session learns of the launch only through the new `LogOpened.launch` field (§7.2). A failure lands on the start page as one line (§5.5), never a dialog. **Today's sample-project install failure is a `JOptionPane` (`MainFrame.openSampleProject`), so the diamond must not reuse that path.** |
+| **M69 §3.3** | The step view is a fixed allow-list. | **Kept unchanged.** The step allow-list (`WalkSteps.VIEW_FIELDS`: `tab`, `filter`, `record`, `graph`, `focus`) gains nothing. `stage` is a **walk-level** field on `WalkSpec`, beside `title` and `conversation`, and only shipped walk definitions carry it (§7.2). A walk still never opens a log. |
 | **M69 §3.8** | Playback lives in `walkPlayback`. | Kept and extended: the stage, autoplay advance and the first-contact hold are that node's (§7). |
 | **M74 S1** | *Run me through a demo* plays the DEMO journey. | Kept; it moves under *Or open directly*. The Guided tour stays the DEMO investigation tour (the Learn door). |
 | **M15 Settings share** | Export and import of a whitelisted `.fluxtion-settings`. | Extended later by the colleague follow-on (§13), not by a second share format. |
@@ -99,12 +99,12 @@ teach it again.
 
 | Item | Where | Why M79 needs it |
 |---|---|---|
-| **D-1. The diamond variants** | `telaminai/fluxtion-diamond`, **published on `main` at `24d6d74` (2026-10-18)**, merged from its `domains` branch; the pin and digests are in §6.4 | Five real runs: generic, mathematics, accounting, logistics and trading. Each is one topology with domain-named classes and fields, compiled and run once. M79-1 bundles them **at that commit**, with their GraphML and source, and writes the jar's manifest from §6.4. No stand-in log is ever shipped in their place. |
+| **D-1. The diamond variants** | `telaminai/fluxtion-diamond`, **published on `main` at `24d6d74` (2026-10-18)**, merged from its `domains` branch; the pin and digests are in §6.4 | Five real runs: generic, mathematics, accounting, logistics and trading. Each is one topology with domain-named classes and fields, compiled and run once. M79-1 bundles them **at that commit**, with their GraphML and source, and writes the jar's manifest from §6.4. No stand-in log is ever shipped in their place. **The generic domain ships its Spring-authored run** (OD-79.21): the same pin also carries the diamond declared as Spring XML (`src/main/spring/diamond.xml`), compiled and run once (`sample/diamond-spring-audit.yaml`), so the generic first minute can show the XML beside the topology (§6.4). |
 | **D-2. The broken diamond** | the same repo, branch `teaching/broken-diamond`, commit **`6bff0d67b9d8eb190d404330fe7c5f52d2018e7a`** on top of the `main` pin `24d6d74`: one commit with a deliberate defect, and its run (`teaching/broken-diamond-audit.yaml`). **Published** on GitHub (`git ls-remote` shows `refs/heads/teaching/broken-diamond` at `6bff0d67`, checked 2026-10-18), so M79-4 can pin it (§9.1) | M79-4's teaching bundle (§9). |
 | **D-3. M77-2's AI line** | M77 | M79-1 renders the line's short form (§5.4). If M77-2 has not merged, M79-1 shows today's assistant fallback collapsed under *Or open directly*, and adds no AI text of its own. |
 | **D-4. M77-3's client path** | M77 | M79-6 starts the client path at Screen 2b. It does not merge before M77-3. M79-2's *Continue with Claude* uses the wizard only when nothing is set up (M77-2); before M77-2 merges, that branch opens today's assistant set-up instead. |
 | **D-5. The capture harness** | `tools/capture-docs.py` | The *Start here* GIF and every new screenshot are generated under an isolated `user.home` (rule 1). |
-| **D-7. M76 and M75, not yet on `main`'s line** | M76 `spec-authoring-journey.md` (r2, branch `docs/m76-checkpoint-and-completion`); M75 `spec-document-renderer.md` (branch `docs/m75-document-renderer`) | **Overlaps to settle before M79-1 opens** (review, 2026-10-18): M76 uses **the same diamond** for its S8 *Teach me by building an example* and leaves its pin open (OD-76.7), which §6.4's pin settles; M76 has its own analyser-composed explanation tour of the diamond, which must not become a second set of diamond captions; M76 adds S7/S8 to the start page's numbered list, which §5.4 moves behind *Ask…*; and M76 §5.4/§9.1/§10.5 say an absent entry is *not* proof and ban *proof/proves*, while step 4 here says *proof, not silence*. Both are right in their scope: absence is proof **only in a traced record** (*Format specification* §8; `AuditTrace`), and E4 pins that the diamond's are traced. M76's wording must carry that condition rather than forbid the word, or M79's caption changes (OD-79.14). M75 places bundled lessons, the diamond included, under `/teaching/`, while §6 extends `/demo`: one location is chosen in whichever lands first |
+| **D-7. M76 and M75, not yet on `main`'s line** | M76 `spec-authoring-journey.md` (r2, branch `docs/m76-checkpoint-and-completion`); M75 `spec-document-renderer.md` (branch `docs/m75-document-renderer`) | **Overlaps to settle before M79-1 opens** (review, 2026-10-18): M76 uses **the same diamond** for its S8 *Teach me by building an example* and leaves its pin open (OD-76.7), which §6.4's pin settles; M76 has its own analyser-composed explanation tour of the diamond, which must not become a second set of diamond captions; M76 adds S7/S8 to the start page's numbered list, which §5.4 moves behind *Ask…*; and M76 §5.4/§9.1/§10.5 say an absent entry is *not* proof and avoid *proof/proves*, while step 4 here says *proof, not silence*. **This is a difference of wording policy, not a test collision** (second review, 2026-10-18): M76's `CompletionWordingTest` (its T13) checks only M76's own acceptance bundle and acceptance docs page, so M79's caption does not trip it. Both are right in their scope: absence is proof **only in a traced record** (*Format specification* §8; `AuditTrace`), and E4 pins that the diamond's are traced. OD-79.14 keeps *proof*, conditioned; M76's prose may carry the condition when it is next revised. M75 places bundled lessons, the diamond included, under `/teaching/`, while §6 extends `/demo`: one location is chosen in whichever lands first |
 | **D-6. Rule 6 reading** | `docs/claude.txt` | Before M79-1 is implemented, the implementer reads the framework reference and the variants' generated dispatcher, and confirms §6.2's claim from them. The rule is that `@OnTrigger` fires when an upstream node signalled a change. This spec states the claim; it does not infer the generated code. |
 
 ## 5. M79-1 — the first launch
@@ -141,7 +141,12 @@ diamond stays one act away: *Learn ▸ The diamond*.
 ### 5.2 What the person sees
 
 1. The diamond opens: the **generic** domain, from the jar (OD-79.3), through the ordinary open path. Its log and
-   GraphML are paired by the ordinary pairing.
+   GraphML are paired by the ordinary pairing. **For the generic domain the run is the Spring-authored one, and its
+   XML is shown beside the topology** (OD-79.21, accepted): `diamond.xml` opens as the session's design (M66,
+   `open {design}`'s path), read-only, so the person sees the declaration (`nodeBeans`, the `X` event type, the
+   handler binding on `a`, and each `constructor-arg ref`) next to the graph the compiler built from it. Where the
+   design sits in the stage is M79-1a-i's layout decision (§7.2). The other four domains have no Spring variant yet
+   and open without a design; adding one is a new real run under §6, deferred.
 2. **The graph is centre stage.** The topology canvas fills the centre and the records table becomes a strip beneath
    it, showing at least six rows at 1200×800. This layout is the `walkPlayback` node's `stage` (§7.2, OD-79.7). Today the topology canvas is a tab in the right-hand column (`sideTabs`, beside Summary, Source, Graph and Reports) and the records table and detail pane are the left column of the Facts | Canvas split, so this is a new layout, not a tab change.
 3. Above the graph: **five picture tiles**, *Generic · Mathematics · Accounting · Logistics · Trading*, each a small
@@ -155,10 +160,15 @@ diamond stays one act away: *Learn ▸ The diamond*.
 
 | Step | View | Targets and captions |
 |---|---|---|
-| 1 | stage `topology`, no record selected | `topology:node:a` *"An input arrives at a."* · `topology:node:d` *"a feeds b and c; both feed d. The compiler wired this from the code."* |
+| 1 | stage `topology`, no record selected | `topology:node:a` *"An input arrives at a."* · `topology:node:d` *"a feeds b and c; both feed d. The compiler wired this from the declaration."* |
 | 2 | record [2] (`X[value=2]`), the first input | `records:row:2` *"A new input."* · `topology:node:d` *"a, b, c and d all ran: each has an entry in this record."* |
 | 3 | record [4] (`X[value=3]` again, after record [3]'s `X[value=3]`) | `records:row:4` *"same input — nothing changed"* · `topology:node:a` *"a saw the same value and reported no change, so nothing below it was called"* · `topology:node:d` ***"d did not run"*** (the owner's words, joined: *"same input — nothing changed — d did not run"*) |
 | 4 | record [4] | `detail:node:a` *"Only a has an entry here. This log records every node that runs, so no entry for b, c or d means they did not run. That is proof, not silence."* |
+
+**The generic walk is written by hand, composition first** (OD-79.20, OD-79.23). Its step 1 also lights the
+declaration: `source:design:bean:d` *"d declares two parents, b and c, with constructor-arg refs: those are its
+edges."* The caption says what the XML declares, not how the dispatcher works (§11.7). The domain walks of
+M79-1a-ii come from the caption template (§6.3) and carry no design target.
 
 Record indexes are 0-based, as the analyser numbers them. Records [0] and [1] are the log's control and `Init` records.
 Each pinned run has the same shape: six records, and record [4] is the repeated input, with an entry for the top node
@@ -189,7 +199,7 @@ doors, each one act:
 
 | Door | Button | What it does | Secondary link |
 |---|---|---|---|
-| **Learn** | **Guided tour** | plays the DEMO investigation tour (unchanged) | *The diamond lesson* (from M79-2) · *Solve a real bug (5 min)* (from M79-4) |
+| **Learn** | **Guided tour** | plays the DEMO investigation tour (unchanged) | *Teach me the diamond* (from M79-2) · *Solve a real bug (5 min)* (from M79-4) |
 | **Investigate** | **Open audit log** | the log chooser | *Sample project* |
 | **Build** | **Start from a template** | the starter chooser (M47) | *Connect your own Claude* (from M79-6) |
 
@@ -213,11 +223,16 @@ from about 225 words to **at most 39**. The budget is pinned by A1.6.
 - **Or open directly ▸** collapses everything else: the Open, Create and Settings groups, *Run me through a demo*
   (M74 S1), *Sample project*, the evidence-bundle and GraphML openers, and the Fluxtion key card. One act expands
   it, and the expansion is remembered per machine.
-- **The AI line, short form.** The start page shows M77 §6.0's line in a short form: *"AI: not set up · Set up…"*,
-  *"AI: off · Set up…"*, *"AI: Claude (Safe) · Ask… · Change…"*, *"AI: Claude (Full) · Ask… · Change…"*,
-  *"AI: in-app · Ask… · Change…"*. The long form, including *"your own client can connect"*, is the line's tooltip and
-  the Context column's row. `aiSetup` composes both forms (rule 9). M77's table stays the truth for what each state
-  says.
+- **The AI line, short form.** The start page shows M77 §6.0's line in a short form, one per state of
+  `AiSetupState.Choice` (`NONE`, `NO_AI`, `CLIENT`, `INSIDE`/`BOTH`, `IN_APP`), **six states** with the profile split:
+  *"AI: not set up · Set up…"*, *"AI: off · Set up…"*, *"AI: your own client · Ask… · Change…"*,
+  *"AI: Claude (Safe) · Ask… · Change…"*, *"AI: Claude (Full) · Ask… · Change…"*, *"AI: in-app · Ask… · Change…"*.
+  (r5 listed five and missed *your own client*, which `AiSetupLines.aiLine()` already renders for `CLIENT`.) The
+  long form is today's `aiLine()` text, with its qualifiers: *"· Claude Code found"* on `NONE`, *"— no key yet"* on
+  `IN_APP`, *"· your own client can connect"* when external access is on, and *"· another {Product} window holds the
+  client connection"*. It is the line's tooltip and the Context column's row. `aiSetup` composes both forms
+  (rule 9). M77's table stays the truth for what each state says; the link follows `aiLineLink()` (*Set up AI…* for
+  `NONE` and `NO_AI`, *Change…* otherwise).
 - **The prompt box** (M74's start prompt and its numbered list) opens from **Ask…**, or from any number key or typing
   on the page. It is one act away, not always visible. With nothing set up, typing opens the box, and Send opens the
   wizard with the question pending (M77 entry 5).
@@ -225,9 +240,14 @@ from about 225 words to **at most 39**. The budget is pinned by A1.6.
   The drop hint moves into *Or open directly*.
 - Before M79-2, M79-4 and M79-6 merge, their links are absent, not disabled. The budget holds in every phase.
 - **Reuse.** *Or open directly* is already the heading over today's groups (`start.or`); M79-1 turns that heading
-  into the collapse. The page today has 13 chips in five groups (*Explore DEMO*, *Open*, *Create*, *Connect an
-  assistant*, *Settings*), the hero *What would you like to do?* with its lede, and the S1–S8 list always visible.
-  No test counts its words today; A1.6 is new.
+  into the collapse. **Today's baseline, re-derived from `feature/m78-d2-one-chip`** (second review): the strip under
+  *Or open directly* has **4 groups and 10 chips**: *Explore DEMO* (Guided tour, Sample project), *Open* (Project,
+  Evidence bundle, Audit log, GraphML), *Create* (Project profile, From template) and *Settings* (Settings, and the
+  Fluxtion key card). M77-4 removed the *Connect an assistant* group (§14.4 of that spec); r5's *13 chips in five
+  groups* was `feature/claude-code-p3`'s page. The hero keeps *What would you like to do?* (`start.title`), its lede
+  (`start.lede`), the prompt and its numbered list, M77-2's AI block on a first run or its AI line otherwise
+  (`AiSetupBlock`; OD-79.5 removes the block), and two always-visible paragraphs (*Open evidence, return to a
+  project…* and the drop hint). No test counts its words today; A1.6 is new.
 - **The doors do not set the work mode.** {Product} already has *Work mode: Investigate / Build* (the session's
   posture, `open {posture}`, *AI ▸ Work mode*). In M79 the **Investigate** and **Build** doors open what they say
   and leave the posture as it is, so the doors add no second path to a session intent; whether a door should also
@@ -289,7 +309,8 @@ The tiles say *Trading* for the owner's *stock/trade processing*.
 | Trading | `Trade[price=103]` | `trade` | `pnl`, `position` | `risk` | *same trade — nothing changed — risk did not run* |
 
 **One caption template, filled from each pinned log** (lead's decision, creative round 2; it replaces five
-hand-written walks). The walk is written once, with roles in place of names: *the top node* (the event handler),
+hand-written walks). Since r6 it serves the four domains of M79-1a-ii; the generic walk is written by hand, composition
+first (§5.2, OD-79.23). The walk is written once, with roles in place of names: *the top node* (the event handler),
 *the two siblings*, *the join*, and *the input* (the event type, in words: `InvoiceLine` → *invoice line*). For each
 domain the roles are filled with **that log's own node ids**, found from the structure of its GraphML (the node fed
 by the event type; its two children; their common child), not from a table, so this is the log's own words and not
@@ -337,6 +358,33 @@ trading      sha256:b9b62c864fb18eee6b11c22e815340ab4742c9ef1855cfe212a328472c7c
 ```
 
 The generic run's record [3], the SC-C1 held-out cycle, is `sha256:2c07ecfbdf78ed1d36fb60a3c9ae5d8285dc66d1f43aa9d39c29be5bb654e902`.
+
+**The generic domain's Spring-authored run** (OD-79.21, accepted; it **replaces** `sample/diamond-audit.yaml` as the
+generic first minute's log). Present at the same pin `24d6d74` (checked 2026-10-18 from a clone of the pin):
+
+```
+6291ba0566a9539c6e128cb929161c8cfc21e12b57919f5df28d4f00c2c70487  sample/diamond-spring-audit.yaml
+7ebd36b0c39ad016cc552b1b54c7cd743c797dbceff9e7e4b37ba7cf8d6b5dec  src/main/resources/com/acme/diamond/generated/spring/DiamondSpringProcessor.graphml
+f050de05aa8d815e2cbb0a48abe2901cffcddffcba0e3f43f34de5de92cd9bd4  src/main/spring/diamond.xml
+```
+
+- **The GraphML is byte-identical to the builder-authored `DiamondProcessor.graphml`** (the same `7ebd36b0…`): the XML
+  declares the same graph, and the compiler built the same one. E3's isomorphism check therefore holds unchanged.
+- **The log differs from `sample/diamond-audit.yaml` only in its timestamps** (`logTime`, `eventTime`, `endTime`):
+  the same six records, events, node entries and stream-end trailer. Every caption claim of §5.2 holds for it. Its
+  console output is `sample/run-console-spring.txt` and its processor `DiamondSpringProcessor.java`, beside it.
+- **Its record digests** (computed as above, with `WalkIdentity.recordDigest(HeapLogStore.fromFile(log).rawText(N))`
+  at the current build, 2026-10-18; records [2]–[5] traced by `AuditTrace.tracesEveryInvocation`, [0] and [1] not):
+  record [2] `sha256:bedfb8f29fd37715b160f675461f03df716e06295794fd20a8049b93dadc996f`, record [3] (SC-C1's held-out
+  cycle) `sha256:7fea6075da3d6c030796679647610063d9d770098fc9ec04cc6883af2460de16`, record [4]
+  `sha256:254885974d5dac3ab2a9e8a56887ddf8ce672c5e77b60c78b3d4578c5cfd4322`, record [5]
+  `sha256:272c3ea448282270ba80259c64e4bde20e723719a796296689b1709652966a89`. The generic walk binds to these, not to the
+  builder run's digests above; A1.5 asserts them. Because the timestamps differ, these digests differ from the
+  builder run's although the entries match: a walk bound to one run is *not available* on the other, as E5 intends.
+- **What does not move.** The broken-diamond quest compares against the builder run's record [3] (§9.1), which stays
+  the witness of a same-index record from another run. The M74 philosophy packs pin the builder run's log (at
+  `dad9b43`), not the Spring one, so they and the first minute now show twin runs of one graph, not one file.
+- The manifest lists both generic logs only if both ship; M79-1a-i ships the Spring run, its XML and its GraphML.
 
 - **What was read.** Each log has six records. Record [4] is the repeated input, with an entry for the top node only.
   The node names are §6.3's. The pinned repo passes the four-term sweep (rule 1), and its three commits are authored
@@ -403,12 +451,24 @@ surfaces render the `SessionSnapshot`. Regenerate with `mvn -Pregen process-clas
 - **Ticket.** The stage change a walk requests carries the walk's presentation ticket, as its view changes do, so it
   is not read as an outside view change (`WalkViewChanged`), which ends a walk today.
 - While a walk with `stage=topology` is showing, the node publishes `stage=TOPOLOGY`. When it ends, the node restores the stage it recorded at play time, **except** for a walk
-  of origin `FIRST_MINUTE`, whose stage is held for **first contact** (§5.3).
+  of origin `FIRST_MINUTE`, whose stage is held for **first contact** (§5.3). For the generic domain the stage also
+  shows the session's design, read-only, beside the topology (§5.2 item 1, OD-79.21); the proportion is the node's
+  constant, like the strip's.
 - **Facts:**
   - `StageToggleRequested(TOPOLOGY|RECORDS)`, from the canvas header's **Topology | Records** toggle;
   - `FirstMinuteDoorChosen` and `FirstMinuteCardClosed` (also handled by `firstMinute`);
   - a new log generation, which also ends first contact, **except** a generation opened by `firstMinute`'s own
     `OpenDiamondEffect` (a domain chosen from the tiles, §5.2 item 3; its `OpenRequest` launch is `FIRST_MINUTE`).
+    **What carries the launch into the session** (second review): today nothing does. `OpenRequest` (with its
+    `Launch`) is frame state that travels with the asynchronous load and is read in `MainFrame`'s load completion;
+    the session facts carry no launch: `OpenLogRequested(opId, location, format, provenance, fromSocket,
+    assistantOrigin)`, `OpenLogEffect` (the same fields) and `LogOpened(opId, logPath, provenance, loggedNodeIds,
+    sampled, total, mostVerboseLevel, provenanceSource, followable, nodeLogsWithheld, openedAtMillis)`. M79-1a-i
+    adds **`LogOpened.launch`**, the request's `Launch` name, set at the one place `LogOpened` is submitted (the
+    load completion, where the `OpenRequest` is in scope), with the existing shorter constructors defaulting it to
+    `NONE`. `openLog` publishes it with the generation, and `walkPlayback` and `firstMinute` read that published
+    value. No node infers the launch from the path or from a pending flag, and `firstMinute` does not match opIds of
+    its own effect against arrivals, which a superseded open would confuse.
     Without this exception the first domain change would drop the graph out of centre stage. A domain change does
     end the showing walk, as every new generation does (M69 §3.8); the card and the stage stay, and ▶ replays the
     domain's own walk.
@@ -577,9 +637,14 @@ bundles* page's definition of a `.fexp`, which says it is unsigned). (r2 had ren
 - **Rule 9:** a `quest` node, with parents `openBundle` and `openLog`. Its facts are `QuestStarted(questId)`,
   `QuestHintRequested`, and the flag fact. Its effects are `ShowQuestEffect` and `RecordQuestSolvedEffect` (machine
   tier: `quest.<id>.solved`). The card renders `QuestState`.
-- **The customer's flags are unchanged.** The new digest field is additive on the flag fact only; the `flag` verb's
-  request and reply, `context.flags` and saved flags keep their shape (A3.3's byte-identity check extends to them in
-  M79-4).
+- **The customer's flags are unchanged.** The new digest field is additive on the flag fact only. Four surfaces keep
+  their bytes, and A4.6 pins each before and after the migration (second review):
+  - the `flag` verb: its schema (`VerbSchemas`; `byteOffsets`, `recordIndexes`, `note`) and its reply;
+  - `context.flags`: a list, in record order, of `{recordIndex, kind, note?, fix?}` (`kind` defaults to `fault`);
+  - the saved-flag format: the session-resume view's `findings` list (`Finding.toMap()` per flagged row);
+  - session recovery: `restoreRecoveryView` restores flags and findings only against an unchanged log identity, and
+    its outcome lines (*"Restored n flags/findings against the unchanged log"*, *"Flags/findings withheld: no
+    unchanged log identity"*) keep their words.
 
 ## 10. M79-5 — the docs front door
 
@@ -596,9 +661,10 @@ the home page's words and the *Packs* page are recorded below as what M79 asks o
   stay out of the nav for one release as one-line pointers, for external links, then go. This lands with, or after,
   the owner-approved DOCS-IA restructure, and M79-5 supplies its front door.
 - **Conflict with DOCS-IA, for the owner (OD-79.11).** The nav the owner approved on 2026-10-17
-  ([`docs-audit-2026-10-17.md`](../handoff/docs-audit-2026-10-17.md) §5.1–§5.3) already has a `start-here.md`, but
-  with four or five doors (incident with your own client, ask inside, build with Claude, the demo, and admin), a home
-  page of four doors (*Diagnose, Build, Start, Admin*), **eight** *Get started* pages kept, `start/prompt-packs.md`,
+  ([`docs-audit-2026-10-17.md`](../handoff/docs-audit-2026-10-17.md) §5.1–§5.3) puts the **four doors** (*Diagnose,
+  Build, Start, Admin*) on the home page, `index.md` (a rewrite), and plans `start-here.md` as a **new** page (no
+  such page exists today), whose outline (§5.3) has four task cards (incident with your own client, ask inside,
+  build with Claude, the demo) plus an administrators' line. It also keeps **eight** *Get started* pages, `start/prompt-packs.md`,
   `teach/philosophy-packs.md` and `reference/glossary.md`. M79-5's three doors, *five pages become one* and SC-D1's
   target of 1 contradict that approval, and *Investigate* (the app's work-mode word, `CanvasHandoff`) is DOCS-IA's
   *Diagnose*. M79-5 does not override an approved decision by being written later: it either amends DOCS-IA §5.1/§5.3
@@ -628,7 +694,16 @@ the home page's words and the *Packs* page are recorded below as what M79 asks o
   project from template…*; M79-1 picks one wording for all three. F2's *Open the demo log* is in a screenshot, not in
   docs text, so the capture harness's regenerated shots, not this test, retire it.
 
-## 11. M79-2 — the teaching session in the onboard assistant (owner, 2026-10-18)
+## 11. M79-2 — the teaching conversation in the onboard assistant (owner, 2026-10-18)
+
+**The name** (OD-79.22, accepted). M79-2's artifact is a **teaching conversation**, not a *lesson*: M75
+(`spec-document-renderer.md`, branch `docs/m75-document-renderer`) owns *lesson* for its rendered `.lesson.md`
+documents and their pack entry kind `read:`. *Teaching conversation* is used nowhere else in the repository (checked
+2026-10-18). The other candidates are taken: *Guided tour* is the DEMO tour's label; *guided session* names a coached
+run in `spec-spring-authoring-edit-loop.md`; *walkthrough* is A1.9's word and appears in code; *journey* is OA-D4's
+conversation journeys; *walk* is M69's. Its pack entry kind is `teach:`, its snapshot record `TeachingLog`, its
+hand-off origin `TEACHING`, its door link *Teach me the diamond*, and its band *Recorded teaching*. Revision history
+before r6 keeps the old word.
 
 **The owner's intent** (correction of 2026-10-18; it overrides the lead's round-2 re-phase). A pack carries a
 **recorded conversation**. Following it plays a teaching session in the **onboard** assistant panel, with
@@ -639,65 +714,75 @@ secondary route, for people who prefer it (§11.6, phase M79-6).
 
 ### 11.1 What the person sees
 
-1. **Start the lesson:** a pack entry, or the first-minute **Learn** door's *The diamond lesson* link, plays a
+1. **Start the teaching conversation:** a pack entry, or the first-minute **Learn** door's *Teach me the diamond* link, plays a
    shipped, recorded teaching conversation in the **docked** assistant panel. The panel's header labels it every
    time it plays (*Recorded conversation*, or *Edited recorded conversation*; §11.4), the composer is hidden, as in
    any demonstration, and each step spotlights the real diamond records (record digests, §6.4).
 2. **Step through it:** ◀ ▶ as in any walk with a conversation; nothing is sent to a provider and nothing is written.
 3. **At the end, one action: Continue with Claude.** It starts the live onboard session, or attaches to the one
-   already running. With nothing set up it opens the M77 wizard (entry 5's path, with a new `origin`, `LESSON`), and
+   already running. With nothing set up it opens the M77 wizard (entry 5's path, with a new `origin`, `TEACHING`), and
    the hand-off completes when the wizard finishes.
 4. **The recorded turns stay above, as a passive, read-only log**, visually distinct from the live turns (a labelled
-   band, *Recorded lesson · not part of this conversation*), and are **never sent to the model** as if it had said
+   band, *Recorded teaching · not part of this conversation*), and are **never sent to the model** as if it had said
    them.
 5. **The live session's basis says what was covered**, in {Product}'s fixed words, not the recorded ones: for
-   example *"The person followed the recorded lesson 'The diamond' (4 steps; records [2] and [4] of the bundled
-   generic diamond)."*
+   example *"The person followed the recorded teaching conversation 'The diamond' (4 steps; records [2] and [4] of
+   the bundled generic diamond)."*
+6. **Items 4 and 5 apply only to a shipped teaching conversation** (OD-79.24, accepted). The band and the basis
+   sentence are published only when the walk that ended by hand-off is a teaching conversation **shipped in the jar
+   whose definition matched the manifest's digest when it played**. They are not keyed on the conversation's
+   `kind` (`WalkSpec.Conversation.kind`: `scripted`, `recorded` or `edited-recording`): a customer's own walk,
+   recorded with the conversation editor, is `recorded` too, and must never be relabelled with {Product}'s band or
+   summarised in {Product}'s words. Such a walk's hand-off behaves as `AssistantHandoffRequested` does today.
+7. **What it teaches: composition first** (OD-79.20, accepted). The conversation starts from how the diamond is put
+   together, the XML beside the topology (OD-79.21), and only then from what ran. §11.7 gives the rules and the
+   order; the callback detail of §11.6(a) is a secondary note, not the frame.
 
 ### 11.2 What it reuses (searched first)
 
 | Exists | Where | Used for |
 |---|---|---|
-| **Walks that carry a conversation** (conversation journeys, OA-D4): typed turns bound to steps, *Simulated* / *Recorded* / *Edited recorded* labels in the panel header, the composer hidden, ◀ ▶ revealing the prefix, nothing sent or written; *"the conversation travels with the walk"* through projects, share, the bin and bundles | `WalkSpec.conversation`, `AssistantPanel`, `docs/site/user-guide/assistant.md` ▸ *Walks with a conversation* | the lesson **is** a walk with a conversation; no second playback format |
+| **Walks that carry a conversation** (conversation journeys, OA-D4): typed turns bound to steps, *Simulated* / *Recorded* / *Edited recorded* labels in the panel header, the composer hidden, ◀ ▶ revealing the prefix, nothing sent or written; *"the conversation travels with the walk"* through projects, share, the bin and bundles | `WalkSpec.conversation`, `AssistantPanel`, `docs/site/user-guide/assistant.md` ▸ *Walks with a conversation* | the teaching conversation **is** a walk with a conversation; no second playback format |
 | **Recording a Claude Code conversation** (conversation version 2): only sent turns and finished answers, never tool lines; the source recorded as *claude-code*, model and version | the walk conversation editor | how the real recording is captured (§11.4) |
-| **"Run me through a demo"** (M74 S1) and `DemoJourney` / `PlayDemoJourneyEffect`: a shipped walk with pre-authored digests and a *Simulated conversation*, played from the start page | `journey/first-breach.fluxtion-settings`, `MainFrame.finishSampleJourney` | the shipping and play path for the lesson (without `persistWalks` and the `pending*` flags, §7.1) |
+| **"Run me through a demo"** (M74 S1) and `DemoJourney` / `PlayDemoJourneyEffect`: a shipped walk with pre-authored digests and a *Simulated conversation*, played from the start page | `journey/first-breach.fluxtion-settings`, `MainFrame.finishSampleJourney` | the shipping and play path for the teaching conversation (without `persistWalks` and the `pending*` flags, §7.1) |
 | **"Ask about this evidence"** (OA-D4 §6.2): ends the demonstration and opens a fresh live thread that inherits none of its words | `AssistantHandoffRequested`, handled by `walkPlayback` and `assistantLoop` | the hand-off's start; *Continue with Claude* is this, extended (§11.3) |
-| **Conversation journeys' catalogue rule:** opening a journey never autoplays it (OA-D6) | `spec-onboard-assistant-journeys.md` §8 | kept: the lesson plays only on the person's act (unlike the first minute's four-step walk, which has no conversation) |
-| **Prompt packs:** dropped Markdown, words-only entries plus one pinned *example* entry kind; session-only | `PromptPack`, `StartPromptPackDropped` | the entry that starts the lesson (§11.3) |
+| **Conversation journeys' catalogue rule:** opening a journey never autoplays it (OA-D6) | `spec-onboard-assistant-journeys.md` §8 | kept: the teaching conversation plays only on the person's act (unlike the first minute's four-step walk, which has no conversation) |
+| **Prompt packs:** dropped Markdown, words-only entries plus one pinned *example* entry kind; session-only | `PromptPack`, `StartPromptPackDropped` | the entry that starts the teaching conversation (§11.3) |
 | **Real captures:** `tools/capture-conversations.py` (tool calls and echoes recorded live under an isolated home) and `tools/capture-journey.py` (a journey built and played from a real run, re-checked by `JourneyCatalogueTest`) | `tools/` | the recording harness and its re-derivation test (§11.4) |
 | **Replay for tests:** `FixtureAgent` replays recorded Claude Code streams through the real adapter and session processor | `src/test/…/localagent/FixtureAgent.java` | the witness that recorded turns are never resent (A2.3); it is a test fake, not a product path |
 
 ### 11.3 The gaps, and how each is closed
 
 - **A pack that carries a conversation.** `PromptPack` has no such entry. M79-2 adds one entry kind, `n. **label** —
-  lesson: <lesson id>`, naming a lesson **shipped in the jar** and recognised by digest, as the diamond assets are
-  (E6). A pack dropped from elsewhere may name a shipped lesson, but cannot bring its own recorded conversation in
+  teach: <conversation id>`, naming a teaching conversation **shipped in the jar** and recognised by digest, as the diamond assets are
+  (E6). A pack dropped from elsewhere may name a shipped teaching conversation, but cannot bring its own recorded conversation in
   v1: a conversation inside an untrusted file would carry the exporter's *Recorded* claim, which {Product} cannot
   check (OD-79.19, **accepted**: a pack's own recorded conversations come later, with signing).
 - **The hand-off to live.** `AssistantHandoffRequested` today ends the demonstration and opens a fresh **in-app**
-  thread (`assistantLoop`). *Continue with Claude* posts it with `origin=LESSON`, and M79-2 adds the Claude Code side
+  thread (`assistantLoop`). *Continue with Claude* posts it with `origin=TEACHING`, and M79-2 adds the Claude Code side
   (`localAgentSession` starts or attaches) and the nothing-set-up branch (the M77 wizard, then the hand-off). Which
   mode it continues in is the profile in force, decided by the session, not the button.
 - **The passive log.** Today the fresh thread starts empty and the demonstration's turns leave the panel. M79-2 keeps
-  them: a `LessonLog(lessonId, label, turns)` published in the snapshot, rendered above the live turns in a distinct,
-  read-only band. **It is never part of a request:** the in-app request builder and the Claude Code adapter read only
+  them: a `TeachingLog(conversationId, label, turns)` published in the snapshot, rendered above the live turns in a
+  distinct, read-only band, **only for a shipped, digest-verified teaching conversation** (§11.1 item 6). **It is
+  never part of a request:** the in-app request builder and the Claude Code adapter read only
   their own transcript stores, and a static rule (`OneDispatchModelTest`) fails if any request path reads
-  `LessonLog`.
+  `TeachingLog`.
 - **The basis line.** The live session's opening context gains one fixed sentence composed by the node from the
-  lesson's id, step count and the records it showed, never from the recorded words.
+  teaching conversation's id, step count and the records it showed, never from the recorded words.
 
 ### 11.4 The recording (owner rule)
 
-- **A real capture.** The lesson's turns are captured from a real onboard Claude Code session, under an isolated
+- **A real capture.** The teaching conversation's turns are captured from a real onboard Claude Code session, under an isolated
   `user.home` holding only the diamond, with the conversation editor's Claude Code capture (version 2), driven by an
   extension of `tools/capture-conversations.py`. Note the gap: that harness today **authors** the asks and answers
   and records only the tool calls and echoes, so its output is not a *Recorded conversation* in the panel's sense.
-  The lesson's capture records the model's finished answers too, untouched; any edit makes it *Edited recorded
+  The teaching conversation's capture records the model's finished answers too, untouched; any edit makes it *Edited recorded
   conversation*, labelled so.
 - **Labelled every time it plays** (the panel header, §11.1), and in the catalogue and the pack.
 - **Re-recorded when the app changes.** A test in the style of `JourneyCatalogueTest` re-derives every fact a turn
   states (record indexes, node names, entries) from the bundled diamond log on every build; the capture is
-  regenerated with the release screenshots, and a lesson whose tool lines no longer match the current verbs fails
+  regenerated with the release screenshots, and a teaching conversation whose tool lines no longer match the current verbs fails
   that test rather than playing.
 - **Bound by digest**, as walks are: each step's record targets carry §6.4's digests, and E5's record-basis rule
   applies (a step with a non-current record shows none of its captions or turns).
@@ -706,15 +791,15 @@ secondary route, for people who prefer it (§11.6, phase M79-6).
 ### 11.5 Rule 9
 
 `walkPlayback` already owns playback, including a dialogue walk's end on a live question or a hand-off, and it owns
-the lesson's playback too. The **hand-off and the passive log** are new state: `walkPlayback` records the lesson
-that ended by hand-off and publishes `LessonLog`; `assistantLoop` and `localAgentSession` decide the live session's
-start or attach on `AssistantHandoffRequested(origin=LESSON)`, as `assistantLoop` already does for the in-app thread;
-`aiSetup` handles the nothing-set-up branch. The panel renders `LessonLog` and the live transcript and decides
+the teaching conversation's playback too. The **hand-off and the passive log** are new state: `walkPlayback` records the teaching
+conversation that ended by hand-off and, if it is a shipped one (§11.1 item 6), publishes `TeachingLog`; `assistantLoop` and `localAgentSession` decide the live session's
+start or attach on `AssistantHandoffRequested(origin=TEACHING)`, as `assistantLoop` already does for the in-app thread;
+`aiSetup` handles the nothing-set-up branch. The panel renders `TeachingLog` and the live transcript and decides
 nothing.
 
 ### 11.6 M79-6 — the external teacher kit (phase 3 or later)
 
-**Secondary, not primary** (owner correction, 2026-10-18). The same lesson content, offered to people who prefer
+**Secondary, not primary** (owner correction, 2026-10-18). The same teaching content, offered to people who prefer
 their own external client. It is numbered M79-6 so that the other phases keep their ids; it may be scheduled any time
 after M79-2.
 
@@ -740,20 +825,38 @@ after M79-2.
 short paragraph and nothing more, because every MCP client reads the text at every connect and it costs tokens on
 every session (owner direction). Draft:
 
-> *Call analyser_context first: it names the project, its runbooks and what the log covers. Reading rules: a node
-> with no entry did not run only in a traced record; otherwise it may have run silently. A handler's boolean
-> controls propagation: true runs its @OnTrigger children, and @OnTrigger(dirty=false) runs on false. Reference:
-> telaminai/fluxtion docs/claude.txt.*
+> *Call analyser_context first: it names the project, its runbooks and what the log covers. Reading rules: a node's
+> edges are its declared parents (constructor arguments; in Spring XML, constructor-arg refs). A handler's returned
+> boolean decides whether its @OnTrigger children run. A node with no entry did not run only in a traced record;
+> otherwise it may have run silently. Reference: telaminai/fluxtion docs/claude.txt.*
 
-The third reading rule (*@AfterEvent and lifecycle callbacks run without propagation*) is **not in this text**: it is
-**pending empirical confirmation** (below) and joins the paragraph, within the word cap, only when the result lands.
+**Composition first** (OD-79.20, accepted): the paragraph states how a graph is declared and how to read its log,
+and drops r5's dispatch-mechanics clause (*@OnTrigger(dirty=false) runs on false*), which belongs in the skill. The
+membership rule (§11.7 rule 2) is Spring-specific and too long for every connect, so it is the skill's as well.
 
-- **Rule 6 before it ships.** The first two rules are the format spec's (§8, traced records) and `claude.txt`'s
-  (*Conditional dispatch*). **The third is not stated in `claude.txt`**, whose *propagation* paragraph lists
-  `@AfterEvent` among the trigger annotations through which a node propagates. The owner's answer is *test it*: an
-  empirical probe (a generated graph and its audit log) is running. **Until its result lands, the rule is marked
-  *pending empirical confirmation*, stays out of `INSTRUCTIONS` and out of the skill's text**, and is then worded
-  exactly as the generated dispatcher and the log show, or dropped. No rule is inferred.
+- **Rule 6.** The edge rule is the Spring contract's (*"`constructor-arg ref` between node beans — static
+  topology"*) and the playground orientation's (*"Constructor takes upstream references — that IS the wiring
+  declaration"*); the boolean rule is `claude.txt`'s (*Conditional dispatch*); the traced rule is the format spec's
+  (§8). Sources in §11.7.
+- **The callback rule is confirmed, and stays out of this text.** r5 held a third reading rule (*@AfterEvent and
+  lifecycle callbacks run without propagation*) pending an empirical probe. The probe ran (2026-10-18; a generated
+  processor and its audit log, Fluxtion runtime 1.1.2 and builder 1.0.79, on a local `fluxtion-diamond` probe branch,
+  `probe/afterevent` at `f7ab5ea`, not published) and confirmed it:
+  - **`@AfterEvent`** runs on every node at the end of every handled event and of every lifecycle phase, in reverse
+    topological order, whatever the dirty state, and **never propagates**: a node with only `@AfterEvent` or
+    `@AfterTrigger` gets no dirty flag, and its `@OnTrigger` children are never dispatched;
+  - **`@AfterTrigger`** runs only when the node's parent was dirty in that cycle;
+  - **lifecycle callbacks** run once per phase: `@Initialise` and `@Start` in topological order, `@Stop` and
+    `@TearDown` in reverse.
+
+  So `claude.txt` line 206 (*Bridging DSL flows into imperative `@OnTrigger` nodes*) is wrong where it lists
+  `@AfterEvent` among the trigger annotations through which a node propagates; the playground orientation
+  (`fluxtion-playground.dev/CLAUDE.md`) repeats the same sentence. The upstream notes are drafted as **UP-FLX-56**
+  (that sentence), **UP-FLX-57** (the `@AfterTrigger` javadoc's conditions) and **UP-FLX-58** (one `nodeLogs` entry
+  holding two callbacks' writes) in [`upstream-asks.md`](../proposals/upstream-asks.md) on the
+  `fix/merged-nodelog-entries` branch; this spec does not repeat them. Under OD-79.20 the result is a **secondary
+  note in the skill** (b), worded exactly as above, and is **not** added to `INSTRUCTIONS`: the paragraph teaches
+  composition, not callback mechanics.
 - **Pinned** in a new `BridgeInstructionsTest`: the paragraph is present, under a word cap (70), and the rest of the
   text is byte-identical to today's, so the customer's client reads one added paragraph and nothing changed.
 - **This is the one M79 change the customer's external Claude sees** (OD-79.12): it changes no verb, field or reply.
@@ -761,21 +864,29 @@ The third reading rule (*@AfterEvent and lifecycle callbacks run without propaga
 **(b) A `teach-fluxtion` skill**, `docs/skills/common/teach-fluxtion/SKILL.md`, shipped through the existing skill
 distribution: `common/` skills are baked into every generated project's `.claude/skills/`, published to the website,
 and served by name and description in `context.runbooks[]` (M43); for a project that already exists, *AI ▸ Find
-skills…* offers it. The full rules live here, not in the instructions (the third reading rule only once the empirical probe confirms it). Its procedure:
-1. play the diamond walk (`walk`), one step at a time;
-2. before each of records [3] and [5], ask the person in chat to predict which nodes run, then check the prediction
+skills…* offers it. The full rules live here, not in the instructions: §11.7's four teaching rules in their order,
+composition first (OD-79.20), then, as a **secondary note**, the confirmed callback rules of (a). Its procedure:
+1. start from the declaration: with the generic diamond open, light its XML (`source:design:bean:<id>`) and ask the
+   person which nodes `d` depends on and which node handles `X`; check the answer against the topology, never by
+   assertion;
+2. play the diamond walk (`walk`), one step at a time;
+3. before each of records [3] and [5], ask the person in chat to predict which nodes run, then check the prediction
    with `goto` and `spotlight` on the record, never by assertion;
-3. set the broken-diamond quest and give hints only when asked, never the record;
-4. end with *"now ask about your own log"*.
+4. set the broken-diamond quest and give hints only when asked, never the record;
+5. end with *"now ask about your own log"*.
 
-A change under `docs/skills/` is not docs-only in CI (rule 4). Step 3 needs the quest (M79-4): until it merges, the
-skill ends after step 2, and M79-4 adds step 3 in the same PR as the quest.
+A change under `docs/skills/` is not docs-only in CI (rule 4). Step 4 needs the quest (M79-4): until it merges, the
+skill ends after step 3, and M79-4 adds step 4 in the same PR as the quest.
 
 **(c) Learner progress in `context`.** A `learning` object, written by the `firstMinute` and `quest` nodes into the
 snapshot and read by `context` from there: the first minute's phase and domain, whether the walk played, and, per
 quest, started, hints shown, solved and by whom. The **Project panel gets a *Learning* row** rendered from the same
 snapshot (the human-surface rule: what a client can read, a person can see). **Both are omitted when empty**, so a
 developer who never touches the first minute or a quest gets a byte-identical `context` reply (A6.3).
+**A known hazard** (ONBOARDING ▸ *`MainFrame.context()` returns early on a fresh start*): `context()` puts an empty
+`filter` and returns as soon as `filter == null`, so any field `put` below that line is invisible on a fresh start;
+twice before, a correct fact sat below it. `learning` is therefore put **above** the early return, and A6.3 checks
+it with no log loaded, as well as with the quest's bundle open and none of the person's own logs loaded.
 
 **(d) Teacher mode: only the person's own flag solves the quest** (OD-79.17, **accepted** by the owner,
 2026-10-18; it applies on both routes, onboard and external). A flag from this window solves it. A flag from the socket does not; the quest card reads *"Your AI client
@@ -785,6 +896,87 @@ arrive by the same entrance and read the same (§9.2, A4.5).
 
 **(e) MCP prompts: later, not M79.** Offering the teaching steps as server-side MCP prompts is gated on rule 6: a
 live check of which clients actually show a server's prompts, which is research in progress.
+
+### 11.7 Composition first, led by the Spring XML contract (OD-79.20, OD-79.21)
+
+**Read under rule 6** (2026-10-18; public sources only): the Spring authoring contract,
+<https://fluxtion-playground.dev/spring-authoring/contract.md>; its design-conversation procedure,
+<https://fluxtion-playground.dev/spring-authoring/skill.md>, and worked example,
+<https://fluxtion-playground.dev/spring-authoring/example.md>; the playground orientation,
+<https://fluxtion-playground.dev/CLAUDE.md>; the compiler's public diagnostic page,
+<https://telaminai.github.io/fluxtion/troubleshooting/errors/SPRING_BEAN_NOT_SELECTED/>; `src/main/spring/diamond.xml`
+at the `fluxtion-diamond` pin `24d6d74`; the analyser's M66 Design view ([`completed/spec-design-render.md`](completed/spec-design-render.md)
+D-4, `design/DiagnosticLocation`); and `docs/skills/spring/add-a-node/SKILL.md`.
+
+**The teaching rules, in this order** (the teaching conversation, the `teach-fluxtion` skill and, in short, the
+instructions paragraph):
+
+1. **Edges are declared parents.** A node depends on what it is constructed with: `new B(a)` in Java, and
+   `<constructor-arg ref="a"/>` (or a `property ref`) between node beans in Spring XML. The compiler builds the graph
+   from these declarations, at compile time (contract, *Three kinds of relationship*; skill.md step 4).
+2. **Membership is declared too.** With a `nodeBeans` list in force, only the beans it names are added as explicit
+   nodes, and the beans they reference are still discovered (contract, field table). A bean that is declared, in
+   neither `nodeBeans` nor `ignoredBeans`, and referenced by nothing, is left out of the graph. (The review's short
+   form, *a bean in no list is not in the graph*, is wrong for a referenced bean, so the teaching uses the contract's
+   form, as `add-a-node` already does.)
+3. **The returned boolean decides propagation.** A handler or trigger that returns `true` marks its node changed, so
+   its `@OnTrigger` children run; `false` stops the cascade below it. That is the diamond's record [4]
+   (`claude.txt`, *Conditional dispatch*).
+4. **Silence is not *did not run* unless the record is traced** (*Format specification* §8; E4).
+
+Then, as a secondary note only: the confirmed callback rules (§11.6 a).
+
+**The Spring dialect, as the public contract states it.** Standard Spring `<beans>` XML with no custom namespace, plus
+one configuration bean of class `FluxtionSpringConfig` (the dialect's processor configuration element). The diamond's
+XML uses five of its parts: `logLevel` (`INFO`), `eventTypes` (`com.acme.diamond.event.X`), `nodeBeans` (`a`, `b`,
+`c`, `d`), `eventHandlers` (one `EventHandlerBinding`: event `X`, node `a`), and the edges as `constructor-arg ref`s on
+`b`, `c` and `d`. The full set (contract, *What each `FluxtionSpringConfig` field means* and *Local authoring workflow
+and extended declarations*):
+
+| Concern | Properties |
+|---|---|
+| Graph | `nodeBeans` (bean ids); `ignoredBeans` (support beans that are never nodes; never services); `eventBeans` (compatibility: beans that only define event types); `referenceBindings` (`ReferenceBinding`: `ownerBean`, `referencedBean`, `mode` `TRIGGER` by default, `DATA` or `PUSH`, optional `referenceField`, `parentUpdateCallback`) |
+| Inbound | `eventTypes` (FQCN strings; never `eventClasses` in XML for the starter, which skill.md calls *"the single most important rule for the skeleton flow"*); `eventHandlers` (`EventHandlerBinding`: `event`, `nodeBeans`, optional `filterString` or `filterId`, `propagate`, default true); `strictEventHandlerBindings`; `signalHandlers` (`SignalBinding`) |
+| Services | `serviceTypes` (interface FQCN strings, never beans); `serviceRegistrations` (`ServiceBinding`: `service`, `serviceName`, `nodeBeans`; always name services); `strictServiceBindings`; `exportedServices` (`ExportedService`) |
+| Outputs and lifecycle | `sinks` (`SinkBinding`); `lifecycleNodes` |
+| Audit | `logLevel`; `auditors` |
+
+`eventHandlers` states a design-time expectation, not routing: Fluxtion still discovers dispatch from the Java
+annotations (contract, *Handler expectations are not routing*).
+
+**Semantic checking, in two tiers** (contract, *Structural validation*):
+
+- **At drop time, before anything is generated, with no class loaded:** well-formed, schema-valid XML; unique bean
+  ids; every class a name string; the configuration lists read as strings; cross-references by name (every
+  `nodeBeans`, `ignoredBeans` and `eventHandlers` node is a declared bean id, and every handler's event is a declared
+  event type); no dangling `ref` in constructor arguments or properties; and the service rules (a service is never a
+  bean and never constructor-wired). Locally this is `validate.sh`, the offline XML tier.
+- **After generation, at compile:** whether a node really has the declared handler (*declared event has no handler*
+  is a build warning, not a drop-time error); for classes that already exist, that they satisfy the XML
+  (`SPRING_DECLARATION_UNSATISFIED_BY_EXISTING_CLASS`); and, with `strictEventHandlerBindings` or
+  `strictServiceBindings`, a node that handles a declared event, or registers a declared service, outside its binding
+  fails the build.
+
+**Is "a bean in no list" silent? Not caught at drop time, and not silent at compile.** The drop-time cross-references
+run one way: every *listed* name must be a declared bean, and nothing requires a declared bean to be listed, so an
+orphan bean passes validation. The compiler reports it: **`SPRING_BEAN_NOT_SELECTED`**, severity **WARN**, for a bean
+*"declared, in neither list, and referenced by nothing"*, telling the author to list it or ignore it (the public
+diagnostic page above). The build stays green, and the warning is in the compiler's messages, which `add-a-node`
+already tells an author to read. The teaching says exactly that. The `add-a-node` skill's heading *"The two things
+that fail SILENTLY here"* predates the diagnostic; correcting it is a separate fix outside M79 (a `docs/skills/`
+change, not docs-only in CI, rule 4).
+
+**Template generation.** The starter (a drop on `/start`, or `generate.sh` locally) generates the project from the
+XML: a node class per `nodeBeans` entry, an event class per declared event type, and an interface stub per declared
+service. A node named in `eventHandlers` gets an `@OnEventHandler` stub; a node with constructor refs gets that
+constructor dependency and an `@OnTrigger` method; `lifecycleNodes` get `@Initialise`, `@Start`, `@Stop` and
+`@TearDown` stubs; a `serviceRegistrations` consumer gets an `@ServiceRegistered` callback. A class already present
+is checked against the XML, not shadowed, and a developer's implemented bodies are kept (reconciliation, with the
+`fluxtion-authoring.json` ownership record). The XML carries structure, never logic.
+
+**What this changes in M79.** The teaching rules lead with the XML contract, not with annotations: the generic walk's
+step 1 lights the declaration (§5.2), the skill starts from it (§11.6 b), and the instructions paragraph states the
+edge rule first (§11.6 a). Template generation reshapes *Make the diamond yours* (§14).
 
 ## 12. The scorecard
 
@@ -807,8 +999,8 @@ out what to do, and an act that leads nowhere.
 | SC-E1 | Auditor-prose hesitations on the first view | the stranger's F5 | **0**; F5's sentence not visible without a click | M79-3 |
 | SC-D1 | Docs/app label mismatches on the pages M79-5 touches (*Start here* and the start-page pages) | F2's pairs | **0** (the nav's page count is DOCS-IA's, not M79's) | M79-5 |
 | SC-T10 *(new)* | **Connect your own Claude:** from the start page to the person's client making its first `context` call, with `claude` installed | the M77-3 count (not yet measured: M77-3 is unbuilt) | **≤ 5 acts in {Product}, 0 dead ends**; the acts in the person's own client (opening it, pasting the prompt) are counted separately, since M77-3's own confirmations (external access, then registration) already use two | M79-6 |
-| **SC-T11** *(new)* | **The teacher:** with the person's own Claude and the `teach-fluxtion` skill, solve the broken diamond | — | measured, not yet targeted: **minutes** to *Solved*; **solved by the person's own flag** (yes/no); **the client's claims graded against the confirmed reading rules** (§11.6 a; the third only once the probe confirms it) from the transcript, captured by the `capture-conversations` harness under an isolated home. **Witness:** a run in which only the client flags the answer record must score *not solved* | M79-6 (skill), M79-4 (quest) |
-| **SC-T12** *(new)* | **The onboard lesson, then live:** follow the teaching pack in the docked assistant panel to its end, press *Continue with Claude*, and ask one question live | — | measured, not yet targeted: **acts** from the pack entry to the first live answer; **the hand-off works** (a live turn completes, and its opening context carries the fixed basis sentence); **the recorded turns are never resent**: none of their text appears in any request the session sends (the in-app request, or the stream written to Claude Code). **Witness:** a build that appends the passive log to the request must score *resent* | M79-2 |
+| **SC-T11** *(new)* | **The teacher:** with the person's own Claude and the `teach-fluxtion` skill, solve the broken diamond | — | measured, not yet targeted: **minutes** to *Solved*; **solved by the person's own flag** (yes/no); **the client's claims graded against §11.7's teaching rules and §11.6(a)'s confirmed callback rules** from the transcript, captured by the `capture-conversations` harness under an isolated home. **Witness:** a run in which only the client flags the answer record must score *not solved* | M79-6 (skill), M79-4 (quest) |
+| **SC-T12** *(new)* | **The onboard teaching conversation, then live:** follow the teaching pack in the docked assistant panel to its end, press *Continue with Claude*, and ask one question live | — | measured, not yet targeted: **acts** from the pack entry to the first live answer; **the hand-off works** (a live turn completes, and its opening context carries the fixed basis sentence); **the recorded turns are never resent**: none of their text appears in any request the session sends (the in-app request, or the stream written to Claude Code). **Witness:** a build that appends the passive log to the request must score *resent* | M79-2 |
 
 **Who scores what** (lead's decision, creative round 2). The comprehension tasks, **SC-C1 and SC-C2, are scored
 only by human or stranger runs**: a model predicting a dispatch it can read from the shipped source measures the
@@ -822,7 +1014,7 @@ scored run, their relevant passages, sanitised under rule 1, go in `docs/specs/e
 baselines are re-measured there by the robot walk on the current build. A target with no recorded baseline is a
 target, not an improvement claim. **On the targets:** five runs (SC-C1, SC-C2) detect only a large failure rate; they
 are a smoke gate, not a measurement, and are reported with their counts. SC-S1 is tight: the start page as drafted in
-§5.4 counts about 38 words in its longest AI-line state, so any added word (an empty *Recent* placeholder such as
+§5.4 counts about 38 words in its longest AI-line state as r5 listed them, and the sixth state r6 adds (*AI: your own client · Ask… · Change…*) is one word longer than *Claude (Safe)*, so about 39: the budget has no slack, and any added word (an empty *Recent* placeholder such as
 *No recent projects*, for example) breaks it; §5.4's rule counts such a placeholder, so the *Recent* block is hidden
 when it is empty.
 
@@ -889,6 +1081,12 @@ on the newcomer's machine.
 - **Never:** run anything from the repository; import without the person's confirmation; or take a path from the
   file outside the chosen folder. **Full mode later still needs folder trust**: fetching a repository grants Claude
   Code nothing.
+- **A security review before acceptance** (OD-79.25, accepted; the second review's M9). The private-repository path
+  builds and, on *Run it for me*, runs `git` commands from a file someone else sent, under the person's own
+  credentials and git configuration. It is not accepted with this follow-on: it has its own security review first
+  (URL and host validation, argument construction, hooks, filters and templates, credential prompts, the folder's
+  containment), recorded with its spec, before any of it is built. The public-repository path reuses the reviewed
+  example download and is not gated on it.
 - **Open for its own spec:** whether a private repository's host must be one the person has used before; how a
   fetched root is shown in the Project panel (fetched from …, at commit …); and signing (OD-79.9).
 
@@ -910,7 +1108,16 @@ categories.
 - **N3 — *Share what you proved*:** a bundle of a green criterion chip with its deciding record and a two-step walk;
   after M76 slice 1.
 - ***Make the diamond yours*:** the Build door's first authoring step. **It needs a key**: the teaching-scoped hosted
-  key above is its intended route.
+  key above is its intended route. **The designed shape** (r6, from §11.7): skill.md's six-step design conversation,
+  held in the onboard assistant (purpose → the events coming in → the nodes and which handles which event → the
+  dependencies, which are the edges → any external services → emit the XML and restate it in plain English). It
+  produces **one** XML that passes drop-time validation, shown in the M66 Design view beside the topology; the starter
+  generates the stubs; the person (or the assistant) fills in the logic; generation runs (the key); and the run's
+  audit log is the evidence that the diamond in the person's domain does what they described. **Wire first, stubs
+  second**: because the starter generates classes for whatever the XML declares, the domain classes need not exist
+  before the wiring is right. That is the owner's intent-verified thesis made concrete: intent in words, structure
+  as checked XML, mechanics written by Fluxtion, intent validated by evidence. A design point for its own spec, not
+  M79.
 - **An analogy legend** beside the real names (for example *a = "the input"*), never replacing them (E2). It is
   allowed without a key only because it runs nothing.
 - **MCP prompts** for the teaching steps (§11.6 e), gated on rule 6.
@@ -934,22 +1141,23 @@ Headless unless marked *frame* (a registered frame suite under Xvfb in CI). Each
 | ★ A1.3 | stage: `TOPOLOGY` while the first-minute walk shows and through first contact; `RECORDS` after a door, a new generation or the toggle; an ordinary walk restores its prior stage; the frame lays out from the snapshot alone | the graph stuck centre stage for investigation (OD-79.7), or a layout set by the view | keep `TOPOLOGY` after a door; or set the layout in `MainFrame` |
 | ★ A1.4 | E2 + E3: per domain, GraphML node ids equal the log's, and the pairing is declared and matching; the five graphs are isomorphic; no name table keyed by domain exists | a relabelled log, a drifted topology | ship the generic log under the accounting GraphML |
 | ★ A1.5 | E4–E6: per domain, records [2]–[5] are traced; record [2] has four node entries and record [4] only the top node's; the record digests equal §6.4's; coverage reports every node able to log; an edited copy opens without the tiles or the bundled label; an edited extracted copy is re-extracted; a substituted step-3 record makes step 3 *not shown*, with no caption on any of its targets | "d did not run" shown over evidence that does not say it | drop the record-basis rule of E5, so `topology:node:d` keeps its caption |
-| ★ A1.6 | the start page's word budget (§5.4's counting rule): ≤ 39 in every AI-line state, at 1200×800 *(frame)* | the page growing back | restore the *Connect an assistant* group's caption above the fold |
+| ★ A1.6 | the start page's word budget (§5.4's counting rule): ≤ 39 in every AI-line state, at 1200×800 *(frame)* | the page growing back | build `directStrip` (the *Or open directly* groups) expanded, without the expanding act; or restore the hero's always-visible drop-hint paragraph (*Drop an .fexp bundle, audit log…*) above the fold |
 | ★ A1.7 | §5.5: a manifest mismatch or a failed open → no walk, not marked played, one start-page line with the open's reason, no dialog | a broken asset hidden, or a modal at an empty screen | autoplay without the manifest check |
 | ★ A1.8 | `OneDispatchModelTest`'s §7.4 rules | hand-placed dispatch | call `openDiamond` from a tile's listener |
 | ★ A1.9 *(frame, real `Main`, isolated `user.home`, 1200×800)* | **The first-minute walkthrough:** first launch → the diamond opens with the graph centre stage → four steps → step 3 selects the record with no `d` entry and `d` is dark → the end state → one click on a record lights its cycle. Then relaunch → no autoplay, and no session-recovery offer for the diamond (the start page) | SC-T9's path regressing; the diamond offered back as "your session" | write `played` on Esc only, so a played-through walk replays |
-| A1.10 | `DiamondAssetsTest`: every file's SHA-256 matches the manifest; the source ships (E7); the sweep covers the set (§18) | a hand-edited asset, a leaked name | — |
+| A1.10 | `DiamondAssetsTest`: every file's SHA-256 matches the manifest; the source ships (E7), and for the generic domain its Spring XML too (`diamond.xml`, `f050de05…`, OD-79.21); the sweep covers the set (§18) | a hand-edited asset, a leaked name | — |
 
 **M79-2**
 
 | # | Test | Catches | Witness |
 |---|---|---|---|
-| ★ A2.1 | the lesson plays from a pack's `lesson:` entry and from the Learn door, in the docked panel, with the composer hidden and the header's *Recorded conversation* label on every play; nothing is sent or written; it never autoplays on open (OA-D6) | a lesson that looks live, or runs a model | drop the header label; or autoplay on open |
-| ★ A2.2 | a `lesson:` entry naming an id that is not a shipped lesson, or a shipped lesson whose digest differs from the jar's manifest, is refused with its line and cause; a pack cannot carry its own conversation (OD-79.19) | an untrusted file claiming *Recorded* | accept an inline conversation |
-| ★ A2.3 | *Continue with Claude*: the live session starts or attaches (in-app and Claude Code, through `FixtureAgent`); the recorded turns stay above in the read-only band; **no request contains any recorded turn's text**; the opening context carries the fixed basis sentence and not the recorded words | the model fed words it never said; a hand-off that loses the lesson or reaches no session | append `LessonLog` to the request; or build the basis from the turns |
-| ★ A2.4 | with nothing set up, *Continue with Claude* opens the M77 wizard (`origin=LESSON`) and completes the hand-off on Finish; Cancel leaves the lesson log and starts nothing | a dead end after the lesson | start the in-app mode without the wizard |
-| ★ A2.5 | the lesson's recording: every fact a turn states re-derives from the bundled diamond log (`JourneyCatalogueTest` style); each step's record targets carry §6.4's digests; a substituted record withholds the step's turns and captions (E5) | a stale or hand-typed recording | edit a recorded number |
-| A2.6 | `OneDispatchModelTest`: no request path reads `LessonLog`; the panel posts intents only | hand-placed dispatch | read the log in `PromptBuilder` |
+| ★ A2.1 | the teaching conversation plays from a pack's `teach:` entry and from the Learn door, in the docked panel, with the composer hidden and the header's *Recorded conversation* label on every play; nothing is sent or written; it never autoplays on open (OA-D6) | a teaching conversation that looks live, or runs a model | drop the header label; or autoplay on open |
+| ★ A2.2 | a `teach:` entry naming an id that is not a shipped teaching conversation, or a shipped teaching conversation whose digest differs from the jar's manifest, is refused with its line and cause; a pack cannot carry its own conversation (OD-79.19) | an untrusted file claiming *Recorded* | accept an inline conversation |
+| ★ A2.3 | *Continue with Claude*: the live session starts or attaches (in-app and Claude Code, through `FixtureAgent`); the recorded turns stay above in the read-only band; **no request contains any recorded turn's text**; the opening context carries the fixed basis sentence and not the recorded words | the model fed words it never said; a hand-off that loses the teaching conversation or reaches no session | append `TeachingLog` to the request; or build the basis from the turns |
+| ★ A2.4 | with nothing set up, *Continue with Claude* opens the M77 wizard (`origin=TEACHING`) and completes the hand-off on Finish; Cancel leaves the teaching log and starts nothing | a dead end after the teaching conversation | start the in-app mode without the wizard |
+| ★ A2.5 | the teaching conversation's recording: every fact a turn states re-derives from the bundled diamond log (`JourneyCatalogueTest` style); each step's record targets carry §6.4's digests; a substituted record withholds the step's turns and captions (E5) | a stale or hand-typed recording | edit a recorded number |
+| A2.6 | `OneDispatchModelTest`: no request path reads `TeachingLog`; the panel posts intents only | hand-placed dispatch | read the log in `PromptBuilder` |
+| ★ A2.7 | the band and the basis sentence appear only for a shipped teaching conversation whose definition matched the manifest's digest when it played (OD-79.24): a customer's own walk with a `recorded` conversation, ended by hand-off, gets neither, and a shipped conversation whose digest no longer matches gets neither | a customer's recording relabelled as {Product}'s teaching | gate the band on `conversation.kind == recorded` |
 
 **M79-3**
 
@@ -969,6 +1177,7 @@ Headless unless marked *frame* (a registered frame suite under Xvfb in CI). Each
 | ★ A4.3 | the whole quest with the profile `OFF` and no network | a hidden AI or network dependency | require an assistant for hint 3 |
 | ★ A4.4 | the manifest does not name the answer's index; the answer is salted and equals `883c529b…`; the manifest's log SHA-256 equals `8a2817ee…` | a spoiler in the jar, a re-run substituted for the pinned one | store the unsalted digest; or ship a re-run log |
 | ★ A4.5 | teacher mode on the onboard route: a flag on the answer record made by the onboard Claude Code session (through the hosted bridge, which reaches the socket entrance) leaves the quest open and shows *"Your AI client flagged this — try it yourself"*; the person's own flag then solves it (OD-79.17) | the onboard teacher solving the learner's quest | let a bridge flag solve it |
+| ★ A4.6 | **flags are byte-identical across the migration** (§9.2): for the demo fixture, a fixed script of flags set by the F key and by the socket (`flag {recordIndexes}`, `flag {byteOffsets, note}`) yields the same bytes before and after M79-4 for the `flag` verb's schema and reply, `context.flags`, the saved session-resume `findings` list, and a recovery's restored flags and outcome line (the before-bytes captured from `main` as a golden file in the PR) | the rule-9 migration changing what the customer's tools read or what a saved session restores | add the record digest to `context.flags` entries, or to `Finding.toMap()` |
 
 **M79-5**
 
@@ -984,9 +1193,11 @@ Headless unless marked *frame* (a registered frame suite under Xvfb in CI). Each
 |---|---|---|---|
 | ★ A6.1 | **Connect your own Claude** opens the wizard at 2b with Claude Code chosen and nothing applied; it shows the same confirmations as M77-3 (no consent skipped) | a shortcut around M77's consents | apply external access on the button press |
 | ★ A6.2 | after the live check ✓, the Summary's first action is the pack's first entry; the pack is words only (`PromptPack` parses it, with no example entry) | a pack that runs something | an entry with a link |
-| ★ A6.3 | `BridgeInstructionsTest`: the added paragraph says to call `analyser_context` first and carries the confirmed reading rules (the first two now; the third only once the probe confirms it), within 70 words; the rest of `INSTRUCTIONS` is byte-identical to today's; `context` with no learning activity is byte-identical to today's reply | the teacher not pointed at the project; a token-heavy or drifting instruction; a protocol change leaking to the customer | drop the sentence; or emit an empty `learning` object |
-| ★ A6.4 | `teach-fluxtion` skill: frontmatter served in `context.runbooks[]`; its prediction step checks with `goto`/`spotlight`, never by assertion (the capture-conversations harness transcript, SC-T11) | a teacher that tells instead of checking | a skill step that states record [3]'s answer |
+| ★ A6.3 | `BridgeInstructionsTest`: the added paragraph says to call `analyser_context` first and carries the reading rules of §11.6(a), within 70 words, edge rule first and with no callback-mechanics clause (OD-79.20); the rest of `INSTRUCTIONS` is byte-identical to today's; `context` with no learning activity is byte-identical to today's reply; and `context.learning` is present both with no log loaded at all (the fresh-start early return, §11.6 c) and with the quest's bundle open and none of the person's own logs loaded | the teacher not pointed at the project; a token-heavy or drifting instruction; a protocol change leaking to the customer | drop the sentence; or emit an empty `learning` object |
+| ★ A6.4 *(periodic, measured)* | `teach-fluxtion` skill: frontmatter served in `context.runbooks[]`; its prediction step checks with `goto`/`spotlight`, never by assertion (the capture-conversations harness transcript, SC-T11) | a teacher that tells instead of checking | a skill step that states record [3]'s answer |
 | ★ A6.5 | learner progress: `context.learning` and the *Learning* row render the same snapshot; a socket flag on the answer record leaves the quest unsolved and shows *"Your AI client flagged this — try it yourself"* (OD-79.17; the same rule for the onboard route, A4.5) | a client completing the learner's quest | let a socket flag solve it |
+
+A6.4 is a **periodic, measured check, not a CI gate**: its transcript comes from a live client run under the capture harness (SC-T11), on the release-screenshot cadence. Its frontmatter half (served in `context.runbooks[]`) is a static check and runs in CI.
 
 ## 16. Owner decisions
 
@@ -997,7 +1208,7 @@ Headless unless marked *frame* (a registered frame suite under Xvfb in CI). Each
 | **OD-79.3** | The diamond log and GraphML ship inside the jar, like the DEMO set. | **Accepted** |
 | **OD-79.4** | A planted-bug teaching bundle, *the broken diamond*: a real run of a deliberately buggy commit, labelled as teaching; {Product}, never the model, confirms the right record by digest. | **Accepted** |
 | **OD-79.5** | **The pivot:** AI setup leaves the first launch; **supersedes M77 OD-77.1** (§3, with the reason). The wizard opens at the first Ask, Send or Start building; the start page offers AI only as a quiet line. | **Accepted; confirmed** |
-| **OD-79.6** | **The customer insight:** for developers who already use an AI client, the fastest path is their own Claude plus project context; the start page and packs make it first-class, as one action (M79-2). | **Accepted** |
+| **OD-79.6** | **The customer insight:** for developers who already use an AI client, the fastest path is their own Claude plus project context; the start page and packs make it first-class, as one action (M79-6; r5 said M79-2, from before r4 moved the external kit). | **Accepted** |
 | **OD-79.7** | The graph is centre stage **only during walks and first contact**; the records table stays the main view for investigation, because the paying customer's developers use it daily. The toggle is `walkPlayback`'s (rule 9). **Revisitable** (*"we can always change"*). | **Accepted** |
 | **OD-79.8** | Colleague follow-on (§13): harmless rows default to Yes, which maps onto M15's existing ticked categories; consequential rows (AI mode, external access, fetching an example) start at No and only preselect the M77 wizard or the download confirmation. | **Accepted** |
 | **OD-79.9** | Colleague follow-on: provenance shown as *"says it is from …"* plus a short sha256 fingerprint; signing is one later decision for settings files, packs, starters and bundles together. | **Accepted** |
@@ -1021,15 +1232,26 @@ Headless unless marked *frame* (a registered frame suite under Xvfb in CI). Each
 
 | # | Question | Recommendation | Owner (2026-10-18) |
 |---|---|---|---|
-| **OD-79.11** | The *Start here* page's doors (§10) against the approved DOCS-IA nav, which already has a `start-here.md` with four or five doors: M79's three, or DOCS-IA's? (The page count is no longer M79's question: the restructure is DOCS-IA's.) | map onto DOCS-IA (it is approved and its audit is the newer evidence about the docs); keep *Learn / Investigate / Build* as the app's words and make DOCS-IA's *Diagnose* door read *Investigate* | **Accepted** (owner, 2026-10-18): the doors map onto DOCS-IA's |
-| **OD-79.12** | M79-6's added sentence in the bridge `instructions`, which the customer's external Claude reads at every connect (§11) | add it; it changes no verb or reply, and it is what their developers' prompts already do | **Accepted**: the ~60-word addition, with the third reading rule held out until the empirical probe confirms it (§11.6 a) |
+| **OD-79.11** | The *Start here* page's doors (§10) against the approved DOCS-IA nav, whose home page (`index.md`) has four doors and whose new `start-here.md` outline has four task cards and an administrators' line: M79's three, or DOCS-IA's? (The page count is no longer M79's question: the restructure is DOCS-IA's.) | map onto DOCS-IA (it is approved and its audit is the newer evidence about the docs); keep *Learn / Investigate / Build* as the app's words and make DOCS-IA's *Diagnose* door read *Investigate* | **Accepted** (owner, 2026-10-18): the doors map onto DOCS-IA's |
+| **OD-79.12** | M79-6's added sentence in the bridge `instructions`, which the customer's external Claude reads at every connect (§11) | add it; it changes no verb or reply, and it is what their developers' prompts already do | **Accepted**: the ~60-word addition, with the third reading rule held out until the empirical probe confirms it (§11.6 a). *r6: the probe confirmed it, and OD-79.20 keeps it out of the text as mechanics; the paragraph is composition-first.* |
 | **OD-79.13** | Should the Investigate and Build doors also set *Work mode* (§5.4)? | not in M79; a door opens a thing, the posture stays the person's | **Accepted**: doors do not set the work mode |
 | **OD-79.14** | Step 4's *"That is proof, not silence"* against M76's ban on *proof* (D-7) | keep it, conditioned: M76's rule becomes *absence is proof only in a traced record*, which is the format spec's rule | **Accepted**: keep *proof*, for traced records only |
 | **OD-79.15** | The first-run condition (§5.1): a fresh config **and** no recent project, file or bundle, not *no recent project* alone | yes; it is what protects the paying customer's developers on upgrade | **Accepted**: the stricter first-run condition is confirmed |
 | **OD-79.16** | A first-minute-only session is not offered for recovery (§5.1) | yes | **Accepted**: no recovery offer for a diamond-only session |
 | **OD-79.17** | Teacher mode: only the person's own flag solves the quest; a client's flag shows *"Your AI client flagged this — try it yourself"* (§11.6 d) | yes (the lead's recommendation) | **Accepted**: only the person's own flag solves the quest; a flag from an AI client or the onboard session reads *"your AI client flagged this — try it yourself"*; both routes |
-| **OD-79.19** | May a dropped pack carry its own recorded conversation, or only name a lesson shipped in the jar (§11.3)? | only a shipped lesson in v1: an untrusted file's *Recorded* label is the exporter's claim, which {Product} cannot check; a pack's own conversation, if allowed later, plays as *declared recorded* | **Accepted**: in v1 a pack may only name a lesson shipped in the jar; a pack's own recorded conversations come later, with signing |
+| **OD-79.19** | May a dropped pack carry its own recorded conversation, or only name a teaching conversation shipped in the jar (§11.3)? | only a shipped teaching conversation in v1: an untrusted file's *Recorded* label is the exporter's claim, which {Product} cannot check; a pack's own conversation, if allowed later, plays as *declared recorded* | **Accepted**: in v1 a pack may only name a teaching conversation shipped in the jar; a pack's own recorded conversations come later, with signing |
 | **OD-79.18** | N2, a recorded diagnosis session of the broken diamond, as a follow-on (§14) | — (the lead proposes it) | **Accepted**: it needs one live capture run on the owner's plan, under an isolated home |
+
+**Raised by the second independent review, decided** (owner, 2026-10-18; each accepted as the review recommended):
+
+| # | Decision | Review's recommendation and reason | Owner (2026-10-18) |
+|---|---|---|---|
+| **OD-79.20** | **Composition-first teaching** (the review's B1): re-centre the teaching conversation, the `teach-fluxtion` skill and `INSTRUCTIONS` on how a graph is composed (§11.7): edges are declared parents; membership is declared; the returned boolean decides propagation; silence is not *did not run* unless traced. The `@AfterEvent` detail becomes a secondary note | yes, and drop the mechanics framing from `INSTRUCTIONS`: a newcomer learns what they declare before how the dispatcher runs it, and every connect pays for each word | **Accepted**. Applied in §11.1, §11.6 a–b and §11.7, led by the Spring XML contract. The review's wording of the membership rule (*a bean in no list is not in the graph*) is corrected to the contract's (§11.7 rule 2) |
+| **OD-79.21** | **Spring XML beside the topology, for the generic domain only**: the generic walk re-pinned to the Spring-authored run at the same pin; Spring variants for the other four domains deferred | yes: the XML is the composition, so showing it beside the graph it produced teaches rule 1 by sight; one domain keeps the change small | **Accepted**. §4 D-1, §5.2, §6.4 (the files exist at `24d6d74`: log `6291ba05…`, GraphML `7ebd36b0…`, byte-identical to the builder run's, XML `f050de05…`; record digests recomputed) |
+| **OD-79.22** | **The name clash with M75's *lesson*** (`.lesson.md`, `read:`): rename M79-2's artifact | yes: two features under one word, in one pack format, would confuse both the docs and the parser | **Accepted**. Renamed the **teaching conversation** throughout (§11 opening gives the check against existing terms): `teach:`, `TeachingLog`, origin `TEACHING`, *Teach me the diamond* |
+| **OD-79.23** | **Split M79-1a** into 1a-i (the generic domain only, one hand-written walk) and 1a-ii (the four other domains, the tiles and the caption template) | yes: 1a was the largest PR, and the template and tiles are separable from the first minute itself | **Accepted** (§17) |
+| **OD-79.24** | **Gate the passive-log band and the fixed basis sentence on a shipped, digest-verified teaching conversation**, not on `conversation.kind` | yes, so that a customer's own recorded walks are never relabelled in {Product}'s words | **Accepted** (§11.1 item 6, §11.3, A2.7) |
+| **OD-79.25** | **The private-repository Settings-share category** (§13) needs its own security review before it is accepted (the review's M9) | yes: it builds and may run `git` commands from a received file under the person's credentials | **Accepted** (§13) |
 
 **The key questions, decided** (owner, 2026-10-18):
 - **Interpreted (non-AOT) Fluxtion also requires the key. There are no keyless runs**: that is the commercial moat.
@@ -1046,14 +1268,15 @@ Generated `SessionProcessor` lines are not counted. Each PR is a reviewed featur
 
 | PR | Content | After | Size |
 |---|---|---|---|
-| **M79-1a — the first minute** | `firstMinute` (with `sessionRecovery` as a parent); `Launch.FIRST_MINUTE`; `stage`, `origin`, autoplay advance, the record-basis caption rule and first contact in `walkPlayback`; the **new topology-centre layout** (the canvas moves out of the right-hand tabs); `WalkReelRecorder` onto the advance effect; the diamond set, its manifest and digest-checked extraction; one caption template filled per domain, played through the generalised journey effect; the five tiles; the end card; no recovery offer for a first-minute session; A1.1–A1.5, A1.7–A1.10 | D-1, D-6, D-7 | **L** |
-| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,322 lines today), the collapse, the visible-label changes and constants, the short AI line (or D-3's fallback); A1.6 | M79-1a; coordinate with M77-2 and M77-4, which change the same page | **M** |
-| **M79-2 — the teaching session in the onboard assistant** (phase 2, owner) | the lesson as a shipped walk with a recorded conversation, its real capture (the `capture-conversations` extension) and its re-derivation test; the pack's `lesson:` entry; *Continue with Claude* (`AssistantHandoffRequested(origin=LESSON)` for in-app and Claude Code, the wizard branch); `LessonLog` and its read-only band; the basis sentence; A2.1–A2.6 | M79-1a; M77-2 for the wizard branch (D-4) | **L** |
+| **M79-1a-i — the first minute, generic domain** | `firstMinute` (with `sessionRecovery` as a parent); `Launch.FIRST_MINUTE` and `LogOpened.launch`; `stage`, `origin`, autoplay advance, the record-basis caption rule and first contact in `walkPlayback`; the **new topology-centre layout** (the canvas moves out of the right-hand tabs), with the generic design beside it (OD-79.21); `WalkReelRecorder` onto the advance effect; the generic Spring-authored run, its XML and GraphML, the manifest and digest-checked extraction; **one hand-written generic walk** (§5.2), played through the generalised journey effect; the end card; no recovery offer for a first-minute session; A1.1–A1.3, A1.5 and A1.7–A1.10 for the generic domain | D-1, D-6, D-7 | **L** |
+| **M79-1a-ii — the four other domains** | the mathematics, accounting, logistics and trading runs and GraphMLs; the caption template filled from each GraphML's structure (§6.3); the five tiles and `firstMinute.domain`; A1.4, and A1.5 per domain | M79-1a-i | **M** |
+| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,358 lines on `feature/m78-d2-one-chip`), the collapse, the visible-label changes and constants, the short AI line (or D-3's fallback); A1.6 | M79-1a-i; coordinate with M77-2 and M77-4, which change the same page | **M** |
+| **M79-2 — the teaching conversation in the onboard assistant** (phase 2, owner) | the teaching conversation as a shipped walk with a recorded conversation, its real capture (the `capture-conversations` extension) and its re-derivation test; the pack's `teach:` entry; *Continue with Claude* (`AssistantHandoffRequested(origin=TEACHING)` for in-app and Claude Code, the wizard branch); `TeachingLog` and its read-only band; the basis sentence; A2.1–A2.7 | M79-1a-i; M77-2 for the wizard branch (D-4) | **L** |
 | **M79-3 — quiet evidence wording** | the three-state chip, `EvidenceChipLines`, the details popover; **the metadata observation moved into the session** (§8.1, rule 9); the accessible descriptions (tooltips cut); A3.1–A3.4 | — | **M** |
-| **M79-4 — the broken-diamond quest** | the teaching bundle and quest manifest; **flags routed through the session** (a fact, a node, both entrances; §9.2); the `quest` node with teacher mode (OD-79.17); the quest card; A4.1–A4.5 | D-2 (published at `6bff0d67`), M79-1a | **L** |
+| **M79-4 — the broken-diamond quest** | the teaching bundle and quest manifest; **flags routed through the session** (a fact, a node, both entrances; §9.2); the `quest` node with teacher mode (OD-79.17); the quest card; A4.1–A4.6 | D-2 (published at `6bff0d67`), M79-1a-i | **L** |
 | **M79-5 — the docs front door** | *Start here*, its GIF and `DocsLabelParityTest` only (the restructure is DOCS-IA's); A5.1–A5.3 | M79-1b (labels, GIF); OD-79.11 | **S** |
 | **M79-6 — the external teacher kit** (phase 3 or later) | *Connect your own Claude* and its wizard `origin` (`START_CONNECT`); the shipped pack and its load fact; the Summary's first action (M77 §6.4 amended); the instructions paragraph after its rule-6 check and `BridgeInstructionsTest`; the `teach-fluxtion` skill (its quest step once M79-4 has merged); `context.learning` and the *Learning* row; A6.1–A6.5 | M79-2; **M77-3**; OD-79.12 | **M** |
-| **Total** | **7 PRs**, in the order below | | |
+| **Total** | **8 PRs**, in the order below | | |
 
 **Sizes, not days** (owner, 2026-10-18). S, M and L are relative: an L carries a new node or a migration of a
 surface the customer uses, an M extends existing nodes and surfaces, an S is docs and tests. Calendar-day estimates
@@ -1067,8 +1290,9 @@ computed in the frame). It also put the start-page rewrite, which collides with 
 into the first PR; it is split out as M79-1b so that the first minute can be reviewed on its own. **r3** (the lead's
 round 2) adds the teacher kit to phase 2 and teacher mode to the quest, and takes out the tooltips, four of the five
 hand-written walks and the docs restructure; the net change is small. **r4** (the owner's correction) makes phase 2 the onboard teaching session and moves the external kit
-to M79-6, adding the lesson's real capture and the hand-off. **Order:** M79-1a, M79-1b, M79-2, M79-3, M79-4, M79-5,
-then M79-6 (phase 3 or later, any time after M79-2).
+to M79-6, adding the teaching conversation's real capture and the hand-off. **r6** (the second review) splits M79-1a into 1a-i and 1a-ii (OD-79.23), so the first minute can ship on the
+generic domain while the template and the tiles follow. **Order:** M79-1a-i, M79-1b, M79-1a-ii, M79-2, M79-3, M79-4,
+M79-5, then M79-6 (phase 3 or later, any time after M79-2). M79-1a-ii may land any time after M79-1a-i.
 
 ## 18. Public-repo rules for every M79 asset (rule 1)
 
@@ -1136,3 +1360,25 @@ then M79-6 (phase 3 or later, any time after M79-2).
   analogy legend stays because it runs nothing; *Make the diamond yours* needs a key; a teaching-scoped hosted key is
   the preferred entry to paid usage, a commercial follow-on. §17 gives relative sizes (S/M/L) instead of days; the
   7 PRs and their order are unchanged.
+- **r6, 2026-10-18** — **the second independent review**, folded in place, with the owner's answers to the six
+  decisions it raised. The reviewer's report (findings M1–M9, N1–N5 and B1, on r5 at `6ca55014`) went to the lead
+  and is not in the repo; this revision is the commits after `6ca55014` on `docs/m79-first-minute`. Every claim was
+  re-checked against `feature/m78-d2-one-chip`, `feature/claude-code-p3`, `feature/m77-4-coexistence`, the
+  `fluxtion-diamond` pin and the public Spring authoring pages before it was written. **Corrected:** §5.4's start-page
+  baseline (4 groups and 10 chips; *Connect an assistant* is gone) and the AI line's six states (*your own client*
+  was missing), with A1.6's witness now naming code that exists (M1); the launch carrier, `LogOpened.launch`, since
+  no session fact carries `OpenRequest.Launch` today (M2); §3's `stage` row (a walk-level `WalkSpec` field, not the
+  step allow-list, M4); OD-79.6's phase (M79-6, M5); OD-79.11's description of DOCS-IA (the four doors are
+  `index.md`'s; `start-here.md` is a new page with four task cards and an administrators' line, N1); D-7's M76 clash
+  (wording policy, not a test collision, N2). **Added:** A4.6, flags byte-identical across the M79-4 migration (M6);
+  the `context()` early-return hazard and an A6.3 case for it (M7); the `@AfterEvent` probe's confirmed result, with
+  `claude.txt` line 206 recorded as wrong and the upstream notes UP-FLX-56–58 cross-referenced (M8); A6.4 labelled a
+  periodic, measured check (N3); A2.7. **Accepted by the owner:** OD-79.20–.25, applied: composition-first teaching led
+  by the Spring XML contract, with the dialect, its two tiers of checking and its template generation stated from
+  the public contract (§11.7); the generic run re-pinned to its Spring-authored twin, whose files and record digests
+  are in §6.4; *lesson* renamed the **teaching conversation**; M79-1a split into 1a-i and 1a-ii (8 PRs); the passive
+  log and basis sentence gated on a shipped, digest-verified conversation; a security review before the
+  private-repository category. *Make the diamond yours* is recorded as skill.md's six-step design conversation.
+  **Found wrong in the review when checked:** the membership rule's short form (*a bean in no list is not in the
+  graph*; a referenced bean is in it); N1's *start-here.md is new* is right, but its outline does carry four cards;
+  N4's *17 verbs* is already *18* in ONBOARDING on this branch (only `main` still says 17). N5 left as it was.
