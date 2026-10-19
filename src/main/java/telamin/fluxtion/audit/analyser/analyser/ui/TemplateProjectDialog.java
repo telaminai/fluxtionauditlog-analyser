@@ -55,7 +55,7 @@ final class TemplateProjectDialog {
         private Progress(Component owner, String message, Runnable onCancel) {
             dialog = new JDialog(javax.swing.SwingUtilities.getWindowAncestor(owner),
                     "New project from template", Dialog.ModalityType.MODELESS);
-            JLabel label = new JLabel(message);
+            JLabel label = UiText.label(message);
             JProgressBar bar = new JProgressBar();
             bar.setIndeterminate(true);
             JButton cancel = new JButton("Cancel");
@@ -105,14 +105,15 @@ final class TemplateProjectDialog {
         }
         JList<TemplateCatalogue.Entry> list = new JList<>(selection.entries().toArray(TemplateCatalogue.Entry[]::new));
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        list.setCellRenderer(new DefaultListCellRenderer() {
+        // SF-2: the catalogue is downloaded — its names are not this code's words
+        list.setCellRenderer(UiText.plainRenderer(new DefaultListCellRenderer() {
             @Override public Component getListCellRendererComponent(JList<?> component, Object value, int index,
                                                                      boolean selected, boolean focus) {
-                JLabel label = (JLabel) super.getListCellRendererComponent(component, value, index, selected, focus);
+                JLabel label = UiText.plain((JLabel) super.getListCellRendererComponent(component, value, index, selected, focus));
                 if (value instanceof TemplateCatalogue.Entry entry) label.setText(entry.displayName());
                 return label;
             }
-        });
+        }));
         int initial = 0;
         for (int i = 0; i < selection.entries().size(); i++) {
             if (selection.entries().get(i).tagged("analyser")) {
@@ -124,7 +125,7 @@ final class TemplateProjectDialog {
         JTextArea description = textArea(selection.entries().get(initial).disclosure(), 10, 52);
         description.setBorder(BorderFactory.createEmptyBorder(8, 2, 8, 8));
         description.setBackground(UiTheme.surface());
-        JLabel selectedName = new JLabel(selection.entries().get(initial).displayName());
+        JLabel selectedName = UiText.label(selection.entries().get(initial).displayName());
         selectedName.setFont(selectedName.getFont().deriveFont(java.awt.Font.BOLD, 17f));
         list.addListSelectionListener(e -> {
             TemplateCatalogue.Entry chosen = list.getSelectedValue();
@@ -209,7 +210,7 @@ final class TemplateProjectDialog {
         c.anchor = GridBagConstraints.WEST;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.weightx = 0;
-        row(form, c, 0, "Template", new JLabel(template.name()), null);
+        row(form, c, 0, "Template", UiText.label(template.name()), null);
         row(form, c, 1, "Artifact", artifact, null);
         row(form, c, 2, "Group", group, null);
         row(form, c, 3, "Base package", basePackage, null);
@@ -233,7 +234,7 @@ final class TemplateProjectDialog {
         JLabel headingText = new JLabel("Set up your project");
         headingText.setFont(headingText.getFont().deriveFont(java.awt.Font.BOLD, 18f));
         heading.add(headingText, BorderLayout.NORTH);
-        heading.add(new JLabel("Template: " + template.displayName()), BorderLayout.SOUTH);
+        heading.add(UiText.label("Template: " + template.displayName()), BorderLayout.SOUTH);
         panel.add(heading, BorderLayout.NORTH);
         panel.add(form, BorderLayout.CENTER);
         panel.add(boundary, BorderLayout.SOUTH);
@@ -252,7 +253,7 @@ final class TemplateProjectDialog {
                 }
                 return new Choice(request, target, offerGuide && guide.isSelected());
             } catch (RuntimeException error) {
-                JOptionPane.showMessageDialog(owner, error.getMessage(), "Check project details",
+                JOptionPane.showMessageDialog(owner, UiText.inert(error.getMessage()), "Check project details",
                         JOptionPane.WARNING_MESSAGE);
             }
         }
@@ -295,7 +296,7 @@ final class TemplateProjectDialog {
         c.gridy = row;
         c.gridx = 0;
         c.weightx = 0;
-        panel.add(new JLabel(label + ":"), c);
+        panel.add(UiText.label(label + ":"), c);
         c.gridx = 1;
         c.weightx = 1;
         panel.add(field, c);

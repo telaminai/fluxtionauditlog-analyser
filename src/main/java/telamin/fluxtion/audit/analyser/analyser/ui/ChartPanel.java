@@ -607,9 +607,15 @@ public final class ChartPanel extends JPanel {
     @Override
     public String getToolTipText(MouseEvent e) {
         if (explanationBounds.contains(e.getPoint())) {
-            String text = String.join("<br>", annotationLines().stream().map(line -> line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")).toList());
+            String text = String.join("<br>", annotationLines().stream().map(UiText::escape).toList());
             return "<html><div width='600'>" + text + "</div></html>";
         }
+        // SF-2: every other tip starts with a series label, a marker's payload or a time — text an agent or a CSV
+        // authors, so it is shown as characters
+        return UiText.tooltip(plotTooltip(e));
+    }
+
+    private String plotTooltip(MouseEvent e) {
         if (Double.isNaN(vx0) || plotW <= 0) return null;
         if (e.getX() < plotX || e.getX() > plotX + plotW) return null;
         var mHit = markerAt(e.getX(), e.getY());
@@ -1111,6 +1117,28 @@ public final class ChartPanel extends JPanel {
      * writing down, and an annotation you have to leave the chart to add is one you mostly do not add.
      * The moment is taken from the cursor's x, so the note lands where you were looking.
      */
+    /** M74 P2 (§5.5 Q4, Q6): the Ask catalogue's chart items, built by the frame from the registry. */
+    private AskMenus askMenus = AskMenus.NONE;
+    private java.util.function.Supplier<String> chartName = () -> "";
+
+    public void setAskMenus(AskMenus menus, java.util.function.Supplier<String> name) {
+        this.askMenus = menus == null ? AskMenus.NONE : menus;
+        this.chartName = name == null ? () -> "" : name;
+    }
+
+    /** The number of the note whose pin is under {@code (x, y)}, or null — a number, never its words. */
+    private Integer noteNumberAt(int x, int y) {
+        for (var pin : notePins) {
+            java.awt.Rectangle b = new java.awt.Rectangle(pin.bounds());
+            b.grow(4, 4);
+            if (b.contains(x, y)) return pin.first();
+            for (int column : pin.columns()) {
+                if (Math.abs(x - (plotX + column)) <= 3) return pin.first();
+            }
+        }
+        return null;
+    }
+
     private void maybeNoteMenu(MouseEvent e) {
         if (!e.isPopupTrigger() || Double.isNaN(vx0)) {
             return;
@@ -1121,11 +1149,11 @@ public final class ChartPanel extends JPanel {
         long at = (long) pxToX(e.getX());
         javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
 
-        javax.swing.JMenuItem add = new javax.swing.JMenuItem(
+        javax.swing.JMenuItem add = UiText.menuItem(
                 "Add note at " + TimeFormat.utc(at) + "…");
         add.addActionListener(a -> {
             String text = javax.swing.JOptionPane.showInputDialog(this,
-                    "Note at " + TimeFormat.utc(at) + " UTC:", "Add note",
+                    UiText.inert("Note at " + TimeFormat.utc(at) + " UTC:"), "Add note",
                     javax.swing.JOptionPane.PLAIN_MESSAGE);
             if (text != null && !text.isBlank()) {
                 setNotes(notes.plus(new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
@@ -1153,13 +1181,19 @@ public final class ChartPanel extends JPanel {
 
         if (!notes.notes().isEmpty()) {
             menu.addSeparator();
-            javax.swing.JMenuItem clear = new javax.swing.JMenuItem(
+            javax.swing.JMenuItem clear = UiText.menuItem(
                     "Clear " + notes.notes().size() + " note(s)");
             clear.addActionListener(a -> {
                 setNotes(notes.withoutNotes());   // keeps the explanation: they are different statements
                 notesChanged.run();
             });
             menu.add(clear);
+        }
+        var asks = askMenus.forChart(chartName.get(), nearestSeriesLabel(e.getX(), e.getY()), at,
+                noteNumberAt(e.getX(), e.getY()), (long) vx0, (long) vx1);
+        if (!asks.isEmpty()) {
+            menu.addSeparator();
+            asks.forEach(menu::add);
         }
         menu.show(this, e.getX(), e.getY());
     }

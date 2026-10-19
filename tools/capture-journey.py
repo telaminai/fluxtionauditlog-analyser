@@ -77,7 +77,7 @@ def launch(popped_out):
                      "assistant.window.poppedOut": "true" if popped_out else "false",
                      "assistant.window.x": str(max(60, 1900 - SIDE_W)), "assistant.window.y": "60",
                      "assistant.window.w": str(SIDE_W), "assistant.window.h": str(MAIN_H)})
-    proc = subprocess.Popen(["java", f"-Duser.home={cd.HOME}", "-jar", str(cd.jar())],
+    proc = subprocess.Popen(["java", cd.home_arg(), "-jar", str(cd.jar())],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     cd._capture_process = proc
     for _ in range(40):
@@ -182,7 +182,7 @@ def open_received(ep, bundle):
     """Open a bundle as a recipient does (the evidence-bundle guide): --unpack, then the project, then log and graph."""
     work = ROOT / "received"
     work.mkdir(parents=True, exist_ok=True)
-    r = subprocess.run(["java", f"-Duser.home={cd.HOME}", "-jar", str(cd.jar()), "--unpack", str(bundle), "--into", str(work)],
+    r = subprocess.run(["java", cd.home_arg(), "-jar", str(cd.jar()), "--unpack", str(bundle), "--into", str(work)],
                        capture_output=True, text=True)
     if r.returncode != 0:
         sys.exit("the journey bundle was refused on unpack:\n" + r.stdout + r.stderr)
@@ -387,8 +387,8 @@ def write_page(f, turns, s, shown, verify, size, sha, members, images=True, dock
     lines += [
         "## Your own questions",
         "",
-        "The live assistant needs a provider of your own (Settings ▸ Assistant), or none at all if you connect a CLI "
-        "assistant instead — see [Connecting an LLM](../connect-an-llm.md). With no provider configured it sends "
+        "The live assistant needs a provider of your own (the *In-app assistant* card, or Settings ▸ LLM), or none at all if you connect a CLI "
+        "assistant instead — see [Connect your client](../connect-an-llm.md). With no provider configured it sends "
         "nothing, and says so:",
         "",
         "![The docked assistant with no provider configured](../assets/journeys/assistant-docked-no-provider.png)"

@@ -40,7 +40,14 @@ public final class LogTablePanel extends JPanel {
     private static final Color FLAG_L = new Color(0xADD9B1), FLAG_D = new Color(0x255A2C);
     private static final Color NODE_BAR = new Color(9, 105, 218, 55);   // translucent blue
 
+    /**
+     * Owner, 2026-10-18: the records table always shows at least this many rows under its header, however
+     * the Facts column is divided; {@link #getMinimumSize()} measures it from the table's real row height.
+     */
+    static final int MIN_VISIBLE_ROWS = 3;
+
     private final JTable table;
+    private JScrollPane scroll;
     private TableRowSorter<LogTableModel> sorter;
     private Consumer<int[]> selectionListener = rows -> { };
     private IntPredicate flagged = r -> false;
@@ -54,12 +61,42 @@ public final class LogTablePanel extends JPanel {
      * log changed after it was read. The request verbs refuse or label; the table went on painting as though nothing
      * had. It holds no verdict: the frame sets it from the session snapshot's file identity.
      */
-    private final javax.swing.JLabel identityBanner = new javax.swing.JLabel();
+    private final javax.swing.JLabel identityBanner = UiText.plain(new javax.swing.JLabel());   // SF-2: a verdict's reason names files
+
+    /** What an undo on the empty table asks for; the frame changes the filter. */
+    private Consumer<RecordsViewWords.Kind> emptyUndo = k -> { };
+
+    /**
+     * The empty table's statement: a real component (accessible, in the theme's muted ink, laid out rather than painted
+     * at a fixed spot) naming each filter that hides the records, each with its own undo. Rendered from the session's
+     * records-view counts by {@link #renderRecordsView}.
+     */
+    private final RecordsFilterBar emptyState = new RecordsFilterBar(RecordsFilterBar.Mode.EMPTY, k -> emptyUndo.accept(k));
 
     /**
      * What the table says for a file-identity verdict, or null for none. Only a CHANGE is stated: nothing observed, a
      * verified file and a log reopened after a replacement are all current.
      */
+    /**
+     * The height that shows {@link #MIN_VISIBLE_ROWS} rows: the panel's insets, the identity banner when it
+     * shows, the scroll pane's insets, the column header, three rows at the table's row height, and the
+     * horizontal scroll bar when the columns are wider than the view (the table does not auto-resize them).
+     * Measured from the components, so it follows the theme and the font size.
+     */
+    @Override
+    public java.awt.Dimension getMinimumSize() {
+        if (isMinimumSizeSet() || scroll == null) return super.getMinimumSize();
+        java.awt.Insets in = getInsets();
+        java.awt.Insets frame = scroll.getInsets();
+        int h = in.top + in.bottom + frame.top + frame.bottom + MIN_VISIBLE_ROWS * table.getRowHeight();
+        if (identityBanner.isVisible()) h += identityBanner.getPreferredSize().height;
+        if (emptyState.isVisible()) h += emptyState.getPreferredSize().height;
+        if (table.getTableHeader() != null) h += table.getTableHeader().getPreferredSize().height;
+        int view = scroll.getViewport().getWidth();
+        if (view == 0 || table.getPreferredSize().width > view) h += scroll.getHorizontalScrollBar().getPreferredSize().height;
+        return new java.awt.Dimension(100, h);
+    }
+
     static String identityBannerText(String verdict, String reason) {
         if (!"UNVERIFIED".equals(verdict) && !"REPLACEMENT".equals(verdict)) return null;
         return "⚠ " + (reason == null ? "the file behind this log changed after it was read" : reason)
@@ -69,9 +106,25 @@ public final class LogTablePanel extends JPanel {
     /** Show {@code note} above the rows, or hide the banner for null. Call on the EDT. */
     public void setIdentityNote(String note) {
         identityBanner.setText(note == null ? "" : note);
-        identityBanner.setToolTipText(note);
+        identityBanner.setToolTipText(UiText.tooltip(note));
         identityBanner.setVisible(note != null);
         revalidate();
+    }
+
+    /** Render the session's records-view counts (null: no log) into the empty table's statement. Call on the EDT. */
+    void renderRecordsView(telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts rv, String text) {
+        emptyState.render(rv, text);
+        revalidate();
+    }
+
+    /** Where the empty table's undo buttons send their request. */
+    void setEmptyStateUndo(Consumer<RecordsViewWords.Kind> undo) {
+        this.emptyUndo = undo == null ? k -> { } : undo;
+    }
+
+    /** The empty table's statement, for the frame's theme refresh and for tests. */
+    RecordsFilterBar emptyState() {
+        return emptyState;
     }
 
     /** The banner's text, or null while it is hidden. */
@@ -83,23 +136,11 @@ public final class LogTablePanel extends JPanel {
         super(new java.awt.BorderLayout());
         table = new JTable() {
             @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                if (getRowCount() == 0) {
-                    g.setColor(java.awt.Color.GRAY);
-                    String msg = getModel().getRowCount() == 0
-                            ? "No log loaded — Audit log ▸ Open log…, drag a file in, or Audit log ▸ Open log from S3"
-                            : "No records match the current filter";
-                    g.drawString(msg, 24, 40);
-                }
-            }
-
-            @Override
             public String getToolTipText(java.awt.event.MouseEvent e) {
                 int view = rowAtPoint(e.getPoint());
                 if (view >= 0) {
                     String note = noteProvider.apply(convertRowIndexToModel(view));
-                    if (note != null && !note.isBlank()) return note;
+                    if (note != null && !note.isBlank()) return UiText.tooltip(note);   // SF-2: an assistant's flag note
                 }
                 return super.getToolTipText(e);
             }
@@ -119,6 +160,7 @@ public final class LogTablePanel extends JPanel {
                 return c;
             }
         };
+        UiText.plainCells(table);    // SF-2: the cells are the log's own text (event types, node ids, values)
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.setFillsViewportHeight(true);
@@ -129,11 +171,16 @@ public final class LogTablePanel extends JPanel {
             for (int i = 0; i < viewRows.length; i++) modelRows[i] = table.convertRowIndexToModel(viewRows[i]);
             selectionListener.accept(modelRows);
         });
-        add(new JScrollPane(table), java.awt.BorderLayout.CENTER);
+        scroll = new JScrollPane(table);
+        add(scroll, java.awt.BorderLayout.CENTER);
         identityBanner.setVisible(false);
         identityBanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
         identityBanner.setForeground(UiTheme.warnForeground());       // theme-aware, light and dark
-        add(identityBanner, java.awt.BorderLayout.NORTH);
+        JPanel north = new JPanel(new java.awt.BorderLayout());
+        north.setOpaque(false);
+        north.add(identityBanner, java.awt.BorderLayout.NORTH);
+        north.add(emptyState, java.awt.BorderLayout.SOUTH);
+        add(north, java.awt.BorderLayout.NORTH);
         // the "Records" section header lives on the wrapping area (above the Search row) — see MainFrame
         javax.swing.ToolTipManager.sharedInstance().registerComponent(table);   // enable per-row note tooltips
 
@@ -276,6 +323,7 @@ public final class LogTablePanel extends JPanel {
 
     private void installRenderers() {
         DefaultTableCellRenderer time = new DefaultTableCellRenderer() {
+            { UiText.plain(this); }
             @Override
             protected void setValue(Object value) {
                 setText(value instanceof Long l ? TimeFormat.utc(l) : "");
@@ -287,8 +335,8 @@ public final class LogTablePanel extends JPanel {
         setRenderer(LogTableModel.COL_NODE_LOGS, new NodeBarRenderer());
     }
 
-    private void setRenderer(int col, TableCellRenderer r) {
-        table.getColumnModel().getColumn(col).setCellRenderer(r);
+    private void setRenderer(int col, DefaultTableCellRenderer r) {
+        table.getColumnModel().getColumn(col).setCellRenderer(UiText.plain(r));
     }
 
     private void sizeColumns() {
@@ -340,6 +388,7 @@ public final class LogTablePanel extends JPanel {
         private double ratio;
 
         NodeBarRenderer() {
+            UiText.plain(this);
             setHorizontalAlignment(SwingConstants.RIGHT);
         }
 

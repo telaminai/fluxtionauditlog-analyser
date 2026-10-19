@@ -42,12 +42,19 @@ After installation, run `analyser [optional-log-file]` from your PATH.
 java -jar fluxtion-auditlog-analyser.jar --rest        # or: jbang analyser@telaminai/fluxtionauditlog-analyser --rest
 ```
 
-`--rest` opens the app with the **localhost REST transport on**, so a process can drive it on a machine
-that has never run the analyser. On a first run it prints where the REST endpoint file is, rather than
-expecting anyone to read the screen. The setting persists (Settings ▸ Assistant shows it on; turn it off
-there) and the console says so. It is what an agent runs on a fresh machine before its MCP client
-connects; a human launch without the flag is unchanged — and neither one opens a dialog before you can
-use the app.
+`--rest` opens the app with **External MCP/REST access on**, so a process can drive it on a machine
+that has never run the analyser. The setting persists (*Settings ▸ Assistant ▸ External MCP/REST access*
+shows it on; turn it off there), and when the flag has just turned it on the console says so. It is what an
+agent runs on a fresh machine before its MCP client connects; a human launch without the flag is
+unchanged — and neither one opens a dialog before you can use the app.
+
+What the console prints: the URL and only the token's **first 8 characters**
+(`[analyser] assistant REST: http://127.0.0.1:… (token 1a2b3c4d…)`), plus, on a first run with no
+configuration yet, where the endpoint file is. The full token is never printed. **Automation reads the
+token from `~/.fluxtion-analyser/rest-endpoint`** — mode 600, `{url, token, pid, startedAt}`, rewritten with
+a fresh token on every launch — and checks that `pid` is a live process before trusting it (a crashed
+analyser can leave a stale file). An MCP client needs none of this: its bridge reads the file itself. See
+[Scripts and CI over REST](diagnose/rest-automation.md).
 
 ## Plain download
 
@@ -74,8 +81,9 @@ java -jar target/fluxtion-auditlog-analyser-*.jar [optional-log-file]
 - Pass a path (local or `s3://…`) as the first command-line argument.
 
 **First run:** the **start page** opens — no configuration dialog appears. It offers a demo set that
-ships in the jar, so you can be looking at real records in one click, and it links to *Connect an AI
-client* when you want an LLM driving the analyser. Point it at your own source roots and event processor
+ships in the jar, so you can be looking at real records in one click, and its AI block asks how you want AI to work
+with the analyser — **Set up AI…** sets up Claude inside the analyser, your own AI client (the local bridge), both, or
+none. Point it at your own source roots and event processor
 whenever you like, from **Project ▸ Settings** or a project profile — see
-[Getting started](getting-started.md). No log yet? Grab the
+[Open your own log, step by step](getting-started.md). No log yet? Grab the
 [sample audit log](assets/sample-audit-log.yaml).

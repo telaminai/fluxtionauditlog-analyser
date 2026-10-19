@@ -505,10 +505,11 @@ class ProjectModelTest {
         ctx.put("handoff", telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff
                 .toContext(null, null, false));
 
-        ProjectModel.Row row = rowStarting(ProjectModel.from(ctx), "posture:");
+        ProjectModel.Row row = rowStarting(ProjectModel.from(ctx), "Work mode:");
 
-        assertEquals("posture: research/support", row.primary());
-        assertTrue(row.secondary().contains("starting guess"), row.secondary());
+        // owner feedback (2026-10-17): the person reads "Work mode: Investigate"; context keeps research/support
+        assertEquals("Work mode: Investigate", row.primary());
+        assertEquals("guessed from what is open; change it in AI ▸ Work mode", row.secondary());
         assertEquals(ProjectModel.Tone.MUTED, row.tone(), "a guess is not dressed as a decision");
     }
 
@@ -528,10 +529,10 @@ class ProjectModelTest {
 
         ProjectModel m = ProjectModel.from(ctx);
 
-        ProjectModel.Row posture = rowStarting(m, "posture:");
-        assertEquals("posture: authoring/deploy", posture.primary());
+        ProjectModel.Row posture = rowStarting(m, "Work mode:");
+        assertEquals("Work mode: Build", posture.primary());
         assertTrue(posture.secondary().contains("set by action socket"), posture.secondary());
-        assertTrue(posture.secondary().contains("would suggest research/support"),
+        assertTrue(posture.secondary().contains("would suggest Investigate"),
                 "the person sees that the agent's setting disagrees with what is open: " + posture.secondary());
         ProjectModel.Row rec = rowStarting(m, "mode-selector record");
         assertTrue(rec.secondary().contains("modes 0+ + 2/3"), rec.secondary());
@@ -541,7 +542,7 @@ class ProjectModelTest {
 
     @Test
     void withNoHandoffInContext_thePanelAddsNoRow_soOlderContextsRenderAsBefore() {
-        assertNull(rowStarting(ProjectModel.from(empty()), "posture:"));
+        assertNull(rowStarting(ProjectModel.from(empty()), "Work mode:"));
         assertNull(rowStarting(ProjectModel.from(empty()), "mode-selector record"));
     }
 

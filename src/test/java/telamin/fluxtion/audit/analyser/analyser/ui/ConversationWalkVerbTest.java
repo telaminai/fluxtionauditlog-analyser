@@ -117,9 +117,9 @@ class ConversationWalkVerbTest {
     void aNewerVersionIsRefused() {
         WalkVerbTest.Rig rig = new WalkVerbTest.Rig();
         Map<String, Object> v2 = new HashMap<>(dialogue());
-        v2.put("version", 2);
+        v2.put("version", 3);   // M74 P2b: v2 is this build's (§6); 3 is the newer one
         ActionResult r = new WalkVerb(rig).run(call("name", "j", "steps", steps("t1"), "conversation", v2));
         assertFalse(r.ok());
-        assertTrue(r.error().contains("version 2 is not supported"), r.error());
+        assertTrue(r.error().contains("version 3 is not supported"), r.error());
     }
 }

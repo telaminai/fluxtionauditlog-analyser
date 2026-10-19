@@ -169,11 +169,14 @@ public record ProjectModel(List<Section> sections) {
         Map<String, Object> posture = map(handoff.get("posture"));
         if (posture.get("value") != null) {
             boolean set = "set".equals(posture.get("source"));
+            // owner feedback (2026-10-17): the person reads "Work mode: Investigate / Build"; context keeps its words
             String detail = set
                     ? "set by " + posture.get("setBy") + (posture.get("derivedWouldBe") == null ? ""
-                            : " · what is open would suggest " + posture.get("derivedWouldBe"))
-                    : "derived from what is open — a starting guess; AI ▸ Posture sets it";
-            rows.add(new Row("posture: " + posture.get("value"), detail, null, "this session",
+                            : " · what is open would suggest " + telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff
+                            .Posture.wordsFor(str(posture.get("derivedWouldBe"))))
+                    : "guessed from what is open; change it in AI ▸ Work mode";
+            rows.add(new Row("Work mode: " + telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.Posture
+                    .wordsFor(str(posture.get("value"))), detail, null, "this session",
                     set ? Tone.NORMAL : Tone.MUTED, Target.NONE));
         }
         Map<String, Object> record = map(handoff.get("record"));

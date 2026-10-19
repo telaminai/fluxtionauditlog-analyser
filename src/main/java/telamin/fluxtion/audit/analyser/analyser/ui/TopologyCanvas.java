@@ -651,20 +651,21 @@ public final class TopologyCanvas extends JPanel {
         if (box == null) return null;
         ProcessorTopology.Node node = topology.node(box.id());
         if (node == null) return null;
-        String className = node.className() == null ? "" : "<br>" + node.className();
-        String claim = "";
-        ProcessorTopology.Execution ran = execution.get(box.id());
-        if (ran != null) claim = "<br><br>" + describe(ran);
-        String doc = "";
-        if (docLookup != null) {
-            String summary = docLookup.apply(node);
-            // the class javadoc says what the node IS; the execution claim says what it DID this cycle.
-            // Both belong here and neither substitutes for the other.
-            if (summary != null && !summary.isBlank()) {
-                doc = "<br><br>" + escape(summary);
-            }
-        }
-        return "<html><b>" + node.id() + "</b>" + className
+        return nodeTooltip(node, execution.get(box.id()), docLookup == null ? null : docLookup.apply(node));
+    }
+
+    /**
+     * A node's tooltip: the analyser's own markup around the node's words. SF-2: the id and class come from a GraphML
+     * file or a log and are escaped — the id was spliced in raw, so a node named {@code <img src=…>} was fetched on
+     * hover.
+     */
+    static String nodeTooltip(ProcessorTopology.Node node, ProcessorTopology.Execution ran, String summary) {
+        String className = node.className() == null ? "" : "<br>" + UiText.escape(node.className());
+        String claim = ran == null ? "" : "<br><br>" + describe(ran);
+        // the class javadoc says what the node IS; the execution claim says what it DID this cycle.
+        // Both belong here and neither substitutes for the other.
+        String doc = summary == null || summary.isBlank() ? "" : "<br><br>" + escape(summary);
+        return "<html><b>" + UiText.escape(node.id()) + "</b>" + className
                + "<br><i>" + node.kind().name().toLowerCase().replace('_', ' ') + "</i>"
                + doc + claim + "</html>";
     }

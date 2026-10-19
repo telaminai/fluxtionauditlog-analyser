@@ -46,6 +46,10 @@ public final class ConfigStore {
         c.logFile = nz(p.getProperty("logFile"));
         c.graphmlFile = nz(p.getProperty("graphmlFile"));
         readList(p, "sourceRoot", c.sourceRoots);
+        // P5: the analyser's own settings cannot carry a tier-1 root in either (a hand edit, an older version)
+        List<String> allowed = SourceRootPolicy.keepAllowed(c.sourceRoots, SourceRootPolicy.home(), null);
+        c.sourceRoots.clear();
+        c.sourceRoots.addAll(allowed);
         c.llmProvider = p.getProperty("llmProvider", c.llmProvider);
         c.llmModel = p.getProperty("llmModel", c.llmModel);
         c.llmBaseUrl = p.getProperty("llmBaseUrl", c.llmBaseUrl);
@@ -96,8 +100,9 @@ public final class ConfigStore {
         readReports(p, c.reports);
         readDeletedReports(p, c.deletedReports);   // PR #33: machine-local, never in a profile or an export
         readRecentBundles(p, c.recentBundles);     // #73: machine-local, like the other recent lists
-        readWalks(p, c.walks);                     // M69: beside reports, same tier
+        readWalks(p, "walk", c.walks, null, c.walkBindingNotes);   // M69: beside reports, same tier
         readDeletedWalks(p, c.deletedWalks);       // M69: machine-local, like the report bin
+        readDeletedCharts(p, c.deletedCharts);     // 2026-10-18: machine-local, like the report and walk bins
         readRunbooks(p, c.runbooks);
         c.vocabularyPath = readVocabulary(p).orElse("");
         readEnvironments(p, c.environments);
@@ -110,6 +115,28 @@ public final class ConfigStore {
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
         // M73 D-73.7: machine tier only — this file is the one place it is read
         c.assistantCreateProjects = parseBool(p.getProperty("assistant.createProjects"), c.assistantCreateProjects);
+        // M74 §5.1: machine tier only — this file is the one place any of them is read
+        c.claudeCodeAllowed = parseBool(p.getProperty("assistant.claudeCode"), c.claudeCodeAllowed);
+        c.claudeCodeFull = parseBool(p.getProperty("assistant.claudeCode.full"), c.claudeCodeFull);
+        // assistant.claudeCode.warmStart: warm start was cut (owner, 2026-10-17). A stored key is ignored here, and
+        // dropped on the next write (the assistant family is owned, so it is not carried over)
+        String storedMode = p.getProperty("assistant.claudeCode.full.mode");
+        c.claudeCodeFullMode = fullMode(storedMode);
+        c.claudeCodeFullModeReadAsDefault = storedMode != null && !storedMode.isBlank()
+                && !storedMode.trim().equalsIgnoreCase(c.claudeCodeFullMode);
+        c.claudeCodeModel = p.getProperty("assistant.claudeCode.model", c.claudeCodeModel);
+        // M74 P2 (OD-74.23): the remembered mode, machine tier; anything but the two modes reads as in-app
+        c.claudeCodeLastMode = "LOCAL_AGENT".equals(p.getProperty("assistant.claudeCode.lastMode")) ? "LOCAL_AGENT" : "IN_APP";
+        c.assistantProfile = telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.parse(
+                p.getProperty("assistant.claudeCode.profile")).stored();
+        // M77 (§14.1): machine tier only — this file is the one place either is read
+        c.assistantSetupDismissed = parseBool(p.getProperty("assistant.setup.dismissed"), c.assistantSetupDismissed);
+        c.assistantSetupClient = telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.parse(
+                p.getProperty("assistant.setup.client")).stored();
+        c.claudeCodeBudgetUsd = budget(p.getProperty("assistant.claudeCode.budgetUsd"),
+                p.getProperty("assistant.claudeCode.budgetFormat"));
+        readList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
+        readList(p, "assistant.claudeCode.trustedFull", c.claudeCodeTrustedFullFolders);
         c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
         c.eventTypesDivider = parseInt(p.getProperty("eventTypesDivider"), c.eventTypesDivider);
         readLastFocuses(p, c.lastFocusByProject);
@@ -195,6 +222,7 @@ public final class ConfigStore {
         writeRecentBundles(p, c.recentBundles);     // #73: always the machine's, never a project's or an export's
         writeWalks(p, globalTier == null ? c.walks : globalTier.walks());   // M69: the reports' tier choice
         writeDeletedWalks(p, c.deletedWalks);       // M69: always the machine's
+        writeDeletedCharts(p, c.deletedCharts);     // 2026-10-18: always the machine's
         writeRunbooks(p, globalTier == null ? c.runbooks : globalTier.runbooks());
         writeVocabulary(p, globalTier == null ? c.vocabularyPath : globalTier.vocabularyPath());
         writeEnvironments(p, globalTier == null ? c.environments : globalTier.environments(),
@@ -206,6 +234,21 @@ public final class ConfigStore {
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
         put(p, "assistant.createProjects", Boolean.toString(c.assistantCreateProjects));
+        put(p, "assistant.claudeCode", Boolean.toString(c.claudeCodeAllowed));
+        put(p, "assistant.claudeCode.full", Boolean.toString(c.claudeCodeFull));
+        put(p, "assistant.claudeCode.full.mode", fullMode(c.claudeCodeFullMode));
+        put(p, "assistant.claudeCode.model", c.claudeCodeModel);
+        put(p, "assistant.claudeCode.lastMode", "LOCAL_AGENT".equals(c.claudeCodeLastMode) ? "LOCAL_AGENT" : "IN_APP");
+        put(p, "assistant.claudeCode.profile", telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.parse(
+                c.assistantProfile).stored());
+        put(p, "assistant.setup.dismissed", Boolean.toString(c.assistantSetupDismissed));
+        put(p, "assistant.setup.client", telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.parse(
+                c.assistantSetupClient).stored());
+        put(p, "assistant.claudeCode.budgetUsd", c.claudeCodeBudgetUsd == null || !(c.claudeCodeBudgetUsd > 0) ? ""
+                : Double.toString(c.claudeCodeBudgetUsd));
+        put(p, "assistant.claudeCode.budgetFormat", BUDGET_FORMAT);
+        writeList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
+        writeList(p, "assistant.claudeCode.trustedFull", c.claudeCodeTrustedFullFolders);
         put(p, "assistant.exportDir", c.assistantExportDir);
         put(p, "eventTypesDivider", Integer.toString(c.eventTypesDivider));
         writeLastFocuses(p, c.lastFocusByProject);
@@ -302,6 +345,20 @@ public final class ConfigStore {
                 if (id != null && !id.isBlank()) ids.add(id);
             }
             if (!ids.isEmpty()) into.add(new FocusSpec(name, p.getProperty("focus." + i + ".rationale"), ids));
+        }
+    }
+
+    /** Content revision of the persisted definition, not its display-only authoring time. */
+    public static String reportRevision(telamin.fluxtion.audit.analyser.analyser.report.ReportSpec report) {
+        if (report == null) return null;
+        Properties p = new Properties();
+        writeReports(p, List.of(report));
+        try {
+            String canonical = telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.canonical(p);
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException(impossible);
         }
     }
 
@@ -523,6 +580,9 @@ public final class ConfigStore {
         writeWalks(p, "walk", walks);
     }
 
+    /** The most dropped-binding notes one load keeps (§6). */
+    static final int MAX_BINDING_NOTES = 50;
+
     static void readWalks(Properties p, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> out) {
         readWalks(p, "walk", out, null);
     }
@@ -588,12 +648,19 @@ public final class ConfigStore {
                 p.setProperty(base + ".conv.v", Integer.toString(conv.version()));
                 put(p, base + ".conv.kind", conv.kind());
                 put(p, base + ".conv.author", conv.author().isBlank() ? null : conv.author());
+                // M74 P2b (§6): v2 only — the recording's source (provider, model, CLI version; nothing else ever)
+                if (conv.source() != null) {
+                    put(p, base + ".conv.src.kind", conv.source().kind());
+                    put(p, base + ".conv.src.model", conv.source().model().isBlank() ? null : conv.source().model());
+                    put(p, base + ".conv.src.cli", conv.source().cliVersion().isBlank() ? null : conv.source().cliVersion());
+                }
                 p.setProperty(base + ".conv.t.count", Integer.toString(conv.turns().size()));
                 for (int t = 0; t < conv.turns().size(); t++) {
                     var turn = conv.turns().get(t);
                     put(p, base + ".conv.t." + t + ".id", turn.id());
                     put(p, base + ".conv.t." + t + ".role", turn.role());
                     put(p, base + ".conv.t." + t + ".text", turn.text());
+                    if (turn.truncated()) p.setProperty(base + ".conv.t." + t + ".truncated", "true");
                 }
             }
             for (var e : new java.util.TreeMap<>(w.extras()).entrySet()) {
@@ -604,6 +671,16 @@ public final class ConfigStore {
 
     static void readWalks(Properties p, String prefix, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> out,
                           List<Integer> kept) {
+        readWalks(p, prefix, out, kept, null);
+    }
+
+    /**
+     * {@code notes} (M74 P2b §6; review P2 N-b): where the bindings dropped on load are said — the loaded config's own
+     * list, bounded; null when the caller has nowhere to say them. A read is not a session decision: it is what the file
+     * held, and the session decides whether to show it.
+     */
+    static void readWalks(Properties p, String prefix, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> out,
+                          List<Integer> kept, List<String> notes) {
         out.clear();
         int n = parseInt(p.getProperty(prefix + ".count"), 0);
         for (int i = 0; i < n; i++) {
@@ -673,18 +750,25 @@ public final class ConfigStore {
             String convVersion = p.getProperty(base + ".conv.v");
             if (convVersion != null) {
                 int cv = parseInt(convVersion, -1);
-                if (cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_VERSION) {
+                if (cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_VERSION
+                        || cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_V2) {
                     get.apply("conv.v");
                     List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Turn> turns = new java.util.ArrayList<>();
                     int tc = parseInt(get.apply("conv.t.count"), 0);
                     // Keep one overflow sentinel so validation refuses it, without allocating an untrusted count.
                     int boundedCount = Math.min(tc, telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.MAX_TURNS + 1);
                     for (int t = 0; t < boundedCount; t++) {
+                        boolean truncated = cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_V2
+                                && "true".equals(get.apply("conv.t." + t + ".truncated"));
                         turns.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Turn(get.apply("conv.t." + t + ".id"),
-                                get.apply("conv.t." + t + ".role"), get.apply("conv.t." + t + ".text")));
+                                get.apply("conv.t." + t + ".role"), get.apply("conv.t." + t + ".text"), truncated));
                     }
+                    telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Source source =
+                            cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_V2
+                                    ? new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Source(get.apply("conv.src.kind"),
+                                    get.apply("conv.src.model"), get.apply("conv.src.cli")) : null;
                     conversation = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Conversation(cv,
-                            get.apply("conv.kind"), get.apply("conv.author"), turns);
+                            get.apply("conv.kind"), get.apply("conv.author"), turns, source);
                 } else {
                     conversation = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Conversation(cv,
                             p.getProperty(base + ".conv.kind"), p.getProperty(base + ".conv.author"), List.of());
@@ -702,8 +786,15 @@ public final class ConfigStore {
                 String rest = key.substring(head.length());
                 if (!used.contains(rest)) extras.put(rest, p.getProperty(key));
             }
-            out.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec(name, title, author, created, updated, fp,
-                    run, steps, extras, conversation));
+            // M74 P2b (§6, [R2-9]): a binding that no longer matches the turns is dropped and reported, never played
+            var revalidated = telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.revalidate(
+                    new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec(name, title, author, created, updated, fp,
+                            run, steps, extras, conversation));
+            if (notes != null) {
+                for (String note : revalidated.notes()) notes.add("walk '" + name + "': " + note);
+                while (notes.size() > MAX_BINDING_NOTES) notes.remove(0);
+            }
+            out.add(revalidated.walk());
         }
     }
 
@@ -734,6 +825,49 @@ public final class ConfigStore {
             int i = kept.get(k);
             out.add(new DeletedWalk(p.getProperty("deletedWalk." + i + ".project", ""),
                     p.getProperty("deletedWalk." + i + ".deletedAt", ""), specs.get(k)));
+        }
+    }
+
+    /**
+     * The chart bin (owner decision 2026-10-18): machine-local, never in a profile or an export. Each entry's chart is
+     * written by the production chart serializer under {@code deletedChart.} instead of {@code graph.}, so a binned
+     * definition round-trips exactly as a saved one does.
+     */
+    static void writeDeletedCharts(Properties p, List<DeletedChart> bin) {
+        Properties charts = new Properties();
+        List<GraphSpec> specs = new ArrayList<>();
+        for (DeletedChart d : bin) specs.add(d.chart());
+        writeGraphs(charts, specs);
+        for (String key : charts.stringPropertyNames()) {
+            p.setProperty("deletedChart." + key.substring("graph.".length()), charts.getProperty(key));
+        }
+        for (int i = 0; i < bin.size(); i++) {
+            put(p, "deletedChart." + i + ".project", bin.get(i).project());
+            put(p, "deletedChart." + i + ".deletedAt", bin.get(i).deletedAt());
+            put(p, "deletedChart." + i + ".reason", bin.get(i).reason().word());
+        }
+    }
+
+    static void readDeletedCharts(Properties p, List<DeletedChart> out) {
+        out.clear();
+        Properties charts = new Properties();
+        for (String key : p.stringPropertyNames()) {
+            if (!key.startsWith("deletedChart.")) continue;
+            String rest = key.substring("deletedChart.".length());
+            String[] parts = rest.split("\\.");
+            // the bin's own per-index fields are not chart fields
+            if (parts.length == 2 && (parts[1].equals("project") || parts[1].equals("deletedAt")
+                    || parts[1].equals("reason"))) continue;
+            charts.setProperty("graph." + rest, p.getProperty(key));
+        }
+        List<GraphSpec> specs = new ArrayList<>();
+        readGraphs(charts, specs);
+        for (int i = 0; i < specs.size(); i++) {
+            GraphSpec g = specs.get(i);
+            if (g.name() == null) continue;   // a hand-edited entry with no name cannot be restored by anything
+            out.add(new DeletedChart(p.getProperty("deletedChart." + i + ".project", ""),
+                    p.getProperty("deletedChart." + i + ".deletedAt", ""),
+                    ChartBin.Reason.parse(p.getProperty("deletedChart." + i + ".reason")), g));
         }
     }
 
@@ -1171,6 +1305,44 @@ public final class ConfigStore {
                     .ifPresentOrElse(refused::add, () -> out.put(name, new Runbooks.Pointer(path, description)));
         }
         return refused;
+    }
+
+    /** The four modes the full posture offers (§5.1), as the CLI names them; bypassPermissions and dontAsk are not. */
+    public static final List<String> FULL_MODES = List.of("default", "acceptEdits", "auto", "plan");
+
+    /**
+     * §5.1: a stored full-posture mode, read as one of {@link #FULL_MODES} — anything else (bypassPermissions, dontAsk,
+     * a hand-edited typo) as {@code default}. Never passed through.
+     */
+    public static String fullMode(String stored) {
+        if (stored != null) for (String m : FULL_MODES) if (m.equalsIgnoreCase(stored.trim())) return m;
+        return "default";
+    }
+
+    /** The smallest limit Settings offers. */
+    public static final double MIN_BUDGET_USD = 0.5;
+
+    /** Written beside the budget from P1b on: the stored value then means exactly what it says (blank = no limit). */
+    static final String BUDGET_FORMAT = "2";
+
+    /**
+     * The optional spend limit (owner, 2026-10-17): blank or absent is no limit. A config written by P1a (no
+     * {@code budgetFormat}) always carried {@code 5.0}, its unreleased default, so without the format marker 5.0 reads as
+     * no limit; any other positive value there is honoured as the person's limit.
+     */
+    static Double budget(String stored, String format) {
+        if (stored == null || stored.isBlank()) return null;
+        double v;
+        try {
+            v = Double.parseDouble(stored.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        if (!(v > 0) || Double.isInfinite(v)) return null;
+        if (!BUDGET_FORMAT.equals(format == null ? null : format.trim()) && v == 5.0) return null;
+        // review finding 14: a hand-edited limit below the smallest Settings offers (US$0.50) is clamped to it — a limit
+        // stays a limit, and never rounds to 0 micro-dollars, which would read as "no limit"
+        return Math.max(MIN_BUDGET_USD, v);
     }
 
     static void writeList(Properties p, String prefix, List<String> values) {

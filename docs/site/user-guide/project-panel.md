@@ -1,6 +1,6 @@
 # The Project panel — what is in force
 
-The **Project** panel, on the left rail under *Event types*, states the active project, audit log,
+The **Project** panel, in the left (Context) column, states the active project, audit log,
 paired topology, configured processors and source roots, plus saved charts, reports and analyses.
 It shows what is available even before a log is opened.
 
@@ -10,7 +10,7 @@ It shows what is available even before a log is opened.
 
 | Section | Row | Where it came from (the right-hand column) |
 |---|---|---|
-| **Project** | the profile's name and directory; *Copy* / *Show file* the settings file; one row per **runbook pointer** (with the one-line **description** it declares, if any) and one for the **vocabulary** file — *Open* reads the file here, read-only (warning if missing); add or remove these from *AI ▸ Runbooks…* — the panel states what is in force, the AI menu changes it; one per declared **environment** (a warning when its `logDir` is not there, naming the project root tried) — see [Portable context](portable-context.md) | *project settings in force* — or *No project — using your own settings* |
+| **Project** | the profile's name and directory; *Copy* / *Show file* the settings file; one row per **runbook pointer** (with the one-line **description** it declares, if any) and one for the **vocabulary** file — *Open* reads the file here, read-only (warning if missing); add or remove these from *AI ▸ Runbooks…* — the panel states what is in force, the AI menu changes it; one per declared **environment** (a warning when its `logDir` is not there, naming the project root tried) — see [Portable context](projects.md#portable-context-what-the-team-knows) | *project settings in force* — or *No project — using your own settings* |
 | **Audit log** | the file you opened, as you named it (`s3://…` stays `s3://…`), records | *opened by you* / *opened by the action socket*, the system it came from, and **who said so** — *declared by the opener*, or the project environment that supplied it |
 | **Graph** | the graphml, and the **pairing verdict**: *applies — 5/5 logged nodes declared*, or a warning that it does not fit this log. Above it, if the processor was built without audit logging: *⚠ audit logging NOT installed — this processor writes no audit log at all*, which outranks the pairing because pairing a log that will never exist is a question about nothing | *opened by you*, or *supplied by the reader (declared / INFERRED)*; when two graphs were in play, which one won and why |
 | **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root — *Open* opens it in the Source tab; when it was not found there is no *Open*, and **Add source** opens Settings ▸ Source roots. A processor the project **declares** and that is also found is **one** row: the declaration rides in the provenance column (*… · project declaration · declared*), quoting each declared name the row does not already show, so two declarations of one class keep both names; a declaration naming no class — a runtime processor — keeps a row of its own | *project* / *own settings* / *discovered under a root* |
@@ -28,7 +28,9 @@ Every button on the panel **reveals or navigates**: *Copy* the full path, *Show 
 manager, *Open* the thing in its tab (Topology, Source, Reports) or — for a runbook or the glossary — in a
 read-only viewer, *Settings…* for roots, processors and the exchange directory, *Add source* when a
 processor's source was not found. Nothing on it closes, switches, edits or runs — those stay in the File
-menu and Settings, so the panel is a display you can trust.
+menu and Settings, so the panel is a display you can trust. (Running anything of a project's own — a folder's
+Claude Code hooks and `.mcp.json` servers — happens only when you press Start with full Claude Code turned on, after
+a confirmation that names them; see [the assistant guide](../inapp/claude-code.md).)
 
 Paths are drawn abbreviated (`~/…/build/x.graphml`); the full value is the tooltip and what *Copy*
 copies. That keeps the column readable, and it keeps an incidental screenshot from carrying every path
@@ -48,13 +50,14 @@ a project asked for one and did not get it), `reports` (`name`, `title`, `sectio
 `from`, `problem`, `note`), and the portable-context facts — `runbooks` (`name`, `path`, `resolved`, `exists`, `from`),
 `vocabulary` (`path`, `resolved`, `exists`, `from`), `environments` (`name`, `provenance`, `logDir`,
 `default`, `problem`) with `provenanceSource`, `analyses` (`name`, `rationale`, `parameters`, `steps`, `from`), and
-the shared canvas's `handoff` — `posture` (`value`, `source`, `setBy`, `derivedWouldBe`) and, when one has
+the shared canvas's `handoff` — `posture` (`value`, `source`, `setBy`, `derivedWouldBe`; shown as Work mode in
+the app) and, when one has
 been placed, `record` (`modes`, `resolvedFigures`, `authoringRequired`, `selectionCandidates`, `setBy`).
 
-The **posture** row says what this session is for — *research/support* or *authoring/deploy*. Drawn
-muted, it is the analyser's guess from what is open, and says so; drawn normally, somebody set it, and
-the row names who — you (*AI ▸ Posture*) or an AI client (`open {posture}`) — and what the guess would
-have been when the two disagree. The **mode-selector record** row appears when you or a client has placed
+The **Work mode** row says what this session is for — *Investigate* or *Build*. Drawn muted, it is the
+analyser's guess from what is open, and says so (*Work mode: Investigate — guessed from what is open; change it
+in AI ▸ Work mode*); drawn normally, somebody set it, and the row names who — you (*AI ▸ Work mode*) or an AI
+client (`open {posture}`) — and what is open would suggest when the two disagree. The **mode-selector record** row appears when you or a client has placed
 the authoring mode selector's output on the canvas: the modes in force, how many figures the catalogue
 resolved, and what is left to author. Both rows belong to the session: a project switch clears them.
 

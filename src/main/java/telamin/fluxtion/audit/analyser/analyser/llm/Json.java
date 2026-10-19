@@ -97,9 +97,17 @@ public final class Json {
         return cur;
     }
 
+    /**
+     * Review P3 S2 (2026-10-17): the deepest nesting {@link #parse} accepts. The parser is recursive, so an input nested
+     * tens of thousands of levels deep (a model's or a process's line) would otherwise end in a StackOverflowError — an
+     * Error, which escapes every {@code catch (RuntimeException)} and kills the thread reading it.
+     */
+    public static final int MAX_DEPTH = 512;
+
     private static final class Parser {
         private final String s;
         private int i;
+        private int depth;
 
         Parser(String s) { this.s = s; }
 
@@ -124,6 +132,15 @@ public final class Json {
         }
 
         private Map<String, Object> parseObject() {
+            if (++depth > MAX_DEPTH) throw err("nested deeper than " + MAX_DEPTH);
+            try {
+                return parseObjectBody();
+            } finally {
+                depth--;
+            }
+        }
+
+        private Map<String, Object> parseObjectBody() {
             Map<String, Object> m = new LinkedHashMap<>();
             i++; // {
             skipWs();
@@ -143,6 +160,15 @@ public final class Json {
         }
 
         private List<Object> parseArray() {
+            if (++depth > MAX_DEPTH) throw err("nested deeper than " + MAX_DEPTH);
+            try {
+                return parseArrayBody();
+            } finally {
+                depth--;
+            }
+        }
+
+        private List<Object> parseArrayBody() {
             List<Object> list = new ArrayList<>();
             i++; // [
             skipWs();

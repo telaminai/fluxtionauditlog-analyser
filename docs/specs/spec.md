@@ -125,8 +125,9 @@ graph looks reasonable" is not a claim it makes.
 - Filter by **log‑time range** (draggable range picker) and by **event type / callback**.
 - Summarise the log grouped by event type and time range.
 - Graph any numeric `instanceId.key` from `nodeLogs` over time.
-- Explain selected record(s) via an LLM (Claude or OpenAI), with a two‑way conversation; or,
-  with no API key, emit a ready‑to‑paste prompt.
+- Ask the assistant about the selected record(s) — *What happened here?*, *Compare these rows* and the rest of the
+  Ask catalogue (M74; *Explain selected* was replaced) — in a two‑way conversation with the in-app assistant (an API
+  key) or Claude Code; or, with no assistant, copy a ready‑to‑paste prompt.
 - Open the **source** for the node behind a record (read‑only, colourised), resolved through
   the selected EventProcessor.
 - Handle files **up to ~500 MB in heap**; beyond that, switch to a memory‑mapped + indexed

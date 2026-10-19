@@ -126,7 +126,8 @@ public final class VerbSchemas {
                         p("close", bool(), "with {name}, take that chart off the screen and KEEP its "
                                 + "definition — for a chart worth keeping; a closed probe still sits in the "
                                 + "profile, so delete those. Goes alone; refused for the last open chart"),
-                        p("delete", bool(), "with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. NOT recoverable (unlike a report delete); to put a chart away without losing it, use close instead")),
+                        p("delete", bool(), "with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. Restorable, like a report delete: it moves to this machine's chart bin (see restore); to put a chart away without deleting it, use close instead"),
+                        p("restore", nameOrTrue(), "use alone: true lists the chart bin — deleted charts, and the definitions a later call replaced (re-sent notes, series, guides or bands; clearNotes), each with an id; a string restores that chart by name (its newest entry) or by id (that version), refusing a name a chart has now")),
                 List.of()));
 
         s.put("goto", schema("Select the record containing an anchor in the table.",
@@ -381,12 +382,20 @@ public final class VerbSchemas {
 
         s.put("source", schema("Read-only source glance; rereads XML or Java under authorised source roots. "
                         + "Exclusive selectors: {file}, {file,line}, {line}, {bean}, {file,bean}, {fqn}, {fqn,method}. "
-                        + "A glance never replaces open.design. Bean matches aid navigation, not evidence; relationship to the loaded run remains unverified.",
+                        + "A glance never replaces open.design. Bean matches aid navigation, not evidence; relationship to the loaded run remains unverified. "
+                        + "To SHOW code, add text and the lines come back as data (read-only, the same roots, at most "
+                        + telamin.fluxtion.audit.analyser.analyser.design.SourceText.MAX_LINES + " lines and "
+                        + telamin.fluxtion.audit.analyser.analyser.design.SourceText.MAX_BYTES / 1024 + " KB, a cut is stated) "
+                        + "— use it instead of reading the files yourself.",
                 props(p("file", string(), "Project-relative or absolute path under an authorised source root"),
                         p("bean", string(), "Bean id in the session design, or the specified XML file; duplicates are refused"),
                         p("line", integer(), "One-based line in file or session design"),
                         p("fqn", string(), "Java class under authorised source roots"),
-                        p("method", string(), "Method name, only with fqn")), List.of()));
+                        p("method", string(), "Method name, only with fqn"),
+                        // owner 2026-10-18: additive and opt-in — without it the call and its reply are unchanged
+                        p("text", sourceTextObject(), "Also return the file's lines as data: {from, to?} a range, or "
+                                + "{around?, context?} a window (around defaults to the chosen line, context to "
+                                + telamin.fluxtion.audit.analyser.analyser.design.SourceText.DEFAULT_CONTEXT + ")")), List.of()));
 
         s.put("source_root", schema("Inspect or change the configured source roots. Reaches the "
                         + "FILESYSTEM: a root grants Java, XML design and producer-result reading beneath it.",
@@ -483,6 +492,69 @@ public final class VerbSchemas {
                 List.of()));
 
         return s;
+    }
+
+    /** The one verb only the analyser's own Claude Code session (the hosted bridge) is offered (M74 §5.6). */
+    public static final String PROPOSE = "propose";
+
+    /**
+     * M74 P2 (spec §8.2 (a)): the hosted bridge's verbs — {@link #all()}'s entries in order, then {@code propose}.
+     * {@code propose} is NEVER in {@code all()}, so it is never in {@code /manifest}, {@code McpTools.list()}, the prompt's
+     * verb list, the in-app assistant's tools or a saved analysis's allowed verbs.
+     */
+    public static Map<String, Object> hosted() {
+        Map<String, Object> s = all();
+        s.put(PROPOSE, proposeSchema());
+        return s;
+    }
+
+    /** §5.6's schema for {@code propose}, exactly. */
+    static Map<String, Object> proposeSchema() {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("type", "object");
+        Map<String, Object> path = string();
+        path.put("maxLength", 1024);
+        Map<String, Object> className = string();
+        className.put("maxLength", 300);
+        Map<String, Object> reason = string();
+        reason.put("maxLength", 500);
+        // one map per property: p() writes its description into the map it is given
+        java.util.function.Supplier<Map<String, Object>> name = () -> {
+            Map<String, Object> m = string();
+            m.put("maxLength", 100);
+            return m;
+        };
+        item.put("properties", props(
+                p("kind", enumStr("sourceRoot", "processor", "graphml", "runbook", "logToOpen", "starter"),
+                        "what this item sets up; starter: create a new project from one of the analyser's starter "
+                                + "templates (context.starters), alone in its proposal"),
+                p("path", path, "sourceRoot: a directory; graphml: a .graphml file; runbook: a SKILL.md or .md file; "
+                        + "logToOpen: an audit log file; processor: the generated processor's source file, if known; "
+                        + "never for a starter: the person chooses its folder"),
+                p("className", className, "processor only: the fully qualified class name"),
+                p("starter", name.get(), "starter only: a starter id from context.starters.entries[].id"),
+                p("artifact", name.get(), "starter only, optional: the Maven artifact id (default: the template's)"),
+                p("group", name.get(), "starter only, optional: the Maven group id (default: the template's)"),
+                p("basePackage", name.get(), "starter only, optional: the Java base package (default: the template's)"),
+                p("reason", reason, "why, in one or two sentences; shown to the person as your words")));
+        item.put("required", List.of("kind", "reason"));
+        Map<String, Object> items = new LinkedHashMap<>();
+        items.put("type", "array");
+        items.put("minItems", 1);
+        items.put("maxItems", 10);
+        items.put("items", item);
+        Map<String, Object> summary = string();
+        summary.put("maxLength", 500);
+        Map<String, Object> m = schema("Hosted Claude Code only. Offer the person a project set-up. Records an offer and "
+                        + "changes NOTHING: the analyser checks each item, the person answers each one, and the analyser "
+                        + "applies the accepted ones itself. Call context afterwards to see each item's outcome. Paths are "
+                        + "relative to your working directory or absolute inside it. To begin a new application, offer "
+                        + "ONE starter item (kind starter, a context.starters id) and nothing else: the person chooses "
+                        + "the folder, and the analyser downloads it, adds the skills and opens the project.",
+                props(p("summary", summary, "one sentence: what this set-up is for"),
+                        p("items", items, "the set-up items, 1 to 10")),
+                req("items"));
+        return m;
     }
 
     /** A deleted walk's name, or {@code true} to list the bin — the shape report's 'restore' has. */
@@ -694,6 +766,18 @@ public final class VerbSchemas {
                 p("payload", string(), "optional column whose text rides each point (an order id)"),
                 p("offsetMillis", integer(), "deliberate clock correction, always shown on the stamp")));
         m.put("required", List.of("path", "time", "timeFormat"));
+        return m;
+    }
+
+    /** Owner 2026-10-18: {@code source}'s {@code text} — which lines to return. */
+    private static Map<String, Object> sourceTextObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("from", integer(), "first line of a range (1-based)"),
+                p("to", integer(), "last line of the range; default: as many as the cap allows"),
+                p("around", integer(), "the line a window centres on; default: the line source chose"),
+                p("context", integer(), "lines each side of 'around'")));
         return m;
     }
 

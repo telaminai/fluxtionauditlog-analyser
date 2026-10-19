@@ -124,11 +124,85 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(ignoredParameters, "ignoredParameters");
         cfg.addNode(pairingQualifier, "pairingQualifier");
         cfg.addNode(logEvidence, "logEvidence");
+        // INTEG-R10: which line the status bar states — the log's or the graph's — decided from facts, so the bar has one
+        // writer and the line is the same whichever of the log and the graph arrived first (rule 9)
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine(openLog, openGraph, pairing,
+                logEvidence), "statusLine");
+        // the Records view: what it shows and what each filter hides — measured on the node's request, published in
+        // the snapshot, rendered by the "showing" label, the Records title, the Event types toggle and the empty table
+        telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView recordsView =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView(openLog, effects);
+        cfg.addNode(recordsView, "recordsView");
         // M69: spotlight-walk playback — every transition and decision about a showing walk, in one place (owner)
         // OA-1 (spec-onboard-assistant-journeys.md §5): the onboard assistant's turns, tickets, budgets and basis, in one place
+        // M74 (spec-claude-code-provider.md §4.1): one assistant mode at a time, as a session fact, upstream of both
+        // assistants so each enforces it in its own handlers; the local agent's lifecycle is a sibling of assistantLoop.
+        telamin.fluxtion.audit.analyser.analyser.session.node.AssistantModeChoice assistantMode =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantModeChoice();
+        cfg.addNode(assistantMode, "assistantMode");
         telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop assistantLoop =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop(openLog, openGraph, activeProject, gate, effects);
+        assistantLoop.setAssistantMode(assistantMode);
+        assistantLoop.setRecordsView(recordsView);   // the basis states what the filter hides (a JavaBean parent)
         cfg.addNode(assistantLoop, "assistantLoop");
+        telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession localAgent =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(assistantMode, effects);
+        // M74 P2 (§8.2): the open log is a JavaBean parent — what a bound draft is compared with at Send
+        localAgent.setOpenLog(openLog);
+        // review B5 (2026-10-17): the action listener's lifecycle — a JavaBean parent the session tells when it needs the
+        // hosted bridge; it decides whether a listener is up and whether it serves external clients (rule 9)
+        telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener actionListener =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener(effects);
+        cfg.addNode(actionListener, "actionListener");
+        localAgent.setActionListener(actionListener);
+        cfg.addNode(localAgent, "localAgentSession");
+        // M74 P3 (§5.7, §8.3): permission prompts in the analyser — which requests reach the person, the one dialog, the
+        // single-use grants. It PUSHES into localAgentSession, so it runs first for a fact both handle: on Stop the
+        // pending request is answered deny before the interrupt is asked for (§4.5)
+        var permission = new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission(localAgent, effects);
+        permission.setActiveProject(activeProject);
+        cfg.addNode(permission, "localAgentPermission");
+        // M74 P2b (§5.6): Claude proposes, the analyser applies — the offer, the preview's verdicts, the person's answers
+        // Option 2 (owner, 2026-10-18): a project from a starter template — the catalogue, and ONE chain for Claude's
+        // starter item and the Project menu alike. onboardingProposal pushes an accepted starter item and its Apply here
+        telamin.fluxtion.audit.analyser.analyser.session.node.StarterProject starterProject =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.StarterProject(effects);
+        starterProject.setGate(gate);
+        telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal onboarding =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal(localAgent, effects,
+                        starterProject);
+        cfg.addNode(onboarding, "onboardingProposal");
+        cfg.addNode(starterProject, "starterProject");
+        // M74 P2b (the simplified Move): a person's project switch is held while Claude Code runs, and the person asked
+        boundary.setLocalAgentSession(localAgent);
+        boundary.setOnboardingProposal(onboarding);
+        // Option 2: the analyser's OWN open of a starter project is never a switch the person must be asked about
+        boundary.setStarterProject(starterProject);
+        // M74 P2b (owner request 2026-10-17): a prompt pack's example entry — confirm, fetch, verify, unpack, offer
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ExampleDownload(effects), "exampleDownload");
+        // M74 UX (owner, 2026-10-17), M77 (spec-ai-setup-wizard.md §8.1, OD-77.13 — one node): the assistant profile and
+        // Set up AI — whether Apply may be applied now (never mid-turn), the wizard's steps, the checks, the first-run
+        // block and the AI line. Downstream of both assistants (it reads whether a turn is open), of the action listener
+        // and of the open log (JavaBean parents) and of startPageNoLogHint (a held no-log question opens nothing);
+        // upstream of the start page's prompt (a first-use question opens the
+        // wizard instead of the no-AI fallback, and a carried question waits for its Finish)
+        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup aiSetup =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup(localAgent, assistantLoop, effects);
+        aiSetup.setActionListener(actionListener);
+        aiSetup.setOpenLog(openLog);
+        cfg.addNode(aiSetup, "aiSetup");
+        // M74 P2 (§5.8): the start page's "What would you like to do?" — its list and where its button goes
+        telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt startPagePrompt =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt(assistantMode, localAgent,
+                        openLog, effects);
+        startPagePrompt.setAiSetup(aiSetup);
+        // robot re-walk #3: an evidence question with no log open is held before the wizard, the cards or a placement see it
+        telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint noLogHint =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint(openLog, effects);
+        cfg.addNode(noLogHint, "startPageNoLogHint");
+        aiSetup.setNoLogHint(noLogHint);
+        startPagePrompt.setNoLogHint(noLogHint);
+        cfg.addNode(startPagePrompt, "startPagePrompt");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects), "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(openLog, gate, effects), "evidenceCapture");

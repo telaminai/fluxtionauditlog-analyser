@@ -3,7 +3,7 @@
 
 An LLM is handed exactly what an MCP client is handed — the bridge's server instructions (read from /manifest,
 which serves them verbatim) and the tool list derived from /manifest — and nothing else. It is asked the "Ask it
-to show you" sentences from docs/site/user-guide/assistant.md, each in a fresh conversation, and then the
+to show you" sentences from docs/site/teach/spotlights-walks-reels.md, each in a fresh conversation, and then the
 guided-start tour with the skill text attached. The script records which tools it called and what was lit.
 
 EVERY CONVERSATION GETS ITS OWN ANALYSER PROCESS under a fresh isolated user.home (re-review 2026-09-18 F4: the

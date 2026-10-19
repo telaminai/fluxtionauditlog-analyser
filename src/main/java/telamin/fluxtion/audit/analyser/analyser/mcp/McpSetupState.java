@@ -35,11 +35,11 @@ public final class McpSetupState {
     public static LocalReadiness classify(boolean transportEnabled, RestEndpointFile.Endpoint endpoint,
                                           boolean endpointAlive, long thisPid) {
         if (!transportEnabled) {
-            return new LocalReadiness(LocalStatus.OFF, "Local transport is off in this analyser window.");
+            return new LocalReadiness(LocalStatus.OFF, "External MCP/REST access is off in this analyser window.");
         }
         if (endpoint == null || !endpointAlive) {
             return new LocalReadiness(LocalStatus.STARTING,
-                    "Local transport is enabled, but this analyser has not published a live endpoint yet.");
+                    "External MCP/REST access is on, but this analyser has not published a live endpoint yet.");
         }
         if (endpoint.pid() != thisPid) {
             return new LocalReadiness(LocalStatus.OTHER_INSTANCE,

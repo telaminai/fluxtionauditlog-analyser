@@ -85,7 +85,7 @@ public final class SourcePanel extends JPanel {
     private String historyDestination;
     private java.util.function.Consumer<java.util.Map<String, Object>> fileNavigator = p -> { };
 
-    private final JComboBox<String> processorCombo = new JComboBox<>();
+    private final JComboBox<String> processorCombo = UiText.plainCells(new JComboBox<>());   // SF-2: profile FQNs
     private final JavaHighlighter highlighter = new JavaHighlighter();
 
     private final Pane processorPane = new Pane("EventProcessor");
@@ -116,7 +116,7 @@ public final class SourcePanel extends JPanel {
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         backButton.setEnabled(false);
-        backButton.setToolTipText("Back to previous source (Alt+Left, or " + menuKeyName() + "+[)");
+        backButton.setToolTipText(UiText.tooltip("Back to previous source (Alt+Left, or " + menuKeyName() + "+[)"));
         backButton.addActionListener(e -> back());
         top.add(backButton);
         top.add(new JLabel("EventProcessor:"));
@@ -347,6 +347,7 @@ public final class SourcePanel extends JPanel {
             if (pane.source.isEmpty()) pane.renderPlain("Timed out after " + readDeadline.toMillis() + " ms reading "
                     + fqn + "; nothing was read. Navigate to it again to retry.");
             gaveUp.accept("the read of " + fqn + " timed out");
+            readSettled();
         });
         deadline.setRepeats(false);
         deadline.start();
@@ -360,11 +361,12 @@ public final class SourcePanel extends JPanel {
             if (pane.readTicket != ticket) { decisions.accept("discarded " + fqn + ": superseded or expired"); return; }
             pane.reading = false;
             if (service == null || !service.isCurrent(lookup)) {   // the switch that caused this reads anew
-                decisions.accept("discarded " + fqn + ": configuration changed"); return;
+                decisions.accept("discarded " + fqn + ": configuration changed"); readSettled(); return;
             }
             install(pane, fqn, read, lookup);
             decisions.accept("installed " + fqn);
             then.run();
+            readSettled();
         }, failure -> {
             deadline.stop();
             if (pane.readTicket != ticket) return;
@@ -372,7 +374,27 @@ public final class SourcePanel extends JPanel {
             pane.label.setText(fqn + "  —  could not read the file on disk: " + failure.getMessage()
                     + (pane.source.isEmpty() ? "" : "; the text below is unchecked"));
             gaveUp.accept("the read of " + fqn + " failed: " + failure.getMessage());
+            readSettled();
         });
+    }
+
+    private final List<Runnable> settleWaiters = new java.util.ArrayList<>();
+
+    /**
+     * Run {@code then} on the EDT once no pane read is outstanding — at once if none is. A read's landing installs
+     * text and scrolls; work that captures this view (a Java spotlight's preparation) waits for it rather than
+     * mistaking the landing for a newer navigation.
+     */
+    public void whenReadsSettle(Runnable then) {
+        if (!reading()) then.run();
+        else settleWaiters.add(then);
+    }
+
+    private void readSettled() {
+        if (reading() || settleWaiters.isEmpty()) return;
+        var waiting = List.copyOf(settleWaiters);
+        settleWaiters.clear();
+        waiting.forEach(Runnable::run);
     }
 
     /**
@@ -460,8 +482,8 @@ public final class SourcePanel extends JPanel {
         }
         if (document != null) {
             // disk freshness is not source/run identity: a fresh read still says so
-            pane.label.setToolTipText("Source/run: unverified · " + document.identity()
-                    + " · rendered-text-utf8 SHA-256 " + document.revision());
+            pane.label.setToolTipText(UiText.tooltip("Source/run: unverified · " + document.identity()
+                    + " · rendered-text-utf8 SHA-256 " + document.revision()));
         }
         if (Objects.equals(fqn, service.selectedFqn())) service.acceptModel(lookup, fqn, read.model());
     }
@@ -474,8 +496,8 @@ public final class SourcePanel extends JPanel {
         }
     }
 
-    /** True while a pane's read is outstanding — for tests. */
-    boolean reading() {
+    /** True while a pane's read is outstanding. */
+    public boolean reading() {
         return processorPane.reading || nodePane.reading;
     }
 
@@ -823,7 +845,7 @@ public final class SourcePanel extends JPanel {
         String disclosure = "Source/run: unverified\n" + fqn + "\nsource-viewer · first-match\n" + document.identity();
         pane.label.setRows(5);
         pane.label.setText(disclosure);
-        pane.label.setToolTipText(disclosure + " · rendered-text-utf8 SHA-256 " + document.revision());
+        pane.label.setToolTipText(UiText.tooltip(disclosure + " · rendered-text-utf8 SHA-256 " + document.revision()));
         revealPaneFor(pane);
         sourceViewChanged();
         return new JavaAnchor(pane, document, fqn);
@@ -834,6 +856,7 @@ public final class SourcePanel extends JPanel {
         pane.navigation++;
         java.awt.Window window = SwingUtilities.getWindowAncestor(this);
         if (window != null) window.validate();
+        if (giveSplitPaneRoom(pane) && window != null) window.validate();
         pane.scroll.validate(); pane.text.validate();
         int offset = line == null ? 0 : pane.text.getDocument().getDefaultRootElement().getElement(line - 1).getStartOffset();
         pane.text.setCaretPosition(Math.min(offset, pane.text.getDocument().getLength()));
@@ -845,6 +868,24 @@ public final class SourcePanel extends JPanel {
                 pane.text.scrollRectToVisible(new Rectangle(view.x, y, view.width, view.height));
             }
         } catch (BadLocationException ignored) { /* measurement refuses an unavailable band */ }
+    }
+
+    /** Below this height a split half shows no source line worth pointing at. */
+    static final int MIN_SPLIT_PANE_HEIGHT = 80;
+
+    /**
+     * Owner hands-on test (2026-10-18b): in Split, a {@code JSplitPane} whose divider was never placed sizes its top half
+     * by the PREFERRED height — the whole document — so the other half laid out at height 0 and every Java spotlight
+     * bound to it was refused as "no longer visible". A spotlight's pane must be seen: when it is squeezed below
+     * {@link #MIN_SPLIT_PANE_HEIGHT}, the divider goes to the middle. Layout only; nothing else changes.
+     *
+     * @return whether the divider moved (the caller re-validates)
+     */
+    boolean giveSplitPaneRoom(JComponent pane) {
+        if (mode != Mode.SPLIT || split.getParent() == null || split.getHeight() <= 0) return false;
+        if (pane.getHeight() >= Math.min(MIN_SPLIT_PANE_HEIGHT, split.getHeight() / 2)) return false;
+        split.setDividerLocation(Math.max(0, (split.getHeight() - split.getDividerSize()) / 2));
+        return true;
     }
 
     public Optional<JavaBand> javaBounds(JavaAnchor anchor, Integer line) {

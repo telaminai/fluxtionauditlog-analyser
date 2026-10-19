@@ -45,9 +45,6 @@ public final class StartPanel extends JPanel {
          */
         void openSettings();
 
-        /** Open local AI-client setup; each card is a normal navigation action, never a first-run modal. */
-        void openMcpSetup(McpSetupDialog.Target target);
-
         /** Manage the builder key in its canonical file; this page never receives the value. */
         void openFluxtionKey();
 
@@ -81,22 +78,88 @@ public final class StartPanel extends JPanel {
         default void restoreSession(long generation) { }
         default void dismissSessionRestore(long generation) { }
 
+        // ---- M74 P2 (§5.8): the prompt's button and its no-AI fallbacks; every fallback is an EXISTING action ----
+
+        /** The prompt's button: the person's act; the session decides the route. */
+        default void pressStartPrompt(String entryId, String text) { }
+
+        /** Robot re-walk #3: an action on the "No log is open" line, for held press {@code request}. */
+        default void answerStartNoLog(long request,
+                                      StartPromptView.NoLogAction choice) { }
+
+        /** A guide page ({@code ""} for the in-app user guide). */
+        default void openUserGuide(String page) { }
+
+        /** The start page's own Copy prompt: the composed draft only (r8 F14). */
+        default void copyStartPrompt(String entryId, String text) { }
+
+        /** Where Claude Code is installed from. */
+        default void installClaudeCode() { }
+
+        /** The resolver's searched places, for "Claude Code was not found". */
+        default String claudeSearched() { return ""; }
+
+        /** A dropped prompt pack's words, by the session's reference (session only). */
+        default telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Pack promptPack(long ref) { return null; }
+
+        /** "← Return to main options": the person's act; the session restores the built-in list. */
+        default void returnToMainOptions() { }
+
+        /** P2b: a prompt pack example entry's own Download button. */
+        default void downloadExample(int entryIndex) { }
+
+        // ---- M77-2 (spec-ai-setup-wizard.md §6.0): the AI block and line — the person's acts; aiSetup decides ----
+
+        /** The first-run block: a choice picked (nothing is applied). */
+        default void setUpAiChoose(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice choice) { }
+
+        /** The first-run block's Continue. */
+        default void setUpAiContinue() { }
+
+        /** The first-run block's Not now. */
+        default void setUpAiNotNow() { }
+
+        /** The AI line's Set up AI… / Change…. */
+        default void openSetUpAi() { }
+
+        /**
+         * M77-4 (§14.4, OD-77.12): a door about your own AI client — a no-AI fallback's <i>Connect</i> button. It opens
+         * Set up AI (at Your own AI client when one is set up); the client dialog is behind its More options….
+         */
+        default void openClientSetUp() { openSetUpAi(); }
+
+        /** OD-77.5 (M77-3): the first-run block's box under No AI. */
+        default void setUpAiAlsoTurnOff(boolean on) { }
+
+        /** OD-77.11 (M77-3): Turn it off, from the AI line. */
+        default void setUpAiTurnOffAccess() { }
+
     }
 
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
     private final Box recentProjects = Box.createVerticalBox();
     private final JTextArea operationFeedback = Fluid.text("");
-    private final JPanel workstreams = new Fluid.Panel();
-    private final JPanel leftWorkstreams = new Fluid.Panel();
-    private final JPanel rightWorkstreams = new Fluid.Panel();
-    private final JComponent[] workstreamSections = new JComponent[4];
-    private boolean workstreamsWide;
-    private boolean workstreamsArranged;
+    /**
+     * M74 UX (owner, 2026-10-17): ONE start-page surface — the prompt leads, and the actions the old cards carried follow
+     * as a compact strip in the prompt's style (icon + short label; the old card's words are the tooltip and the
+     * accessible name). Every action is the same {@link Actions} method it always was.
+     */
+    private final JPanel directStrip = new Fluid.Panel();
+    /** The recent projects and bundles, side by side when wide, stacked when narrow. */
+    private final JPanel recents = new Fluid.Panel();
+    private final JComponent[] recentColumns = new JComponent[2];
+    private boolean recentsWide;
+    private boolean recentsArranged;
     private List<String> lastRecents;
     private final Box recentBundles = Box.createVerticalBox();
     private List<telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle> lastBundleRecents;
     private final Actions actions;
     private final Consumer<String> status;
+    /** M74 P2: "What would you like to do?" — the prompt, rendering the session's start-page state. */
+    private final StartPromptView prompt;
+    /** M77-2: the AI block (first run) or the one AI line, under the start box. */
+    private final AiSetupBlock aiSetup;
+    private final StartPromptView.Host promptHost;
 
     /** Components whose colour is theme-derived, re-resolved on a theme switch. */
     private final List<Runnable> recolour = new ArrayList<>();
@@ -104,16 +167,44 @@ public final class StartPanel extends JPanel {
     /** The return row — visible whenever a project, graph, design or log workspace exists. */
     private final JComponent returnRow;
 
-    /** The optional AI-client offer; dismissal is deliberately only for this rendered Start Page. */
-    private final JComponent aiClientOffer;
-
     /** M19.12: the non-gating key offer; mutable only so it follows a save in the one owner dialog. */
-    private final Card fluxtionKeyCard;
+    private final ActionChip fluxtionKeyCard;
 
     public StartPanel(Actions actions, Consumer<String> status) {
         super(new BorderLayout());
         this.actions = actions;
         this.status = status == null ? s -> { } : status;
+        this.promptHost = new StartPromptView.Host() {
+            @Override public void press(String entryId, String text) {
+                actions.pressStartPrompt(entryId, text);
+            }
+            @Override public void fallback(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Fallback f,
+                                           String entryId, String text) {
+                runFallback(actions, f, entryId, text);
+            }
+            @Override public String claudeSearched() { return actions.claudeSearched(); }
+            @Override public telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Pack pack(long ref) {
+                return actions.promptPack(ref);
+            }
+            @Override public void returnToMainOptions() { actions.returnToMainOptions(); }
+            @Override public void answerNoLog(long request,
+                                              StartPromptView.NoLogAction c) {
+                actions.answerStartNoLog(request, c);
+            }
+            @Override public void downloadExample(int entryIndex) { actions.downloadExample(entryIndex); }
+            @Override public void seePackFormat() { actions.openUserGuide("user-guide/start-page/#prompt-packs"); }
+        };
+        this.prompt = new StartPromptView(promptHost);
+        this.aiSetup = new AiSetupBlock(new AiSetupBlock.Host() {
+            @Override public void choose(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice c) {
+                actions.setUpAiChoose(c);
+            }
+            @Override public void proceed() { actions.setUpAiContinue(); }
+            @Override public void notNow() { actions.setUpAiNotNow(); }
+            @Override public void open() { actions.openSetUpAi(); }
+            @Override public void alsoTurnOff(boolean on) { actions.setUpAiAlsoTurnOff(on); }
+            @Override public void turnOffAccess() { actions.setUpAiTurnOffAccess(); }
+        });
         setOpaque(true);
 
         Box col = Box.createVerticalBox();
@@ -128,48 +219,62 @@ public final class StartPanel extends JPanel {
         operationFeedback.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         operationFeedback.setVisible(false);
         col.add(operationFeedback);
-        col.add(Box.createVerticalStrut(20));
-        workstreamSections[0] = workstream("Explore DEMO",
-                row(card("Take a guided tour", "Follow four spotlight stops in a local DEMO project.",
-                                true, actions::openGuidedTour),
-                        card("Open sample project", "Explore the same DEMO log, topology and source at your own pace.",
-                                false, actions::openSampleProject)));
+        col.add(Box.createVerticalStrut(UiTheme.SPACE_XL));
+        // r8 F19 / M74 UX: the cards' actions stay, after the prompt — the no-typing path M71 accepted — as small titled
+        // blocks in a responsive grid (owner UI feedback, 2026-10-17: each group's heading ABOVE its buttons, 5 columns
+        // wide wrapping to 3, 2 and 1). A configured list can lead with a journey; it cannot hide these
+        col.add(heading(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.or")));
+        directStrip.setLayout(new BlockGrid());
+        directStrip.setOpaque(false);
+        directStrip.setAlignmentX(LEFT_ALIGNMENT);
+        directStrip.getAccessibleContext().setAccessibleName("Open directly");
+        directStrip.add(group("Explore DEMO", null,
+                chip("Take a guided tour", "Guided tour", "Follow four spotlight stops in a local DEMO project.",
+                        actions::openGuidedTour),
+                chip("Open sample project", "Sample project",
+                        "Explore the same DEMO log, topology and source at your own pace.", actions::openSampleProject)));
+        directStrip.add(group("Open", null,
+                chip("Open project", "Project", "Use an existing project profile and its saved settings.",
+                        actions::openExistingProject),
+                chip("Open evidence bundle", "Evidence bundle",
+                        "Verify an .fexp and open a disposable copy. No replay is run.", actions::openExperiment),
+                chip("Open audit log", "Audit log", "Choose a local audit log to investigate.", actions::openOwnLog),
+                chip("Open GraphML", "GraphML", "View a processor topology, with or without a log.",
+                        actions::openGraphml)));
+        directStrip.add(group("Create", null,
+                chip("Create project profile", "Project profile",
+                        "Save settings for existing source and processors. No code is generated.", actions::newProject),
+                chip("Create from template", "From template", "Choose a starter template and where to install it.",
+                        actions::newProjectFromTemplate)));
+        fluxtionKeyCard = chip("", "", "", actions::openFluxtionKey);
+        refreshFluxtionKeyStatus();
+        // M77-4 (§14.4): the Connect an assistant group is gone — the AI block (first run) or the AI line above is the
+        // one door, Set up AI…, and its Your own AI client screen says what the group's buttons did
+        directStrip.add(group("Settings",
+                "Source settings apply to the open project, or to global defaults when no project is open.",
+                chip("Settings — source and assistant…", "Settings",
+                        "Source settings apply to the open project, or to global defaults when no project is open.",
+                        actions::openSettings),
+                fluxtionKeyCard));
+        col.add(directStrip);
+        col.add(Box.createVerticalStrut(UiTheme.SPACE_XL));
 
         recentProjects.setAlignmentX(LEFT_ALIGNMENT);
         setRecentProjects(List.of());
         recentBundles.setAlignmentX(LEFT_ALIGNMENT);
         setRecentBundles(List.of());
-        workstreamSections[1] = workstream("Open your work",
-                row(card("Open project", "Use an existing project profile and its saved settings.", false,
-                                actions::openExistingProject),
-                        card("Open evidence bundle", "Verify an .fexp and open a disposable copy. No replay is run.",
-                                false, actions::openExperiment)),
-                row(card("Open audit log", "Choose a local audit log to investigate.", false, actions::openOwnLog),
-                        card("Open GraphML", "View a processor topology, with or without a log.", false,
-                                actions::openGraphml)),
-                subheading("Recent projects"), recentProjects,
-                subheading("Recent evidence bundles"), recentBundles);
-
-        workstreamSections[2] = workstream("Create a project",
-                row(card("Create project profile", "Save settings for existing source and processors. No code is generated.",
-                                false, actions::newProject),
-                        card("Create from template", "Choose a starter template and where to install it.",
-                                false, actions::newProjectFromTemplate)));
-
-        fluxtionKeyCard = card("", "", false, actions::openFluxtionKey);
-        refreshFluxtionKeyStatus();
-        aiClientOffer = aiClientOffer();
-        workstreamSections[3] = workstream("Assistant and settings", aiClientOffer, footer(),
-                subheading("Optional: processor regeneration"), row(fluxtionKeyCard));
-        workstreams.setOpaque(false);
-        workstreams.setAlignmentX(LEFT_ALIGNMENT);
-        arrangeWorkstreams(false);
-        workstreams.addComponentListener(new java.awt.event.ComponentAdapter() {
+        col.add(heading("Recent"));
+        recentColumns[0] = recentColumn("Recent projects", recentProjects);
+        recentColumns[1] = recentColumn("Recent evidence bundles", recentBundles);
+        recents.setOpaque(false);
+        recents.setAlignmentX(LEFT_ALIGNMENT);
+        arrangeRecents(false);
+        recents.addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override public void componentResized(java.awt.event.ComponentEvent event) {
-                arrangeWorkstreams(workstreams.getWidth() >= 900);
+                arrangeRecents(recents.getWidth() >= 900);
             }
         });
-        col.add(workstreams);
+        col.add(recents);
 
         col.add(Box.createVerticalStrut(18));
         col.add(Box.createVerticalGlue());
@@ -186,6 +291,64 @@ public final class StartPanel extends JPanel {
         recoveryOffer.setVisible(false);
         add(recoveryOffer, BorderLayout.NORTH);
         applyColours();
+    }
+
+    /** M74 P2: render the session's start-page state (and the local agent's, for the full-posture cue). */
+    public void renderPrompt(telamin.fluxtion.audit.analyser.analyser.session.StartPageState state,
+                             telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState agent) {
+        prompt.render(state, agent);
+    }
+
+    /** M77-2: the AI block or line, as aiSetup decided it. */
+    public void renderAiSetup(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState state) {
+        aiSetup.render(state);
+        prompt.setAiLineSaysIt(aiSetup.isVisible());
+    }
+
+    AiSetupBlock aiSetupBlock() {
+        return aiSetup;
+    }
+
+    /** M74 P2b: an example download's state, as exampleDownload decided it. */
+    public void renderExample(telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState state) {
+        prompt.renderExample(state);
+    }
+
+    /** The prompt's host: its button and its fallbacks, through this page's one Actions interface. */
+    public StartPromptView.Host promptHost() {
+        return promptHost;
+    }
+
+    /** The button's draft was placed: the box is cleared for the next question. */
+    public void promptSent() {
+        prompt.clearAfterSend();
+    }
+
+    StartPromptView prompt() {
+        return prompt;
+    }
+
+    /**
+     * A no-AI fallback BUTTON runs an existing action (r8 F7); the menu path is only its tooltip. One switch over the
+     * fallback kinds — never over the assistant mode, which is the session's (OneDispatchModelTest).
+     */
+    static void runFallback(Actions actions, telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Fallback f,
+                            String entryId, String text) {
+        if ("INSTALL".equals(entryId)) {
+            actions.installClaudeCode();
+            return;
+        }
+        switch (f) {
+            case ASSISTANT_SETTINGS -> actions.openSettings();
+            case CONNECT -> actions.openClientSetUp();
+            case COPY_PROMPT -> actions.copyStartPrompt(entryId, text);
+            case NEW_PROJECT -> actions.newProject();
+            case BUNDLE_GUIDE -> actions.openUserGuide("evidence-bundles/opening/");
+            case TEMPLATE -> actions.newProjectFromTemplate();
+            case USER_GUIDE -> actions.openUserGuide("");
+            case GUIDED_TOUR -> actions.openGuidedTour();
+            case SAMPLE_PROJECT -> actions.openSampleProject();
+        }
     }
 
     /** Show a recovery offer without replacing the shared start choices. */
@@ -210,7 +373,7 @@ public final class StartPanel extends JPanel {
     }
 
     private static void addAction(JPanel into, String label, Runnable action) {
-        JButton button = new JButton(label);
+        JButton button = UiText.button(label);
         button.addActionListener(e -> action.run());
         into.add(button);
     }
@@ -223,7 +386,7 @@ public final class StartPanel extends JPanel {
         JPanel row = new JPanel(new BorderLayout(4, 0));
         row.setOpaque(false);
         row.setAlignmentX(LEFT_ALIGNMENT);
-        JButton more = new JButton("…");
+        JButton more = compact(new JButton("…"));
         more.setToolTipText("Remove from recents, reveal, rename");
         more.setMargin(new java.awt.Insets(0, 6, 0, 6));
         JPopupMenu menu = new JPopupMenu();
@@ -243,6 +406,14 @@ public final class StartPanel extends JPanel {
         return row;
     }
 
+    /** M74 UX: a recent row, compact — a smaller font and a tight margin; its words and its tooltip are unchanged. */
+    private static JButton compact(JButton b) {
+        Font f = UIManager.getFont("Label.font");
+        if (f != null) b.setFont(f.deriveFont(f.getSize2D() - 1f));
+        b.setMargin(new Insets(1, 6, 1, 6));
+        return b;
+    }
+
     private static boolean isMac() {
         return System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("mac");
     }
@@ -254,7 +425,7 @@ public final class StartPanel extends JPanel {
         lastRecents = next;
         recentProjects.removeAll();
         if (next.isEmpty()) {
-            recentProjects.add(body("No recent projects yet. Use Open project above to choose a workspace."));
+            recentProjects.add(body("No recent projects yet. Use Open: Project above to choose a workspace."));
         } else {
             for (String path : next) {
                 Path file = Path.of(path);
@@ -264,14 +435,15 @@ public final class StartPanel extends JPanel {
                 }
                 String title = parent == null || parent.getFileName() == null
                         ? path : parent.getFileName().toString();
-                JButton button = new JButton(title + " / " + file.getFileName() + "  —  " + path);
+                // SF-2: a folder name and a configured path are not the analyser's words — shown as characters
+                JButton button = compact(UiText.button(title + " / " + file.getFileName() + "  —  " + path));
                 button.setHorizontalAlignment(SwingConstants.LEFT);
-                button.setToolTipText(path);
+                button.setToolTipText(UiText.tooltip(path));
                 button.setAlignmentX(LEFT_ALIGNMENT);
                 button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
                 button.addActionListener(e -> actions.openRecentProject(path));
                 recentProjects.add(recentRow(button, path, false));
-                recentProjects.add(Box.createVerticalStrut(4));
+                recentProjects.add(Box.createVerticalStrut(2));
             }
         }
         recentProjects.revalidate();
@@ -291,7 +463,7 @@ public final class StartPanel extends JPanel {
         lastBundleRecents = next;
         recentBundles.removeAll();
         if (next.isEmpty()) {
-            recentBundles.add(body("No evidence bundles opened yet. Use Open evidence bundle above, "
+            recentBundles.add(body("No evidence bundles opened yet. Use Open: Evidence bundle above, "
                     + "or drop a .fexp anywhere on this page."));
         } else {
             List<String> names = distinctNames(next.stream().map(
@@ -303,15 +475,16 @@ public final class StartPanel extends JPanel {
                 String label = names.get(i)
                         + (b.notes().isEmpty() ? "" : "  —  " + b.notes())
                         + (present ? "" : "   (file not found)");
-                JButton button = new JButton(label);
+                // SF-2: the note is the bundle SENDER's sentence and the name is a file on disk
+                JButton button = compact(UiText.button(label));
                 button.setHorizontalAlignment(SwingConstants.LEFT);
-                button.setToolTipText(b.path() + (b.identity().isEmpty() ? "" : "\n" + b.identity()));
+                button.setToolTipText(UiText.tooltip(b.path() + (b.identity().isEmpty() ? "" : "\n" + b.identity())));
                 button.setAlignmentX(LEFT_ALIGNMENT);
                 button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
                 button.setEnabled(present);
                 button.addActionListener(e -> actions.openRecentBundle(b.path()));
                 recentBundles.add(recentRow(button, b.path(), true));
-                recentBundles.add(Box.createVerticalStrut(4));
+                recentBundles.add(Box.createVerticalStrut(2));
             }
         }
         recentBundles.revalidate();
@@ -352,7 +525,8 @@ public final class StartPanel extends JPanel {
     /** Refresh after the management dialog closes; the stored value never enters this component. */
     public void refreshFluxtionKeyStatus() {
         boolean present = actions.fluxtionKeyPresent();
-        fluxtionKeyCard.setCopy(present ? "Fluxtion API key — found" : "Fluxtion API key — not found",
+        fluxtionKeyCard.setCopy(present ? "Fluxtion key — found" : "Fluxtion key — not found",
+                present ? "Fluxtion key ✓" : "Fluxtion key",
                 present
                         ? "Available for a future processor regeneration; this analyser does not validate it."
                         : "Needed to regenerate a processor; existing generated projects still run without one.");
@@ -399,58 +573,46 @@ public final class StartPanel extends JPanel {
         // WRAPS rather than ellipsising: a JLabel would render this as "…see what the system act…",
         // and the one sentence on the page that says what the app is for is the worst possible thing
         // to truncate
-        JTextArea title = wrapping("What would you like to work on?");
-        Font tf = UIManager.getFont("Label.font");
-        title.setFont((tf != null ? tf : title.getFont()).deriveFont(Font.BOLD,
-                (tf != null ? tf : title.getFont()).getSize2D() + 5f));
+        JTextArea title = wrapping(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.title"));
+        // M74 P2b visual fix: the title's size and weight are re-derived on every theme application, as its colour is.
+        // Styled once at construction, it kept the size of whatever theme was in force then, so a page built before (or
+        // across) a theme application showed it inconsistently (two P2a captures differed).
+        Runnable titleFont = () -> title.setFont(heroTitleFont(title.getFont()));
+        titleFont.run();
+        recolour.add(titleFont);
+        heroTitle = title;
         recolour.add(() -> title.setForeground(UIManager.getColor("Label.foreground")));
         inner.add(title);
         inner.add(Box.createVerticalStrut(6));
+        inner.add(body(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.lede")));
+        inner.add(Box.createVerticalStrut(8));
+        prompt.setAlignmentX(LEFT_ALIGNMENT);
+        inner.add(prompt);
+        inner.add(Box.createVerticalStrut(8));
+        aiSetup.setAlignmentX(LEFT_ALIGNMENT);
+        inner.add(aiSetup);
+        inner.add(Box.createVerticalStrut(8));
         inner.add(body("Open evidence, return to a project, or learn with DEMO. An assistant can drive the same views through the local bridge."));
         inner.add(Box.createVerticalStrut(6));
-        inner.add(body("Drop an .fexp bundle, audit log, GraphML or Spring XML anywhere on this page. Return here from Help."));
+        inner.add(body("Drop an .fexp bundle, audit log, GraphML, Spring XML or a prompt pack (.md) anywhere on this page. "
+                + "Return here from Help."));
         band.add(inner, BorderLayout.CENTER);
         return band;      // Fluid: as wide as offered, as tall as its content currently needs
     }
 
-    private JComponent footer() {
-        Box p = Box.createVerticalBox();
-        p.setOpaque(false);
-        p.setAlignmentX(LEFT_ALIGNMENT);
-        p.add(body("Source settings apply to the open project, or to global defaults when no project is open."));
-        p.add(Box.createVerticalStrut(4));
-        JPanel action = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        action.setOpaque(false);
-        action.setAlignmentX(LEFT_ALIGNMENT);
-        action.add(link("Source and assistant settings…", actions::openSettings));
-        p.add(action);
-        return p;
+    /** The hero title's font: the look and feel's label font, bold, 5 points larger — the same in every theme. */
+    static Font heroTitleFont(Font fallback) {
+        Font tf = UIManager.getFont("Label.font");
+        Font base = tf != null ? tf : fallback;
+        return base.deriveFont(Font.BOLD, base.getSize2D() + 5f);
     }
 
-    /**
-     * M42.2's Start Page offer. "Not now" is only a page-level dismissal: there is no remembered
-     * opt-out, because declining an offer while reading a log says nothing about a later investigation.
-     */
-    private JComponent aiClientOffer() {
-        Box offer = Box.createVerticalBox();
-        offer.setAlignmentX(LEFT_ALIGNMENT);
-        offer.add(body("Connect your CLI assistant to query records, draw charts and spotlight evidence here. The analyser bridge is local."));
-        offer.add(Box.createVerticalStrut(8));
-        offer.add(row(
-                card("Connect Codex", "Set up the local bridge Codex will use.", false,
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.CODEX)),
-                card("Connect Claude", "Set up the local bridge for Claude.", false,
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE_CODE)),
-                card("Generic MCP setup", "Prepare this analyser for another MCP client.", false,
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.GENERIC))));
-        offer.add(Box.createVerticalStrut(6));
-        offer.add(link("Not now", () -> {
-            aiClientOffer.setVisible(false);
-            revalidate();
-            repaint();
-        }));
-        return offer;
+    /** For the tests: the hero's title text area. */
+    JTextArea heroTitle() {
+        return heroTitle;
     }
+
+    private JTextArea heroTitle;
 
     /**
      * The way back, shown ONLY when there is something to go back to.
@@ -484,7 +646,7 @@ public final class StartPanel extends JPanel {
 
     /** A text-weight action: the affordance without the visual claim a button makes. */
     private JButton link(String text, Runnable go) {
-        JButton b = new JButton(text);
+        JButton b = UiText.button(text);
         b.setBorderPainted(false);
         b.setContentAreaFilled(false);
         b.setFocusPainted(true);
@@ -531,68 +693,6 @@ public final class StartPanel extends JPanel {
         recolour.add(() -> l.setForeground(UIManager.getColor("Label.foreground")));
         p.add(l, BorderLayout.CENTER);
         return p;
-    }
-
-    /** Keep each activity together as the page changes between one and two columns. */
-    private JComponent workstream(String title, JComponent... content) {
-        JPanel section = new Fluid.Panel() {
-            @Override public Dimension getPreferredSize() {
-                Dimension size = super.getPreferredSize();
-                // A recent path or a row of cards can have a very wide natural size.
-                // The columns must divide the available width before their cards wrap;
-                // an unbounded natural width would otherwise force content offscreen.
-                return new Dimension(0, size.height);
-            }
-        };
-        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-        section.setOpaque(false);
-        section.setAlignmentX(LEFT_ALIGNMENT);
-        section.setMinimumSize(new Dimension(0, 0));
-        section.setBorder(BorderFactory.createEmptyBorder(0, 0, 16, 0));
-        section.getAccessibleContext().setAccessibleName(title + " workstream");
-        section.add(heading(title));
-        for (JComponent child : content) {
-            section.add(child);
-            section.add(Box.createVerticalStrut(8));
-        }
-        return section;
-    }
-
-    private JComponent subheading(String text) {
-        JTextArea label = wrapping(text);
-        Font base = UIManager.getFont("Label.font");
-        if (base == null) base = label.getFont();
-        label.setFont(base.deriveFont(Font.BOLD));
-        recolour.add(() -> label.setForeground(UiTheme.mutedForeground()));
-        return label;
-    }
-
-    /** Keep two independent columns so a short group does not leave a blank row beneath it. */
-    private void arrangeWorkstreams(boolean wide) {
-        if (workstreamsArranged && workstreamsWide == wide) return;
-        workstreamsArranged = true;
-        workstreamsWide = wide;
-        workstreams.removeAll();
-        leftWorkstreams.removeAll();
-        rightWorkstreams.removeAll();
-        if (wide) {
-            leftWorkstreams.setLayout(new BoxLayout(leftWorkstreams, BoxLayout.Y_AXIS));
-            rightWorkstreams.setLayout(new BoxLayout(rightWorkstreams, BoxLayout.Y_AXIS));
-            leftWorkstreams.setOpaque(false);
-            rightWorkstreams.setOpaque(false);
-            leftWorkstreams.add(workstreamSections[0]);
-            leftWorkstreams.add(workstreamSections[2]);
-            rightWorkstreams.add(workstreamSections[1]);
-            rightWorkstreams.add(workstreamSections[3]);
-            workstreams.setLayout(new GridLayout(1, 2, 20, 0));
-            workstreams.add(leftWorkstreams);
-            workstreams.add(rightWorkstreams);
-        } else {
-            workstreams.setLayout(new BoxLayout(workstreams, BoxLayout.Y_AXIS));
-            for (JComponent section : workstreamSections) workstreams.add(section);
-        }
-        workstreams.revalidate();
-        workstreams.repaint();
     }
 
     private JComponent body(String text) {
@@ -731,215 +831,398 @@ public final class StartPanel extends JPanel {
         }
     }
 
-    private Card card(String title, String why, boolean primary, Runnable go) {
-        Card c = new Card(title, why, primary, go);
+    /**
+     * A titled block of the strip's actions (owner UI feedback, 2026-10-17): its heading ABOVE its buttons, the buttons
+     * left-aligned in one column with even spacing, and an optional muted caption under them.
+     */
+    private JComponent group(String title, String caption, JComponent... chips) {
+        JPanel g = new JPanel(new BlockColumn());
+        g.setOpaque(false);
+        g.getAccessibleContext().setAccessibleName(title);
+        g.add(blockHeading(title));
+        for (JComponent c : chips) g.add(c);
+        if (caption != null) {
+            JTextArea t = Fluid.text(caption);
+            Font base = UIManager.getFont("Label.font");
+            if (base != null) t.setFont(base.deriveFont(base.getSize2D() - 1f));
+            recolour.add(() -> t.setForeground(UiTheme.mutedForeground()));
+            t.putClientProperty(BlockColumn.CAPTION, Boolean.TRUE);
+            g.add(t);
+        }
+        return g;
+    }
+
+    /** The one heading style of a block — the strip's groups and the recent lists alike (owner UI feedback). */
+    private JComponent blockHeading(String title) {
+        JLabel l = UiText.label(title);
+        Font base = UIManager.getFont("Label.font");
+        if (base != null) l.setFont(base.deriveFont(Font.BOLD));
+        recolour.add(() -> l.setForeground(UiTheme.mutedForeground()));
+        l.setAlignmentX(LEFT_ALIGNMENT);
+        return l;
+    }
+
+    /**
+     * One block's column: the heading, then each button at its own width (never wider than the block) with
+     * {@link UiTheme#SPACE_SM} between, then a caption wrapped to the block's width. Its height is computed for the width
+     * it is given, so {@link BlockGrid} can size a row before laying it out.
+     */
+    static final class BlockColumn implements LayoutManager {
+        static final String CAPTION = "startPanel.blockCaption";
+
+        @Override public void addLayoutComponent(String name, Component comp) { }
+
+        @Override public void removeLayoutComponent(Component comp) { }
+
+        int heightFor(Container parent, int width) {
+            int h = 0;
+            for (int i = 0; i < parent.getComponentCount(); i++) {
+                Component c = parent.getComponent(i);
+                if (i > 0) h += UiTheme.SPACE_SM;
+                h += height(c, width);
+            }
+            return h;
+        }
+
+        private static boolean isCaption(Component c) {
+            return c instanceof JComponent j && Boolean.TRUE.equals(j.getClientProperty(CAPTION));
+        }
+
+        private static int height(Component c, int width) {
+            if (isCaption(c)) {
+                c.setSize(Math.max(1, width), Short.MAX_VALUE);
+                return c.getPreferredSize().height;
+            }
+            return c.getPreferredSize().height;
+        }
+
+        @Override public Dimension preferredLayoutSize(Container parent) {
+            int w = 0;
+            for (Component c : parent.getComponents()) if (!isCaption(c)) w = Math.max(w, c.getPreferredSize().width);
+            int width = parent.getWidth() > 0 ? parent.getWidth() : w;
+            return new Dimension(w, heightFor(parent, width));
+        }
+
+        @Override public Dimension minimumLayoutSize(Container parent) {
+            return preferredLayoutSize(parent);
+        }
+
+        @Override public void layoutContainer(Container parent) {
+            int width = parent.getWidth();
+            int y = 0;
+            for (int i = 0; i < parent.getComponentCount(); i++) {
+                Component c = parent.getComponent(i);
+                if (i > 0) y += UiTheme.SPACE_SM;
+                int h = height(c, width);
+                int w = isCaption(c) ? width : Math.min(width, c.getPreferredSize().width);
+                c.setBounds(0, y, w, h);
+                y += h;
+            }
+        }
+    }
+
+    /**
+     * The strip's grid (owner UI feedback, 2026-10-17): as many columns as fit a block of at least {@link #MIN_BLOCK}
+     * — at most {@link #MAX_COLUMNS} — so five across on a wide page, three, two and then one as it narrows, with
+     * {@link UiTheme#SPACE_LG} gutters. Each row is as tall as its tallest block at the column width, so nothing is
+     * clipped and nothing overlaps.
+     */
+    static final class BlockGrid implements LayoutManager {
+        static final int MIN_BLOCK = 176;
+        static final int MAX_COLUMNS = 5;
+        static final int HGAP = UiTheme.SPACE_LG;
+        static final int VGAP = UiTheme.SPACE_LG;
+
+        @Override public void addLayoutComponent(String name, Component comp) { }
+
+        @Override public void removeLayoutComponent(Component comp) { }
+
+        static int columns(int avail, int count) {
+            int fit = Math.max(1, (avail + HGAP) / (MIN_BLOCK + HGAP));
+            return Math.max(1, Math.min(Math.min(MAX_COLUMNS, Math.max(1, count)), fit));
+        }
+
+        private static int blockHeight(Component c, int width) {
+            if (c instanceof Container k && k.getLayout() instanceof BlockColumn b) return b.heightFor(k, width);
+            return c.getPreferredSize().height;
+        }
+
+        private static Dimension size(Container parent, int width) {
+            Insets in = parent.getInsets();
+            int count = parent.getComponentCount();
+            if (count == 0) return new Dimension(width, in.top + in.bottom);
+            int avail = Math.max(1, width - in.left - in.right);
+            int cols = columns(avail, count);
+            int cw = Math.max(1, (avail - (cols - 1) * HGAP) / cols);
+            int h = in.top + in.bottom;
+            for (int i = 0; i < count; i += cols) {
+                int row = 0;
+                for (int k = i; k < Math.min(count, i + cols); k++) row = Math.max(row, blockHeight(parent.getComponent(k), cw));
+                h += row + (i > 0 ? VGAP : 0);
+            }
+            return new Dimension(width, h);
+        }
+
+        @Override public Dimension preferredLayoutSize(Container parent) {
+            // before the first layout the width is unknown: answer for a wide page, which is self-correcting (Fluid
+            // revalidates when the real width arrives)
+            return size(parent, parent.getWidth() > 0 ? parent.getWidth() : MAX_COLUMNS * (MIN_BLOCK + HGAP));
+        }
+
+        @Override public Dimension minimumLayoutSize(Container parent) {
+            return size(parent, MIN_BLOCK + parent.getInsets().left + parent.getInsets().right);
+        }
+
+        @Override public void layoutContainer(Container parent) {
+            Insets in = parent.getInsets();
+            int count = parent.getComponentCount();
+            if (count == 0) return;
+            int avail = Math.max(1, parent.getWidth() - in.left - in.right);
+            int cols = columns(avail, count);
+            int cw = Math.max(1, (avail - (cols - 1) * HGAP) / cols);
+            int y = in.top;
+            for (int i = 0; i < count; i += cols) {
+                int row = 0;
+                for (int k = i; k < Math.min(count, i + cols); k++) row = Math.max(row, blockHeight(parent.getComponent(k), cw));
+                int x = in.left;
+                for (int k = i; k < Math.min(count, i + cols); k++) {
+                    parent.getComponent(k).setBounds(x, y, cw, row);
+                    x += cw + HGAP;
+                }
+                y += row + VGAP;
+            }
+        }
+    }
+
+    /** For the tests: the strip's blocks, in order. */
+    List<JComponent> directBlocks() {
+        List<JComponent> out = new ArrayList<>();
+        for (Component c : directStrip.getComponents()) if (c instanceof JComponent j) out.add(j);
+        return out;
+    }
+
+    /**
+     * Review M74 usability §4.4 (WCAG 2.5.3, label in name): a chip's accessible name CONTAINS its visible label, so a
+     * person who says "click Other MCP client" reaches it; a title that does not already contain the label is prefixed
+     * with it.
+     */
+    static String accessibleName(String title, String label) {
+        String shown = label == null ? "" : label.replace("✓", "").strip();
+        String t = title == null ? "" : title;
+        if (shown.isEmpty() || t.toLowerCase(java.util.Locale.ROOT).contains(shown.toLowerCase(java.util.Locale.ROOT))) {
+            return t;
+        }
+        return t.isEmpty() ? shown : shown + " — " + t;
+    }
+
+    private ActionChip chip(String title, String label, String why, Runnable go) {
+        ActionChip c = new ActionChip(title, label, why, go);
         recolour.add(c::repaint);
         return c;
     }
 
+    /** One column of the recent lists: its subheading and its rows. */
+    private JComponent recentColumn(String title, JComponent rows) {
+        JPanel col = new Fluid.Panel() {
+            @Override public Dimension getPreferredSize() {
+                // a recent path can be very wide: the columns share the width before their rows are measured
+                return new Dimension(0, super.getPreferredSize().height);
+            }
+        };
+        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
+        col.setOpaque(false);
+        col.setAlignmentX(LEFT_ALIGNMENT);
+        col.setMinimumSize(new Dimension(0, 0));
+        col.getAccessibleContext().setAccessibleName(title);
+        col.add(blockHeading(title));
+        col.add(Box.createVerticalStrut(UiTheme.SPACE_SM));
+        col.add(rows);
+        return col;
+    }
+
+    /** The two recent lists side by side on a wide page, one under the other on a narrow one. */
+    private void arrangeRecents(boolean wide) {
+        if (recentsArranged && recentsWide == wide) return;
+        recentsArranged = true;
+        recentsWide = wide;
+        recents.removeAll();
+        if (wide) {
+            recents.setLayout(new GridLayout(1, 2, UiTheme.SPACE_LG, 0));
+        } else {
+            recents.setLayout(new BoxLayout(recents, BoxLayout.Y_AXIS));
+        }
+        recents.add(recentColumns[0]);
+        if (!wide) recents.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+        recents.add(recentColumns[1]);
+        recents.revalidate();
+        recents.repaint();
+    }
+
+    /** For the tests: the strip's actions, in order. */
+    List<ActionChip> directActions() {
+        List<ActionChip> out = new ArrayList<>();
+        collect(directStrip, out);
+        return out;
+    }
+
+    private static void collect(Container c, List<ActionChip> out) {
+        for (Component k : c.getComponents()) {
+            if (k instanceof ActionChip a) out.add(a);
+            else if (k instanceof Container inner) collect(inner, out);
+        }
+    }
+
+    JPanel directStrip() {
+        return directStrip;
+    }
+
+    JPanel recentsPanel() {
+        return recents;
+    }
+
     /**
-     * A two-line action. Drawn rather than styled: FlatLaf owns a JButton's background and border, and
-     * fighting it per-theme is how a control ends up looking right in Dark and wrong in Light. It is
-     * still a JButton, so keyboard activation, focus traversal, tooltips and accessibility are the
-     * platform's, not a reimplementation.
+     * One action of the strip: an icon and a short label, in the prompt's chip style (M74 UX). Drawn rather than styled —
+     * FlatLaf owns a JButton's background — but still a JButton, so keyboard activation, focus traversal, the tooltip
+     * (the old card's sentence) and the accessible name (the old card's title, which tests and docs name) are the
+     * platform's.
      */
-    private static final class Card extends JButton {
-        private static final int PAD = 12;
-        private static final int SUB_LINES = 2;
-
+    static final class ActionChip extends JButton {
+        private static final int H_PAD = 14;
         private String title;
+        private String label;
         private String why;
-        private final boolean primary;
 
-        Card(String title, String why, boolean primary, Runnable go) {
-            this.title = title;
-            this.why = why;
-            this.primary = primary;
+        ActionChip(String title, String label, String why, Runnable go) {
             setContentAreaFilled(false);
             setBorderPainted(false);
             setFocusPainted(false);
             setOpaque(false);
-            setToolTipText(why);
-            getAccessibleContext().setAccessibleName(title);
-            getAccessibleContext().setAccessibleDescription(why);
+            setCopy(title, label, why);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             addActionListener(e -> go.run());
         }
 
-        void setCopy(String title, String why) {
+        void setCopy(String title, String label, String why) {
             this.title = title;
+            this.label = label;
             this.why = why;
-            setToolTipText(why);
-            getAccessibleContext().setAccessibleName(title);
+            setToolTipText(why == null || why.isBlank() ? null : UiText.tooltip(why));
+            getAccessibleContext().setAccessibleName(accessibleName(title, label));
             getAccessibleContext().setAccessibleDescription(why);
+            revalidate();
             repaint();
         }
 
-        private static Font base() {
+        String title() {
+            return title;
+        }
+
+        String label() {
+            return label;
+        }
+
+        String why() {
+            return why;
+        }
+
+        private static Font font() {
             Font f = UIManager.getFont("Label.font");
             return f != null ? f : new Font(Font.SANS_SERIF, Font.PLAIN, 12);
         }
 
-        private Font titleFont() {
-            return base().deriveFont(Font.BOLD, base().getSize2D() + 0.5f);
-        }
-
-        private Font subFont() {
-            return base().deriveFont(Font.PLAIN, base().getSize2D() - 1f);
-        }
-
-        /**
-         * Height DERIVED from the two fonts, never a constant. The constant it replaces was measured
-         * against a one-line description and clipped the second line of "…an absence is proof, not
-         * silence." — a card is exactly as tall as a title plus the two lines it promises to show.
-         */
         @Override
         public Dimension getPreferredSize() {
-            int h = PAD * 2 + getFontMetrics(titleFont()).getHeight() + 3
-                    + SUB_LINES * getFontMetrics(subFont()).getHeight();
-            return new Dimension(220, h);
+            FontMetrics fm = getFontMetrics(font());
+            // owner UI feedback (2026-10-17): a proper target — at least TARGET_MIN_HEIGHT tall, one height for every chip
+            return new Dimension(H_PAD + 18 + 8 + fm.stringWidth(label == null ? "" : label) + H_PAD,
+                    Math.max(UiTheme.TARGET_MIN_HEIGHT + 2, fm.getHeight() + 16));
         }
 
         @Override
         public Dimension getMaximumSize() {
-            return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
+            return getPreferredSize();
         }
 
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            boolean hot = getModel().isRollover() || getModel().isPressed() || isFocusOwner();
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            boolean hot = getModel().isRollover() || getModel().isPressed();
+            boolean focused = isFocusOwner();
             int w = getWidth(), h = getHeight();
-            RoundRectangle2D shape = new RoundRectangle2D.Float(0.5f, 0.5f, w - 1f, h - 1f, 9, 9);
-
-            Color ink;
-            Color sub;
-            if (primary) {
-                Color fill = UiTheme.accent();
-                g.setColor(hot ? UiTheme.mix(fill, UiTheme.onAccent(), 0.14f) : fill);
-                g.fill(shape);
-                ink = UiTheme.onAccent();
-                sub = UiTheme.mix(UiTheme.onAccent(), UiTheme.accent(), 0.32f);
-            } else {
-                g.setColor(hot ? UiTheme.accentWash(0.14f) : UiTheme.accentWash(0.05f));
-                g.fill(shape);
-                g.setColor(hot ? UiTheme.accent() : UiTheme.mix(UiTheme.surfaceEdge(),
-                        UiTheme.accent(), 0.35f));
-                g.draw(shape);
-                ink = UiTheme.accentText();
-                sub = UiTheme.mutedForeground();
+            float arc = 2f * UiTheme.CONTROL_RADIUS;
+            // the focus ring sits OUTSIDE the shape (an inset of 2 px), so it reads as focus and not as a thicker border
+            RoundRectangle2D shape = new RoundRectangle2D.Float(2.5f, 2.5f, w - 5f, h - 5f, arc, arc);
+            g.setColor(hot ? UiTheme.accentWash(0.16f) : UiTheme.accentWash(0.06f));
+            g.fill(shape);
+            // review §4.1: the outline at rest is a control's boundary — 3:1 on the surface (it was 2.06:1)
+            g.setColor(hot || focused ? UiTheme.accent() : UiTheme.controlBorder());
+            g.draw(shape);
+            if (focused) {
+                g.setStroke(new BasicStroke(2f));
+                g.setColor(UiTheme.accent());
+                g.draw(new RoundRectangle2D.Float(1f, 1f, w - 2f, h - 2f, arc + 3f, arc + 3f));
+                g.setStroke(new BasicStroke(1f));
             }
-
-            int inner = w - PAD * 2;
-
-            g.setFont(titleFont());
-            g.setColor(ink);
+            g.setColor(UiTheme.accentText());
+            paintGlyph(g, title, H_PAD, (h - 17) / 2);
+            g.setFont(font());
             FontMetrics fm = g.getFontMetrics();
-            int titleY = PAD + fm.getAscent();
-            paintGlyph(g, title, PAD, titleY - 13);
-            g.drawString(ellipsis(fm, title, inner - 24), PAD + 24, titleY);
-
-            int y = PAD + fm.getHeight() + 3;
-            g.setFont(subFont());
-            g.setColor(sub);
-            FontMetrics fm2 = g.getFontMetrics();
-            // two lines, then ellipsis — the tooltip carries the full sentence either way, so a narrow
-            // column costs a word rather than costing the action
-            for (String line : wrap(fm2, why, inner, SUB_LINES)) {
-                g.drawString(line, PAD, y + fm2.getAscent());
-                y += fm2.getHeight();
-            }
+            g.drawString(label == null ? "" : label, H_PAD + 18 + 8, (h - fm.getHeight()) / 2 + fm.getAscent());
             g.dispose();
         }
 
-        /** Small vector marks stay crisp at any scale and inherit the card's current theme ink. */
-        private static void paintGlyph(Graphics2D g, String title, int x, int y) {
+        /** Small vector marks stay crisp at any scale and inherit the chip's current theme ink. */
+        static void paintGlyph(Graphics2D g, String title, int x, int y) {
             Graphics2D icon = (Graphics2D) g.create();
             icon.translate(x, y);
-            icon.setStroke(new BasicStroke(1.7f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            if (title.startsWith("Take a guided tour")) {
+            icon.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            String t = title == null ? "" : title;
+            if (t.startsWith("Take a guided tour") || t.startsWith("Open sample")) {
                 icon.drawOval(1, 1, 15, 15);
                 icon.drawLine(7, 5, 12, 8);
                 icon.drawLine(12, 8, 7, 11);
                 icon.drawLine(7, 11, 7, 5);
-            } else if (title.startsWith("Open evidence bundle")) {
+            } else if (t.startsWith("Open evidence bundle")) {
                 icon.drawRoundRect(2, 1, 13, 15, 2, 2);
                 icon.drawLine(5, 5, 11, 5);
                 icon.drawLine(5, 9, 12, 9);
                 icon.drawLine(5, 12, 9, 12);
-            } else if (title.startsWith("Investigate")) {
-                icon.drawOval(1, 1, 10, 10);
-                icon.drawLine(10, 10, 16, 16);
-            } else if (title.startsWith("Create project profile")) {
+            } else if (t.startsWith("Create project profile")) {
                 icon.drawRoundRect(1, 1, 14, 14, 2, 2);
                 icon.drawLine(8, 4, 8, 12);
                 icon.drawLine(4, 8, 12, 8);
-            } else if (title.startsWith("Create from template")) {
+            } else if (t.startsWith("Create from template")) {
                 icon.drawRoundRect(1, 1, 14, 14, 2, 2);
                 icon.drawLine(8, 2, 8, 14);
                 icon.drawLine(2, 8, 14, 8);
-            } else if (title.startsWith("Open audit")) {
+            } else if (t.startsWith("Open audit")) {
                 icon.drawRoundRect(2, 1, 13, 15, 2, 2);
                 for (int row : new int[]{5, 8, 11}) icon.drawLine(5, row, 12, row);
-            } else if (title.startsWith("Open GraphML")) {
+            } else if (t.startsWith("Open GraphML")) {
                 icon.drawLine(4, 4, 13, 5);
                 icon.drawLine(4, 4, 7, 13);
                 icon.drawLine(13, 5, 7, 13);
                 icon.fillOval(1, 1, 5, 5);
                 icon.fillOval(11, 3, 5, 5);
                 icon.fillOval(5, 11, 5, 5);
-            } else if (title.startsWith("Open sample")) {
-                icon.drawOval(1, 1, 15, 15);
-                icon.drawLine(7, 5, 12, 8);
-                icon.drawLine(12, 8, 7, 11);
-                icon.drawLine(7, 11, 7, 5);
-            } else if (title.startsWith("Connect") || title.startsWith("Generic MCP")) {
-                icon.drawRoundRect(0, 4, 6, 9, 2, 2);
-                icon.drawRoundRect(11, 4, 6, 9, 2, 2);
-                icon.drawLine(6, 8, 11, 8);
-            } else if (title.startsWith("Open project")) {
+            } else if (t.startsWith("Open project")) {
                 icon.drawPolyline(new int[]{1, 1, 6, 8, 16, 16, 1},
                         new int[]{14, 3, 3, 5, 5, 14, 14}, 7);
+            } else if (t.startsWith("Settings — source")) {
+                icon.drawOval(4, 4, 9, 9);
+                for (int k = 0; k < 8; k++) {
+                    double a = k * Math.PI / 4;
+                    icon.drawLine((int) Math.round(8.5 + 5 * Math.cos(a)), (int) Math.round(8.5 + 5 * Math.sin(a)),
+                            (int) Math.round(8.5 + 7.5 * Math.cos(a)), (int) Math.round(8.5 + 7.5 * Math.sin(a)));
+                }
             } else {
                 icon.drawOval(1, 2, 8, 8);
                 icon.drawLine(8, 9, 15, 16);
                 icon.drawLine(12, 12, 15, 9);
             }
             icon.dispose();
-        }
-
-        private static List<String> wrap(FontMetrics fm, String text, int width, int maxLines) {
-            List<String> out = new ArrayList<>();
-            StringBuilder line = new StringBuilder();
-            for (String word : text.split(" ")) {
-                String next = line.isEmpty() ? word : line + " " + word;
-                if (fm.stringWidth(next) <= width || line.isEmpty()) {
-                    line.setLength(0);
-                    line.append(next);
-                } else {
-                    out.add(line.toString());
-                    line.setLength(0);
-                    line.append(word);
-                    if (out.size() == maxLines) break;
-                }
-            }
-            if (out.size() < maxLines && !line.isEmpty()) out.add(line.toString());
-            if (out.size() == maxLines) {
-                out.set(maxLines - 1, ellipsis(fm, out.get(maxLines - 1), width));
-            }
-            return out;
-        }
-
-        private static String ellipsis(FontMetrics fm, String s, int width) {
-            if (fm.stringWidth(s) <= width) return s;
-            String cut = s;
-            while (cut.length() > 1 && fm.stringWidth(cut + "…") > width) {
-                cut = cut.substring(0, cut.length() - 1);
-            }
-            return cut + "…";
         }
     }
 

@@ -25,10 +25,34 @@ import java.util.List;
  * @param basis        a short label of the workspace this thread's turns were made against
  * @param reason       why the last request was refused, why the turn ended, or ""
  * @param answer       the answer to the last send request that carried an id
+ * @param away         robot re-walk #1 (2026-10-18): a reveal took the canvas from the docked assistant to this tab
+ *                     ("Topology"), so the conversation is behind it — the canvas offers the way back; "" otherwise
+ * @param chipWord     M78 D2 (spec-quiet-assistant-panel.md §5.1, OD-Q.12): the one or two words the panel's mode chip
+ *                     carries for the in-app assistant — from the same closed set as Claude Code's
+ *                     ({@link LocalAgentState.Guide#CHIP_WORDS}), chosen by {@code assistantLoop}, never by the panel
  */
 public record AssistantState(long conversation, long ticket, String phase, int round, int actionsRun, String runningVerb,
                              List<Entry> entries, boolean docked, boolean frozen, String basis, String reason,
-                             Answer answer) {
+                             Answer answer, String away, String chipWord) {
+
+    /** The shape before M78 D2: the chip word is Ready's (nothing). */
+    public AssistantState(long conversation, long ticket, String phase, int round, int actionsRun, String runningVerb,
+                          List<Entry> entries, boolean docked, boolean frozen, String basis, String reason, Answer answer,
+                          String away) {
+        this(conversation, ticket, phase, round, actionsRun, runningVerb, entries, docked, frozen, basis, reason, answer, away,
+                LocalAgentState.Guide.CHIP_READY);
+    }
+
+    /** The shape before robot re-walk #1: nothing is behind another tab. */
+    public AssistantState(long conversation, long ticket, String phase, int round, int actionsRun, String runningVerb,
+                          List<Entry> entries, boolean docked, boolean frozen, String basis, String reason, Answer answer) {
+        this(conversation, ticket, phase, round, actionsRun, runningVerb, entries, docked, frozen, basis, reason, answer, "");
+    }
+
+    /** A reveal took the canvas from the docked assistant: the answer is behind tab {@link #away()}. */
+    public boolean answerBehindTab() {
+        return !away.isEmpty();
+    }
 
     /** Kinds of entry. VISIBLE kinds are rendered; hidden ones exist only for the provider history. */
     public static final String USER = "USER";
@@ -50,11 +74,25 @@ public record AssistantState(long conversation, long ticket, String phase, int r
      * @param detail for a NOTE, the node's own words (a limit, a cancel, a failure) — never model or user text
      * @param result for an ACTION that ran, the transcript key of its actual result JSON; 0 otherwise
      */
-    public record Entry(long id, String kind, long turn, String status, String verb, String detail, long result) {
+    public record Entry(long id, String kind, long turn, String status, String verb, String detail, long result,
+                        long atMillis) {
         public Entry {
             status = status == null ? "" : status;
             verb = verb == null ? "" : verb;
             detail = detail == null ? "" : detail;
+        }
+
+        /**
+         * No time recorded. Owner, 2026-10-18: a USER entry is stamped when its question was prepared, an ANSWER when the
+         * reply arrived — the epoch millis the adapter observed (0: not known); the transcript renders it.
+         */
+        public Entry(long id, String kind, long turn, String status, String verb, String detail, long result) {
+            this(id, kind, turn, status, verb, detail, result, 0);
+        }
+
+        /** This entry at {@code atMillis}. */
+        public Entry at(long atMillis) {
+            return new Entry(id, kind, turn, status, verb, detail, result, atMillis);
         }
 
         public boolean visible() {
@@ -80,6 +118,8 @@ public record AssistantState(long conversation, long ticket, String phase, int r
         basis = basis == null ? "" : basis;
         reason = reason == null ? "" : reason;
         answer = answer == null ? Answer.NONE : answer;
+        away = away == null ? "" : away;
+        chipWord = chipWord == null ? LocalAgentState.Guide.CHIP_READY : chipWord;
     }
 
     /** A turn is in progress: Send is not allowed, Cancel is. */

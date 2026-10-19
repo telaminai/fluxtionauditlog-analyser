@@ -42,7 +42,7 @@ public final class KnownKeys {
 
     static {
         Set<String> all = new java.util.HashSet<>(PROFILE_FAMILIES);
-        all.addAll(Set.of("activeProjectPath", "apiKey", "deletedReport", "deletedWalk", "awsProfile", "awsRegion", "eventFilterCollapsed", "graphmlFile",
+        all.addAll(Set.of("activeProjectPath", "apiKey", "deletedReport", "deletedWalk", "deletedChart", "awsProfile", "awsRegion", "eventFilterCollapsed", "graphmlFile",
                 "lastRunVersion", "logFile", "memoryThresholdMb", "projectPanelCollapsed", "recentFile", "recentGraphml",
                 "recentProject", "recentBundle", "searchHistory", "theme", "mcp", "topologyOrientation",
                 // the focus each project was last left on, machine tier: owned here so entries above a
@@ -50,7 +50,7 @@ public final class KnownKeys {
                 "lastFocus", "eventTypesDivider", "topologyPanX", "topologyPanY",
                 "topologySpacing", "topologySyncSource", "topologyTextSize", "topologyZoom", "westDivider", "westWidth",
                 "windowH", "windowW", "windowX", "windowY"));
-        // "deletedReport" (PR #33) and "deletedWalk" (M69): the machine-local bins — CONFIG only, never profile families,
+        // "deletedReport" (PR #33), "deletedWalk" (M69) and "deletedChart" (2026-10-18): the machine-local bins — CONFIG only, never profile families,
         // so they are never shared
         CONFIG_FAMILIES = Set.copyOf(all);
     }

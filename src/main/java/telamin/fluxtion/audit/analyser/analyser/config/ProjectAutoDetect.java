@@ -65,8 +65,20 @@ public final class ProjectAutoDetect {
     private static boolean sameProject(Path profile, Path activeFile) {
         Path a = ProjectProfile.baseDirFor(profile);
         Path b = ProjectProfile.baseDirFor(activeFile);
-        return a != null && b != null
-                && a.toAbsolutePath().normalize().equals(b.toAbsolutePath().normalize());
+        return a != null && b != null && real(a).equals(real(b));
+    }
+
+    /**
+     * Authoring walk (2026-10-18): the same folder reached two ways — macOS's {@code /tmp} is a link to
+     * {@code /private/tmp}, and a chooser hands back the resolved path — is ONE project, so the comparison is by real
+     * path. Compared lexically, opening a log inside the open project asked to "load" the project already loaded.
+     */
+    private static Path real(Path p) {
+        try {
+            return p.toRealPath();
+        } catch (java.io.IOException | RuntimeException e) {
+            return p.toAbsolutePath().normalize();
+        }
     }
 
     /** Remember a "no" so the same log does not ask again this session. */
@@ -84,6 +96,6 @@ public final class ProjectAutoDetect {
     }
 
     private static String key(Path p) {
-        return p.toAbsolutePath().normalize().toString();
+        return real(p).toString();
     }
 }

@@ -37,12 +37,16 @@ public final class DetailPanel extends JPanel {
     public void setDeclarationOpener(java.util.function.Consumer<String> opener) { declarationOpener = opener; }
 
     private static final String HINT = "  (select a record in the table above to see its nodeLogs)";
+    /** p2: what the pane says while the filters hide every record — there is nothing to select, and it says why. */
+    static final String FILTER_HINT = "  (the filter hides every record — undo a filter above the Records table to see one)";
+    /** Whether the session's records view says every record is hidden (rendered from the snapshot by the frame). */
+    private boolean filterHidesAll;
 
     private final WrapTextPane text = new WrapTextPane(false);
     private final JScrollPane scroll = new JScrollPane(text);
     private final YamlHighlighter highlighter = new YamlHighlighter();
     private final Map<String, String> methodByInstance = new LinkedHashMap<>();  // instanceId -> driving method
-    private final javax.swing.JLabel selectionInfo = new javax.swing.JLabel(" ");
+    private final javax.swing.JLabel selectionInfo = UiText.plain(new javax.swing.JLabel(" "));
     private String shownText = "";
     private boolean logical = true;                     // Logical is the default reading view; Text is the evidence
     private LogicalLogView.Layout layout = LogicalLogView.layout(List.of());
@@ -86,7 +90,7 @@ public final class DetailPanel extends JPanel {
     /** Show {@code note} above the record, or hide the banner for null. Call on the EDT. */
     public void setIdentityNote(String note) {
         identityBanner.setText(note == null ? "" : note);
-        identityBanner.setToolTipText(note);
+        identityBanner.setToolTipText(UiText.tooltip(note));
         identityBanner.setVisible(note != null);
         revalidate();
     }
@@ -96,8 +100,26 @@ public final class DetailPanel extends JPanel {
         return identityBanner.isVisible() ? identityBanner.getText() : null;
     }
 
+    /** Lines of record text the pane keeps when the Facts column is short; it is the first to give way. */
+    static final int MIN_VISIBLE_LINES = 2;
+
+    /** Its button row and {@link #MIN_VISIBLE_LINES} lines of text, in the text's own font. */
+    @Override
+    public java.awt.Dimension getMinimumSize() {
+        if (isMinimumSizeSet() || scroll == null) return super.getMinimumSize();
+        java.awt.Insets in = getInsets();
+        java.awt.Insets frame = scroll.getInsets();
+        java.awt.Insets pad = text.getInsets();
+        java.awt.Component north = ((BorderLayout) getLayout()).getLayoutComponent(BorderLayout.NORTH);
+        int line = text.getFontMetrics(text.getFont()).getHeight();
+        int h = in.top + in.bottom + (north == null ? 0 : north.getPreferredSize().height)
+                + frame.top + frame.bottom + pad.top + pad.bottom + MIN_VISIBLE_LINES * line;
+        return new java.awt.Dimension(100, h);
+    }
+
     public DetailPanel() {
         super(new BorderLayout());
+        UiText.plain(identityBanner);     // SF-2: a verdict's reason names files
         text.setEditable(false);
         text.setFont(UiTheme.mono(12));
         text.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
@@ -106,9 +128,13 @@ public final class DetailPanel extends JPanel {
         bar.add(buildViewToggle());
         JCheckBox wrap = new JCheckBox("Wrap", false);
         wrap.addActionListener(e -> setWrap(wrap.isSelected()));
-        JButton explain = new JButton("Explain with LLM");
-        explain.setToolTipText("Send the selected record(s) to the LLM assistant for a plain-English explanation");
-        explain.addActionListener(e -> explainAction.run());
+        // M74 P2 (§5.5, r8 F12): an Ask entrance built from the registry — its label and tooltip are the question's
+        askButton.setText(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface.DETAIL_BUTTON.label"));
+        askButton.setToolTipText(UiText.tooltip(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text(
+                "surface.DETAIL_BUTTON.none")));
+        askButton.setEnabled(false);
+        askButton.addActionListener(e -> explainAction.run());
+        JButton explain = askButton;
         JButton copy = new JButton("Copy");
         copy.setToolTipText("Copy raw record text for inspection; not a reloadable log export");
         copy.addActionListener(e -> copyToClipboard());
@@ -126,8 +152,8 @@ public final class DetailPanel extends JPanel {
         UiTheme.applySurface(scroll, text);
         setWrap(false);
         highlighter.render(text.getStyledDocument(), HINT);
-        // let the split freely resize this panel (don't let the text pane's content dictate a large min)
-        setMinimumSize(new java.awt.Dimension(100, 60));
+        // its minimum is small and computed (getMinimumSize), never the text pane's content: this is the
+        // pane that gives way first when the Facts column is short (owner, 2026-10-18)
         setBorder(UiTheme.section("Record detail"));
         setToolTipText("nodeLogs for the selected record — click a node line to open its source");
 
@@ -189,7 +215,20 @@ public final class DetailPanel extends JPanel {
         this.eventHandlerOpener = opener == null ? r -> { } : opener;
     }
 
-    /** Action run by the "Explain with LLM" button. */
+    /** The registry's Ask entrance on this panel (M74 P2). */
+    private final JButton askButton = UiText.button(" ");
+
+    /** M74 P2: the entrance follows the selection — the question's label as the tooltip, disabled with none. */
+    public void setAskEntrance(String tooltip, boolean enabled) {
+        askButton.setToolTipText(UiText.tooltip(tooltip));
+        askButton.setEnabled(enabled);
+    }
+
+    JButton askButton() {
+        return askButton;
+    }
+
+    /** Action run by the Ask button. */
     public void setExplainAction(Runnable action) {
         this.explainAction = action == null ? () -> { } : action;
     }
@@ -251,7 +290,8 @@ public final class DetailPanel extends JPanel {
         if (records == null || records.isEmpty()) {
             shownText = "";
             layout = LogicalLogView.layout(List.of());
-            renderCurrentView();
+            if (filterHidesAll) highlighter.render(text.getStyledDocument(), FILTER_HINT);
+            else renderCurrentView();
             return;
         }
         StringBuilder sb = new StringBuilder();
@@ -314,7 +354,24 @@ public final class DetailPanel extends JPanel {
         shownText = "";
         layout = LogicalLogView.layout(List.of());
         setSelectionInfo(0);
+        filterHidesAll = false;
         highlighter.render(text.getStyledDocument(), HINT);
+    }
+
+    /** p2: say that the filter hides every record while nothing is shown, and the usual hint once something is. */
+    public void setFilterHidesEverything(boolean hidesAll) {
+        if (hidesAll == filterHidesAll) return;
+        filterHidesAll = hidesAll;
+        if (shownRecords.isEmpty()) highlighter.render(text.getStyledDocument(), hidesAll ? FILTER_HINT : HINT);
+    }
+
+    /** The pane's text as shown, for tests. */
+    String paneText() {
+        try {
+            return text.getDocument().getText(0, text.getDocument().getLength());
+        } catch (javax.swing.text.BadLocationException e) {
+            return "";
+        }
     }
 
     /** Re-colour the current content (e.g. after a theme change). */
@@ -389,7 +446,7 @@ public final class DetailPanel extends JPanel {
             } else if (!pairs.isEmpty()) {
                 javax.swing.JMenu addTo = new javax.swing.JMenu("Add to graph");
                 for (String[] pair : pairs) {
-                    JMenuItem it = new JMenuItem(pair[0] + "." + pair[1]);
+                    JMenuItem it = UiText.menuItem(pair[0] + "." + pair[1]);   // SF-2: node ids and keys are the log's
                     it.addActionListener(a -> graphTargets.addSeries(null, pair[0], pair[1]));   // → current graph
                     addTo.add(it);
                 }
@@ -401,7 +458,7 @@ public final class DetailPanel extends JPanel {
             if (declarationOpener != null) {
                 javax.swing.JMenu declarations = new javax.swing.JMenu("Show declaration (matched by name)");
                 for (String id : methodByInstance.keySet()) {
-                    JMenuItem item = new JMenuItem(id); item.addActionListener(a -> declarationOpener.accept(id)); declarations.add(item);
+                    JMenuItem item = UiText.menuItem(id); item.addActionListener(a -> declarationOpener.accept(id)); declarations.add(item);
                 }
                 menu.add(declarations);
             }
@@ -410,7 +467,7 @@ public final class DetailPanel extends JPanel {
             header.setEnabled(false);
             menu.add(header);
             for (Map.Entry<String, String> entry : methodByInstance.entrySet()) {
-                JMenuItem item = new JMenuItem(entry.getKey());
+                JMenuItem item = UiText.menuItem(entry.getKey());
                 item.addActionListener(a -> nodeSourceOpener.accept(entry.getKey(), entry.getValue()));
                 menu.add(item);
             }
@@ -496,16 +553,16 @@ public final class DetailPanel extends JPanel {
     /** The "Add instanceId.key to graph" submenu with current / named / new-graph targets. */
     private javax.swing.JMenu graphSubmenu(String instanceId, String key) {
         String display = instanceId + "." + key;
-        javax.swing.JMenu addTo = new javax.swing.JMenu("Add " + display + " to graph");
+        javax.swing.JMenu addTo = UiText.menu("Add " + display + " to graph");
         String current = graphTargets.currentName();
-        JMenuItem cur = new JMenuItem(current == null ? "Current graph" : "Current graph (" + current + ")");
+        JMenuItem cur = UiText.menuItem(current == null ? "Current graph" : "Current graph (" + current + ")");
         cur.addActionListener(a -> graphTargets.addSeries(null, instanceId, key));
         addTo.add(cur);
         List<String> names = graphTargets.names();
         if (!names.isEmpty()) {
             addTo.addSeparator();
             for (String n : names) {
-                JMenuItem item = new JMenuItem(n);
+                JMenuItem item = UiText.menuItem(n);      // a chart name
                 item.addActionListener(a -> graphTargets.addSeries(n, instanceId, key));
                 addTo.add(item);
             }

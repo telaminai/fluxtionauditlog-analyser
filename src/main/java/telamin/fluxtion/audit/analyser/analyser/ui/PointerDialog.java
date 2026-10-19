@@ -44,10 +44,11 @@ public final class PointerDialog {
 
         DefaultListModel<String> model = new DefaultListModel<>();
         config.runbooks.keySet().forEach(model::addElement);
-        JList<String> list = new JList<>(model);
+        // SF-2: a runbook's name, path and description are the project profile's — a cloned repository's
+        JList<String> list = UiText.plainCells(new JList<>(model));
         list.setVisibleRowCount(8);
 
-        JLabel detail = new JLabel(" ");
+        JLabel detail = UiText.plain(new JLabel(" "));
         detail.setForeground(UiTheme.mutedForeground());
         list.addListSelectionListener(e -> {
             Runbooks.Pointer p = selected(list, config);
@@ -136,7 +137,7 @@ public final class PointerDialog {
         JTextField path = new JTextField(initialPath == null ? "" : initialPath, 30);
         JTextField description = new JTextField(initialDescription == null ? "" : initialDescription, 30);
         JLabel problem = problemLabel();
-        JLabel prefilled = new JLabel(" ");
+        JLabel prefilled = UiText.plain(new JLabel(" "));
         prefilled.setForeground(UiTheme.mutedForeground());
 
         JButton browse = new JButton("Choose file…");
@@ -197,6 +198,30 @@ public final class PointerDialog {
     }
 
     /**
+     * M74 P2b (§5.6): the add path for a runbook the person accepted in an onboarding review — the same checks the Add
+     * dialog applies ({@link Runbooks#refuse}), the name and description the file's frontmatter offers (the file's
+     * name otherwise), a POINTER relative to the project, never its contents (D-C2). Empty when added, else why not.
+     */
+    static Optional<String> addRunbookPointer(AppConfig config, Path projectRoot, Path file) {
+        Path root = projectRoot.toAbsolutePath().normalize();
+        Path abs = file.toAbsolutePath().normalize();
+        if (!abs.startsWith(root)) return Optional.of("the runbook is outside the project");
+        String rel = root.relativize(abs).toString().replace('\\', '/');
+        var suggestion = SkillFrontmatter.read(abs);
+        String fallback = abs.getFileName() == null ? "runbook" : abs.getFileName().toString().replaceFirst("\\.md$", "");
+        if ("SKILL".equalsIgnoreCase(fallback) && abs.getParent() != null && abs.getParent().getFileName() != null) {
+            fallback = abs.getParent().getFileName().toString();
+        }
+        String name = SkillFrontmatter.usableName(suggestion.name()).orElse(fallback);
+        String description = SkillFrontmatter.usableDescription(suggestion.description()).orElse(null);
+        var bad = Runbooks.refuse(name, rel);
+        if (bad.isEmpty() && description != null) bad = Runbooks.refuseDescription("runbook", description);
+        if (bad.isPresent()) return bad;
+        config.runbooks.put(name, new Runbooks.Pointer(rel, description));
+        return Optional.empty();
+    }
+
+    /**
      * M43.7 — list the skill-shaped files already in the project and let the user pick.
      *
      * <p>It OFFERS (M35.4): every candidate is shown with what it would be called, and nothing reaches
@@ -222,11 +247,11 @@ public final class PointerDialog {
                 new DefaultListModel<>();
         found.candidates().forEach(model::addElement);
         JList<telamin.fluxtion.audit.analyser.analyser.config.SkillDiscovery.Candidate> list = new JList<>(model);
-        list.setCellRenderer((l, c, i, sel, foc) -> {
+        list.setCellRenderer(UiText.plainRenderer((l, c, i, sel, foc) -> {
             String text = c.declared()
                     ? c.name() + " — " + c.path() + "   (already a runbook)"
                     : c.name() + " — " + c.path();
-            JLabel label = new JLabel(text);
+            JLabel label = UiText.label(text);    // SF-2: a SKILL.md's own name
             label.setOpaque(true);
             if (sel) {
                 label.setBackground(l.getSelectionBackground());
@@ -236,7 +261,7 @@ public final class PointerDialog {
             }
             label.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
             return label;
-        });
+        }));
 
         JPanel body = new JPanel(new BorderLayout(6, 6));
         body.add(note(found.truncated()
@@ -289,17 +314,17 @@ public final class PointerDialog {
     private static boolean confirm(Component parent, String title, JComponent body,
                                    java.util.function.Supplier<Optional<String>> gate, JLabel problem) {
         while (true) {
-            int choice = JOptionPane.showConfirmDialog(parent, body, title,
+            int choice = JOptionPane.showConfirmDialog(parent, body, UiText.inert(title),
                     JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
             if (choice != JOptionPane.OK_OPTION) return false;
             Optional<String> bad = gate.get();
             if (bad.isEmpty()) return true;
-            problem.setText("<html><body style='width:380px'>" + escape(bad.get()) + "</body></html>");
+            problem.setText("<html><body style='width:380px'>" + UiText.escape(bad.get()) + "</body></html>");
         }
     }
 
     private static JDialog dialog(Component parent, String title) {
-        JDialog d = new JDialog(SwingUtilities.getWindowAncestor(parent), title,
+        JDialog d = new JDialog(SwingUtilities.getWindowAncestor(parent), UiText.inert(title),
                 Dialog.ModalityType.APPLICATION_MODAL);
         d.setLayout(new BorderLayout(8, 8));
         return d;
@@ -340,7 +365,7 @@ public final class PointerDialog {
     }
 
     private static JLabel note(String text) {
-        JLabel l = new JLabel("<html><body style='width:420px'>" + escape(text) + "</body></html>");
+        JLabel l = new JLabel("<html><body style='width:420px'>" + UiText.escape(text) + "</body></html>");
         l.setForeground(UiTheme.mutedForeground());
         return l;
     }
@@ -354,7 +379,4 @@ public final class PointerDialog {
         return c;
     }
 
-    private static String escape(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-    }
 }

@@ -61,8 +61,8 @@ class WalkConversationTest {
         extra.put("script", "run me");
         assertTrue(refused(extra).contains("'script' is not a conversation field"));
         Map<String, Object> v2 = conversation(List.of(turn("t1", "user", "q")));
-        v2.put("version", 2);
-        assertTrue(refused(v2).contains("version 2 is not supported"));
+        v2.put("version", 3);   // M74 P2b: v2 is this build's (§6)
+        assertTrue(refused(v2).contains("version 3 is not supported"));
         Map<String, Object> kind = conversation(List.of(turn("t1", "user", "q")));
         kind.put("kind", "live");
         assertTrue(refused(kind).contains("kind"));

@@ -179,20 +179,29 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.importFromBundle(path, chosen);
             }
             case "open" -> {
-                // M73 (spec §3.1): create is checked FIRST, before follow, the canvas, analysis, restore and bundle
-                if (params != null && params.containsKey("create")) return doCreateProject(params);
-                if (params.containsKey("follow")) {
+                // M73 (spec §3.1): create is checked FIRST, before follow, the canvas, analysis, restore and bundle;
+                // final review #2: the order is VerbOperations.open's, which the approval dialog describes too
+                var openOp = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.open(params);
+                if (openOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.CREATE) {
+                    return doCreateProject(params);
+                }
+                if (openOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.FOLLOW) {
                     if (params.size() != 1 || !(params.get("follow") instanceof Boolean))
                         return ActionResult.error("use open {follow: true|false} alone, after the log has finished opening");
                     return app == null ? ActionResult.error("Follow is not enabled here; not following")
                             : onEdt(() -> app.follow((Boolean) params.get("follow")));
                 }
-                if (isCanvasWrite(params)) return onEdt(() -> doOpenCanvas(params));   // M48.7: needs no log, opens no file
-                if (params.get("analysis") != null) return doOpenAnalysis(params);   // M38.4: off the EDT, see method
-                return doOpen(params);
+                if (openOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.CANVAS) {
+                    return onEdt(() -> doOpenCanvas(params));   // M48.7: needs no log, opens no file
+                }
+                if (openOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.ANALYSIS) {
+                    return doOpenAnalysis(params);   // M38.4: off the EDT, see method
+                }
+                return doOpen(params, openOp);
             }
             case "source_root" -> {
-                return onEdt(() -> doSourceRoot(params));
+                var caller = caller();   // P5: on the calling thread, before the event thread runs the verb
+                return onEdt(() -> doSourceRoot(params, caller));
             }
             case "source" -> {
                 return app == null ? ActionResult.error("source navigation is not enabled here") : app.source(params);
@@ -257,12 +266,16 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.screenshot(out.path().toString(), str(params.get("scope"))));
             }
             case "report" -> {
+                // final review #2: the operation is chosen ONCE (VerbOperations.report) — the approval dialog
+                // describes the same choice, so the sentence the person approved is the call that runs
+                var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.report(params);
+                if (!chosen.ok()) return ActionResult.error(chosen.error());
+                var op = chosen.op();
+                // owner 2026-10-18: read on the calling thread, before the event thread runs the verb (like caller())
+                var admission = telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.hostedReportAdmission();
                 // evidence bundle capture (convergence): the investigation packed as one .fexp — the session decides
-                if (params.containsKey("bundle")) {
-                    if (params.size() != 1) return ActionResult.error("report 'bundle' must be used alone");
-                    if (!(params.get("bundle") instanceof Map<?, ?> b)) {
-                        return ActionResult.error("report 'bundle' is an object: {path, notes?, from?, to?, replay?}");
-                    }
+                if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.BUNDLE) {
+                    Map<?, ?> b = (Map<?, ?>) params.get("bundle");
                     var out = guardedPath(b.get("path"));      // B1: the same guard and directory as every verb write
                     if (!out.ok()) return ActionResult.error(out.error());
                     Object notes = b.get("notes");
@@ -280,17 +293,10 @@ public final class ActionExecutor implements RenderExecutor {
                             ? ActionResult.error("'report' is not enabled here")
                             : app.captureBundle(out.path().toString(), (String) notes, from, to, (String) replay));
                 }
-                if (params.containsKey("restore")) {
-                    if (params.size() != 1) return ActionResult.error("report 'restore' must be used alone");
-                    Object restore = params.get("restore");
-                    if (!Boolean.TRUE.equals(restore) && !(restore instanceof String name && !name.isBlank()))
-                        return ActionResult.error("report 'restore' needs true to list or a nonblank report name");
-                }
                 // M33.3: the sections form builds/replaces a NAMED report (path optional — render or
                 // CSV when given); the shipped single-record form stays below as sugar
                 // PR #33 review: 'restore' needs no name, and must not fall through to the single-record export
-                if (params.containsKey("sections") || params.containsKey("name")
-                        || params.containsKey("csv") || params.containsKey("restore")) {
+                if (admission != null || op != telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.FINDING) {
                     String resolved = null;
                     if (params.get("path") != null) {
                         var out = guardedPath(params.get("path"));   // B1: same guard, same directory
@@ -300,7 +306,7 @@ public final class ActionExecutor implements RenderExecutor {
                     final String rp = resolved;
                     return onEdt(() -> app == null
                             ? ActionResult.error("'report' is not enabled here")
-                            : app.report(params, rp));
+                            : admission == null ? app.report(params, rp) : app.report(params, rp, admission));
                 }
                 var out = guardedPath(params.get("path"));   // B1: opt-in + confined; verbs never write elsewhere
                 if (!out.ok()) return ActionResult.error(out.error());
@@ -311,6 +317,18 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.exportFinding(out.path().toString(), intOrNull(params.get("recordIndex")),
                                 str(params.get("title")), str(params.get("graph")),
                                 !params.containsKey("topology") || bool(params.get("topology"))));
+            }
+            case "graph" -> {
+                // owner decision 2026-10-18: the chart bin needs no log — listing and restoring work as report's do
+                var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.graph(params);
+                if (chosen.op() == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.INVALID
+                        && params.containsKey("restore")) {
+                    return ActionResult.error(chosen.error());
+                }
+                if (chosen.op() == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.LIST_DELETED
+                        || chosen.op() == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.RESTORE) {
+                    return onEdt(() -> graphRestore(params));
+                }
             }
             default -> { }
         }
@@ -470,6 +488,28 @@ public final class ActionExecutor implements RenderExecutor {
 
     // ---- graph -----------------------------------------------------------------------------------
 
+    /**
+     * Owner decision 2026-10-18: {@code graph {restore: true}} lists the chart bin; {@code graph {restore: "name or id"}}
+     * puts that definition back into this project under its name — never over a chart that has the name now.
+     */
+    private ActionResult graphRestore(Map<String, Object> p) {
+        if (Boolean.TRUE.equals(p.get("restore"))) {
+            var echo = new java.util.LinkedHashMap<String, Object>();
+            echo.put("restorable", graphTabs.binListing());
+            echo.put("note", "deleted charts, and the definitions a later call replaced, kept on this machine for this "
+                    + "project (the last " + telamin.fluxtion.audit.analyser.analyser.config.ChartBin.CAPACITY
+                    + " across projects). Restore one with graph {restore: \"<name or id>\"}; a name restores its newest "
+                    + "entry, an id that exact version.");
+            return ActionResult.ok("graph", "restorable", echo);
+        }
+        var restored = graphTabs.restoreFromBin(String.valueOf(p.get("restore")));
+        if (!restored.ok()) return ActionResult.error(restored.refusal());
+        var echo = new java.util.LinkedHashMap<String, Object>();
+        echo.put("restored", restored.chart().name());
+        echo.put("charts", graphTabs.graphNames());
+        return ActionResult.ok("graph", "restored", echo);
+    }
+
     private ActionResult doGraph(LogStore s, Map<String, Object> p) {
         // R13-4: the owner decision allows a NEW chart while definitions are withheld, and the UI does. The
         // verb refused everything, so the assistant was held to a stricter rule than the person beside it.
@@ -489,7 +529,10 @@ public final class ActionExecutor implements RenderExecutor {
         // reveal what you changed: `topology` brings its tab forward, and a plot the caller cannot see is
         // indistinguishable from one that was never drawn
         if (app != null) app.showTab("Graph");
-        if (bool(p.get("close"))) {
+        // owner decision 2026-10-18: the operation is VerbOperations.graph's — the one the hosted classification and the
+        // approval dialog judge — so what the person approved is what runs
+        var graphOp = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.graph(p).op();
+        if (graphOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.CLOSE) {
             // PR #51 review, on #50: the safe half of removal. Before this, delete was the only way to get
             // a chart off the screen over the socket — so "not recoverable" was not a warning a caller
             // could act on. Closing keeps the definition (ClosingAChartKeepsItsDefinitionTest), so the
@@ -514,7 +557,7 @@ public final class ActionExecutor implements RenderExecutor {
             });
         }
 
-        if (bool(p.get("delete"))) {
+        if (graphOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.DELETE) {
             // #50: parity with report {name, delete}. Before the rename branch and before the build
             // path, for the same reason the report verb puts its delete first — this call carries a
             // name and no series, which the build path below would read as "replace with an empty
@@ -544,16 +587,16 @@ public final class ActionExecutor implements RenderExecutor {
                 var echo = new java.util.LinkedHashMap<String, Object>();
                 echo.put("deleted", target);
                 echo.put("remaining", graphTabs.chartsThatRemain());   // PR #51 review: not the blank tab a last delete opens
-                echo.put("note", "the chart DEFINITION is gone — its series, formulas, pinned notes and "
-                        + "explanation. The log is untouched, and any PNG already exported is a separate "
-                        + "file. This one is NOT recoverable — unlike report {delete}. To put a chart away "
-                        + "without losing it use graph {name, close: true}.");
+                echo.put("note", "the chart left the project — its series, formulas, pinned notes and explanation "
+                        + "are kept in this machine's chart bin: graph {restore: true} lists it, graph {restore: \""
+                        + target + "\"} brings it back. The log is untouched. To put a chart away without deleting it "
+                        + "use graph {name, close: true}.");
                 return ActionResult.ok("graph", "deleted", echo);
             });
         }
 
         // rename requires an explicit target {name, rename} — never selection-dependent
-        if (p.containsKey("rename")) {
+        if (graphOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.RENAME) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));
             if (from == null) return ActionResult.error("graph rename needs the target 'name'");
             // M68.4 (D-E3): a rename renames and does nothing else, so anything else in the call is refused with it
@@ -723,6 +766,10 @@ public final class ActionExecutor implements RenderExecutor {
                 String problem = SpotlightTarget.chartNameProblem(name);
                 if (problem != null) return ActionResult.error("graph refused, nothing created: " + problem);
             }
+            // owner decision 2026-10-18: an EXISTING chart's definition, before this call changes it — kept in the bin
+            // below when the call replaced it (notes, series, guides, bands, clearNotes…); a new chart has none
+            // (no name creates a new chart: graphForAction(null, …) adds one, so there is nothing before it)
+            var before = newTab || name == null ? null : graphTabs.definitionOf(name);
             GraphPanel panel = graphTabs.graphForAction(name, newTab);
             if (panel == null && graphTabs.definitionRefusal() != null)
                 return ActionResult.error(graphTabs.definitionRefusal());
@@ -739,7 +786,9 @@ public final class ActionExecutor implements RenderExecutor {
             List<String> annotationIssues = applyGuidesAndBands(panel, p);
             if (pinRequested) panel.pin(from, to);   // explicit range → pin (evidence artifact); else follows
             if (refresh) panel.onRecordsAppended();
+            boolean kept = graphTabs.keepIfReplaced(before, panel);
             Map<String, Object> applied = new LinkedHashMap<>();
+            if (kept) applied.put("previousDefinition", "kept — graph {restore: true} lists it");
             // "scheduled", not true: the walk lands after this call returns (debounce + off-EDT); `series` is
             // the way to READ a fresh value, the chart is what lags. false = nothing in this call re-extracts.
             applied.put("refreshed", panel.extractionRequests() > requestsBefore ? "scheduled" : Boolean.FALSE);
@@ -1301,14 +1350,15 @@ public final class ActionExecutor implements RenderExecutor {
         return ActionResult.ok("open", "applied", echo);
     }
 
-    private ActionResult doOpen(Map<String, Object> params) {
+    private ActionResult doOpen(Map<String, Object> params,
+                                telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp op) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
-        if (params.containsKey("restore")) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.RESTORE_SESSION) {
             if (params.size() != 1 || !("last".equals(params.get("restore")) || "dismiss".equals(params.get("restore"))))
                 return ActionResult.error("use open {restore: last|dismiss} alone to accept or decline the current session offer");
             return "dismiss".equals(params.get("restore")) ? onEdt(app::dismissSessionRestore) : onEdt(app::restoreSession);
         }
-        if (params.get("bundle") != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.BUNDLE) {
             if (params.get("project") != null) {
                 return ActionResult.error("open 'bundle' and 'project' are two different projects: use one");
             }
@@ -1328,7 +1378,7 @@ public final class ActionExecutor implements RenderExecutor {
             }
             return opened;
         }
-        if (params.get("project") != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.PROJECT) {
             // M35.8: the largest act on this verb goes first. A project switch is a session boundary
             // (M35.5) — the log and graph close with it — so "open a project and a log" in one call
             // has no coherent reading: whatever the log arrived into would be swept away by the switch.
@@ -1352,7 +1402,7 @@ public final class ActionExecutor implements RenderExecutor {
             // §E + M35.9: the declaration travels WITH the open — one call, nothing set beforehand
             return onEdt(() -> app.openLog(str(params.get("log")), str(params.get("format")), str(params.get("provenance"))));
         }
-        if (params.get("discover") != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.DISCOVER) {
             ActionResult found = "diagnostics".equals(str(params.get("discover")))
                     ? onEdt(() -> app.discoverDiagnostics())
                     : onEdt(() -> app.discoverGraphs());   // lists, never opens — M35.4
@@ -1368,7 +1418,7 @@ public final class ActionExecutor implements RenderExecutor {
             echo.put("ignoredWhy", "discover lists candidates and opens nothing; send the open as its own call");
             return ActionResult.ok(found.action(), found.payloadKey(), echo);
         }
-        if (params.get("close") != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.CLOSE) {
             // the counterpart of open, on the same verb: closing is a lifecycle act, not a new concept
             ActionResult r = onEdt(() -> app.close(str(params.get("close"))));
             // review R2 / M26.4: "open and close at once" is incoherent and the useful reading is the
@@ -1478,14 +1528,28 @@ public final class ActionExecutor implements RenderExecutor {
     private static final java.util.List<String> PAIRING_KEYS = java.util.List.of(
             "pairing", "appliesToOpenLog", "loggedNodes", "declaredByGraph", "verdict");
 
-    private ActionResult doSourceRoot(Map<String, Object> params) {
+    private ActionResult doSourceRoot(Map<String, Object> params,
+                                      telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller caller) {
         if (app == null) return ActionResult.error("'source_root' is not enabled here");
+        // P5 (owner decision 2026-10-18): tier 1 for every caller, tier 2 for assistants — SourceRootPolicy decides, for
+        // every folder FIRST, so a refused folder refuses the whole call before anything changes (D-E3)
+        List<String> outside = new java.util.ArrayList<>();
+        for (String path : strList(params.get("add"))) {
+            if (path == null || path.isBlank()) continue;
+            var verdict = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.decide(java.nio.file.Path.of(path),
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), app.projectRoot(), caller);
+            if (!verdict.allowed()) {
+                return ActionResult.error(verdict.words() + " Nothing was changed (reason: " + verdict.reason().name() + ").");
+            }
+            if (verdict.outsideProject()) outside.add(path);
+        }
         List<String> added = new java.util.ArrayList<>();
         List<String> rejected = new java.util.ArrayList<>();
         for (String path : strList(params.get("add"))) {
             if (app.addSourceRoot(path)) added.add(path);
             else rejected.add(path);
         }
+        outside.retainAll(added);
         List<String> removed = new java.util.ArrayList<>();
         List<String> notRemoved = new java.util.ArrayList<>();
         for (String path : strList(params.get("remove"))) {
@@ -1500,6 +1564,7 @@ public final class ActionExecutor implements RenderExecutor {
         // otherwise go on to wonder why source navigation still finds nothing
         if (!rejected.isEmpty()) echo.put("notASourceRoot", rejected);
         if (!notRemoved.isEmpty()) echo.put("notRemoved", notRemoved);
+        if (!outside.isEmpty()) echo.put("outsideProject", outside);
         return ActionResult.ok("source_root", "sourceRoots", echo);
     }
 
@@ -1896,6 +1961,21 @@ public final class ActionExecutor implements RenderExecutor {
 
     public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin assistantOrigin() {
         return ASSISTANT_ORIGIN.get();
+    }
+
+    /**
+     * P5 (owner decision 2026-10-18): who is calling, from the plumbing that already says so — the hosted bridge's
+     * credential (its dispatch marks the thread), else an in-app assistant turn (its action binds an origin), else an
+     * external MCP/REST client. The one place a verb learns its caller; read on the calling thread.
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller caller() {
+        if (telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.servingHosted()) {
+            return telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.HOSTED_CLAUDE_CODE;
+        }
+        if (ASSISTANT_ORIGIN.get() != null) {
+            return telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.IN_APP_ASSISTANT;
+        }
+        return telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.EXTERNAL;
     }
 
     /** Thrown inside an event-thread task whose assistant turn has ended; nothing in that task ran. */

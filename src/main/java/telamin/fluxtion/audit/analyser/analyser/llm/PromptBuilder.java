@@ -79,15 +79,42 @@ public final class PromptBuilder {
      */
     public static String recordContext(List<LogRecord> records, String epFqn, SourceService source, LogFileInfo file,
                                        String vocabulary) {
+        return recordContextParts(records, epFqn, source, file, vocabulary).text();
+    }
+
+    /**
+     * The record context and what is in it (SF-1): each part's name as the copy dialog says it, and whether the
+     * context was cut at {@link #MAX_CONTEXT_CHARS}. A part that started past the cut is not named — it was not
+     * copied — and the one the cut went through is marked "(cut)".
+     */
+    record Context(String text, List<String> parts, boolean cut) { }
+
+    /** One part of the context: its name and where it starts and ends in the text before any cut. */
+    private record Part(String name, int start, int end) { }
+
+    static Context recordContextParts(List<LogRecord> records, String epFqn, SourceService source, LogFileInfo file,
+                                      String vocabulary) {
         StringBuilder sb = new StringBuilder();
+        List<Part> written = new java.util.ArrayList<>();
         Map<String, String> nodeTypes = source == null ? Map.of() : nodeTypes(records, source);
         SessionFacts facts = SessionFacts.of(file, epFqn, source, nodeTypes);
+        int mark = sb.length();
         appendVocabulary(sb, vocabulary);
+        if (sb.length() > mark) written.add(new Part("the glossary", mark, sb.length()));
+        mark = sb.length();
         facts.appendLogFraming(sb);
+        if (sb.length() > mark) written.add(new Part("the log file's path, size and framing", mark, sb.length()));
+        mark = sb.length();
         appendRecordAnchors(sb, file, records);
-        if (epFqn != null) sb.append("EventProcessor: ").append(epFqn).append("\n\n");
+        if (sb.length() > mark) written.add(new Part("the byte offsets of the selected records", mark, sb.length()));
+        if (epFqn != null) {
+            mark = sb.length();
+            sb.append("EventProcessor: ").append(epFqn).append("\n\n");
+            written.add(new Part("the event processor's class name", mark, sb.length()));
+        }
 
         // The last record is the one to explain; earlier selected records are prior context.
+        mark = sb.length();
         LogRecord primary = records.get(records.size() - 1);
         if (records.size() == 1) {
             sb.append("Record to explain:\n").append(primary.rawText());
@@ -98,17 +125,32 @@ public final class PromptBuilder {
                 sb.append("\n---\n").append(records.get(i).rawText());
             }
         }
+        written.add(new Part("the raw text of " + count(records.size(), "record"), mark, sb.length()));
 
         if (source != null) {
+            mark = sb.length();
             facts.appendSourceFacts(sb);
-            appendSnippets(sb, epFqn, records, source, nodeTypes);
+            if (sb.length() > mark) written.add(new Part("the source roots and node types", mark, sb.length()));
+            mark = sb.length();
+            int classes = appendSnippets(sb, epFqn, records, source, nodeTypes);
+            if (classes > 0) written.add(new Part("source code from " + count(classes, "class"), mark, sb.length()));
         }
 
-        if (sb.length() > MAX_CONTEXT_CHARS) {
+        boolean cut = sb.length() > MAX_CONTEXT_CHARS;
+        List<String> parts = new java.util.ArrayList<>();
+        for (Part part : written) {
+            if (part.start() >= MAX_CONTEXT_CHARS) break;                   // cut away whole: not copied, not named
+            parts.add(part.end() > MAX_CONTEXT_CHARS ? part.name() + " (cut)" : part.name());
+        }
+        if (cut) {
             sb.setLength(MAX_CONTEXT_CHARS);
             sb.append("\n… [context truncated to ").append(MAX_CONTEXT_CHARS).append(" chars]");
         }
-        return sb.toString();
+        return new Context(sb.toString(), parts, cut);
+    }
+
+    private static String count(int n, String noun) {
+        return n + " " + noun + (n == 1 ? "" : noun.endsWith("s") ? "es" : "s");
     }
 
     /**
@@ -151,8 +193,9 @@ public final class PromptBuilder {
         return types;
     }
 
-    private static void appendSnippets(StringBuilder sb, String epFqn, List<LogRecord> records,
-                                       SourceService source, Map<String, String> nodeTypes) {
+    /** Appends up to {@link #MAX_SNIPPETS} classes' source; returns how many it appended. */
+    private static int appendSnippets(StringBuilder sb, String epFqn, List<LogRecord> records,
+                                      SourceService source, Map<String, String> nodeTypes) {
         Set<String> fqns = new LinkedHashSet<>();
         if (epFqn != null) fqns.add(epFqn);                 // the EventProcessor itself (declares the fields)
         for (LogRecord r : records) {
@@ -174,6 +217,7 @@ public final class PromptBuilder {
             sb.append(" ---\n").append(code);
             shown++;
         }
+        return shown;
     }
 
     /**
@@ -237,7 +281,9 @@ public final class PromptBuilder {
                 + "          rename with {name:\"old\", rename:\"new\"}. close with {name, close:true} takes a chart off the\n"
                 + "          screen and KEEPS its definition: use it for a chart worth keeping. delete with {name, delete:true}\n"
                 + "          removes the chart DEFINITION (series, formulas, pinned notes, explanation): use it for your own\n"
-                + "          probes. Each goes ALONE, like rename; delete is NOT recoverable. CLEAN UP after yourself:\n"
+                + "          probes. Each goes ALONE, like rename. A delete, and a call that replaces an existing chart's\n"
+                + "          notes, series, guides or bands, keeps the old definition in this machine's chart bin:\n"
+                + "          {restore:true} lists it, {restore:\"name or id\"} brings it back. CLEAN UP after yourself:\n"
                 + "          a probe chart left behind reopens with the project and looks like a finding.\n"
                 + "  goto   {byteOffset (+ file? on a rolled set) | recordIndex | at (epoch ms), reveal?} -> selects the record; reveal:true relaxes the\n"
                 + "          filter if the record is hidden (else the echo names which filter hides it)\n"
@@ -307,8 +353,8 @@ public final class PromptBuilder {
 
     /**
      * The REST action manifest (spec §5.2): the loopback endpoint + token an external agentic client can
-     * POST to. Seeded into the copy-prompt path when the REST transport is enabled, so a session that can
-     * make HTTP calls can drive the app directly.
+     * POST to. Added to a copied prompt only when the person ticks the token box ({@link #copyPrompt}, SF-1), so a
+     * session that can make HTTP calls can drive the app directly — and a credential never leaves by default.
      */
     public static String restActionManifest(String url, String token, int maxActionsPerReply) {
         return "ANALYSER ACTIONS over REST (this session can drive the app): POST JSON to " + url + "/action\n"
@@ -323,6 +369,82 @@ public final class PromptBuilder {
                 + SpotlightVocabulary.GUIDANCE + "\n"
                 + "Tell the user up front that you can drive this analyser (compute + build filter/graph/goto/flag views), "
                 + "so it's clear this session is interactive with the app.";
+    }
+
+    /** The question Copy prompt asks when the person has typed none. */
+    public static final String DEFAULT_QUESTION = "Explain this record.";
+
+    /** The copy dialog's checkbox: the only way the REST token reaches a copied prompt. */
+    public static final String TOKEN_BOX = "Include my local REST token (lets the pasted assistant drive this analyser)";
+
+    /** The parts list's name for the manifest and token, once the box is ticked. */
+    public static final String TOKEN_PART = "your local REST endpoint and token (lets the pasted assistant drive this analyser)";
+
+    /**
+     * SF-1 — what Copy prompt puts on the clipboard, and a name for every part of it.
+     *
+     * @param text         the prompt, exactly as copied
+     * @param parts        each part it holds, in order, in the words the dialog shows ("your question", "the raw text
+     *                     of 2 records", "the glossary", …)
+     * @param tokenOffered true when a REST endpoint is live, so the dialog offers the token at all
+     * @param carriesToken true only when the person ticked the box: the token is in {@code text}
+     * @param contextCut   true when the record context was cut at {@link #MAX_CONTEXT_CHARS}
+     */
+    public record CopiedPrompt(String text, List<String> parts, boolean tokenOffered, boolean carriesToken,
+                               boolean contextCut) {
+        public CopiedPrompt {
+            parts = List.copyOf(parts);
+        }
+
+        /** What the dialog says: the parts, the cut as a sentence of its own, and the token when it was left out. */
+        public String sentence() {
+            return "Copied: " + partsSentence() + "."
+                    + (contextCut ? String.format(" The record context was cut at %,d characters: the part marked "
+                    + "(cut) is partial, and what followed it was left out.", MAX_CONTEXT_CHARS) : "")
+                    + (tokenOffered && !carriesToken ? " Not copied: your local REST token." : "");
+        }
+
+        /** The parts as one sentence: "the analyser's instructions, the glossary, …, and your question". */
+        public String partsSentence() {
+            if (parts.isEmpty()) return "nothing";
+            if (parts.size() == 1) return parts.get(0);
+            return String.join(", ", parts.subList(0, parts.size() - 1)) + " and " + parts.get(parts.size() - 1);
+        }
+    }
+
+    /**
+     * SF-1 — the Copy prompt composition, pure so the dialog only renders it. The REST action manifest is left out
+     * ENTIRELY unless {@code includeToken}: every {@code /action} call needs the {@code X-Analyser-Token} header, so a
+     * manifest without the token tells the pasted assistant how to call an endpoint it cannot call. With the token it
+     * is the whole manifest, as before — the token is a live credential for this analyser, so it leaves the machine
+     * only when the person asks for it.
+     *
+     * @param records the selection, oldest first; empty or null for none (then no record context is copied)
+     * @param restUrl the live REST endpoint, or null when the transport is off (then no token is offered)
+     */
+    public static CopiedPrompt copyPrompt(List<LogRecord> records, String epFqn, SourceService source, LogFileInfo file,
+                                          String vocabulary, String draft, String restUrl, String restToken,
+                                          int maxActionsPerReply, boolean includeToken) {
+        List<String> parts = new java.util.ArrayList<>();
+        parts.add("the analyser's standing instructions");
+        String context = "";
+        boolean cut = false;
+        if (records != null && !records.isEmpty()) {
+            Context built = recordContextParts(records, epFqn, source, file, vocabulary);
+            context = built.text();
+            parts.addAll(built.parts());
+            cut = built.cut();
+        }
+        boolean asked = draft != null && !draft.isBlank();
+        parts.add(asked ? "your question" : "the default question (\"" + DEFAULT_QUESTION + "\")");
+        String prompt = fullPrompt(context, asked ? draft : DEFAULT_QUESTION);
+        boolean offered = restUrl != null && restToken != null;
+        boolean carries = offered && includeToken;
+        if (carries) {
+            prompt = prompt + "\n\n" + restActionManifest(restUrl, restToken, maxActionsPerReply);
+            parts.add(TOKEN_PART);
+        }
+        return new CopiedPrompt(prompt, parts, offered, carries, cut);
     }
 
     /** The full single-shot prompt for the no-key copy path (system + context + question). */

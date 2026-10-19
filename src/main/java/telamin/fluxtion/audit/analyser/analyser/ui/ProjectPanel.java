@@ -156,7 +156,7 @@ public final class ProjectPanel extends JPanel {
             JPanel sec = new JPanel();
             sec.setLayout(new BoxLayout(sec, BoxLayout.Y_AXIS));
             sec.setOpaque(false);
-            sec.setBorder(UiTheme.section(s.title()));
+            sec.setBorder(UiTheme.section(UiText.inert(s.title())));
             sec.setAlignmentX(LEFT_ALIGNMENT);
             for (ProjectModel.Row r : s.rows()) sec.add(row(r));
             sectionsByTitle.put(s.title(), sec);
@@ -178,18 +178,18 @@ public final class ProjectPanel extends JPanel {
         more.setToolTipText("Copy the path, show the file, remove");
         javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
         javax.swing.JMenuItem copy = new javax.swing.JMenuItem("Copy path");
-        copy.setToolTipText(r.path());
+        copy.setToolTipText(UiText.tooltip(r.path()));
         copy.addActionListener(e -> copy(r.path()));
         menu.add(copy);
         if (!r.path().contains("://")) {          // a remote origin has nothing to show locally
             javax.swing.JMenuItem reveal = new javax.swing.JMenuItem("Show file");
-            reveal.setToolTipText("Show in " + fileManagerName());
+            reveal.setToolTipText(UiText.tooltip("Show in " + fileManagerName()));
             reveal.addActionListener(e -> reveal(r.path()));
             menu.add(reveal);
         }
         if (r.target() == ProjectModel.Target.SETTINGS_SOURCE) {
             javax.swing.JMenuItem remove = new javax.swing.JMenuItem("Remove source root");
-            remove.setToolTipText("Remove " + r.path() + " from this project's source roots");
+            remove.setToolTipText(UiText.tooltip("Remove " + r.path() + " from this project's source roots"));
             remove.addActionListener(e -> navigator.removeSourceRoot(r.path()));
             menu.addSeparator();
             menu.add(remove);
@@ -211,11 +211,12 @@ public final class ProjectPanel extends JPanel {
         head.setOpaque(false);
         head.setAlignmentX(LEFT_ALIGNMENT);
         // C4/D-L8: draw the abbreviated form; the full value is the tooltip and what Copy copies
-        JLabel primary = new JLabel(r.drawn());
+        // SF-2: a row draws a project, report, walk, chart or processor name — authored outside this code
+        JLabel primary = UiText.label(r.drawn());
         primary.setMinimumSize(new Dimension(40, primary.getPreferredSize().height));   // let the row shrink; JLabel elides
         if (r.tone() == ProjectModel.Tone.MUTED) primary.setForeground(UiTheme.mutedForeground());
         if (r.tone() == ProjectModel.Tone.WARN) primary.setForeground(UiTheme.warnForeground());
-        primary.setToolTipText(r.path() != null ? r.path() : r.primary());
+        primary.setToolTipText(UiText.tooltip(r.path() != null ? r.path() : r.primary()));
         head.add(primary, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
@@ -306,14 +307,14 @@ public final class ProjectPanel extends JPanel {
         boolean haveSource = r.target() == ProjectModel.Target.PROCESSOR;
         javax.swing.JMenuItem active = new javax.swing.JMenuItem("Set active");
         active.setToolTipText(haveSource
-                ? "Make " + r.item() + " the project's event processor"
+                ? UiText.tooltip("Make " + r.item() + " the project's event processor")
                 : "Needs source: add the root that holds this class first");
         active.setEnabled(haveSource);   // selectProcessor refuses without source; say so before the click
         active.addActionListener(e -> navigator.setActiveProcessor(r.item()));
         menu.add(active);
 
         javax.swing.JMenuItem remove = new javax.swing.JMenuItem("Remove");
-        remove.setToolTipText("Drop " + r.item() + " from this project's declared processors");
+        remove.setToolTipText(UiText.tooltip("Drop " + r.item() + " from this project's declared processors"));
         remove.addActionListener(e -> navigator.removeProcessor(r.item()));
         menu.add(remove);
 
@@ -354,8 +355,8 @@ public final class ProjectPanel extends JPanel {
     }
 
     private static JButton small(String text, String tip, Runnable action) {
-        JButton b = new JButton(text);
-        b.setToolTipText(tip);
+        JButton b = UiText.button(text);
+        b.setToolTipText(UiText.tooltip(tip));
         b.setFocusable(false);
         b.setMargin(new Insets(0, 4, 0, 4));
         b.putClientProperty("JButton.buttonType", "toolBarButton");
@@ -394,7 +395,9 @@ public final class ProjectPanel extends JPanel {
         area.setCaretPosition(0);
         JScrollPane scroll = new JScrollPane(area);
         scroll.setPreferredSize(new Dimension(720, 480));
-        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), title + " — " + path, java.awt.Dialog.ModalityType.MODELESS);
+        // SF-2: FlatLaf's title bar (the Windows default) is a JLabel, and the row's name and path are the profile's
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), UiText.inert(title + " — " + path),
+                java.awt.Dialog.ModalityType.MODELESS);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 6));
         JButton showFile = new JButton("Show file");
         showFile.addActionListener(e -> reveal(path));

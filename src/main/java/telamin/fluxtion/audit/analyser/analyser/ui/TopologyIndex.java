@@ -43,7 +43,7 @@ public final class TopologyIndex extends JPanel {
     private Consumer<String> onSelect;
     private Consumer<String> onOpenSource;
     private final JPanel body = new JPanel();
-    private final JButton collapseAll = new JButton();
+    private final JButton collapseAll = UiText.plain(new JButton());
     private final List<Section> sections = new ArrayList<>();
     private boolean open = true;
     private boolean syncing;
@@ -154,9 +154,9 @@ public final class TopologyIndex extends JPanel {
     /** One collapsible kind: a heading that toggles, and the names under it. */
     private final class Section extends JPanel {
         private final DefaultListModel<String> model = new DefaultListModel<>();
-        private final JList<String> list = new JList<>(model);
+        private final JList<String> list = UiText.plainCells(new JList<>(model));   // SF-2: node ids are the GraphML's
         private final JScrollPane scroll = new JScrollPane(list);
-        private final JButton heading = new JButton();
+        private final JButton heading = UiText.plain(new JButton());
         private final String title;
         private boolean expanded = true;
 

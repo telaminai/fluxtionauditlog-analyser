@@ -46,4 +46,20 @@ class SpotlightGuidanceIsAtEveryEntranceTest {
         assertTrue(g.contains("flag, a chart note or a report"), "and the durable forms are named");
         assertTrue(g.contains("AFTER filter / goto / graph / topology"), "the ordering trap every client hits once");
     }
+
+    /**
+     * Owner, 2026-10-17: a callout shows three lines of about 40 characters until it is pointed at, so every entrance
+     * tells the agent to keep a caption under about 80 characters and put the detail in its answer. Witness: drop
+     * {@code CAPTION_LENGTH} from {@code GUIDANCE} — each entrance below loses it.
+     */
+    @Test
+    void everyEntranceSaysKeepCaptionsShort() {
+        assertTrue(SpotlightVocabulary.GUIDANCE.contains(SpotlightVocabulary.CAPTION_LENGTH));
+        assertTrue(SpotlightVocabulary.CAPTION_LENGTH.contains("under about 80 characters"));
+        assertTrue(SpotlightVocabulary.CAPTION_LENGTH.contains("put the detail in your answer"));
+        assertTrue(McpBridge.INSTRUCTIONS.contains(SpotlightVocabulary.CAPTION_LENGTH), "the MCP server instructions");
+        assertTrue(PromptBuilder.inProcessActionManifest(20).contains(SpotlightVocabulary.CAPTION_LENGTH), "in-app");
+        assertTrue(PromptBuilder.restActionManifest("http://127.0.0.1:1", "tok", 20)
+                .contains(SpotlightVocabulary.CAPTION_LENGTH), "the copy-prompt REST manifest");
+    }
 }

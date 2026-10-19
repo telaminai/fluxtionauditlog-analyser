@@ -153,4 +153,45 @@ class RestEndpointFileTest {
             server.stop();
         }
     }
+
+    /**
+     * External utility review (2026-10-17): a quit that never closes the window (macOS's application-menu Quit, a SIGTERM,
+     * an exit elsewhere) still removes the file THIS process published, through the once-per-JVM exit hook — in a real
+     * child JVM, which publishes under its own home and exits without any close. A file another process published is left.
+     * Witness: make {@code removeOwnedOnJvmExit} return without adding the hook — the child's file is still there.
+     */
+    @Test
+    void aQuitWithoutTheWindowsCloseStillRemovesTheFileThisProcessPublished() throws Exception {
+        Path home = Files.createDirectories(dir.resolve("child-home"));
+        Path child = Files.writeString(dir.resolve("Quit.java"), """
+                public class Quit {
+                    public static void main(String[] a) throws Exception {
+                        System.setProperty("user.home", a[0]);
+                        var f = telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown();
+                        f.write("http://127.0.0.1:1", "t");
+                        if (!telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.removeOwnedOnJvmExit()) System.exit(3);
+                        if (telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.removeOwnedOnJvmExit()) System.exit(4);
+                        System.out.println(java.nio.file.Files.exists(f.path()) ? "published" : "missing");
+                        System.exit(0);
+                    }
+                }
+                """);
+        String javaBin = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+        Process p = new ProcessBuilder(javaBin, "-cp", System.getProperty("java.class.path"), child.toString(), home.toString())
+                .redirectErrorStream(true).start();
+        String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
+        assertTrue(p.waitFor(60, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(0, p.exitValue(), "installed once, and only once: " + out);
+        assertTrue(out.endsWith("published"), "control: the child published its endpoint: " + out);
+        assertFalse(Files.exists(home.resolve(".fluxtion-analyser/rest-endpoint")), "removed at the child's exit");
+
+        // another process's file: the hook's pid check leaves it
+        Path other = Files.createDirectories(dir.resolve("other-home/.fluxtion-analyser")).resolve("rest-endpoint");
+        Files.writeString(other, "{\"url\":\"http://127.0.0.1:2\",\"token\":\"t\",\"pid\":" + ProcessHandle.current().pid() + "}");
+        new RestEndpointFile(other).deleteIfOwnedByThisProcess();
+        assertFalse(Files.exists(other), "control: this process's own file is removed by the same check");
+        Files.writeString(other, "{\"url\":\"http://127.0.0.1:2\",\"token\":\"t\",\"pid\":1}");
+        new RestEndpointFile(other).deleteIfOwnedByThisProcess();
+        assertTrue(Files.exists(other), "a file another process published is left alone");
+    }
 }

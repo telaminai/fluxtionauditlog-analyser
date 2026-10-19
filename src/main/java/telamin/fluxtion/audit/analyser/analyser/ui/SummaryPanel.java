@@ -23,7 +23,7 @@ import java.util.Set;
 public final class SummaryPanel extends JPanel {
 
     private final SummaryTableModel model = new SummaryTableModel();
-    private final JTable table = new JTable(model);
+    private final JTable table = UiText.plainCells(new JTable(model));   // SF-2: dimension labels are the log's
 
     private LogStore store;
     private FilterState filter;
@@ -72,11 +72,11 @@ public final class SummaryPanel extends JPanel {
         String dim = model.rows.get(table.convertRowIndexToModel(viewRow)).dimension();
         String label = dim.isEmpty() ? "(none)" : dim;
         javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
-        javax.swing.JMenuItem only = new javax.swing.JMenuItem("Filter to \"" + label + "\"");
+        javax.swing.JMenuItem only = UiText.menuItem("Filter to \"" + label + "\"");
         only.addActionListener(a -> filter.setDimensions(Set.of(dim)));
-        javax.swing.JMenuItem add = new javax.swing.JMenuItem("Add \"" + label + "\" to filter");
+        javax.swing.JMenuItem add = UiText.menuItem("Add \"" + label + "\" to filter");
         add.addActionListener(a -> { Set<String> s = effectiveDims(); s.add(dim); applyDims(s); });
-        javax.swing.JMenuItem remove = new javax.swing.JMenuItem("Remove \"" + label + "\" from filter");
+        javax.swing.JMenuItem remove = UiText.menuItem("Remove \"" + label + "\" from filter");
         remove.addActionListener(a -> { Set<String> s = effectiveDims(); s.remove(dim); applyDims(s); });
         menu.add(only);
         menu.add(add);

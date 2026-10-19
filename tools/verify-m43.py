@@ -179,7 +179,7 @@ def eyeball():
     print(EYEBALL)
     input("  [CHECK C step 3] press ENTER to start the second analyser... ")
     second = subprocess.Popen(
-        ["java", f"-Duser.home={cd.HOME}", "-jar", str(cd.jar()), "--rest"],
+        ["java", cd.home_arg(), "-jar", str(cd.jar()), "--rest"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print("\n  Second analyser starting. Watch the FIRST window's light for ~5 seconds.")
     print("  Expected: * MCP ready  ->  * MCP elsewhere (amber)\n")
@@ -231,7 +231,7 @@ def main():
     endpoint_file = pathlib.Path(cd.HOME) / ".fluxtion-analyser" / "rest-endpoint"
     first = json.loads(endpoint_file.read_text()) if endpoint_file.exists() else {}
     second = subprocess.Popen(
-        ["java", f"-Duser.home={cd.HOME}", "-jar", str(cd.jar()), "--rest"],
+        ["java", cd.home_arg(), "-jar", str(cd.jar()), "--rest"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         time.sleep(12)

@@ -67,7 +67,7 @@ public final class McpBridge {
             "Drives a running Fluxtion Audit Log Analyser over its localhost action socket. "
             + "Query verbs (analyser_aggregate, analyser_read) read the loaded audit log; the render verbs "
             + "change what the desktop app shows (filter, graph, goto, flag) and are all reversible. "
-            + "The analyser must be running with the REST transport enabled (Settings > Assistant). "
+            + "The analyser must be running with External MCP/REST access on (Settings > Assistant). "
             // M64.6: server instructions are the one text EVERY MCP client is handed before it picks a tool,
             // so this is where "when to point" has to be for it to be general rather than a skill's habit
             + telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.GUIDANCE
@@ -79,24 +79,60 @@ public final class McpBridge {
     /** Implementation-defined JSON-RPC error: the analyser isn't reachable (MCP reserves -32000..-32019). */
     static final int ERR_ANALYSER_UNREACHABLE = -32001;
 
+    /** One name for external access (review M74 usability #13; final review #14): the words the Settings checkbox uses. */
     static final String NOT_RUNNING =
-            "analyser not running, or REST transport disabled — enable it in Settings ▸ Assistant, or start "
-                    + "the app with `java -jar fluxtion-auditlog-analyser.jar --rest` (REST on, no first-run "
-                    + "dialog; the setting persists)";
+            "analyser not running, or External MCP/REST access is off — turn it on in Settings ▸ Assistant, or start "
+                    + "the app with `java -jar fluxtion-auditlog-analyser.jar --rest` (External MCP/REST access on, no "
+                    + "first-run dialog; the setting persists)";
 
     /** An aggregate over a multi-GB log can take a while; a hung call must still eventually fail. */
     private static final Duration CALL_TIMEOUT = Duration.ofSeconds(60);
 
+    /**
+     * M74 §4.2: the argument naming a per-instance endpoint file. With it the bridge is the analyser's HOSTED bridge for
+     * one local-agent spawn: it reports {@code <version>+bind.<nonce>} as its {@code serverInfo.version} and sends the
+     * generation's hosted credential with every call. Without it, it is the ordinary bridge of the well-known file.
+     */
+    public static final String ENDPOINT_FILE_FLAG = "--endpoint-file";
+
+    /** The suffix that carries the binding nonce in {@code serverInfo.version}. */
+    public static final String BIND_MARK = "+bind.";
+
+    /**
+     * M77-3 (spec-ai-setup-wizard.md §9.4): the environment variable the analyser's own connection probe sets on the
+     * bridge it starts; the bridge then marks its calls ({@code X-Analyser-Probe}) so the live check never counts them.
+     */
+    public static final String PROBE_ENV = "FLUXTION_ANALYSER_PROBE";
+
     private final RestEndpointFile endpointFile;
+    private final boolean hosted;
     private final HttpClient http;
+    /** OD-77.8: what the client called itself at {@code initialize} — forwarded as a display label only. */
+    private volatile String clientLabel;
+    private final boolean probe = System.getenv(PROBE_ENV) != null;
 
     public McpBridge() {
         this(RestEndpointFile.wellKnown());
     }
 
     McpBridge(RestEndpointFile endpointFile) {
+        this(endpointFile, false);
+    }
+
+    McpBridge(RestEndpointFile endpointFile, boolean hosted) {
         this.endpointFile = endpointFile;
+        this.hosted = hosted;
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    }
+
+    /** The bridge {@code args} ask for: hosted on the named per-instance file, else the well-known one. */
+    static McpBridge forArguments(String[] args) {
+        for (int i = 0; args != null && i + 1 < args.length; i++) {
+            if (ENDPOINT_FILE_FLAG.equals(args[i])) {
+                return new McpBridge(new RestEndpointFile(java.nio.file.Path.of(args[i + 1])), true);
+            }
+        }
+        return new McpBridge();
     }
 
     public static void main(String[] args) {
@@ -104,7 +140,7 @@ public final class McpBridge {
         // initialization can fail oddly there. Nothing on this path touches Swing/AWT regardless.
         System.setProperty("java.awt.headless", "true");
         try {
-            new McpBridge().run(System.in, System.out);
+            forArguments(args).run(System.in, System.out);
         } catch (IOException e) {
             System.err.println("[analyser-mcp] transport closed: " + e);
         }
@@ -178,6 +214,7 @@ public final class McpBridge {
      * the newest we do speak and the client decides whether it can continue.
      */
     private String initialize(Object id, Map<?, ?> params) {
+        rememberClient(params);
         Object asked = params.get("protocolVersion");
         String negotiated = asked != null && LEGACY.contains(asked.toString())
                 ? asked.toString()
@@ -189,6 +226,15 @@ public final class McpBridge {
         result.put("serverInfo", serverInfo());
         result.put("instructions", INSTRUCTIONS);
         return response(id, result);
+    }
+
+    /** OD-77.8: the client's self-reported name, from the legacy handshake or the modern {@code _meta}. */
+    private void rememberClient(Map<?, ?> params) {
+        Object info = params.get("clientInfo");
+        if (!(info instanceof Map<?, ?>) && params.get("_meta") instanceof Map<?, ?> meta) {
+            info = meta.get("io.modelcontextprotocol/clientInfo");
+        }
+        if (info instanceof Map<?, ?> m && m.get("name") instanceof String name && !name.isBlank()) clientLabel = name;
     }
 
     /**
@@ -214,7 +260,7 @@ public final class McpBridge {
         if (modern) {
             result.put("resultType", "complete");
         }
-        result.put("tools", McpTools.list());
+        result.put("tools", hosted ? McpTools.hostedList() : McpTools.list());   // M74 P2: propose, hosted only
         if (modern) {
             // CacheableResult: required on modern list results; our tool set is fixed for the process
             result.put("ttlMs", CACHE_TTL_MS);
@@ -237,7 +283,8 @@ public final class McpBridge {
      */
     private String toolsCall(Object id, Map<?, ?> params, boolean modern) {
         Object rawName = params.get("name");
-        String verb = McpTools.verbFor(rawName == null ? null : rawName.toString());
+        String verb = hosted ? McpTools.hostedVerbFor(rawName == null ? null : rawName.toString())
+                : McpTools.verbFor(rawName == null ? null : rawName.toString());
         if (verb == null) {
             // an unknown tool is a protocol error, not something the model can fix by retrying
             return error(id, -32602, "Unknown tool: " + rawName, null);
@@ -261,12 +308,27 @@ public final class McpBridge {
         body.put("params", normalizeNumbers(arguments));
 
         try {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(endpoint.url() + "/action"))
+            HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(endpoint.url() + "/action"))
                     .header("Content-Type", "application/json")
-                    .header("X-Analyser-Token", endpoint.token())
                     .timeout(CALL_TIMEOUT)
-                    .POST(HttpRequest.BodyPublishers.ofString(Json.write(body), StandardCharsets.UTF_8))
-                    .build();
+                    .POST(HttpRequest.BodyPublishers.ofString(Json.write(body), StandardCharsets.UTF_8));
+            // M74 §4.2: the hosted bridge identifies itself by its generation's credential, never by the shared token
+            if (hosted && endpoint.hosted() != null) builder.header(HOSTED_HEADER, endpoint.hosted());
+            // M74 P3 (P3-3): the CLI names the call's tool_use_id in _meta; the hosted bridge forwards it, so the person's
+            // single-use grant can be matched to exactly this call (OD-74.17)
+            String toolUse = hosted ? toolUseIdOf(params) : null;
+            if (toolUse != null) builder.header(TOOL_USE_HEADER, toolUse);
+            // M77-3 (§9.4, OD-77.8): an external bridge says who its client claims to be (a display label only), and
+            // the analyser's own probe marks its calls so the live check never counts them
+            if (!hosted) {
+                if (probe) builder.header("X-Analyser-Probe", "1");
+                if (params.get("_meta") instanceof Map<?, ?> callMeta) rememberClient(Map.of("_meta", callMeta));
+                String label = clientLabel;
+                if (label != null) builder.header("X-Analyser-Client", asciiLabel(label));
+            }
+            // the shared token only when the file has one: the hosted per-instance file does not (review finding 6)
+            if (endpoint.token() != null) builder.header("X-Analyser-Token", endpoint.token());
+            HttpRequest request = builder.build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
             return toolResult(id, response, modern);
         } catch (IOException e) {
@@ -276,6 +338,16 @@ public final class McpBridge {
             Thread.currentThread().interrupt();
             return error(id, ERR_ANALYSER_UNREACHABLE, "interrupted while calling the analyser", null);
         }
+    }
+
+    /** A header-safe form of the client's name: printable ASCII, at most 40 characters (the server sanitises again). */
+    static String asciiLabel(String raw) {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < raw.length() && b.length() < 40; i++) {
+            char c = raw.charAt(i);
+            if (c >= 0x20 && c < 0x7f) b.append(c);
+        }
+        return b.toString().trim();
     }
 
     /**
@@ -322,11 +394,38 @@ public final class McpBridge {
         return v == null ? null : v.toString();
     }
 
-    private static Map<String, Object> serverInfo() {
+    /** The header the hosted credential travels in; the same name {@code ActionServer} reads. */
+    static final String HOSTED_HEADER = "X-Analyser-Hosted";
+
+    /** M74 P3: the header the forwarded {@code tool_use_id} travels in; the same name {@code ActionServer} reads. */
+    static final String TOOL_USE_HEADER = "X-Analyser-Tool-Use";
+
+    /** The key Claude Code uses for a call's tool-use id in {@code params._meta} (P3-3). */
+    static final String META_TOOL_USE = "claudecode/toolUseId";
+
+    /** The call's {@code _meta["claudecode/toolUseId"]}, when it is a plain token (bounded; no control characters). */
+    static String toolUseIdOf(Map<?, ?> params) {
+        if (!(params.get("_meta") instanceof Map<?, ?> meta) || !(meta.get(META_TOOL_USE) instanceof String id)) return null;
+        return id.length() <= 128 && id.matches("[A-Za-z0-9_-]+") ? id : null;
+    }
+
+    private Map<String, Object> serverInfo() {
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("name", SERVER_NAME);
-        info.put("version", ReleaseNotes.version());   // manifest lookup only — no Swing/AWT on this path
+        info.put("version", version());
         return info;
+    }
+
+    /**
+     * The analyser's version — and, for the hosted bridge, {@code +bind.<nonce>} read from its per-instance endpoint
+     * file, the proof of WHICH spawn of WHICH analyser it is bound to (§4.2 step 3). The CLI strips extra
+     * {@code serverInfo} fields but passes the version byte-exact [P0-32, P0b-2].
+     */
+    String version() {
+        String v = ReleaseNotes.version();   // manifest lookup only — no Swing/AWT on this path
+        if (!hosted) return v;
+        RestEndpointFile.Endpoint e = endpointFile.read();
+        return e == null || e.nonce() == null ? v : v + BIND_MARK + e.nonce();
     }
 
     /** Strip the fields a legacy client has no schema for, so an old handshake sees an old-shaped result. */

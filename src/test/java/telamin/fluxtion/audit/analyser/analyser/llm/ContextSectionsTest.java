@@ -215,6 +215,25 @@ class ContextSectionsTest {
         assertFalse(ContextSections.parse("menus").ok(), "a bare string is not a list");
     }
 
+    /**
+     * ★ Owner hands-on test (2026-10-18): {@code sections: ["log", "project", "walks"]} was refused with only the list —
+     * {@code walks} is a key ({@code context.walks}, as the walk verb's description says), carried by {@code project}. The
+     * refusal still refuses, and now says which section carries it. Witness: drop {@code keyHints} from {@code parse} —
+     * the refusal does not name the project section.
+     */
+    @Test
+    void aKeyNamedAsASectionIsRefusedWithTheSectionThatCarriesIt() {
+        var walks = ContextSections.parse(List.of("log", "project", "walks"));
+        assertFalse(walks.ok(), "still refused: no guessed subset");
+        assertTrue(walks.error().contains(ContextSections.NAMES.toString()), walks.error());
+        assertTrue(walks.error().contains("'walks' is a key of the 'project' section: ask for sections: [\"project\"]"),
+                walks.error());
+        assertTrue(ContextSections.SECTIONS.get("project").contains("walks"), "the project section carries walks");
+        var graphPairing = ContextSections.parse(List.of("graphPairing"));
+        assertTrue(graphPairing.error().contains("'graphPairing' is a key of the 'pairing' section"), graphPairing.error());
+        assertFalse(ContextSections.parse(List.of("nonsense")).error().contains("is a key of"), "a real unknown: the list only");
+    }
+
     @Test
     void aProjectTransitionIsReadFreshFromEachState() {
         Map<String, Object> before = new LinkedHashMap<>();

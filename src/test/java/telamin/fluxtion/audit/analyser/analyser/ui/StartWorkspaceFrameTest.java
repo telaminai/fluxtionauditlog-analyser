@@ -76,6 +76,19 @@ class StartWorkspaceFrameTest {
         }
     }
 
+    /** M74 UX (owner, 2026-10-17): the strip's actions, by accessible name — the old cards' titles. */
+    static final List<String> DIRECT = List.of("Take a guided tour", "Open sample project", "Open project",
+            "Open evidence bundle", "Open audit log", "Open GraphML", "Create project profile", "Create from template",
+            // M77-4 (§14.4): the Connect an assistant group is gone; the AI block or line is the door
+            "Settings — source and assistant…",
+            "Fluxtion key — not found");
+
+    /**
+     * M74 UX: ONE start-page surface — the prompt leads, the old cards' actions follow as a compact strip (icon + short
+     * label; the old card's sentence is the tooltip), every one reachable by keyboard and inside the page at a wide and a
+     * narrow width; the recent lists sit side by side when wide and stack when narrow. (The name is kept: it is
+     * tools/test_start_workspace.py's case.)
+     */
     @Test void startChoicesGroupByActivityAndStackOnANarrowWindow() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
         String previousHome = System.getProperty("user.home");
@@ -92,35 +105,49 @@ class StartWorkspaceFrameTest {
             new Robot().waitForIdle();
             onEdt(() -> {
                 StartPanel start = (StartPanel) field(frame.get(), "startPanel");
-                JComponent[] groups = workstreams(start);
-                java.awt.Rectangle[] positions = groupPositions(start, groups);
-                assertTrue(positions[0].x < positions[1].x, "Start and My work share the top row");
-                assertEquals(positions[0].y, positions[1].y);
-                assertEquals(positions[0].x, positions[2].x);
-                assertEquals(positions[1].x, positions[3].x);
-                assertEquals(positions[0].y + positions[0].height, positions[2].y,
-                        "New work follows Start without an empty grid row");
-                assertEquals(positions[1].y + positions[1].height, positions[3].y,
-                        "Configuration follows My work without an empty grid row");
-                assertNotNull(buttonContaining(groups[0], "Take a guided tour"));
-                assertNotNull(buttonContaining(groups[1], "Open evidence bundle"));
-                assertNotNull(buttonContaining(groups[1], "Open project"));
-                assertNotNull(buttonContaining(groups[2], "Create project profile"));
-                assertNotNull(buttonContaining(groups[3], "Source and assistant settings"));
+                var chips = start.directActions();
+                assertEquals(DIRECT, chips.stream().map(c -> c.getAccessibleContext().getAccessibleName()).toList(),
+                        "every action the cards carried, in the same order of activity");
+                java.awt.Rectangle prompt = SwingUtilities.convertRectangle(start.prompt().getParent(),
+                        start.prompt().getBounds(), start);
+                for (var c : chips) {
+                    assertTrue(c.isFocusable(), "keyboard-reachable: " + c.title());
+                    assertNotNull(c.getToolTipText(), "the card's sentence is the tooltip: " + c.title());
+                    assertTrue(c.label().length() < c.title().length() || c.title().startsWith("Fluxtion"),
+                            "a short label: " + c.label());
+                    java.awt.Rectangle r = SwingUtilities.convertRectangle(c.getParent(), c.getBounds(), start);
+                    assertTrue(r.y > prompt.y, "the prompt leads: " + c.title() + " is below it");
+                    assertTrue(r.x >= 0 && r.x + r.width <= start.getWidth(), "inside the page: " + c.title());
+                    assertTrue(r.height <= 40, "compact, not a card: " + c.title() + " is " + r.height + " px tall");
+                    // owner UI feedback (2026-10-17): a proper target, one height for every chip
+                    assertTrue(r.height >= UiTheme.TARGET_MIN_HEIGHT, "a proper target: " + c.title() + " is "
+                            + r.height + " px tall");
+                    assertEquals(chips.get(0).getHeight(), c.getHeight(), "one height for every chip: " + c.title());
+                }
+                assertBlocksAndGrid(start, 3);
+                java.awt.Component[] cols = start.recentsPanel().getComponents();
+                assertTrue(cols[0].getX() < cols[cols.length - 1].getX(), "wide: the recent lists sit side by side");
                 return null;
             });
             onEdt(() -> { frame.get().setSize(700, 650); return null; });
             new Robot().waitForIdle();
             onEdt(() -> {
                 StartPanel start = (StartPanel) field(frame.get(), "startPanel");
-                JComponent[] groups = workstreams(start);
-                java.awt.Rectangle[] positions = groupPositions(start, groups);
-                for (int i = 1; i < groups.length; i++) {
-                    assertEquals(positions[0].x, positions[i].x, "narrow groups form one column");
-                    assertTrue(positions[i].y >= positions[i - 1].y + positions[i - 1].height,
-                            "narrow groups stack without overlap");
+                java.awt.Rectangle strip = SwingUtilities.convertRectangle(start.directStrip().getParent(),
+                        start.directStrip().getBounds(), start);
+                for (var c : start.directActions()) {
+                    java.awt.Rectangle r = SwingUtilities.convertRectangle(c.getParent(), c.getBounds(), start);
+                    assertTrue(r.x >= 0 && r.x + r.width <= start.getWidth(), "narrow, still inside the page: " + c.title());
+                    assertTrue(strip.contains(r), "narrow, the strip grows to hold it — never clipped: " + c.title()
+                            + " " + r + " in " + strip);
+                    java.awt.Rectangle g = SwingUtilities.convertRectangle(c.getParent().getParent(),
+                            c.getParent().getBounds(), start);
+                    assertTrue(g.contains(r), "and its group holds it: " + c.title());
                 }
-                assertTrue(groups[0].getWidth() > 0 && groups[3].getWidth() > 0);
+                assertBlocksAndGrid(start, 2);
+                java.awt.Component[] cols = start.recentsPanel().getComponents();
+                assertEquals(cols[0].getX(), cols[cols.length - 1].getX(), "narrow: the recent lists stack");
+                assertTrue(cols[cols.length - 1].getY() >= cols[0].getY() + cols[0].getHeight(), "without overlap");
                 return null;
             });
         } finally {
@@ -129,25 +156,48 @@ class StartWorkspaceFrameTest {
         }
     }
 
-    private static JComponent[] workstreams(StartPanel start) throws ReflectiveOperationException {
-        JComponent[] groups = (JComponent[]) field(start, "workstreamSections");
-        assertEquals(4, groups.length);
-        assertEquals("Explore DEMO workstream", groups[0].getAccessibleContext().getAccessibleName());
-        assertEquals("Open your work workstream", groups[1].getAccessibleContext().getAccessibleName());
-        assertEquals("Create a project workstream", groups[2].getAccessibleContext().getAccessibleName());
-        assertEquals("Assistant and settings workstream", groups[3].getAccessibleContext().getAccessibleName());
-        return groups;
-    }
-
-    private static java.awt.Rectangle[] groupPositions(StartPanel start, JComponent[] groups)
-            throws ReflectiveOperationException {
-        JPanel grid = (JPanel) field(start, "workstreams");
-        java.awt.Rectangle[] positions = new java.awt.Rectangle[groups.length];
-        for (int i = 0; i < groups.length; i++) {
-            Point at = SwingUtilities.convertPoint(groups[i].getParent(), groups[i].getLocation(), grid);
-            positions[i] = new java.awt.Rectangle(at, groups[i].getSize());
+    /**
+     * Owner UI feedback (2026-10-17): each group is a titled block — heading ABOVE its buttons, the buttons left-aligned
+     * in one column, wholly inside the block — and the blocks sit in a grid of at least {@code minColumns} across with
+     * even gutters and no overlap; the Settings block carries its help sentence as its caption (M77-4: the Connect block,
+     * which carried one too, is gone — the AI block or line is the door). Witness: the squashed
+     * strip (a FlowLayout of inline groups, the heading beside the first chip) — the heading-above and the grid
+     * assertions fail.
+     */
+    static void assertBlocksAndGrid(StartPanel start, int minColumns) {
+        var blocks = start.directBlocks();
+        assertEquals(4, blocks.size(), "four groups: Explore DEMO, Open, Create, Settings");
+        java.awt.Rectangle strip = SwingUtilities.convertRectangle(start.directStrip().getParent(),
+                start.directStrip().getBounds(), start);
+        int firstRowY = blocks.get(0).getY();
+        int firstRow = (int) blocks.stream().filter(b -> b.getY() == firstRowY).count();
+        assertTrue(firstRow >= minColumns, "a grid of at least " + minColumns + " columns: " + firstRow);
+        assertTrue(firstRow <= StartPanel.BlockGrid.MAX_COLUMNS);
+        for (int i = 0; i < blocks.size(); i++) {
+            JComponent b = blocks.get(i);
+            java.awt.Rectangle br = SwingUtilities.convertRectangle(b.getParent(), b.getBounds(), start);
+            assertTrue(strip.contains(br), "the grid holds block " + b.getAccessibleContext().getAccessibleName());
+            for (int k = i + 1; k < blocks.size(); k++) {
+                assertFalse(br.intersects(SwingUtilities.convertRectangle(blocks.get(k).getParent(),
+                        blocks.get(k).getBounds(), start)), "blocks never overlap");
+            }
+            java.awt.Component heading = b.getComponent(0);
+            assertInstanceOf(javax.swing.JLabel.class, heading, "the block leads with its heading");
+            int left = -1;
+            for (java.awt.Component c : b.getComponents()) {
+                if (!(c instanceof StartPanel.ActionChip chip)) continue;
+                assertTrue(c.getY() >= heading.getY() + heading.getHeight(), "the heading is ABOVE " + chip.title());
+                assertTrue(new java.awt.Rectangle(0, 0, b.getWidth(), b.getHeight()).contains(c.getBounds()),
+                        "wholly inside its block: " + chip.title() + " " + c.getBounds() + " in " + b.getSize());
+                if (left < 0) left = c.getX();
+                assertEquals(left, c.getX(), "left-aligned in one column: " + chip.title());
+            }
         }
-        return positions;
+        JComponent settings = blocks.get(3);
+        java.awt.Component last = settings.getComponent(settings.getComponentCount() - 1);
+        assertInstanceOf(javax.swing.JTextArea.class, last, "the Settings block ends with its caption");
+        assertTrue(((javax.swing.JTextArea) last).getText().startsWith("Source settings apply"));
+        assertTrue(last.getWidth() <= settings.getWidth(), "a caption under the group, not a full-width line");
     }
 
     @Test void droppingSpringDesignThenGraphAndLogOpensTheirRealViews() throws Exception {

@@ -1,6 +1,6 @@
 # From playground to analyser in 10 minutes
 
-> The recorded screenshots may show an earlier menu layout. Current navigation uses **Project**, **Sources** and **Audit log**; see [Getting started](getting-started.md#finding-the-right-menu).
+> Some screenshots here show an earlier start page or menu layout. Current navigation uses **Project**, **Sources** and **Audit log**; see [Finding the right menu](getting-started.md#finding-the-right-menu).
 
 Download a runnable event-processing system, inspect its graph, run it, and let the analyser show
 what the compiled processor actually did — on your machine, with code you can edit.
@@ -38,7 +38,7 @@ window and tags its callouts *assistant*; it covers the main window, not menus o
 
 The analyser **does not run downloaded code**: when the project is ready it shows the build, run, export and
 stop commands for you to copy, and you decide whether to paste them into a terminal. Either route gives you the
-same directory; [Projects ▸ Start from a playground template](user-guide/projects.md#start-from-a-playground-template)
+same directory; [Starter templates and examples](start/templates-and-examples.md#what-the-download-will-and-will-not-do)
 has the details of what the download will and will not do.
 
 This is a complete Maven project, not a prebuilt application you cannot inspect:
@@ -109,7 +109,7 @@ log as three separate actions in that order: a project switch is a session bound
 closes any previous log and graph.
 
 The analyser now shows 23 records, the event types it found and whether the graph actually fits the
-log. The screenshots in this section were generated from the real bundle staged under a neutral path.
+log. The first screenshots in this section were generated from the real bundle staged under a neutral path.
 
 ![The real exported bundle log paired with its GraphML: 23 records, event counts and the
 PriceEvent-to-RootNode-to-RiskCheck topology](assets/tutorial-log-open.png)
@@ -122,11 +122,15 @@ Try these in order:
 - Check the pairing statement before treating an absent node as meaningful.
 - Click a node log, then use **Source** to open the generated processor and node method that produced it.
 
-![One real PriceEvent cycle: rootNode records the received event, riskCheck follows it, and the
-topology numbers the two nodes in dispatch order](assets/tutorial-cycle.png)
+The two figures below show the same two steps on the analyser's own DEMO fixture rather than the bundle (the bundle's
+generated sources carry names that cannot appear on this public site): the cycle is a `MarketDataEvent` where your bundle
+has a `PriceEvent`, and the node is `priceListener` where yours is `rootNode`.
 
-![Source navigation from the selected rootNode audit line to the generated processor and its
-RootNode implementation](assets/tutorial-source.png)
+![One DEMO MarketDataEvent cycle: priceListener records the price, quotePublisher follows it, and the topology numbers
+the two nodes in dispatch order](assets/tutorial-cycle.png)
+
+![Source navigation from the selected priceListener node to the generated DemoQuoteProcessor and its
+imports](assets/tutorial-source.png)
 
 The analyser can graph any numeric node-log value, and this bundle now writes two. Alongside the
 readable `rootNode.receivedEvent`, each cycle records `price` and `volume` as their own numeric keys —
@@ -144,13 +148,16 @@ export again after another run and reopen the resulting snapshot.
 
 ## 5. Ask an AI, then verify what it shows
 
-Select one or more records and click **Explain**. With an LLM provider configured, the in-app assistant
+Select one or more records and click **Ask** on the toolbar (or **Ask about this** in the record detail, or
+right-click for the assistant's questions). The question is placed in the assistant's composer and sent only when
+you press **Send**. With an LLM provider configured, the in-app assistant
 can read around the selection and render findings back into the analyser as filters, flags and graphs.
-Without a provider key, **Copy prompt** gives the same evidence and action protocol to another agent.
+Without a provider key, **Copy prompt** gives the same evidence to another agent — and the action protocol
+too when you tick **Include my local REST token** in its dialog.
 
-![The AI menu with the local transport, client setup and project runbooks available](assets/ai-menu.png)
+![The AI menu with External MCP/REST access, client setup and project runbooks available](assets/ai-menu.png)
 
-To let an MCP client work in this analyser window, use **AI ▸ Connect an AI client…**. The dialog
+To let an MCP client work in this analyser window, use **AI ▸ Set up AI…** ▸ *Your own AI client*. It
 resolves the launcher for this installation and provides the exact client record; do not reconstruct a
 hard-coded command from this tutorial. Which model to run that client with is measured in
 [Model choice](spring-authoring-getting-started.md#model-choice).
@@ -167,16 +174,18 @@ Give me the guided tour of this project in the analyser.
 You do not need to tell it how. The project's profile points at `.claude/skills/guided-start/SKILL.md`, the
 analyser lists it among the project's runbooks in `context`, and the assistant reads it from your checkout — the
 analyser stores no instructions and runs nothing. The tour drives the window while you watch: what ran and in
-what order, which declared nodes never logged, and one question answered and bookmarked. Its one rule is that it
+what order, which declared nodes never logged, and one question answered and flagged. Its one rule is that it
 **points rather than tells** — every figure is one you read off the screen yourself — and with analyser 1.14 or
 later it points literally, dimming the window and lighting the thing it is about to talk about.
 
-This is the one step that **needs an AI client connected to the analyser** (the dialog above). Without one,
-nothing is lost: steps 2–4 are the same tour by hand, and the Start page's own actions open the demo set.
+This is the one step that **needs an AI client connected to the analyser** (the dialog above), or Claude Code
+running inside it ([Claude Code in the analyser](inapp/claude-code.md)). Without either, nothing is lost: steps 2–4
+are the same tour by hand, and the Start page's own actions open the demo set.
 
-The useful division of labour is strict: the analyser reads evidence and changes its own views; your IDE
-agent edits code. After any explanation, click the plotted point or flagged record and follow it back to
-the audit cycle and source.
+Keep the division of labour clear: the analyser reads evidence and changes its own views; code is edited by an
+assistant with its own tools — your IDE agent, or Full Claude Code in the analyser with your permission rules — or by
+you. After any explanation, click the plotted point or flagged record and follow it back to the audit cycle and
+source.
 
 ## 6. Change the processor
 
@@ -198,7 +207,11 @@ Put the key in `~/.fluxtion/fluxtion.apiKeyFile` as `apiKey=…`, or pass
 that variable alone cannot satisfy regeneration. The ordinary build and run remain keyless.
 
 Reopen the exported YAML and examine the new cycles. The analyser has one active log at a time; it does
-not yet compare two complete runs side by side, so this tutorial does not promise that future diff tool.
+not compare two complete runs side by side. A report whose tables and charts you made on the first run re-runs
+against the new log when you open it, which is one way to compare
+([Check your criteria against the evidence](build/validate-intent.md)). Because it re-runs, it no longer shows the
+first run's numbers; to keep them, export the report's PDF (**Export PDF…** on the Reports tab) while the first
+run's log is still open.
 
 ## Do this on your own system
 

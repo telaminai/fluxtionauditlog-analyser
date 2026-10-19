@@ -83,10 +83,10 @@ class ManifestVerbContractTest {
      */
     @Test
     void theAssistantGuideNamesEveryMcpTool() throws Exception {
-        String doc = Files.readString(Path.of("docs/site/user-guide/assistant.md"));
+        String doc = Files.readString(Path.of("docs/site/reference/verbs.md"));
         for (String verb : VerbSchemas.all().keySet()) {
             assertTrue(doc.contains("analyser_" + verb),
-                    "tool 'analyser_" + verb + "' ships but docs/site/user-guide/assistant.md does not "
+                    "tool 'analyser_" + verb + "' ships but docs/site/reference/verbs.md does not "
                             + "name it — document a verb in the same change that adds it");
         }
     }
