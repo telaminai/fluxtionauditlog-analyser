@@ -6,7 +6,7 @@ client path) shipped complete in 1.36.0, so D-3/D-4 are satisfied, not condition
 `main`, not on branches, and M76's OD-76.7 publish condition is met by §6.4's pin; a new §4 D-8 records the M80
 Design-pane overlap (M80 is PROPOSED, not yet merged); M79-7 brings packs 01, 02 and 04 of the already-drafted
 `docs/proposals/packs/fluxtion-philosophy/` set into M79, to be published on the docs site as valid, build-tested
-prompt packs, with owner questions OD-79.26–.28 raised and left open. No earlier owner decision is revisited. **r2
+prompt packs, with owner questions OD-79.26–.28 raised; **all three accepted by the owner the same day** (move the packs, 04 gets the first `teach:` entry after M79-2, lint fixtures for the published packs). No earlier owner decision is revisited. **r2
 the same day folds in the first independent review** (corrections and code
 facts in place; owner questions OD-79.11–.19, §16: all accepted; effort as relative sizes, §17). The
 owner accepted OD-79.1–.6 on 2026-10-18, then OD-79.7 and the three decisions on the colleague follow-on (OD-79.8–.10,
@@ -1301,9 +1301,9 @@ full reasoning each recommendation rests on):
 
 | # | Question | Recommendation | Owner |
 |---|---|---|---|
-| **OD-79.26** | Do 01, 02 and 04 **move** out of `docs/proposals/packs/fluxtion-philosophy/` into their docs-site location (§19.2 item 1), or stay there and get **copied**, with the site holding the published copy? | Move, with a one-line pointer left in the README's table (the CLAUDE.md rule 7 / DOCS-IA pattern for a retired location): a copy drifts, and `proposals/` is pre-acceptance text these three have left. | **OPEN** |
-| **OD-79.27** | Which pack (if any) gets the first `teach:` entry once M79-2 ships the *The diamond* teaching conversation, and does that land as part of M79-2's own PR or a small follow-up after it? | 04 (*Audit logs and evidence*) is the closest fit — the teaching conversation's content is composition-and-silence, which 04's entries already probe — as a small follow-up PR after M79-2, not inside it, so M79-2 is not gated on a packs edit. | **OPEN** |
-| **OD-79.28** | Should the Python lint harness (`tools/m74_onboarding_runner.py lint-pack`, cross-checked against the Java parser by `tools/m74_record_pack_crosscheck.py`) also gain fixture rows for 01, 02 and 04 at their new published paths, duplicating A7.1 in the existing dual-check pattern? | Yes, for parity: the existing 89-input cross-check would otherwise cover every pack except the three that actually ship. | **OPEN** |
+| **OD-79.26** | Do 01, 02 and 04 **move** out of `docs/proposals/packs/fluxtion-philosophy/` into their docs-site location (§19.2 item 1), or stay there and get **copied**, with the site holding the published copy? | Move, with a one-line pointer left in the README's table (the CLAUDE.md rule 7 / DOCS-IA pattern for a retired location): a copy drifts, and `proposals/` is pre-acceptance text these three have left. | **Accepted** (owner, 2026-10-19) |
+| **OD-79.27** | Which pack (if any) gets the first `teach:` entry once M79-2 ships the *The diamond* teaching conversation, and does that land as part of M79-2's own PR or a small follow-up after it? | 04 (*Audit logs and evidence*) is the closest fit — the teaching conversation's content is composition-and-silence, which 04's entries already probe — as a small follow-up PR after M79-2, not inside it, so M79-2 is not gated on a packs edit. | **Accepted** (owner, 2026-10-19) |
+| **OD-79.28** | Should the Python lint harness (`tools/m74_onboarding_runner.py lint-pack`, cross-checked against the Java parser by `tools/m74_record_pack_crosscheck.py`) also gain fixture rows for 01, 02 and 04 at their new published paths, duplicating A7.1 in the existing dual-check pattern? | Yes, for parity: the existing 89-input cross-check would otherwise cover every pack except the three that actually ship. | **Accepted** (owner, 2026-10-19) |
 
 ## 17. Phasing and size — one PR each, under about 5,000 hand-written lines
 
