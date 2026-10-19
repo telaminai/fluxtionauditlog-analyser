@@ -147,8 +147,8 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M78] ☑ **Quiet assistant panel, with D1 and D2 — released in 1.36.0 (PR #168).**
   ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
-### M80 · Live activity, project build-script trust, restart recovery, and project-sync offers ([spec](spec-assistant-activity-and-project-trust.md), DRAFT r3)
-- [M80] ☐ **Specified** (four owner-approved features, 2026-10-19, OD-80.1–.10): A — a live "current step"/stall
+### M81 · Live activity, project build-script trust, restart recovery, and project-sync offers ([spec](spec-assistant-activity-and-project-trust.md), DRAFT r3)
+- [M81] ☐ **Specified** (four owner-approved features, 2026-10-19, OD-81.1–.10): A — a live "current step"/stall
   cue while a turn runs, additive `context.project.assistant` fields; B — an opt-in, content-pinned, machine-tier
   pre-allow of the project's own build scripts in Full (narrowly supersedes M74 §5.7's "no Always allow"); C — a
   Restart that never silently no-ops, preserves the conversation when it can resume, and places a recovery draft

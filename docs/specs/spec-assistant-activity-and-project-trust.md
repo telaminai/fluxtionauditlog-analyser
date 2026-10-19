@@ -1,4 +1,4 @@
-# M80 — Live activity, per-project build-script trust, a restart that always works, and staying in sync
+# M81 — Live activity, per-project build-script trust, a restart that always works, and staying in sync
 
 **Status:** DRAFT r3, 2026-10-19 (r2 added Feature C, from an investigation of the 1.36.0 release; r3 adds Feature
 D, approved by the owner the same day). Four owner-approved features (2026-10-19) for the onboard Claude Code
@@ -6,7 +6,7 @@ assistant, specified together because all four touch the same machinery: the loc
 (`localAgentSession` / `assistantLoop`), the stream adapter's observation boundary, and the Full-posture
 permission layer built in M74. Docs only — no code in this PR; implementation is Codex's, against this spec.
 
-**Tracker:** M80 (the next free milestone number: M79 — `spec-first-minute.md` — is the highest in use; no M80 is
+**Tracker:** M81 (the next free milestone number: M79 — `spec-first-minute.md` — is the highest in use; no M81 is
 taken by any merged spec, open PR or branch as of 2026-10-19). **Builds on:**
 [`spec-claude-code-provider.md`](spec-claude-code-provider.md) (M74: posture, the Full folder-trust dialog, the
 permission dialog, the `PRE_ALLOWED` grant-free admission pattern, the machine-tier consent rule) and
@@ -185,7 +185,7 @@ Feature D touches neither Feature B's code nor its machine-tier trust records.
 - **Not** argument sandboxing. A pre-allowed call's own flags are not inspected for what the *script* might then do
   (§6 states this as a disclosed residual risk, not a gap this spec pretends to close).
 - **Not** a live Settings-page toggle in this delivery. The choice is made in the Full folder-trust dialog, at
-  Start, the same moment every other full-posture consent is made; see OD-80.5.
+  Start, the same moment every other full-posture consent is made; see OD-81.5.
 - **Not** per-script ticking. One checkbox trusts the whole discovered set together (§3.2); OQ-3 records this as a
   question for the owner to confirm, not a design gap.
 - **Not** Windows `.cmd` variants in this delivery (OQ-1) — M74's own Windows acceptance (#148) is still open, and
@@ -311,7 +311,7 @@ the scanned project root has at least one candidate script (§3.3):
 — the exact script list for *this* project, substituted in place of the example names shown above (which are the
 task's own illustrative set — see §3.3 for how the real list is built). Ticking it and pressing **Trust for full
 Claude Code** (the dialog's existing default-right/accent-left button pair, unchanged, §5.2) records the whole set
-together as one choice (OD-80.5) — there is no per-script tick.
+together as one choice (OD-81.5) — there is no per-script tick.
 
 If left unticked, nothing changes: every `Bash` call to these scripts is asked, exactly as it is today.
 
@@ -325,7 +325,7 @@ dialog's unchanged text):
 trusted (N)"* or *"Project scripts: not trusted"*, with a **Revoke** action when trusted. Revoking takes effect
 immediately for the rest of the running session (§4 of `spec-claude-code-provider.md`'s "a settings change while a
 session runs" classifies *narrowing* a consent as always safe to apply live, never requiring New chat — this is the
-same class of change, extended, OD-80.6): the very next `Bash` call to a previously pre-allowed script is asked
+same class of change, extended, OD-81.6): the very next `Bash` call to a previously pre-allowed script is asked
 again, with no process restart.
 
 ### 3.3 Where the script list comes from
@@ -668,16 +668,16 @@ every other PR benefits from the activity-clock extension it needs.
 
 | # | Decision | Status |
 |---|---|---|
-| **OD-80.1** | **Feature A's rule-9 split.** The adapter reports tool-start, tool-finish and text-delta as facts; `localAgentSession` owns `lastEventAtMillis`, `currentStep`, the stall/episode verdict and the running totals; the panel renders only. Elapsed time is always derived from fact timestamps plus a node-requested `StartActivityClockEffect` tick — never a panel-owned clock (§4.1). | accepted (owner, 2026-10-19) |
-| **OD-80.2** | **The stall threshold and its suppression.** ~60 s with no stream event, suppressed outright (not merely delayed) while an approval is pending or queued; dismissal is per silence-episode, repeating if silence resumes (§3.1, §4.1). | accepted (owner, 2026-10-19) |
-| **OD-80.3** | **A narrow, recorded exception to `spec-claude-code-provider.md` §5.7's "no Always allow."** That rule continues to hold for every tool and every call it was written about: there is still no model-suggested or CLI-applied "always allow" (`permission_suggestions`/`updatedPermissions` are still never sent, §5.7). The one exception this spec adds is a **person-chosen, per-machine, per-project, content-pinned** pre-allow of exactly `Bash` invocations of the project's own named build scripts, decided **only** by the analyser's own permission layer, in the Full posture, never by a CLI rule. §5.7's rule is amended to read: *"no Always allow, except the named, content-bound build-script exception of M80."* | accepted (owner, 2026-10-19) — supersedes §5.7 in scope only |
-| **OD-80.4** | **Mechanism: the analyser's permission layer, not `--allowedTools`.** Justified by the shipped `WebFetch`/`docsFetch` precedent and the 1.36.0 P2 finding that a CLI allow rule bypasses the analyser's own, stricter checks (real path, symlink target, argument syntax) — exactly the failure mode a hostname-only `WebFetch` allow already produced once. `ClaudeCodeProvider`'s command line is **not** changed to add `Bash` to `--allowedTools`; the person's own permission rules and mode still apply unchanged underneath, as they do for every other full-posture call. | accepted (owner, 2026-10-19) |
-| **OD-80.5** | **One checkbox, trusting the whole discovered set together; sourced from `commandsFor` and the first-run record; machine-tier, keyed by the project's real path; never in a profile, share or bundle** (§3.2, §3.3, §4.2). | accepted (owner, 2026-10-19) |
-| **OD-80.6** | **Revocation narrows live; re-granting goes back through the folder-trust dialog.** Revoking in *About* takes effect for the very next call, no restart (narrowing a consent is always safe to apply mid-session, unlike widening, which still needs New chat per M74 §3). There is no separate Settings-page toggle in this delivery (§2.4). | accepted (owner, 2026-10-19) |
-| **OD-80.7** | **Restart's three outcomes, named.** A stuck phase is recovered by `kill()` alone (never `beginConversation()`), preserving `sessionId`/`resumable`; a healthy session gets an `ALREADY_RUNNING` note instead of silence; an impossible resume refuses plainly and falls back to a new chat with the recovery draft placed, never sent (§3.4, §4.3). | accepted (owner, 2026-10-19) |
-| **OD-80.8** | **Exit and limit wording are honest, not merely present.** An externally caused exit names itself as such when the code decodes to a known signal; the usage-limit note states plainly that it does not block Start; a genuine limit-caused start failure is a refusal, worded distinctly from the advisory note (§3.4). | accepted (owner, 2026-10-19) |
-| **OD-80.9** | **The starter's one-shot GraphML watch is generalised into an ongoing, per-open-project watch of both GraphML and log outputs, retiring `WatchStarterGraphmlEffect`/`StarterGraphmlAppeared` in favour of `WatchProjectOutputsEffect`/`ProjectOutputChanged`; the starter's own offer becomes a consumer of the general fact, not a second watcher** (§1.5, §4.4, D6). | accepted (owner, 2026-10-19) |
-| **OD-80.10** | **Sync offers are banners, never modals; offer, never act.** Accepting pairs through the existing path; declining or ignoring changes nothing; the person's own open log is never auto-switched (§2.7, §3.5). | accepted (owner, 2026-10-19) |
+| **OD-81.1** | **Feature A's rule-9 split.** The adapter reports tool-start, tool-finish and text-delta as facts; `localAgentSession` owns `lastEventAtMillis`, `currentStep`, the stall/episode verdict and the running totals; the panel renders only. Elapsed time is always derived from fact timestamps plus a node-requested `StartActivityClockEffect` tick — never a panel-owned clock (§4.1). | accepted (owner, 2026-10-19) |
+| **OD-81.2** | **The stall threshold and its suppression.** ~60 s with no stream event, suppressed outright (not merely delayed) while an approval is pending or queued; dismissal is per silence-episode, repeating if silence resumes (§3.1, §4.1). | accepted (owner, 2026-10-19) |
+| **OD-81.3** | **A narrow, recorded exception to `spec-claude-code-provider.md` §5.7's "no Always allow."** That rule continues to hold for every tool and every call it was written about: there is still no model-suggested or CLI-applied "always allow" (`permission_suggestions`/`updatedPermissions` are still never sent, §5.7). The one exception this spec adds is a **person-chosen, per-machine, per-project, content-pinned** pre-allow of exactly `Bash` invocations of the project's own named build scripts, decided **only** by the analyser's own permission layer, in the Full posture, never by a CLI rule. §5.7's rule is amended to read: *"no Always allow, except the named, content-bound build-script exception of M81."* | accepted (owner, 2026-10-19) — supersedes §5.7 in scope only |
+| **OD-81.4** | **Mechanism: the analyser's permission layer, not `--allowedTools`.** Justified by the shipped `WebFetch`/`docsFetch` precedent and the 1.36.0 P2 finding that a CLI allow rule bypasses the analyser's own, stricter checks (real path, symlink target, argument syntax) — exactly the failure mode a hostname-only `WebFetch` allow already produced once. `ClaudeCodeProvider`'s command line is **not** changed to add `Bash` to `--allowedTools`; the person's own permission rules and mode still apply unchanged underneath, as they do for every other full-posture call. | accepted (owner, 2026-10-19) |
+| **OD-81.5** | **One checkbox, trusting the whole discovered set together; sourced from `commandsFor` and the first-run record; machine-tier, keyed by the project's real path; never in a profile, share or bundle** (§3.2, §3.3, §4.2). | accepted (owner, 2026-10-19) |
+| **OD-81.6** | **Revocation narrows live; re-granting goes back through the folder-trust dialog.** Revoking in *About* takes effect for the very next call, no restart (narrowing a consent is always safe to apply mid-session, unlike widening, which still needs New chat per M74 §3). There is no separate Settings-page toggle in this delivery (§2.4). | accepted (owner, 2026-10-19) |
+| **OD-81.7** | **Restart's three outcomes, named.** A stuck phase is recovered by `kill()` alone (never `beginConversation()`), preserving `sessionId`/`resumable`; a healthy session gets an `ALREADY_RUNNING` note instead of silence; an impossible resume refuses plainly and falls back to a new chat with the recovery draft placed, never sent (§3.4, §4.3). | accepted (owner, 2026-10-19) |
+| **OD-81.8** | **Exit and limit wording are honest, not merely present.** An externally caused exit names itself as such when the code decodes to a known signal; the usage-limit note states plainly that it does not block Start; a genuine limit-caused start failure is a refusal, worded distinctly from the advisory note (§3.4). | accepted (owner, 2026-10-19) |
+| **OD-81.9** | **The starter's one-shot GraphML watch is generalised into an ongoing, per-open-project watch of both GraphML and log outputs, retiring `WatchStarterGraphmlEffect`/`StarterGraphmlAppeared` in favour of `WatchProjectOutputsEffect`/`ProjectOutputChanged`; the starter's own offer becomes a consumer of the general fact, not a second watcher** (§1.5, §4.4, D6). | accepted (owner, 2026-10-19) |
+| **OD-81.10** | **Sync offers are banners, never modals; offer, never act.** Accepting pairs through the existing path; declining or ignoring changes nothing; the person's own open log is never auto-switched (§2.7, §3.5). | accepted (owner, 2026-10-19) |
 
 ### 8.3 Open questions
 
@@ -686,7 +686,7 @@ every other PR benefits from the activity-clock extension it needs.
   extended, not ahead of it.
 - **OQ-2 (repeated stall nudges).** Should a silence episode that outlasts several **Keep waiting** presses escalate
   its wording? Deferred; §3.1's simple repeating banner is the v1 behaviour.
-- **OQ-3 (one checkbox vs per-script).** This spec picks one whole-set checkbox (§3.2, OD-80.5) because it is
+- **OQ-3 (one checkbox vs per-script).** This spec picks one whole-set checkbox (§3.2, OD-81.5) because it is
   simpler to implement, test and explain, and matches the task's own example wording. Confirm with the owner that
   collapsing to one choice (rather than a tick per script) is acceptable before B2 ships.
 - **OQ-4 (a real CLI heartbeat).** Before A1, check the live Claude Code CLI docs/behaviour (rule 6) for any
