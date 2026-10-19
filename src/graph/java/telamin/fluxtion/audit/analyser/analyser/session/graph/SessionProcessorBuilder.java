@@ -206,7 +206,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects), "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(openLog, gate, effects), "evidenceCapture");
-        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate), "designSession");
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate, effects), "designSession");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate), "sessionRecovery");
 
         // WITH a level: invocation tracing is compiled in, so every node that runs appears in the record

@@ -4,11 +4,20 @@ package telamin.fluxtion.audit.analyser.analyser.design;
 public final class DesignEvents {
     private DesignEvents() { }
     public record ReadRequested(String kind) { }
-    public record ReadCompleted(String file, DesignDocument document, String error, boolean sessionOpen, long generation) {
+    public record ReadCompleted(String file, DesignDocument document, String error, boolean sessionOpen, long generation,
+                                BuilderDocument builder) {
+        public ReadCompleted(String file, DesignDocument document, String error, boolean sessionOpen, long generation) {
+            this(file, document, error, sessionOpen, generation, null);
+        }
         @Override public String toString() { return "DesignRead{generation=" + generation + ", revision=" + (document == null ? "unavailable" : document.revision()) + ", opening=" + sessionOpen + "}"; }
     }
     public record ResultReadCompleted(ProducerResult result, String error, long generation) {
         @Override public String toString() { return "ProducerResultRead{generation=" + generation + ", stage=" + (result == null ? "unavailable" : result.stage()) + "}"; }
     }
     public record Cleared(String reason) { }
+    public record DiscoveryRequested() { }
+    public record DiscoveryCompleted(DesignDiscovery discovery, long generation) {
+        @Override public String toString() { return "DesignDiscoveryCompleted{generation=" + generation
+                + ", kind=" + discovery.kind() + ", files=" + discovery.files().size() + "}"; }
+    }
 }

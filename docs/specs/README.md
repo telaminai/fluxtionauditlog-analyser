@@ -52,6 +52,7 @@ line, and update this index in the same change.
 | [spec-authoring-session-walkthrough.md](spec-authoring-session-walkthrough.md) | companion to the mode selector (real harness output) | M48 |
 | [spec-authoring-token-lowering.md](spec-authoring-token-lowering.md) | proposed 2026-10-13; Higgins lowering for the authoring loop | M72 |
 | [spec-authoring-journey.md](spec-authoring-journey.md) | draft r2 2026-10-17, reviewed; owner decisions OD-76.1–.19 open; not started | M76 |
+| [spec-design-definitions.md](spec-design-definitions.md) | M80; owner boundaries accepted, three dependent implementation PRs; header discovery gated | M80 |
 
 ## Onboarding and journeys
 
