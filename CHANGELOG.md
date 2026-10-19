@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Docs: deferred M81 project build-script pre-approval after reviewing execution wrappers, shell setup and automatic backgrounding. No script-trust feature ships; existing Bash permission behavior remains unchanged.
+
 - Claude Code now shows the step it starts, elapsed time and a quiet inactivity cue while a turn runs. Keep waiting dismisses that silence episode until a new stream event; approvals show their own cue while keeping the existing modal question, with no blocked Show control. About lists tool/turn totals, and project context exposes the same read-only activity snapshot.
 
 - An interrupted Claude Code conversation that cannot resume in its changed folder or mode starts a new chat with your last request and a recovery reminder placed, never sent. A CLI-reported missing session falls back once; ordinary failures do not retry. The session now records a start activity clock for the live activity display.
