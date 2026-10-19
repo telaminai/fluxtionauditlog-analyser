@@ -124,6 +124,10 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(ignoredParameters, "ignoredParameters");
         cfg.addNode(pairingQualifier, "pairingQualifier");
         cfg.addNode(logEvidence, "logEvidence");
+        // INTEG-R10: which line the status bar states — the log's or the graph's — decided from facts, so the bar has one
+        // writer and the line is the same whichever of the log and the graph arrived first (rule 9)
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine(openLog, openGraph, pairing,
+                logEvidence), "statusLine");
         // the Records view: what it shows and what each filter hides — measured on the node's request, published in
         // the snapshot, rendered by the "showing" label, the Records title, the Event types toggle and the empty table
         telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView recordsView =

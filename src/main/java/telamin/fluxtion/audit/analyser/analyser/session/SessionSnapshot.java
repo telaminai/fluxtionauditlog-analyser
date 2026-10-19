@@ -35,6 +35,7 @@ import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
  * @param recordsView    what the Records view shows and what each filter hides, as recordsView last measured it — null
  *                       before the first measurement of the open log, and with no log
  * @param starter        Option 2: the starter catalogue and a starter project being created, as starterProject decided them
+ * @param statusLine     INTEG-R10: which line the status bar states about the log and graph, as statusLine decided it
  */
 public record SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
                               boolean graphOpen, String graphPath, String graphSource, long graphRevision,
@@ -51,7 +52,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               ProfileState profiles, ListenerState listener, long logOpenedAt,
                               AiSetupState aiSetup,
                               telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView,
-                              StarterState starter) {
+                              StarterState starter, StatusLineState statusLine) {
 
     /**
      * Independent review R4: immutable in fact, not only by the reference that publishes it. A volatile field cannot make
@@ -73,6 +74,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
         if (listener == null) listener = ListenerState.NONE;
         if (aiSetup == null) aiSetup = AiSetupState.IDLE;
         if (starter == null) starter = StarterState.IDLE;
+        if (statusLine == null) statusLine = StatusLineState.NONE;
     }
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
@@ -81,7 +83,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                     null, null, null, null, false, null, null, false, WalkPlaybackState.IDLE, CaptureState.IDLE,
                     AssistantState.IDLE, BundleProvenance.NONE, LocalAgentState.IDLE, StartPageState.IDLE,
                     ProposalState.NONE, ExampleDownloadState.IDLE, PermissionState.NONE, ProfileState.NONE,
-                    ListenerState.NONE, 0, AiSetupState.IDLE, null, StarterState.IDLE);
+                    ListenerState.NONE, 0, AiSetupState.IDLE, null, StarterState.IDLE, StatusLineState.NONE);
 
     static SessionSnapshot of(SessionProcessor p) {
         return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
@@ -110,7 +112,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.openLog.openedAtMillis(),         // final review #12: when the open log was opened (the binding chip)
                 p.aiSetup.setupState(),             // M77: Set up AI, as aiSetup decided it
                 p.recordsView.counts(),             // the Records view's counts, as recordsView measured them
-                p.starterProject.state());          // Option 2: the starter catalogue and chain, as starterProject decided
+                p.starterProject.state(),           // Option 2: the starter catalogue and chain, as starterProject decided
+                p.statusLine.state());              // INTEG-R10: the status bar's one line, as statusLine decided it
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */

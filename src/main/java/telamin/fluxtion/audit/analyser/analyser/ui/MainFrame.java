@@ -7272,22 +7272,9 @@ public final class MainFrame extends JFrame {
         var pairing = session().snapshot().publishedPairing();
         publishPairing();
         if (pairing == null) return null;
-        String name = topologyPanel.graphLabel();     // may have no FILE — a source can supply one
-        // review M34 F5: "you opened it deliberately" is false for a graph the SOURCE supplied — nobody
-        // opened it. It is kept because it arrived with this log and is the source's own claim.
-        boolean opened = topologyPanel.graphSource()
-                == telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.OPENED;
-        // UPS-1: this line used to REPLACE the log's line, so opening a graph with or after a log dropped every producer
-        // and time-order warning from the bar (a broken record, run-together records, a missing record key) — the
-        // findings stayed in `context` and the tooltip while the bar read clean. The session's warnings are kept here.
-        var evidence = session().snapshot();
-        status.setText(store.size() + " records · graph " + name + (pairing.applies()
-                ? " · " + pairing.reason()
-                : "  ·  ⚠ " + pairing.reason() + (opened
-                        ? " — kept, you opened it deliberately"
-                        : " — kept, the source supplied it with this log"))
-                + (evidence.timeOrder() == null ? "" : orderWarning(evidence.timeOrder()))
-                + producerWarning(evidence.producerFindings()));
+        // INTEG-R10: this method no longer writes the status bar. The graph line used to be set here while the log line
+        // was set from the snapshot, so after `open {log, graphml}` whichever ran last stayed. The statusLine node now
+        // decides which line is in force, and renderLogEvidence composes it (graphStatusLine) — one writer.
         return pairing;
     }
 
@@ -7578,10 +7565,15 @@ public final class MainFrame extends JFrame {
         }
         var findings = next.producerFindings();
         var order = next.timeOrder();
-        // Only evidence that describes the content the line counts: while a scan is outstanding, the findings held are
-        // the previous revision's, and the line waits one EDT turn for the scan rather than mix the two
-        if (findings == null || order == null || next.evidencePending()
-                || next.logGeneration() != sessionLogGeneration) return;
+        // INTEG-R10: WHICH line is in force is the statusLine node's decision. WAITING — the scan of this generation has
+        // not landed, so the findings held would be the previous revision's — states nothing yet.
+        var decided = next.statusLine().subject();
+        if (decided != telamin.fluxtion.audit.analyser.analyser.session.StatusLineState.Subject.LOG
+                && decided != telamin.fluxtion.audit.analyser.analyser.session.StatusLineState.Subject.LOG_AND_GRAPH) return;
+        if (findings == null || order == null || next.logGeneration() != sessionLogGeneration) return;
+        // the graph line states the CURRENT verdict: while an open is in flight the one held is about the previous pair
+        if (decided == telamin.fluxtion.audit.analyser.analyser.session.StatusLineState.Subject.LOG_AND_GRAPH
+                && next.publishedPairing() == null) return;
         // The line states the revision the SESSION knows. A Follow poll grows the store before it reports the append,
         // and any snapshot published in between (its identity check, say) would otherwise pair the store's new rows
         // with the session's previous evidence; the report that follows renders the line.
@@ -7591,9 +7583,15 @@ public final class MainFrame extends JFrame {
             renderedLogLine = null;
         }
         String name = displayName(logDisplayLocation);
-        String line = statusLine(next.following(), next.total(), rangeOf(s),
-                next.provenance() != null ? next.provenance() + "  (" + name + ")" : name,
-                s.streamEnd().isKnownComplete(), orderWarning(order), producerWarning(findings), trailingPendingNote());
+        String line = decided == telamin.fluxtion.audit.analyser.analyser.session.StatusLineState.Subject.LOG_AND_GRAPH
+                // review M34 F5: "you opened it deliberately" is false for a graph the SOURCE supplied — nobody opened
+                // it. It is kept because it arrived with this log and is the source's own claim.
+                ? graphStatusLine(next.total(), topologyPanel.graphLabel(), next.publishedPairing(),
+                        topologyPanel.graphSource() == telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.OPENED,
+                        orderWarning(order), producerWarning(findings))
+                : statusLine(next.following(), next.total(), rangeOf(s),
+                        next.provenance() != null ? next.provenance() + "  (" + name + ")" : name,
+                        s.streamEnd().isKnownComplete(), orderWarning(order), producerWarning(findings), trailingPendingNote());
         if (next.followReadFailure() != null) line += "  ·  ⚠ Follow read failed: " + next.followReadFailure();
         // M68.5: a log reopened because its file was replaced says so on its line; the reason is the session's (OpenLog)
         if ("REOPENED".equals(next.logIdentity())) line += "  ·  ⚠ " + next.logIdentityReason();
@@ -7851,6 +7849,23 @@ public final class MainFrame extends JFrame {
                 ? "Following " + location + " · " + records + " records · " + range
                 : records + " records · " + range + " · " + location;
         return head + wholeNote + orderWarning + producerWarning + pendingNote;
+    }
+
+    /**
+     * INTEG-R10: the graph line, composed in one place from the snapshot (renderLogEvidence is its only caller). UPS-1:
+     * it carries the log's warnings — a graph line that dropped them read clean while the findings stayed in
+     * {@code context} and the tooltip.
+     */
+    static String graphStatusLine(int records, String graphName,
+                                  telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing pairing, boolean opened,
+                                  String orderWarning, String producerWarning) {
+        String verdict = pairing.applies()
+                ? " · " + pairing.reason()
+                : "  ·  ⚠ " + pairing.reason() + (opened
+                        ? " — kept, you opened it deliberately"
+                        : " — kept, the source supplied it with this log");
+        return records + " records · graph " + graphName + verdict + orderWarning
+                + producerWarning;   // the graph line keeps the log's warnings
     }
 
     private static String displayName(String location) {

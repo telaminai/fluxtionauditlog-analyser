@@ -2268,8 +2268,10 @@ CONTROLS = [
     ('ups1-one-cause-one-name', PARSE + 'ProducerDiagnostics.java',
      '            if (broken != null && !broken.secondRecordKey()) continue;\n', '',
      'FormatConformanceTest#c31_aBrokenValueForgesNothingOnEitherPath'),
+    # INTEG-R10: the graph line is composed in graphStatusLine (renderLogEvidence's one writer), and the statusLine node
+    # makes it the line that stays after `open {log, graphml}` in every order, so dropping its warnings is seen again
     ('ups1-graph-line-keeps-warnings', UI + 'MainFrame.java',
-     '                + producerWarning(evidence.producerFindings()));', '                + "");',
+     '                + producerWarning;   // the graph line keeps the log\'s warnings', '                + "";',
      'BrokenValueFrameTest#aBrokenValueForgesNoNodeAndNoEventOnAnySurface'),
     ('ups1-detail-says-not-read', UI + 'LogicalLogView.java',
      '            if (record.brokenAtLine() > 0) {', '            if (false) {',

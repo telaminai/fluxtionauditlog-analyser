@@ -62,6 +62,10 @@ class OneDispatchModelTest {
             // witness: compose the Follow line in pollFollow again (the W2 defect: a second assembly)
             new OnlyIn("the log's status line is composed", Pattern.compile("(?<!String )\\bstatusLine\\("),
                     "private void renderLogEvidence("),
+            // INTEG-R10 — witness: compose the graph line in judgeOpenedGraph again (the second status writer whose last
+            // write won after `open {log, graphml}`). Which line is in force is the statusLine node's decision.
+            new OnlyIn("the graph's status line is composed", Pattern.compile("(?<!String )\\bgraphStatusLine\\("),
+                    "private void renderLogEvidence("),
             // witness: restore the tooltip set in the load path
             new OnlyIn("the log's findings tooltip is set",
                     Pattern.compile("(?<![A-Za-z])status\\.setToolTipText\\("), "private void renderLogEvidence(", true),
@@ -193,7 +197,9 @@ class OneDispatchModelTest {
             "private void reportContentToSession(", List.of(),
             "private void scanLogEvidence(", List.of(),
             "private void renderFollow(", List.of(),
-            "private void onSessionSnapshot(", List.of());
+            "private void onSessionSnapshot(", List.of(),
+            // INTEG-R10 — witness: restore `status.setText(store.size() + " records · graph " …)` here
+            "private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing judgeOpenedGraph(", List.of());
 
     // witness: compose `status.setText("Following " + displayName(followPath))` in pollFollow again
     @Test
