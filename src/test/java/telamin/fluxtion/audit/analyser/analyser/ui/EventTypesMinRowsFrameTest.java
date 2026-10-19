@@ -127,6 +127,14 @@ class EventTypesMinRowsFrameTest {
     /**
      * Robot walk of P3, 900x680 dark: the Event types button was laid over "Search:" and the search box vanished. In a
      * narrow Facts column the controls move to a line of their own; the label, the box and the controls never overlap.
+     *
+     * <p>INTEG-R11 (owner, 2026-10-19): at 680 px the wrapped search row leaves the column too short for BOTH floors
+     * on Linux's font metrics (2 checklist rows on the CI runner, 3 on macOS), and then the documented give-way order
+     * applies — the records table keeps its three rows and the checklist yields. So at 680 this asserts that order, on
+     * every platform; the three-row checklist floor is asserted at {@value #FITS_BOTH_HEIGHT} px, a height that holds both
+     * floors with the search row wrapped. Witnesses: {@link LogTablePanel#MIN_VISIBLE_ROWS} = 0 fails the order at 680;
+     * {@link EventFilterPanel#MIN_VISIBLE_ROWS} = 0 fails the checklist's floor — at 680 where the column
+     * still holds both floors (macOS), and at {@value #FITS_BOTH_HEIGHT} everywhere (both run, 2026-10-19).
      */
     @Test
     void aNarrowWindowWrapsTheSearchRowInsteadOfHidingTheBox(@TempDir Path tmp) throws Exception {
@@ -143,21 +151,48 @@ class EventTypesMinRowsFrameTest {
             onEdt(() -> { f.frame.setSize(900, 680); f.frame.validate(); });
             settle();
             snapshot(f, "window-900x680-dark.png");
-            onEdt(() -> {
-                Component search = (Component) field(f.frame, "searchField");
-                JToggleButton toggle = (JToggleButton) field(f.frame, "eventTypesToggle");
-                Container row = search.getParent();
-                Component label = row.getComponent(0);
-                Rectangle s = SwingUtilities.convertRectangle(row, search.getBounds(), f.frame.getRootPane());
-                Rectangle t = SwingUtilities.convertRectangle(toggle.getParent(), toggle.getBounds(), f.frame.getRootPane());
-                Rectangle l = SwingUtilities.convertRectangle(row, label.getBounds(), f.frame.getRootPane());
-                assertTrue(search.isShowing() && s.width >= SearchRowLayout.MIN_FIELD, "the search box keeps its width: " + s);
-                assertFalse(s.intersects(t), "the toggle is not laid over the box: " + s + " / " + t);
-                assertFalse(l.intersects(t), "nor over the label: " + l + " / " + t);
-                assertTrue(toggle.isShowing() && t.width >= toggle.getPreferredSize().width, "the toggle is whole: " + t);
-            });
-            assertAtLeastThreeRowsVisible(f, "in a 900x680 window");
+            assertSearchRowWrapped(f);
+            assertGiveWayOrder(f, "in a 900x680 window");
+            onEdt(() -> { f.frame.setSize(900, FITS_BOTH_HEIGHT); f.frame.validate(); });
+            settle();
+            snapshot(f, "window-900x" + FITS_BOTH_HEIGHT + "-dark.png");
+            assertSearchRowWrapped(f);
+            assertAtLeastThreeRowsVisible(f, "in a 900x" + FITS_BOTH_HEIGHT + " window");
         }
+    }
+
+    /** A narrow window tall enough for both floors with the search row wrapped, on macOS and on the Linux runner. */
+    static final int FITS_BOTH_HEIGHT = 760;
+
+    private static void assertSearchRowWrapped(AsyncOpenInterleavingFrameTest.Frame f) throws Exception {
+        onEdt(() -> {
+            Component search = (Component) field(f.frame, "searchField");
+            JToggleButton toggle = (JToggleButton) field(f.frame, "eventTypesToggle");
+            Container row = search.getParent();
+            Component label = row.getComponent(0);
+            Rectangle s = SwingUtilities.convertRectangle(row, search.getBounds(), f.frame.getRootPane());
+            Rectangle t = SwingUtilities.convertRectangle(toggle.getParent(), toggle.getBounds(), f.frame.getRootPane());
+            Rectangle l = SwingUtilities.convertRectangle(row, label.getBounds(), f.frame.getRootPane());
+            assertTrue(search.isShowing() && s.width >= SearchRowLayout.MIN_FIELD, "the search box keeps its width: " + s);
+            assertFalse(s.intersects(t), "the toggle is not laid over the box: " + s + " / " + t);
+            assertFalse(l.intersects(t), "nor over the label: " + l + " / " + t);
+            assertTrue(toggle.isShowing() && t.width >= toggle.getPreferredSize().width, "the toggle is whole: " + t);
+        });
+    }
+
+    /**
+     * The owner's give-way order (2026-10-18) when the column may be too short for both floors: the records table
+     * always keeps its three rows; the checklist keeps its three too unless it is the one that yielded — it is never
+     * cut below its floor while it still has the floor's height.
+     */
+    private static void assertGiveWayOrder(AsyncOpenInterleavingFrameTest.Frame f, String when) throws Exception {
+        assertRecordsRowsVisible(f, when);
+        AtomicReference<Boolean> yielded = new AtomicReference<>();
+        onEdt(() -> {
+            EventFilterPanel panel = (EventFilterPanel) field(f.frame, "eventFilterPanel");
+            yielded.set(panel.getHeight() < panel.rowsFloor());
+        });
+        if (!yielded.get()) assertAtLeastThreeRowsVisible(f, when + " (the column held both floors)");
     }
 
     /** Too short for every floor: the checklist gives way, the records table never does (owner, 2026-10-18). */

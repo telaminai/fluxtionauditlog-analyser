@@ -33,6 +33,22 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  */
 class OptionDiagramFrameTest {
 
+    /** T29's height budget on macOS: the spec's 730 px, unchanged (measured 724 at 520 px with the BOTH picture). */
+    static final int SCREEN1_MAX_MACOS = 730;
+    /**
+     * T29's height budget on Linux (INTEG-R11, owner 2026-10-19): 732 px, measured on the unchanged screen in the CI
+     * runner's ui-frame job (run 39175442784: 520 px, BOTH, light and dark). The 8 px over macOS is the platform's font
+     * metrics — taller line boxes across Screen 1's wrapped sentences — not layout: every other choice is 6–8 px taller
+     * by the same cause. Shrinking a gap to buy 2 px back would tie the layout to one platform's fonts and change the
+     * screen on Linux for no reader's benefit, so the budget is per platform instead; a picture added to every card
+     * (the witness) still breaks both.
+     */
+    static final int SCREEN1_MAX_LINUX = 732;
+
+    static int screen1Max(String osName) {
+        return osName != null && osName.toLowerCase(java.util.Locale.ROOT).contains("linux") ? SCREEN1_MAX_LINUX : SCREEN1_MAX_MACOS;
+    }
+
     /** The window's height if it were packed: what Screen 1 needs, chrome included. */
     static int neededHeight(AiSetupWindow w) {
         Insets in = w.getInsets();
@@ -95,7 +111,8 @@ class OptionDiagramFrameTest {
                             assertEquals("Where data goes", d.getAccessibleContext().getAccessibleName());
                             int need = neededHeight(w);
                             heights.add(tag + " " + need);
-                            if (need > 730) tooTall.add(tag + ": Screen 1 needs " + need + " px, more than 730");
+                            int max = screen1Max(System.getProperty("os.name"));
+                            if (need > max) tooTall.add(tag + ": Screen 1 needs " + need + " px, more than " + max);
                         });
                         // T30: the whole screen, at the height it needs (the default window scrolls)
                         onEdt(() -> { w.setSize(width, Math.min(730, neededHeight(w))); w.relayout(); });
@@ -108,7 +125,8 @@ class OptionDiagramFrameTest {
                 r.await(s -> !s.open(), "cancelled");
             }
             System.out.println("M77-5 Screen 1 heights: " + heights);
-            assertEquals(List.of(), tooTall, "T29: the picture never pushes Continue off a 730 px screen");
+            assertEquals(List.of(), tooTall, "T29: the picture never pushes Continue off a "
+                    + screen1Max(System.getProperty("os.name")) + " px screen");
             onEdt(() -> {
                 for (Window x : Window.getWindows()) {
                     if (x == r.window() || !x.isShowing()) continue;

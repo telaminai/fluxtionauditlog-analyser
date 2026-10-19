@@ -61,8 +61,24 @@ final class UsabilityBudgets {
      */
     static final Map<String, Integer> HESITATIONS = Map.of("T1", 2, "T2", 2, "T6", 1);
 
+    // S1's word budget, per platform (INTEG-R11, owner 2026-10-19). S1 counts the start page's chrome words ABOVE THE
+    // FOLD at 1200×800, so the number depends on the platform's font metrics, not only on the page: the same page puts
+    // more words above the fold where the fonts are shorter.
+
+    /** macOS: the scorecard's measured value, unchanged (the S1 history above). */
+    static final int S1_WORDS_MACOS = 224;
+    /**
+     * Linux (the CI runner, under Xvfb): measured 242 on the unchanged page, ui-frame job of run 39175442784 — Linux's
+     * fonts fit 18 more words above the fold. Not a regression allowance: a label added to the page still exceeds it.
+     */
+    static final int S1_WORDS_LINUX = 242;
+
+    static int s1Words(String osName) {
+        return osName != null && osName.toLowerCase(java.util.Locale.ROOT).contains("linux") ? S1_WORDS_LINUX : S1_WORDS_MACOS;
+    }
+
     /** Always-visible chrome words in each key state's region, at most. */
-    static final Map<String, Integer> WORDS = Map.of("S1", 224, "S2", 6, "S3", 26);
+    static final Map<String, Integer> WORDS = Map.of("S1", s1Words(System.getProperty("os.name")), "S2", 6, "S3", 26);
 
     /** Clipped strings in each key state's region, at most: none. */
     static final Map<String, Integer> CLIPPED = Map.of("S1", 0, "S2", 0, "S3", 0);

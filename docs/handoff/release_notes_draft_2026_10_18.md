@@ -38,7 +38,7 @@ CHANGELOG is right.
 - **The verbs and the REST endpoint file (`~/.fluxtion-analyser/rest-endpoint`) are unchanged.** Nothing was
   removed or renamed, and no existing reply changed shape.
 - **`context.hidden`**: new, additive (above).
-- **`context.project.starters`**: new, additive. It lists the starter templates: id, name, description, how the
+- **`context.starters`** (in the `project` section): new, additive. It lists the starter templates: id, name, description, how the
   graph is authored, where it runs, and whether its build needs a Fluxtion key.
 - **`source {…, text: {from, to}}` or `{…, text: {around?, context?}}`**: an optional parameter that returns source
   lines as data. It is read-only, limited to authorised source roots, and capped at 200 lines and 32 KB a call,
