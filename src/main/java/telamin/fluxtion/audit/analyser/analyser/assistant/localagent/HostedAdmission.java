@@ -4,7 +4,6 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEffects;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -33,7 +32,7 @@ public final class HostedAdmission implements telamin.fluxtion.audit.analyser.an
     private final Consumer<Object> post;
     private final long timeoutMs;
     private final AtomicLong calls = new AtomicLong();
-    private final Map<Long, CompletableFuture<Optional<String>>> waiting = new ConcurrentHashMap<>();
+    private final Map<Long, CompletableFuture<telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials.Admission>> waiting = new ConcurrentHashMap<>();
 
     /** @param post delivers a fact to the session, on its thread */
     public HostedAdmission(Consumer<Object> post, long timeoutMs) {
@@ -50,6 +49,9 @@ public final class HostedAdmission implements telamin.fluxtion.audit.analyser.an
     @Override
     public String admit(long generation, String verb) {
         return ask(generation, call -> new SessionEvents.LocalAgentCallAdmissionRequested(call, generation, verb));
+    }
+    @Override public telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials.Admission admitScoped(long generation, String verb) {
+        return askScoped(generation, call -> new SessionEvents.LocalAgentCallAdmissionRequested(call, generation, verb));
     }
 
     /**
@@ -75,19 +77,23 @@ public final class HostedAdmission implements telamin.fluxtion.audit.analyser.an
     }
 
     private String ask(long generation, java.util.function.LongFunction<Object> fact) {
+        return askScoped(generation, fact).refusal();
+    }
+    private telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials.Admission askScoped(
+            long generation, java.util.function.LongFunction<Object> fact) {
         long call = calls.incrementAndGet();
-        CompletableFuture<Optional<String>> answer = new CompletableFuture<>();
+        var answer = new CompletableFuture<telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials.Admission>();
         waiting.put(call, answer);
         boolean posted = false;
         try {
             post.accept(fact.apply(call));
             posted = true;
-            return answer.get(timeoutMs, TimeUnit.MILLISECONDS).orElse(null);
+            return answer.get(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return abandoned(call, generation, posted);
+            return new telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials.Admission(abandoned(call, generation, posted), 0);
         } catch (ExecutionException | TimeoutException | RuntimeException e) {
-            return abandoned(call, generation, posted);
+            return new telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials.Admission(abandoned(call, generation, posted), 0);
         } finally {
             waiting.remove(call);
         }
@@ -110,8 +116,8 @@ public final class HostedAdmission implements telamin.fluxtion.audit.analyser.an
 
     /** Perform the node's verdict: complete the waiting call (a call that already gave up is ignored). */
     public SessionEvents.Result answer(SessionEffects.AnswerHostedCallEffect e) {
-        CompletableFuture<Optional<String>> f = waiting.get(e.call());
-        if (f != null) f.complete(Optional.ofNullable(e.refusal()));
+        var f = waiting.get(e.call());
+        if (f != null) f.complete(new telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials.Admission(e.refusal(), e.ticket()));
         return new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, f == null ? "answerHostedCall:gone" : "answerHostedCall");
     }
 }

@@ -41,6 +41,7 @@ import java.util.function.Consumer;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryCompleted;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryRequested;
+import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.FollowReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
@@ -118,6 +119,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpene
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallAbandoned;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedProjectOutputOpened;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportApplyRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportWritten;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentActivityAcknowledged;
@@ -180,6 +182,11 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputChanged;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOfferAnswered;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsBasisObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenReady;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenRequested;
@@ -218,8 +225,6 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDes
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDirectoryObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDiscoveryObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphOfferAnswered;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphmlAppeared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstallFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstalled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterMenuRequested;
@@ -263,6 +268,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate;
 import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
 import telamin.fluxtion.audit.analyser.analyser.session.node.PairingQualifier;
+import telamin.fluxtion.audit.analyser.analyser.session.node.ProjectOutputs;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ProjectReopenOffer;
 import telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView;
 import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
@@ -296,6 +302,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.FollowReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
@@ -373,6 +380,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallAbandoned
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedProjectOutputOpened
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportApplyRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportWritten
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentActivityAcknowledged
@@ -435,6 +443,11 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputChanged
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOfferAnswered
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsBasisObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenReady
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenRequested
@@ -473,8 +486,6 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDirectoryObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDiscoveryObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted
- *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphOfferAnswered
- *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphmlAppeared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstallFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstalled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterMenuRequested
@@ -600,6 +611,14 @@ public class SessionProcessor
   public final transient SessionBoundary sessionBoundary =
       new telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary(
           operationGate, activeProject, openLog, openGraph, effectQueue);;
+  public final transient ProjectOutputs projectOutputs =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectOutputs(
+          activeProject,
+          openBundle,
+          localAgentSession,
+          operationGate,
+          sessionBoundary,
+          effectQueue);;
   public final transient StatusLine statusLine =
       new telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine(
           openLog, openGraph, pairing, logEvidence);;
@@ -617,9 +636,9 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(18);
+      new IdentityHashMap<>(19);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(18);
+      new IdentityHashMap<>(19);
 
   private boolean isDirty_actionListener = false;
   private boolean isDirty_activeProject = false;
@@ -637,6 +656,7 @@ public class SessionProcessor
   private boolean isDirty_operationGate = false;
   private boolean isDirty_pairing = false;
   private boolean isDirty_recordsView = false;
+  private boolean isDirty_sessionBoundary = false;
   private boolean isDirty_startPageNoLogHint = false;
   private boolean isDirty_starterProject = false;
 
@@ -939,6 +959,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Finished",
                 false),
             new ProcessorDescriptor.Input(
+                "FollowReadCompleted",
+                "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.FollowReadCompleted",
+                false),
+            new ProcessorDescriptor.Input(
                 "FollowSet",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet",
                 false),
@@ -969,6 +993,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "HostedCallRefusedByServer",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer",
+                false),
+            new ProcessorDescriptor.Input(
+                "HostedProjectOutputOpened",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedProjectOutputOpened",
                 false),
             new ProcessorDescriptor.Input(
                 "HostedReportApplyRequested",
@@ -1223,6 +1251,26 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded",
                 false),
             new ProcessorDescriptor.Input(
+                "ProjectOutputChanged",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputChanged",
+                false),
+            new ProcessorDescriptor.Input(
+                "ProjectOutputOfferAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOfferAnswered",
+                false),
+            new ProcessorDescriptor.Input(
+                "ProjectOutputOpenObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "ProjectOutputsBasisObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsBasisObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "ProjectOutputsScanned",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned",
+                false),
+            new ProcessorDescriptor.Input(
                 "ProjectReopenPresented",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented",
                 false),
@@ -1391,14 +1439,6 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted",
                 false),
             new ProcessorDescriptor.Input(
-                "StarterGraphOfferAnswered",
-                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphOfferAnswered",
-                false),
-            new ProcessorDescriptor.Input(
-                "StarterGraphmlAppeared",
-                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphmlAppeared",
-                false),
-            new ProcessorDescriptor.Input(
                 "StarterInstallFailed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterInstallFailed",
                 false),
@@ -1472,7 +1512,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "e89dbac8fe81e57fefd9cedd7bee698cf533edda99922c4fa05d202450b27fc3",
+              "5e4ae1d44428d2281e9d8d0920878c52de71f339662ca98241d0ffbce310a82d",
               null));
 
   @Override
@@ -1511,6 +1551,7 @@ public class SessionProcessor
     sessionBoundary.setStarterProject(starterProject);
     startPagePrompt.setAiSetup(aiSetup);
     startPagePrompt.setNoLogHint(startPageNoLogHint);
+    starterProject.setActiveProject(activeProject);
     starterProject.setGate(operationGate);
     //node auditors
     initialiseAuditor(clock);
@@ -1652,6 +1693,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof DiscoveryRequested) {
       DiscoveryRequested typedEvent = (DiscoveryRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof FollowReadCompleted) {
+      FollowReadCompleted typedEvent = (FollowReadCompleted) event;
       handleEvent(typedEvent);
     } else if (event instanceof ReadCompleted) {
       ReadCompleted typedEvent = (ReadCompleted) event;
@@ -1884,6 +1928,9 @@ public class SessionProcessor
     } else if (event instanceof HostedCallRefusedByServer) {
       HostedCallRefusedByServer typedEvent = (HostedCallRefusedByServer) event;
       handleEvent(typedEvent);
+    } else if (event instanceof HostedProjectOutputOpened) {
+      HostedProjectOutputOpened typedEvent = (HostedProjectOutputOpened) event;
+      handleEvent(typedEvent);
     } else if (event instanceof HostedReportApplyRequested) {
       HostedReportApplyRequested typedEvent = (HostedReportApplyRequested) event;
       handleEvent(typedEvent);
@@ -2070,6 +2117,21 @@ public class SessionProcessor
     } else if (event instanceof ProfileLoaded) {
       ProfileLoaded typedEvent = (ProfileLoaded) event;
       handleEvent(typedEvent);
+    } else if (event instanceof ProjectOutputChanged) {
+      ProjectOutputChanged typedEvent = (ProjectOutputChanged) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProjectOutputOfferAnswered) {
+      ProjectOutputOfferAnswered typedEvent = (ProjectOutputOfferAnswered) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProjectOutputOpenObserved) {
+      ProjectOutputOpenObserved typedEvent = (ProjectOutputOpenObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProjectOutputsBasisObserved) {
+      ProjectOutputsBasisObserved typedEvent = (ProjectOutputsBasisObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProjectOutputsScanned) {
+      ProjectOutputsScanned typedEvent = (ProjectOutputsScanned) event;
+      handleEvent(typedEvent);
     } else if (event instanceof ProjectReopenPresented) {
       ProjectReopenPresented typedEvent = (ProjectReopenPresented) event;
       handleEvent(typedEvent);
@@ -2184,12 +2246,6 @@ public class SessionProcessor
     } else if (event instanceof StarterEffectStarted) {
       StarterEffectStarted typedEvent = (StarterEffectStarted) event;
       handleEvent(typedEvent);
-    } else if (event instanceof StarterGraphOfferAnswered) {
-      StarterGraphOfferAnswered typedEvent = (StarterGraphOfferAnswered) event;
-      handleEvent(typedEvent);
-    } else if (event instanceof StarterGraphmlAppeared) {
-      StarterGraphmlAppeared typedEvent = (StarterGraphmlAppeared) event;
-      handleEvent(typedEvent);
     } else if (event instanceof StarterInstallFailed) {
       StarterInstallFailed typedEvent = (StarterInstallFailed) event;
       handleEvent(typedEvent);
@@ -2283,6 +2339,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(DiscoveryRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(FollowReadCompleted event) {
     processEvent(event);
   }
 
@@ -2672,6 +2733,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(HostedProjectOutputOpened event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(HostedReportApplyRequested event) {
     processEvent(event);
   }
@@ -2982,6 +3048,31 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectOutputChanged event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectOutputOfferAnswered event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectOutputOpenObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectOutputsBasisObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectOutputsScanned event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ProjectReopenPresented event) {
     processEvent(event);
   }
@@ -3172,16 +3263,6 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
-  public void onEvent(StarterGraphOfferAnswered event) {
-    processEvent(event);
-  }
-
-  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
-  public void onEvent(StarterGraphmlAppeared event) {
-    processEvent(event);
-  }
-
-  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(StarterInstallFailed event) {
     processEvent(event);
   }
@@ -3328,6 +3409,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "discover", typedEvent);
     designSession.discover(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(FollowReadCompleted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(designSession, "designSession", "followed", typedEvent);
+    designSession.followed(typedEvent);
     afterEvent();
   }
 
@@ -3961,7 +4050,7 @@ public class SessionProcessor
     auditInvocation(assistantLoop, "assistantLoop", "onEffectFailed", typedEvent);
     isDirty_assistantLoop = assistantLoop.onEffectFailed(typedEvent);
     auditInvocation(sessionBoundary, "sessionBoundary", "onEffectFailed", typedEvent);
-    sessionBoundary.onEffectFailed(typedEvent);
+    isDirty_sessionBoundary = sessionBoundary.onEffectFailed(typedEvent);
     if (guardCheck_statusLine()) {
       auditInvocation(statusLine, "statusLine", "decide", typedEvent);
       statusLine.decide();
@@ -4251,6 +4340,14 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(HostedProjectOutputOpened typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(projectOutputs, "projectOutputs", "onHostedOpened", typedEvent);
+    projectOutputs.onHostedOpened(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(HostedReportApplyRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -4396,6 +4493,8 @@ public class SessionProcessor
     isDirty_localAgentPermission = localAgentPermission.onExited(typedEvent);
     auditInvocation(localAgentSession, "localAgentSession", "onExited", typedEvent);
     isDirty_localAgentSession = localAgentSession.onExited(typedEvent);
+    auditInvocation(projectOutputs, "projectOutputs", "onExited", typedEvent);
+    projectOutputs.onExited(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -4715,7 +4814,7 @@ public class SessionProcessor
     auditInvocation(localAgentSession, "localAgentSession", "onSwitchChosen", typedEvent);
     isDirty_localAgentSession = localAgentSession.onSwitchChosen(typedEvent);
     auditInvocation(sessionBoundary, "sessionBoundary", "onSwitchChosen", typedEvent);
-    sessionBoundary.onSwitchChosen(typedEvent);
+    isDirty_sessionBoundary = sessionBoundary.onSwitchChosen(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -4766,6 +4865,8 @@ public class SessionProcessor
     isDirty_localAgentPermission = localAgentPermission.onTurnEnded(typedEvent);
     auditInvocation(localAgentSession, "localAgentSession", "onTurnEnded", typedEvent);
     isDirty_localAgentSession = localAgentSession.onTurnEnded(typedEvent);
+    auditInvocation(projectOutputs, "projectOutputs", "onTurnEnded", typedEvent);
+    projectOutputs.onTurnEnded(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -4778,6 +4879,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onTurnStarted", typedEvent);
     isDirty_localAgentSession = localAgentSession.onTurnStarted(typedEvent);
+    auditInvocation(projectOutputs, "projectOutputs", "onTurnStarted", typedEvent);
+    projectOutputs.onTurnStarted(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -5156,7 +5259,7 @@ public class SessionProcessor
     auditInvocation(assistantLoop, "assistantLoop", "onOpenProjectRequested", typedEvent);
     isDirty_assistantLoop = assistantLoop.onOpenProjectRequested(typedEvent);
     auditInvocation(sessionBoundary, "sessionBoundary", "onOpenProjectRequested", typedEvent);
-    sessionBoundary.onOpenProjectRequested(typedEvent);
+    isDirty_sessionBoundary = sessionBoundary.onOpenProjectRequested(typedEvent);
     if (guardCheck_statusLine()) {
       auditInvocation(statusLine, "statusLine", "decide", typedEvent);
       statusLine.decide();
@@ -5245,7 +5348,9 @@ public class SessionProcessor
     auditInvocation(starterProject, "starterProject", "onProfileApplied", typedEvent);
     isDirty_starterProject = starterProject.onProfileApplied(typedEvent);
     auditInvocation(sessionBoundary, "sessionBoundary", "onProfileApplied", typedEvent);
-    sessionBoundary.onProfileApplied(typedEvent);
+    isDirty_sessionBoundary = sessionBoundary.onProfileApplied(typedEvent);
+    auditInvocation(projectOutputs, "projectOutputs", "onProfileApplied", typedEvent);
+    projectOutputs.onProfileApplied(typedEvent);
     if (guardCheck_statusLine()) {
       auditInvocation(statusLine, "statusLine", "decide", typedEvent);
       statusLine.decide();
@@ -5299,7 +5404,7 @@ public class SessionProcessor
     auditInvocation(assistantLoop, "assistantLoop", "onProfileLoaded", typedEvent);
     isDirty_assistantLoop = assistantLoop.onProfileLoaded(typedEvent);
     auditInvocation(sessionBoundary, "sessionBoundary", "onProfileLoaded", typedEvent);
-    sessionBoundary.onProfileLoaded(typedEvent);
+    isDirty_sessionBoundary = sessionBoundary.onProfileLoaded(typedEvent);
     if (guardCheck_statusLine()) {
       auditInvocation(statusLine, "statusLine", "decide", typedEvent);
       statusLine.decide();
@@ -5308,6 +5413,48 @@ public class SessionProcessor
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
     }
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectOutputChanged typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(starterProject, "starterProject", "onProjectOutputChanged", typedEvent);
+    isDirty_starterProject = starterProject.onProjectOutputChanged(typedEvent);
+    auditInvocation(projectOutputs, "projectOutputs", "onChange", typedEvent);
+    projectOutputs.onChange(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectOutputOfferAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(projectOutputs, "projectOutputs", "onAnswered", typedEvent);
+    projectOutputs.onAnswered(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectOutputOpenObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(projectOutputs, "projectOutputs", "onOpened", typedEvent);
+    projectOutputs.onOpened(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectOutputsBasisObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(projectOutputs, "projectOutputs", "onBasis", typedEvent);
+    projectOutputs.onBasis(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectOutputsScanned typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(projectOutputs, "projectOutputs", "onScan", typedEvent);
+    projectOutputs.onScan(typedEvent);
     afterEvent();
   }
 
@@ -5331,6 +5478,8 @@ public class SessionProcessor
   public void handleEvent(ProjectReopenRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(projectOutputs, "projectOutputs", "onStartup", typedEvent);
+    projectOutputs.onStartup(typedEvent);
     auditInvocation(
         projectReopenOffer, "projectReopenOffer", "onProjectReopenRequested", typedEvent);
     projectReopenOffer.onProjectReopenRequested(typedEvent);
@@ -5534,6 +5683,8 @@ public class SessionProcessor
     isDirty_assistantLoop = assistantLoop.onSettingsRestored(typedEvent);
     auditInvocation(starterProject, "starterProject", "onSettingsRestored", typedEvent);
     isDirty_starterProject = starterProject.onSettingsRestored(typedEvent);
+    auditInvocation(projectOutputs, "projectOutputs", "onClosed", typedEvent);
+    projectOutputs.onClosed(typedEvent);
     if (guardCheck_statusLine()) {
       auditInvocation(statusLine, "statusLine", "decide", typedEvent);
       statusLine.decide();
@@ -5700,22 +5851,6 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(starterProject, "starterProject", "onEffectStarted", typedEvent);
     isDirty_starterProject = starterProject.onEffectStarted(typedEvent);
-    afterEvent();
-  }
-
-  public void handleEvent(StarterGraphOfferAnswered typedEvent) {
-    auditEvent(typedEvent);
-    //Default, no filter methods
-    auditInvocation(starterProject, "starterProject", "onGraphOfferAnswered", typedEvent);
-    isDirty_starterProject = starterProject.onGraphOfferAnswered(typedEvent);
-    afterEvent();
-  }
-
-  public void handleEvent(StarterGraphmlAppeared typedEvent) {
-    auditEvent(typedEvent);
-    //Default, no filter methods
-    auditInvocation(starterProject, "starterProject", "onGraphmlAppeared", typedEvent);
-    isDirty_starterProject = starterProject.onGraphmlAppeared(typedEvent);
     afterEvent();
   }
 
@@ -6008,6 +6143,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "discover", typedEvent);
       designSession.discover(typedEvent);
+    } else if (event instanceof FollowReadCompleted) {
+      FollowReadCompleted typedEvent = (FollowReadCompleted) event;
+      auditEvent(typedEvent);
+      auditInvocation(designSession, "designSession", "followed", typedEvent);
+      designSession.followed(typedEvent);
     } else if (event instanceof ReadCompleted) {
       ReadCompleted typedEvent = (ReadCompleted) event;
       auditEvent(typedEvent);
@@ -6332,7 +6472,7 @@ public class SessionProcessor
       auditInvocation(assistantLoop, "assistantLoop", "onEffectFailed", typedEvent);
       isDirty_assistantLoop = assistantLoop.onEffectFailed(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onEffectFailed", typedEvent);
-      sessionBoundary.onEffectFailed(typedEvent);
+      isDirty_sessionBoundary = sessionBoundary.onEffectFailed(typedEvent);
     } else if (event instanceof ExampleDeadlinePassed) {
       ExampleDeadlinePassed typedEvent = (ExampleDeadlinePassed) event;
       auditEvent(typedEvent);
@@ -6449,6 +6589,11 @@ public class SessionProcessor
       auditInvocation(
           localAgentSession, "localAgentSession", "onHostedRefusedByServer", typedEvent);
       isDirty_localAgentSession = localAgentSession.onHostedRefusedByServer(typedEvent);
+    } else if (event instanceof HostedProjectOutputOpened) {
+      HostedProjectOutputOpened typedEvent = (HostedProjectOutputOpened) event;
+      auditEvent(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onHostedOpened", typedEvent);
+      projectOutputs.onHostedOpened(typedEvent);
     } else if (event instanceof HostedReportApplyRequested) {
       HostedReportApplyRequested typedEvent = (HostedReportApplyRequested) event;
       auditEvent(typedEvent);
@@ -6522,6 +6667,8 @@ public class SessionProcessor
       isDirty_localAgentPermission = localAgentPermission.onExited(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onExited", typedEvent);
       isDirty_localAgentSession = localAgentSession.onExited(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onExited", typedEvent);
+      projectOutputs.onExited(typedEvent);
     } else if (event instanceof LocalAgentFolderAnswered) {
       LocalAgentFolderAnswered typedEvent = (LocalAgentFolderAnswered) event;
       auditEvent(typedEvent);
@@ -6664,7 +6811,7 @@ public class SessionProcessor
       auditInvocation(localAgentSession, "localAgentSession", "onSwitchChosen", typedEvent);
       isDirty_localAgentSession = localAgentSession.onSwitchChosen(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onSwitchChosen", typedEvent);
-      sessionBoundary.onSwitchChosen(typedEvent);
+      isDirty_sessionBoundary = sessionBoundary.onSwitchChosen(typedEvent);
     } else if (event instanceof LocalAgentTextUpdated) {
       LocalAgentTextUpdated typedEvent = (LocalAgentTextUpdated) event;
       auditEvent(typedEvent);
@@ -6687,11 +6834,15 @@ public class SessionProcessor
       isDirty_localAgentPermission = localAgentPermission.onTurnEnded(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onTurnEnded", typedEvent);
       isDirty_localAgentSession = localAgentSession.onTurnEnded(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onTurnEnded", typedEvent);
+      projectOutputs.onTurnEnded(typedEvent);
     } else if (event instanceof LocalAgentTurnStarted) {
       LocalAgentTurnStarted typedEvent = (LocalAgentTurnStarted) event;
       auditEvent(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onTurnStarted", typedEvent);
       isDirty_localAgentSession = localAgentSession.onTurnStarted(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onTurnStarted", typedEvent);
+      projectOutputs.onTurnStarted(typedEvent);
     } else if (event instanceof LogAppended) {
       LogAppended typedEvent = (LogAppended) event;
       auditEvent(typedEvent);
@@ -6806,7 +6957,7 @@ public class SessionProcessor
       auditInvocation(assistantLoop, "assistantLoop", "onOpenProjectRequested", typedEvent);
       isDirty_assistantLoop = assistantLoop.onOpenProjectRequested(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onOpenProjectRequested", typedEvent);
-      sessionBoundary.onOpenProjectRequested(typedEvent);
+      isDirty_sessionBoundary = sessionBoundary.onOpenProjectRequested(typedEvent);
       auditInvocation(
           projectReopenOffer, "projectReopenOffer", "onOpenProjectRequested", typedEvent);
       projectReopenOffer.onOpenProjectRequested(typedEvent);
@@ -6843,7 +6994,9 @@ public class SessionProcessor
       auditInvocation(starterProject, "starterProject", "onProfileApplied", typedEvent);
       isDirty_starterProject = starterProject.onProfileApplied(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onProfileApplied", typedEvent);
-      sessionBoundary.onProfileApplied(typedEvent);
+      isDirty_sessionBoundary = sessionBoundary.onProfileApplied(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onProfileApplied", typedEvent);
+      projectOutputs.onProfileApplied(typedEvent);
       auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
       bundleAnchor.onProfileApplied(typedEvent);
       auditInvocation(designSession, "designSession", "project", typedEvent);
@@ -6862,7 +7015,34 @@ public class SessionProcessor
       auditInvocation(assistantLoop, "assistantLoop", "onProfileLoaded", typedEvent);
       isDirty_assistantLoop = assistantLoop.onProfileLoaded(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onProfileLoaded", typedEvent);
-      sessionBoundary.onProfileLoaded(typedEvent);
+      isDirty_sessionBoundary = sessionBoundary.onProfileLoaded(typedEvent);
+    } else if (event instanceof ProjectOutputChanged) {
+      ProjectOutputChanged typedEvent = (ProjectOutputChanged) event;
+      auditEvent(typedEvent);
+      auditInvocation(starterProject, "starterProject", "onProjectOutputChanged", typedEvent);
+      isDirty_starterProject = starterProject.onProjectOutputChanged(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onChange", typedEvent);
+      projectOutputs.onChange(typedEvent);
+    } else if (event instanceof ProjectOutputOfferAnswered) {
+      ProjectOutputOfferAnswered typedEvent = (ProjectOutputOfferAnswered) event;
+      auditEvent(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onAnswered", typedEvent);
+      projectOutputs.onAnswered(typedEvent);
+    } else if (event instanceof ProjectOutputOpenObserved) {
+      ProjectOutputOpenObserved typedEvent = (ProjectOutputOpenObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onOpened", typedEvent);
+      projectOutputs.onOpened(typedEvent);
+    } else if (event instanceof ProjectOutputsBasisObserved) {
+      ProjectOutputsBasisObserved typedEvent = (ProjectOutputsBasisObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onBasis", typedEvent);
+      projectOutputs.onBasis(typedEvent);
+    } else if (event instanceof ProjectOutputsScanned) {
+      ProjectOutputsScanned typedEvent = (ProjectOutputsScanned) event;
+      auditEvent(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onScan", typedEvent);
+      projectOutputs.onScan(typedEvent);
     } else if (event instanceof ProjectReopenPresented) {
       ProjectReopenPresented typedEvent = (ProjectReopenPresented) event;
       auditEvent(typedEvent);
@@ -6877,6 +7057,8 @@ public class SessionProcessor
     } else if (event instanceof ProjectReopenRequested) {
       ProjectReopenRequested typedEvent = (ProjectReopenRequested) event;
       auditEvent(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onStartup", typedEvent);
+      projectOutputs.onStartup(typedEvent);
       auditInvocation(
           projectReopenOffer, "projectReopenOffer", "onProjectReopenRequested", typedEvent);
       projectReopenOffer.onProjectReopenRequested(typedEvent);
@@ -6981,6 +7163,8 @@ public class SessionProcessor
       isDirty_assistantLoop = assistantLoop.onSettingsRestored(typedEvent);
       auditInvocation(starterProject, "starterProject", "onSettingsRestored", typedEvent);
       isDirty_starterProject = starterProject.onSettingsRestored(typedEvent);
+      auditInvocation(projectOutputs, "projectOutputs", "onClosed", typedEvent);
+      projectOutputs.onClosed(typedEvent);
       auditInvocation(designSession, "designSession", "restored", typedEvent);
       designSession.restored(typedEvent);
     } else if (event instanceof SkillsVendored) {
@@ -7085,16 +7269,6 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(starterProject, "starterProject", "onEffectStarted", typedEvent);
       isDirty_starterProject = starterProject.onEffectStarted(typedEvent);
-    } else if (event instanceof StarterGraphOfferAnswered) {
-      StarterGraphOfferAnswered typedEvent = (StarterGraphOfferAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onGraphOfferAnswered", typedEvent);
-      isDirty_starterProject = starterProject.onGraphOfferAnswered(typedEvent);
-    } else if (event instanceof StarterGraphmlAppeared) {
-      StarterGraphmlAppeared typedEvent = (StarterGraphmlAppeared) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onGraphmlAppeared", typedEvent);
-      isDirty_starterProject = starterProject.onGraphmlAppeared(typedEvent);
     } else if (event instanceof StarterInstallFailed) {
       StarterInstallFailed typedEvent = (StarterInstallFailed) event;
       auditEvent(typedEvent);
@@ -7282,6 +7456,7 @@ public class SessionProcessor
     auditor.nodeRegistered(operationGate, "operationGate");
     auditor.nodeRegistered(pairingQualifier, "pairingQualifier");
     auditor.nodeRegistered(pairing, "pairing");
+    auditor.nodeRegistered(projectOutputs, "projectOutputs");
     auditor.nodeRegistered(projectReopenOffer, "projectReopenOffer");
     auditor.nodeRegistered(recordsView, "recordsView");
     auditor.nodeRegistered(sessionBoundary, "sessionBoundary");
@@ -7372,6 +7547,7 @@ public class SessionProcessor
     isDirty_operationGate = false;
     isDirty_pairing = false;
     isDirty_recordsView = false;
+    isDirty_sessionBoundary = false;
     isDirty_startPageNoLogHint = false;
     isDirty_starterProject = false;
   }
@@ -7420,6 +7596,7 @@ public class SessionProcessor
       dirtyFlagSupplierMap.put(operationGate, () -> isDirty_operationGate);
       dirtyFlagSupplierMap.put(pairing, () -> isDirty_pairing);
       dirtyFlagSupplierMap.put(recordsView, () -> isDirty_recordsView);
+      dirtyFlagSupplierMap.put(sessionBoundary, () -> isDirty_sessionBoundary);
       dirtyFlagSupplierMap.put(startPageNoLogHint, () -> isDirty_startPageNoLogHint);
       dirtyFlagSupplierMap.put(starterProject, () -> isDirty_starterProject);
     }
@@ -7445,6 +7622,7 @@ public class SessionProcessor
       dirtyFlagUpdateMap.put(operationGate, (b) -> isDirty_operationGate = b);
       dirtyFlagUpdateMap.put(pairing, (b) -> isDirty_pairing = b);
       dirtyFlagUpdateMap.put(recordsView, (b) -> isDirty_recordsView = b);
+      dirtyFlagUpdateMap.put(sessionBoundary, (b) -> isDirty_sessionBoundary = b);
       dirtyFlagUpdateMap.put(startPageNoLogHint, (b) -> isDirty_startPageNoLogHint = b);
       dirtyFlagUpdateMap.put(starterProject, (b) -> isDirty_starterProject = b);
     }
@@ -7544,6 +7722,14 @@ public class SessionProcessor
     return isDirty_openGraph | isDirty_openLog;
   }
 
+  private boolean guardCheck_projectOutputs() {
+    return isDirty_activeProject
+        | isDirty_localAgentSession
+        | isDirty_openBundle
+        | isDirty_operationGate
+        | isDirty_sessionBoundary;
+  }
+
   private boolean guardCheck_projectReopenOffer() {
     return isDirty_openBundle;
   }
@@ -7579,7 +7765,7 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_starterProject() {
-    return isDirty_onboardingProposal | isDirty_operationGate;
+    return isDirty_activeProject | isDirty_onboardingProposal | isDirty_operationGate;
   }
 
   private boolean guardCheck_statusLine() {
@@ -7664,6 +7850,8 @@ public class SessionProcessor
         return (T) pairingQualifier;
       case "pairing":
         return (T) pairing;
+      case "projectOutputs":
+        return (T) projectOutputs;
       case "projectReopenOffer":
         return (T) projectReopenOffer;
       case "recordsView":
@@ -7788,6 +7976,9 @@ public class SessionProcessor
     }
     if (node == pairing) {
       return "pairing";
+    }
+    if (node == projectOutputs) {
+      return "projectOutputs";
     }
     if (node == projectReopenOffer) {
       return "projectReopenOffer";

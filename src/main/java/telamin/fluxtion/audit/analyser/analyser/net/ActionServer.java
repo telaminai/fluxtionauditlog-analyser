@@ -330,6 +330,7 @@ public final class ActionServer {
             // owner 2026-10-18: a hosted report admitted without an approval runs only as it was judged, once
             var reportAdmitted = new java.util.concurrent.atomic.AtomicReference<
                     telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission>();
+            var openOrigin = new java.util.concurrent.atomic.AtomicReference<telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.HostedOpenOrigin>();
             telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope scope = null;
             if (hosted != null) {
                 var charts = chartState;
@@ -338,7 +339,7 @@ public final class ActionServer {
                 scope = scopes == null ? null : scopes.apply(generation);          // observed ONCE for this call
                 var judged = scope;
                 String refused = hostedRefusal(hostedGate, hosted, body, ex.getRequestHeaders().getFirst(TOOL_USE_HEADER),
-                        charts, scopes == null ? null : g -> judged, reportAdmitted);
+                        charts, scopes == null ? null : g -> judged, reportAdmitted, openOrigin);
                 if (refused != null) {
                     send(ex, 403, err(refused));
                     return;
@@ -347,7 +348,7 @@ public final class ActionServer {
             }
             // M74 P2: a hosted call carries its admitted generation, the only way to reach `propose`
             ActionResult r = hosted != null && hostedGate != null
-                    ? dispatcher.dispatchHosted(body, hostedGate.generationOf(hosted), reportAdmitted.get())
+                    ? dispatcher.dispatchHosted(body, hostedGate.generationOf(hosted), reportAdmitted.get(), openOrigin.get())
                     : dispatcher.dispatch(body);
             var receipt = r.reportReceipt();
             if (hosted != null && receipt != null && reportAdmitted.get() != null
@@ -514,6 +515,14 @@ public final class ActionServer {
                                 telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts,
                                 java.util.function.LongFunction<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope> scopes,
                                 java.util.concurrent.atomic.AtomicReference<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission> admitted) {
+        return hostedRefusal(gate, credential, body, toolUseId, charts, scopes, admitted, null);
+    }
+
+    static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body, String toolUseId,
+                                telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts,
+                                java.util.function.LongFunction<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope> scopes,
+                                java.util.concurrent.atomic.AtomicReference<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission> admitted,
+                                java.util.concurrent.atomic.AtomicReference<telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.HostedOpenOrigin> openOrigin) {
         long generation = gate == null ? -1 : gate.generationOf(credential);
         if (generation < 0) {
             return BAD_HOSTED_CREDENTIAL;
@@ -551,6 +560,14 @@ public final class ActionServer {
             if (reportAdmission != null && admitted != null) admitted.set(reportAdmission);
             if (kind == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.NON_MUTATING
                     || kind == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED) {
+                if ("open".equals(action) && kind == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED
+                        && scope != null && scope.outputs() != null && openOrigin != null) {
+                    var answer = gate.admitScoped(generation, verb);
+                    if (answer.refusal() == null && answer.ticket() != 0) openOrigin.set(
+                            new telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.HostedOpenOrigin(generation,
+                                    answer.ticket(), scope.outputs().watch(), scope.outputs().projectGeneration()));
+                    return answer.refusal();
+                }
                 return gate.admit(generation, verb);
             }
             String inputDigest = telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.digest(

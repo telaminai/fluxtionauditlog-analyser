@@ -15,6 +15,7 @@ final class DesignSourcePanel extends JPanel {
     private final JList<Anchor> beans = UiText.plainCells(new JList<>(index));   // SF-2: bean ids are the XML's
     private final JCheckBox follow = new JCheckBox("Follow design", true);
     private DesignDocument document;
+    private BuilderDocument builder;
     private String file;
     private Consumer<String> showNode = id -> { }, showRecords = id -> { };
     private Consumer<Map<String, Object>> navigate = p -> { };
@@ -69,10 +70,10 @@ final class DesignSourcePanel extends JPanel {
         node.addActionListener(e -> { String id = selectedBean(); if (id != null) showNode.accept(id); });
         records.addActionListener(e -> { String id = selectedBean(); if (id != null) showRecords.accept(id); });
         beans.addListSelectionListener(e -> {
-            if (!rendering && !e.getValueIsAdjusting() && beans.getSelectedValue() != null && document != null) {
+            if (!rendering && !e.getValueIsAdjusting() && beans.getSelectedValue() != null && (document != null || builder != null)) {
                 Anchor a = beans.getSelectedValue();
-                navigate.accept(a.bean == null ? Map.of("file", document.file(), "line", a.line)
-                        : Map.of("file", document.file(), "bean", a.bean));
+                navigate.accept(a.bean == null || builder != null ? Map.of("file", file, "line", a.line)
+                        : Map.of("file", file, "bean", a.bean));
             }
         });
         text.addCaretListener(e -> { node.setEnabled(selectedBean() != null); records.setEnabled(selectedBean() != null); });
@@ -83,6 +84,7 @@ final class DesignSourcePanel extends JPanel {
     DesignDocument document() { return document; }
     void render(DesignWorkspace.View view, String note) {
         document = view.document();
+        builder = view.builder();
         file = view.file();
         rendering = true;
         try {
@@ -93,6 +95,9 @@ final class DesignSourcePanel extends JPanel {
                 for (String property : List.of("nodeBeans", "eventHandlers", "serviceRegistrations")) for (var entry : document.entries(property))
                     index.addElement(new Anchor(null, entry.line(), property + ": " + (entry.attr("bean").isEmpty() ? entry.value().trim() : entry.attr("bean"))));
             }
+            if (builder != null) for (var n : builder.nodes()) index.addElement(new Anchor(n.name(), n.line(),
+                    n.anchored() ? n.name() : n.kind().equals("discovered") ? "discovered, no name" : "name not literal"));
+            if (builder != null && builder.nodes().isEmpty()) note += "\nMentions FluxtionGraphBuilder, no nodes found.";
             status.setText(view.file() + "\n" + note);
             long ticket = ++navigation;
             SwingUtilities.invokeLater(() -> { if (ticket == navigation) scroll(view.line()); });
@@ -110,7 +115,7 @@ final class DesignSourcePanel extends JPanel {
         if (file != null && file.endsWith(".java")) new JavaHighlighter().render(text.getStyledDocument(), content);
         else new XmlHighlighter().render(text.getStyledDocument(), content);
     }
-    void clear() { document=null; file=null; text.setText(""); index.clear(); status.setText("No session design open."); }
+    void clear() { document=null; builder=null; file=null; text.setText(""); index.clear(); status.setText("No session design open."); }
     /** Settle this reveal now; a previous render must not scroll it away after the echo. */
     void revealLine(int line) {
         navigation++;
@@ -158,6 +163,13 @@ final class DesignSourcePanel extends JPanel {
         } catch (javax.swing.text.BadLocationException e) { return Optional.empty(); }
     }
     private String selectedBean() {
+        if (builder != null) {
+            int line = DesignDocument.lineAt(text.getText(), text.getCaretPosition());
+            Anchor selected = beans.getSelectedValue();
+            if (selected != null && selected.bean() != null && builder.named(selected.bean()).size() == 1) return selected.bean();
+            return builder.nodes().stream().filter(n -> n.line() == line && n.anchored() && builder.named(n.name()).size() == 1)
+                    .map(BuilderDocument.NodeAnchor::name).findFirst().orElse(null);
+        }
         if (document == null) return null;
         int offset = text.getCaretPosition();
         int line = DesignDocument.lineAt(text.getText(), offset);

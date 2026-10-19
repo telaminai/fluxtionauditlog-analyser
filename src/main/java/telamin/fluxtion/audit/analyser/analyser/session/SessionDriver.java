@@ -289,8 +289,15 @@ public final class SessionDriver {
     /** The effect's name in the audit vocabulary — the same word {@code EffectOutcomes} records. */
     public static String name(SessionEffects effect) {
         return switch (effect) {
+            case SessionEffects.ObserveProjectOutputsEffect ignored -> "observeProjectOutputs";
+            case SessionEffects.WatchProjectOutputsEffect ignored -> "watchProjectOutputs";
+            case SessionEffects.StopProjectOutputsWatchEffect ignored -> "stopProjectOutputsWatch";
+            case SessionEffects.PublishProjectOutputChangedEffect ignored -> "projectOutputChanged";
+            case SessionEffects.OfferProjectOutputEffect ignored -> "offerProjectOutput";
+            case SessionEffects.OpenProjectOutputEffect ignored -> "openProjectOutput";
             case SessionEffects.DiscoverDesignEffect ignored -> "discoverDesign";
             case SessionEffects.PresentDesignDiscoveryEffect ignored -> "presentDesignDiscovery";
+            case SessionEffects.PresentDesignRefreshEffect ignored -> "presentDesignRefresh";
             case SessionEffects.AnswerHostedReportApplyEffect ignored -> "answerHostedReportApply";
             case SessionEffects.LoadProfileEffect ignored -> "loadProfile";
             case SessionEffects.PrepareBundleEffect ignored -> "prepareBundle";
@@ -391,9 +398,6 @@ public final class SessionDriver {
             case SessionEffects.ReviewStarterProjectEffect ignored -> "reviewStarterProject";
             case SessionEffects.OpenStarterProjectEffect ignored -> "openStarterProject";
             case SessionEffects.OpenStarterDesignEffect ignored -> "openStarterDesign";
-            case SessionEffects.WatchStarterGraphmlEffect ignored -> "watchStarterGraphml";
-            case SessionEffects.OfferStarterGraphEffect ignored -> "offerStarterGraph";
-            case SessionEffects.OpenStarterGraphEffect ignored -> "openStarterGraph";
             case SessionEffects.CancelStarterWorkEffect ignored -> "cancelStarterWork";
             case SessionEffects.ArmStarterDraftEffect ignored -> "armStarterDraft";
             case SessionEffects.ShowStarterCommandsEffect ignored -> "showStarterCommands";

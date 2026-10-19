@@ -109,6 +109,7 @@ public final class LocalAgentAdapter {
         default telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports() {
             return null;
         }
+        default telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OutputScope outputs() { return null; }
 
         /** Whether the node's published generation/ticket still owns its requested activity clock. */
         default boolean activityCurrent(long generation, long ticket) { return false; }
@@ -185,7 +186,7 @@ public final class LocalAgentAdapter {
         // owner 2026-10-18: Full's in-project report writes are judged with the active project's reports and this run's
         // generation — the session's record of what this run wrote is per generation
         return new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(Path.of(folder), run.full, sample,
-                run.generation, run.full ? env.reports() : null);
+                run.generation, run.full ? env.reports() : null, run.full ? env.outputs() : null);
     }
 
     /** How a draft reads as a command, against the CLI's last {@code initialize.commands}. */

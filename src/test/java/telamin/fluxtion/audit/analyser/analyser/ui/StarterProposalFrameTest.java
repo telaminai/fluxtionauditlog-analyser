@@ -228,7 +228,6 @@ class StarterProposalFrameTest {
         FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
         agent.conformInit = true;
         Stub stub = new Stub();
-        List<String> graphOffers = new CopyOnWriteArrayList<>();
 
         String before = System.getProperty("user.home");
         System.setProperty("user.home", home.toString());
@@ -239,11 +238,6 @@ class StarterProposalFrameTest {
                 f.localAgentLauncher = agent;
                 f.starterSource = stub;
                 f.starterFolderChooser = () -> target;
-                f.starterGraphOffer = shown -> {
-                    graphOffers.add(shown);
-                    return false;
-                };
-                f.starterWatchMillis = 100;
                 try {
                     var show = MainFrame.class.getDeclaredMethod("showWorkspace", boolean.class);
                     show.setAccessible(true);
@@ -451,16 +445,14 @@ class StarterProposalFrameTest {
                 Files.writeString(other, "share.version=1\n");
                 Path graph = target.resolve("first-build.graphml");
                 Files.copy(Path.of("src/test/resources/topology/demo-quote-processor.graphml"), graph);
+                // The ordinary four-second watcher, not a starter-only callback or dialog seam.
+                awaitSnapshot(f, s -> !s.projectOutputs().offers().isEmpty(), "the first build's general graph offer");
                 onEdt(() -> {
-                    f.starterGraphOffer = shown -> {
-                        try { render(ex, "open", Map.of("project", other.toString())); }
-                        catch (Exception error) { throw new AssertionError(error); }
-                        return true;
-                    };
-                    var refs = (telamin.fluxtion.audit.analyser.analyser.session.FactRefs) field(f, "factRefs");
-                    // The watcher completion's actual fact, with the live starter request; no hand-made effect.
-                    session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphmlAppeared(
-                            session.snapshot().starter().request(), refs.put(graph.toString()), "DEMO-A/first-build.graphml"));
+                    long id = session.snapshot().projectOutputs().offers().getFirst().id();
+                    ProjectOutputsFrameTest.button(f, "projectOutputOpen-" + id).doClick();
+                    // Supersede before the deferred Open effect runs; it must not borrow DEMO-B's context.
+                    try { render(ex, "open", Map.of("project", other.toString())); }
+                    catch (Exception error) { throw new AssertionError(error); }
                 });
                 onEdt(() -> { });
                 onEdt(() -> {

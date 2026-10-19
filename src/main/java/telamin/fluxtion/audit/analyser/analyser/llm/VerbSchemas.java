@@ -383,12 +383,13 @@ public final class VerbSchemas {
         s.put("source", schema("Read-only source glance; rereads XML or Java under authorised source roots. "
                         + "Exclusive selectors: {file}, {file,line}, {line}, {bean}, {file,bean}, {fqn}, {fqn,method}. "
                         + "A glance never replaces open.design. Bean matches aid navigation, not evidence; relationship to the loaded run remains unverified. "
+                        + "The bean selector also matches literal Java-builder node names. "
                         + "To SHOW code, add text and the lines come back as data (read-only, the same roots, at most "
                         + telamin.fluxtion.audit.analyser.analyser.design.SourceText.MAX_LINES + " lines and "
                         + telamin.fluxtion.audit.analyser.analyser.design.SourceText.MAX_BYTES / 1024 + " KB, a cut is stated) "
                         + "— use it instead of reading the files yourself.",
                 props(p("file", string(), "Project-relative or absolute path under an authorised source root"),
-                        p("bean", string(), "Bean id in the session design, or the specified XML file; duplicates are refused"),
+                        p("bean", string(), "Bean id in XML, or literal node name in a Java builder; uses the session design or specified file; duplicates are refused"),
                         p("line", integer(), "One-based line in file or session design"),
                         p("fqn", string(), "Java class under authorised source roots"),
                         p("method", string(), "Method name, only with fqn"),

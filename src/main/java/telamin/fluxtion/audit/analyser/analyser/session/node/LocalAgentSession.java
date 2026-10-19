@@ -365,7 +365,7 @@ public class LocalAgentSession implements EventLogSource {
         // scorecard R1: the verb the call names and the turn it was made in, beside the verdict
         auditLog.info("localAgentCall", refusal == null ? "ADMITTED" : "REFUSED").info("generation", e.generation())
                 .info("verb", String.valueOf(e.verb())).info("ticket", openTicket);
-        effects.request(new SessionEffects.AnswerHostedCallEffect(0L, e.call(), refusal));
+        effects.request(new SessionEffects.AnswerHostedCallEffect(0L, e.call(), refusal, refusal == null ? openTicket : 0));
         return false;
     }
 

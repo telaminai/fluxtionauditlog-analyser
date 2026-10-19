@@ -43,8 +43,11 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
     public enum Family {
         TAB("tab:<summary|source|graph|topology|reports|assistant>", true),
         DESIGN("source:design", false),
-        DESIGN_BEAN("source:design:bean:<id>", true),
-        /** M80: {@code line:<n>} is the range n-n; {@code line:<from>-<to>} lights every line from first to last. */
+        /** M80 PR2: {@code bean:<id>} and its synonym {@code node:<id>} both resolve the same way (a Java builder's
+         * declaration, or the XML bean, whichever the document has). */
+        DESIGN_BEAN("source:design:bean:<id>|source:design:node:<id>", true),
+        /** M80 PR1 (this branch): {@code line:<n>} is the range n-n; {@code line:<from>-<to>} lights every line
+         * from first to last. */
         DESIGN_LINE("source:design:line:<n|from-to>", true),
         JAVA("source:java:<fqn>", true),
         /** M80: {@code line:<n>} is the range n-n; {@code line:<from>-<to>} lights every line from first to last. */
@@ -142,14 +145,14 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
                 }
                 if ("design".equalsIgnoreCase(rest)) yield ok(Family.DESIGN, null, name);
                 if (rest == null || !rest.toLowerCase(Locale.ROOT).startsWith("design:"))
-                    yield unknown("expected source:design[:bean:<id>|:line:<n>|<from>-<to>]");
+                    yield unknown("expected source:design[:bean:<id>|:node:<id>|:line:<n>|<from>-<to>]");
                 String part = rest.substring(7);
                 if (part.toLowerCase(Locale.ROOT).startsWith("line:")) {
                     String arg = part.substring(5);
                     String designLineError = lineRangeError(arg);
                     yield designLineError != null ? unknown(designLineError) : ok(Family.DESIGN_LINE, arg, name);
                 }
-                yield sub(part, "bean", Family.DESIGN_BEAN, name, false);
+                yield sub(part, part.toLowerCase(Locale.ROOT).startsWith("node:") ? "node" : "bean", Family.DESIGN_BEAN, name, false);
             }
             case "tab" -> member(Family.TAB, rest, TABS, name);
             case "toolbar" -> member(Family.TOOLBAR, rest, TOOLBAR_BUTTONS, name);

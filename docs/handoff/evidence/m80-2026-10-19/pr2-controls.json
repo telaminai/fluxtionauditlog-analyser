@@ -1,0 +1,426 @@
+{
+  "kind": "implementer-verification-not-independent-approval",
+  "base": "e03d2028a941e38c92c6ee59e71a465cad6a5550",
+  "engine": "fast",
+  "requestedNames": [
+    "m80-builder-call-line",
+    "m80-builder-no-invented-name",
+    "m80-builder-discovered-child",
+    "m80-builder-node-synonym",
+    "m80-source-scan-without-header",
+    "m80-design-additive-key-pin",
+    "m80-xml-released-value",
+    "m80-warning-name-cap",
+    "m80-failed-read-no-invented-form",
+    "m80-file-failure-keeps-candidates",
+    "m80-file-warning-in-context",
+    "m80-file-cap-distinct-reason",
+    "m80-echo-body-only",
+    "m80-no-dead-root-budget",
+    "m80-short-human-empty-line",
+    "m80-design-api-only-approved-delta",
+    "m80-design-api-advertised-synonym",
+    "m80-builder-text-block-line",
+    "m80-follow-presentation-requested",
+    "m80-follow-stale-refused",
+    "m80-builder-duplicate-refused",
+    "m80-builder-glance-not-adopted",
+    "m80-builder-nested-spans-indexed"
+  ],
+  "caughtNames": [
+    "m80-builder-call-line",
+    "m80-builder-no-invented-name",
+    "m80-builder-discovered-child",
+    "m80-builder-node-synonym",
+    "m80-source-scan-without-header",
+    "m80-design-additive-key-pin",
+    "m80-xml-released-value",
+    "m80-warning-name-cap",
+    "m80-failed-read-no-invented-form",
+    "m80-file-failure-keeps-candidates",
+    "m80-file-warning-in-context",
+    "m80-file-cap-distinct-reason",
+    "m80-echo-body-only",
+    "m80-no-dead-root-budget",
+    "m80-short-human-empty-line",
+    "m80-design-api-only-approved-delta",
+    "m80-design-api-advertised-synonym",
+    "m80-builder-text-block-line",
+    "m80-follow-presentation-requested",
+    "m80-follow-stale-refused",
+    "m80-builder-duplicate-refused",
+    "m80-builder-glance-not-adopted",
+    "m80-builder-nested-spans-indexed"
+  ],
+  "seconds": 35.8,
+  "runs": [
+    {
+      "name": "m80-builder-call-line",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.BuilderDocumentTest",
+          "method": "aWrappedLiteralAnchorsTheCallNotTheNameLine",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: ★ T4 call-token line, not literal line"
+        }
+      ]
+    },
+    {
+      "name": "m80-builder-no-invented-name",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.BuilderDocumentTest",
+          "method": "nonLiteralAndUnnamedAndVarargRegistrationsNeverInventNames",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: ★ T5 no fabricated nameVar or varargs name"
+        }
+      ]
+    },
+    {
+      "name": "m80-builder-discovered-child",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.BuilderDocumentTest",
+          "method": "nestedNewExpressionsHaveHonestDiscoveredLocations",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: ★ T6 child exists, without invented id"
+        }
+      ]
+    },
+    {
+      "name": "m80-builder-node-synonym",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.M80DesignDiscoveryFrameTest",
+          "method": "nodeAndBeanSynonymsLightTheSameJavaDeclaration",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: ★ T7 both spellings must light the same DESIGN anchor: {ok=false, error='source:design:node:a' is not of the form source:design:bean:<id>|source:design:node:<id>. The vocabulary is: tab:<summary|source|graph|topology|reports|assistant> · source:design · source:design:bean:<id>|source:design:node:<id> · source:design:line:<n> · source:java:<fqn> · source:java:<fqn>:line:<n> · records · records:row:<recordIndex> · detail · detail:node:<instanceId> · topology · topology:node:<instanceId> · topology:verdict · graph[:<name>] · graph[:<name>]:note:<n> · graph[:<n"
+        }
+      ]
+    },
+    {
+      "name": "m80-source-scan-without-header",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoveryTest",
+          "method": "scanFindsTheBuilderWithoutAnyGeneratedProcessorOrHeader",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: ★ T2 discovery must not depend on a processor header"
+        }
+      ]
+    },
+    {
+      "name": "m80-design-additive-key-pin",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.mcp.CustomerApiKeysTest",
+          "method": "designEchoKeepsItsReleasedKeysAndOnlyNamesTheFourAdditions",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: ★ T9 nested design keys may only grow through named additive pins"
+        }
+      ]
+    },
+    {
+      "name": "m80-xml-released-value",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoverySessionTest",
+          "method": "xmlsReleasedValuesAndTheirOrderAreUnchanged",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: ★ T8 every released XML value is unchanged"
+        }
+      ]
+    },
+    {
+      "name": "m80-warning-name-cap",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoveryTest",
+          "method": "unreadableWarningsShowAtMostTenNamesAndCountTheRest",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: warning disclosure must stop after ten file names"
+        }
+      ]
+    },
+    {
+      "name": "m80-failed-read-no-invented-form",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoverySessionTest",
+          "method": "failedDesignReadNeverInventsASpringForm",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: neither form was loaded: do not invent spring from a null builder"
+        }
+      ]
+    },
+    {
+      "name": "m80-file-failure-keeps-candidates",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoveryTest",
+          "method": "individualReadFailuresKeepCandidatesAndNameEveryUnreadableFile",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: individual read failures must not erase a readable definition"
+        }
+      ]
+    },
+    {
+      "name": "m80-file-warning-in-context",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoveryTest",
+          "method": "individualReadFailuresKeepCandidatesAndNameEveryUnreadableFile",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: working copy; matched by name; relationship to this run unknown"
+        }
+      ]
+    },
+    {
+      "name": "m80-file-cap-distinct-reason",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoveryTest",
+          "method": "anExceededBudgetNeverReturnsAPartialCandidateList",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: the cap has its own explicit reason"
+        }
+      ]
+    },
+    {
+      "name": "m80-echo-body-only",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.mcp.CustomerApiKeysTest",
+          "method": "designEchoExtractionExcludesLaterMethods",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: ★ T9 must inspect only echo, not later methods"
+        }
+      ]
+    },
+    {
+      "name": "m80-no-dead-root-budget",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoveryTest",
+          "method": "theFileBudgetHasNoDeadRootCountGuard",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: the budget counts encountered files, not root declarations"
+        }
+      ]
+    },
+    {
+      "name": "m80-short-human-empty-line",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoverySessionTest",
+          "method": "emptyDiscoveryUsesAShortHumanMessageWithoutJsonSyntax",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: expected: <No design found. Add a source folder or open a design.> but was: <No Spring XML or Java builder found under the authorised source roots. Add source roots with source_root {add: [...]} or open {design: <path>}.>"
+        }
+      ]
+    },
+    {
+      "name": "m80-design-api-only-approved-delta",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.llm.M80DesignApiDeltaTest",
+          "method": "undoingOnlyTheApprovedMetadataRestoresEveryPreviousHash",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: only the approved M80 delta may change: VerbSchemas.all"
+        }
+      ]
+    },
+    {
+      "name": "m80-design-api-advertised-synonym",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.llm.M80DesignApiDeltaTest",
+          "method": "nodeIsAnAdvertisedSynonymNotANewFamilyOrParameter",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: expected: <source:design:bean:<id>|source:design:node:<id>> but was: <source:design:bean:<id>>"
+        }
+      ]
+    },
+    {
+      "name": "m80-builder-text-block-line",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.BuilderDocumentTest",
+          "method": "aTextBlockContinuationCannotMoveTheNextDeclarationOrCreateFakeNodes",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: a continued text-block line still occupies a source line"
+        }
+      ]
+    },
+    {
+      "name": "m80-follow-presentation-requested",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.M80DesignDiscoveryFrameTest",
+          "method": "anAcceptedJavaFollowReadRefreshesAndRebindsTheVisibleDeclaration",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: an accepted Java follow revision must reach the visible Design pane"
+        }
+      ]
+    },
+    {
+      "name": "m80-follow-stale-refused",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignDiscoverySessionTest",
+          "method": "followPresentationBelongsOnlyToAcceptedReadsIncludingFailures",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: stale follow completion cannot request presentation"
+        }
+      ]
+    },
+    {
+      "name": "m80-builder-duplicate-refused",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspaceTest",
+          "method": "javaBuilderNamesUseTheExistingSelectorAndRefuseAmbiguity",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: duplicate literal names must refuse rather than select the first declaration"
+        }
+      ]
+    },
+    {
+      "name": "m80-builder-glance-not-adopted",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspaceTest",
+          "method": "aJavaBuilderGlancePreservesAnXmlSessionAndUsesCurrentDisk",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: a Java builder glance must not adopt or replace the session's XML design"
+        }
+      ]
+    },
+    {
+      "name": "m80-builder-nested-spans-indexed",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.design.BuilderDocumentTest",
+          "method": "nestedRegistrationsUseIndexedDelimiterAndArgumentSpans",
+          "kind": "failure",
+          "assertion": "org.opentest4j.AssertionFailedError: nested argument spans must be skipped through the delimiter index"
+        }
+      ]
+    }
+  ]
+}

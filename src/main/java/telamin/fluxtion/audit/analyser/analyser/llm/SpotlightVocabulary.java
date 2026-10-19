@@ -51,7 +51,7 @@ public final class SpotlightVocabulary {
                     + CAPTION_LENGTH;
 
     public static final String TEXT =
-            "tab:<summary|source|graph|topology|reports|assistant> · source:design · source:design:bean:<id> · source:design:line:<n|from-to> · source:java:<fqn> · source:java:<fqn>:line:<n|from-to> · records · records:row:<recordIndex> · "
+            "tab:<summary|source|graph|topology|reports|assistant> · source:design · source:design:bean:<id>|source:design:node:<id> · source:design:line:<n|from-to> · source:java:<fqn> · source:java:<fqn>:line:<n|from-to> · records · records:row:<recordIndex> · "
                     + "detail · detail:node:<instanceId> · topology · topology:node:<instanceId> · topology:verdict · "
                     + "graph[:<name>] · graph[:<name>]:note:<n> · graph[:<name>]:series:<label> · project · "
                     + "project:<log|graph|processors|roots> · toolbar:<open|flag|explain|follow> · menu:<Menu> · "

@@ -76,13 +76,15 @@ public final class MainFrame extends JFrame {
     private final java.util.Map<Long, java.util.List<String>> starterCommands = new java.util.LinkedHashMap<>();
     private long starterRefNext = 1;
     private long starterMenuRequest;
-    private javax.swing.Timer starterWatch;
-    /** Option 2 test seams: the review row's folder chooser, the combined review, the after-build graph offer, the watch. */
+    /** Option 2 test seams: the review row's folder chooser and the combined review. */
     java.util.function.Supplier<Path> starterFolderChooser = this::chooseStarterFolderDialog;
     java.util.function.Function<StarterReviewDialog.Data, StarterReviewDialog.Answer> starterReviewAsk =
             data -> StarterReviewDialog.show(this, data);
-    java.util.function.Predicate<String> starterGraphOffer = this::askStarterGraph;
-    int starterWatchMillis = 4000;
+
+    private javax.swing.Timer projectOutputsTimer;
+    private long projectOutputsTimerWatch;
+    private final java.util.Map<String, Long> projectOutputRefs = new java.util.LinkedHashMap<>();
+    private final ProjectOutputsPanel projectOutputsPanel = new ProjectOutputsPanel(answer -> session().post(answer));
 
     private final LogTablePanel tablePanel = new LogTablePanel();
     /** The start page uses the whole workspace; an open investigation uses the split view. */
@@ -1853,7 +1855,7 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Design read superseded by a newer session or root change; retry the request");
             var before = current.document();
             for (Object fact : prepared.facts()) session().submit(fact);
-            refreshDesignView(before);
+            refreshDesignView(before == null ? null : before.revision());
             var result = finish.apply(prepared);
             if (allowed instanceof RecoveryReadGuard guard) guard.completed(current.generation());
             return result;
@@ -1952,33 +1954,36 @@ public final class MainFrame extends JFrame {
             @Override protected void done() {
                 designReadPending = false;
                 if (!isDisplayable()) return;
-                try {
-                    var before = state.document(); var fact = get();
-                    if (generation != state.generation()) return;
-                    // A log or project effect may have opened a modal event loop while a session cycle is still
-                    // running. Report this background read with post, which queues it after that cycle.
-                    session.post(fact);
-                    SwingUtilities.invokeLater(() -> {
-                        if (isDisplayable() && generation == state.generation()) refreshDesignView(before);
-                    });
-                } catch (Exception e) { status.setText("Design refresh failed: " + e.getMessage()); }
+                telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted fact;
+                try { fact = get(); }
+                catch (Exception e) { fact = new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted(
+                        file, null, "Design refresh failed: " + e.getMessage(), false, generation); }
+                // A log or project effect may have opened a modal event loop while a session cycle is still
+                // running. The node accepts or rejects the posted observation, then requests presentation.
+                session.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.FollowReadCompleted(fact));
             }
         }.execute();
     }
 
-    private void refreshDesignView(telamin.fluxtion.audit.analyser.analyser.design.DesignDocument before) {
+    private void refreshDesignView(String previousRevision) {
         var state = session().processor().designSession; var document = state.document();
         if (state.builder() != null) {
             var builder = state.builder(); var viewed = sourcePanel.fileView();
             if (viewed != null && viewed.file().equals(builder.file()) && !viewed.text().equals(builder.text())) {
-                for (var lit : spotlight.lit()) if (lit.target().startsWith("source:design")) {
-                    spotlight.remove(lit.target()); designWentOut.add(lit.target()); designSpotlightRevisions.remove(lit.target());
+                int line = Math.min(viewed.line(), builder.lines());
+                for (var lit : spotlight.lit()) {
+                    var parsed = SpotlightTarget.parse(lit.target()); if (!parsed.ok()) continue;
+                    boolean out = parsed.target().family() == SpotlightTarget.Family.DESIGN_LINE;
+                    if (parsed.target().family() == SpotlightTarget.Family.DESIGN_BEAN) {
+                        var matches = builder.named(parsed.target().argument()); out = matches.size() != 1;
+                        if (!out) { spotlight.markDesignEdited(lit.target()); line = matches.getFirst().line(); }
+                    }
+                    if (out) { spotlight.remove(lit.target()); designWentOut.add(lit.target()); designSpotlightRevisions.remove(lit.target()); }
                 }
-                int lines = 1 + (int) builder.text().chars().filter(c -> c == '\n').count();
-                sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(builder, Math.min(viewed.line(), lines), null), designNote(), false);
+                sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(builder, line, null), designNote(), false);
             }
         }
-        boolean changed = document != null && (before == null || !before.revision().equals(document.revision()));
+        boolean changed = document != null && !java.util.Objects.equals(previousRevision, document.revision());
         if (changed) {
             for (var lit : spotlight.lit()) {
                 var p = SpotlightTarget.parse(lit.target()); if (!p.ok()) continue;
@@ -4042,11 +4047,13 @@ public final class MainFrame extends JFrame {
                     var state = session().processor().designSession;
                     var before = state.document();
                     if (state.path() != null) designs().refreshed(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.read(designFiles(), state.path(), false, state.generation()));
-                    refreshDesignView(before);
+                    refreshDesignView(before == null ? null : before.revision());
                     var doc = state.document();
                     Integer line = designTargetLine(t);
-                    if (doc != null && line != null) {
-                        sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(doc, line, t.family() == SpotlightTarget.Family.DESIGN_BEAN ? t.argument() : null), designNote(), false);
+                    if (state.revision() != null && line != null) {
+                        String name = t.family() == SpotlightTarget.Family.DESIGN_BEAN ? t.argument() : null;
+                        sourcePanel.showFile(doc != null ? telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(doc, line, name)
+                                : telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(state.builder(), line, name), designNote(), false);
                         selectSideTab("source");
                         validate();
                         sourcePanel.revealDesignLine(line);
@@ -4105,16 +4112,16 @@ public final class MainFrame extends JFrame {
             return switch (t.family()) {
                 case JAVA, JAVA_LINE -> javaSpotlightBounds(t);
                 case DESIGN, DESIGN_BEAN, DESIGN_LINE -> {
-                    var doc = session().processor().designSession.document();
-                    if (doc != null && t.family() == SpotlightTarget.Family.DESIGN_LINE && t.lineFrom() != t.lineTo()) {
+                    var design = session().processor().designSession;
+                    if (design.revision() != null && t.family() == SpotlightTarget.Family.DESIGN_LINE && t.lineFrom() != t.lineTo()) {
                         // M80: a range may show PARTLY (unlike a single design line, all-or-nothing below)
-                        yield sourcePanel.designBounds(doc.file(), t.lineFrom(), t.lineTo())
+                        yield sourcePanel.designBounds(design.path(), t.lineFrom(), t.lineTo())
                                 .map(DesignSourcePanel.DesignBand::bounds)
                                 .flatMap(r -> inOverlay(sourcePanel.designComponent(), r));
                     }
                     Integer line = designTargetLine(t);
-                    yield doc == null || line == null ? java.util.Optional.empty()
-                            : sourcePanel.designBounds(doc.file(), t.family() == SpotlightTarget.Family.DESIGN ? null : line)
+                    yield design.revision() == null || line == null ? java.util.Optional.empty()
+                            : sourcePanel.designBounds(design.path(), t.family() == SpotlightTarget.Family.DESIGN ? null : line)
                             .flatMap(r -> inOverlay(sourcePanel.designComponent(), r));
                 }
                 case TAB -> {
@@ -4236,19 +4243,20 @@ public final class MainFrame extends JFrame {
      * the design was open and the XML was simply too narrow to show the line.
      */
     private String designNotVisible(SpotlightTarget t) {
-        var doc = session().processor().designSession.document();
-        if (doc == null) return "no session design is open — open {design: <path>} first";
+        var design = session().processor().designSession;
+        if (design.revision() == null) return "no session design is open — open {design: <path>} first";
+        String noun = design.builder() == null ? "bean" : "node";
         if (t.family() == SpotlightTarget.Family.DESIGN_BEAN) {
-            int n = doc.beans(t.argument()).size();
-            if (n == 0) return "no bean '" + t.argument() + "' in " + doc.file() + " (context.design.beans lists them)";
-            if (n > 1) return "bean id '" + t.argument() + "' is declared " + n + " times in " + doc.file()
+            int n = design.namedLines(t.argument()).size();
+            if (n == 0) return "no " + noun + " '" + t.argument() + "' in " + design.path() + (design.builder() == null ? " (context.design.beans lists them)" : " (context.design.nodes lists literal names)");
+            if (n > 1) return noun + " id '" + t.argument() + "' is declared " + n + " times in " + design.path()
                     + "; light it by line with source:design:line:<n>";
         }
         // M80: a range's TO line past the end refuses the whole range (not clamped) — the single-line policy, said
         // for the range it was asked for.
-        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && t.lineTo() > doc.lines())
+        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && t.lineTo() > design.lines())
             return "line " + (t.lineFrom() == t.lineTo() ? String.valueOf(t.lineFrom()) : t.lineFrom() + "-" + t.lineTo())
-                    + " is outside " + doc.file() + " (1–" + doc.lines() + ")";
+                    + " is outside " + design.path() + " (1–" + design.lines() + ")";
         if (t.family() == SpotlightTarget.Family.DESIGN)
             return "the design is open but its view is not on screen: the Source pane is hidden or too small";
         if (t.family() == SpotlightTarget.Family.DESIGN_LINE && t.lineFrom() != t.lineTo())
@@ -4260,12 +4268,12 @@ public final class MainFrame extends JFrame {
 
     /** M80: for DESIGN_LINE, the reveal/scroll target is always the FIRST line — the range's start. */
     private Integer designTargetLine(SpotlightTarget target) {
-        var doc = session().processor().designSession.document();
-        if (doc == null) return null;
+        var design = session().processor().designSession;
+        if (design.revision() == null) return null;
         if (target.family() == SpotlightTarget.Family.DESIGN) return 1;
-        if (target.family() == SpotlightTarget.Family.DESIGN_LINE) return target.lineTo() <= doc.lines() ? target.lineFrom() : null;
-        var beans = doc.beans(target.argument());
-        return beans.size() == 1 ? beans.getFirst().line() : null;
+        if (target.family() == SpotlightTarget.Family.DESIGN_LINE) return target.lineTo() <= design.lines() ? target.lineFrom() : null;
+        var lines = design.namedLines(target.argument());
+        return lines.size() == 1 ? lines.getFirst() : null;
     }
 
     // ---- M64.10: a graph target's chart — the named one, else the selected one -------------------------------
@@ -4584,8 +4592,8 @@ public final class MainFrame extends JFrame {
             spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption());
             if (prepared.containsKey(r.target().name()))
                 javaSpotlightBindings.put(r.target().name(), prepared.get(r.target().name()));
-            if (r.target().name().startsWith("source:design") && session().processor().designSession.document() != null)
-                designSpotlightRevisions.put(r.target().name(), session().processor().designSession.document().revision());
+            if (r.target().name().startsWith("source:design") && session().processor().designSession.revision() != null)
+                designSpotlightRevisions.put(r.target().name(), session().processor().designSession.revision());
         }
         // keep-clear is measured in relightSpotlight alone: litEcho below relights synchronously, before any paint
         SwingUtilities.invokeLater(this::relightSpotlight);     // once the layout the reveal queued has run
@@ -4610,10 +4618,10 @@ public final class MainFrame extends JFrame {
             one.put("n", l.n());
             one.put("target", l.target());
             if (l.caption() != null) one.put("caption", l.caption());
-            if (l.target().startsWith("source:design") && session().processor().designSession.document() != null) {
-                var doc = session().processor().designSession.document();
-                one.put("file", doc.file()); one.put("revision", doc.revision());
-                one.put("captionRevision", designSpotlightRevisions.getOrDefault(l.target(), doc.revision()));
+            if (l.target().startsWith("source:design") && session().processor().designSession.revision() != null) {
+                var design = session().processor().designSession;
+                one.put("file", design.path()); one.put("revision", design.revision());
+                one.put("captionRevision", designSpotlightRevisions.getOrDefault(l.target(), design.revision()));
                 one.put("relationship", "unverified");
                 // M80: a design line range echoes its bounds (line/toLine) and, like a Java range, whether the
                 // viewport clipped it — unlike a single design line, which is all-or-nothing and never partial
@@ -4623,7 +4631,7 @@ public final class MainFrame extends JFrame {
                     one.put("line", dt.lineFrom());
                     if (dt.lineFrom() != dt.lineTo()) {
                         one.put("toLine", dt.lineTo());
-                        sourcePanel.designBounds(doc.file(), dt.lineFrom(), dt.lineTo())
+                        sourcePanel.designBounds(design.path(), dt.lineFrom(), dt.lineTo())
                                 .ifPresent(band -> one.put("partial", band.partial()));
                     }
                 }
@@ -5138,7 +5146,11 @@ public final class MainFrame extends JFrame {
         // is seen wherever the assistant is — docked behind another tab, or popped out behind this window
         buildProposalCue();
         JPanel workspaceArea = new JPanel(new BorderLayout());
-        workspaceArea.add(proposalCue, BorderLayout.NORTH);
+        JPanel workspaceNotices = new JPanel();
+        workspaceNotices.setLayout(new javax.swing.BoxLayout(workspaceNotices, javax.swing.BoxLayout.Y_AXIS));
+        workspaceNotices.add(proposalCue);
+        workspaceNotices.add(projectOutputsPanel);
+        workspaceArea.add(workspaceNotices, BorderLayout.NORTH);
         workspaceArea.add(workspaceCards, BorderLayout.CENTER);
         add(workspaceArea, BorderLayout.CENTER);
 
@@ -5270,6 +5282,7 @@ public final class MainFrame extends JFrame {
             // disposes it with the analyser: found on CI, where a disposed analyser left its assistant window showing
             @Override public void windowClosed(java.awt.event.WindowEvent e) {
                 bundleCopies.close();
+                if (projectOutputsTimer != null) projectOutputsTimer.stop();
                 if (assistantWindow != null) assistantWindow.dispose();
             }
             @Override public void windowOpened(java.awt.event.WindowEvent e) {
@@ -5387,6 +5400,13 @@ public final class MainFrame extends JFrame {
             @Override public Path sampleProjectRoot() { return sampleProjectRootNow(); }
             @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports() {
                 return hostedReportState;
+            }
+            @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OutputScope outputs() {
+                return onEdtOr(() -> {
+                    var state = session().snapshot().projectOutputs();
+                    return state.watching() ? new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OutputScope(
+                            state.watch(), state.projectGeneration()) : null;
+                }, null);
             }
             @Override public boolean activityCurrent(long generation, long ticket) {
                 var s = session == null ? null : session.snapshot().localAgent();
@@ -6682,10 +6702,12 @@ public final class MainFrame extends JFrame {
         Path path = Path.of(location);
         try { bundleCopies.hold(path); }
         catch (java.io.IOException unavailable) {
+            reportOutputOpenFailure(request);
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(
                     opId, location, unavailable.getMessage());
         }
         if (format == null && !Files.isReadable(path)) {
+            reportOutputOpenFailure(request);
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, "cannot read log '" + location + "'");
         }
         loadFile(path, format, request, opId);
@@ -6693,10 +6715,19 @@ public final class MainFrame extends JFrame {
     }
 
     /** A load did not land: tell the processor, then whoever asked. */
+    private void reportOutputOpenFailure(OpenRequest request) {
+        var output = request.outputOrigin();
+        if (output != null && output.offer() != 0)
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved(
+                    0, output.watch(), output.offer(), false, "OPEN_FAILED"));
+    }
+
+    /** A load did not land: tell the processor, then whoever asked. */
     private void onLoadFailed(long opId, String location, OpenRequest request, Throwable err) {
         sessionInteractive = !request.suppressDialogs();          // review B1: this operation's audience
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, rootMessage(err)));
+        reportOutputOpenFailure(request);
         boolean superseded = !driver.processor().operationGate.accepted();
         if (driver.processor().operationGate.inFlightWhat() == null) setBusy(false);
         if (superseded) {
@@ -6984,12 +7015,32 @@ public final class MainFrame extends JFrame {
         var previous = ActionExecutor.assistantOrigin();
         ActionExecutor.bindAssistantOrigin(request.assistantOrigin());
         try {
+            var output = request.outputOrigin();
+            if (output != null && output.offer() != 0 && (!session().processor().projectOutputs.permitsCompletion(
+                    output.watch(), output.offer(), output.projectGeneration()) || !outputStillMatches(output.file()))) {
+                loaded.close();
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId,
+                        location, "the project output offer was superseded or its file changed"));
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved(
+                        0, output.watch(), output.offer(), false, "SUPERSEDED"));
+                return;
+            }
             applyLoaded(loaded, location, request, opId);
+            if (output != null) {
+                boolean applied = store == loaded;
+                if (output.offer() != 0) session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved(
+                        0, output.watch(), output.offer(), applied, applied ? null : "SUPERSEDED"));
+                else if (applied && outputStillMatches(output.file()) && !loaded.readIdentities().isEmpty()
+                        && loaded.readIdentities().stream().allMatch(i -> i.sha256() != null && i.problem() == null))
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedProjectOutputOpened(
+                            output.watch(), output.projectGeneration(), output.generation(), output.ticket(), output.file()));
+            }
             if (request.assistantOrigin() != null && store == loaded) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplied(
                         opId, request.assistantOrigin()));
             }
         } catch (RuntimeException failure) {
+            reportOutputOpenFailure(request);
             if (request.assistantOrigin() != null) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplyFailed(
                         opId, request.assistantOrigin()));
@@ -7539,6 +7590,7 @@ public final class MainFrame extends JFrame {
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
         renderRecordsView(next);                 // what the Records view shows and hides, as recordsView measured it
         renderAssistant(next);                   // OA-1: the assistant, as assistantLoop decided it
+        projectOutputsPanel.render(next.projectOutputs());
         releaseUnusedBundleCopies(next);
         renderBundleProvenance(next);            // #76: whether this session is received evidence, and which bundle
     }
@@ -8998,6 +9050,17 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects effect) throws Exception {
         long opId = effect.opId();
         return switch (effect) {
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ObserveProjectOutputsEffect e -> observeProjectOutputs(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.WatchProjectOutputsEffect e -> watchProjectOutputs(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StopProjectOutputsWatchEffect e -> {
+                if (projectOutputsTimerWatch == e.watch() && projectOutputsTimer != null) projectOutputsTimer.stop();
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsEffectStarted(e.opId(), e.watch(), "stop");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PublishProjectOutputChangedEffect e ->
+                    new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputChanged(e.watch(), e.projectGeneration(), e.change(), e.file());
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferProjectOutputEffect e ->
+                    new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsEffectStarted(e.opId(), e.watch(), "offer");
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenProjectOutputEffect e -> openProjectOutput(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DiscoverDesignEffect e -> {
                 var files = designFiles();
                 Background.run(() -> telamin.fluxtion.audit.analyser.analyser.design.DesignDiscovery.scan(files),
@@ -9005,6 +9068,10 @@ public final class MainFrame extends JFrame {
                         error -> { if (isDisplayable()) session.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.DiscoveryCompleted(
                                 telamin.fluxtion.audit.analyser.analyser.design.DesignDiscovery.unavailable(), e.generation())); });
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(opId, "discoverDesign");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PresentDesignRefreshEffect e -> {
+                refreshDesignView(e.previousRevision());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(opId, "presentDesignRefresh");
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PresentDesignDiscoveryEffect e -> {
                 SwingUtilities.invokeLater(() -> {
@@ -9373,15 +9440,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReviewStarterProjectEffect e -> reviewStarterProject(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterProjectEffect e -> openStarterProject(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterDesignEffect e -> openStarterDesign(e);
-            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.WatchStarterGraphmlEffect e -> watchStarterGraphml(e);
-            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferStarterGraphEffect e -> offerStarterGraph(e);
-            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterGraphEffect e -> {
-                String path = factRefs.get(e.pathRef());
-                if (path != null) openGraphml(path);
-                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(opId, e.request(), "openGraph");
-            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CancelStarterWorkEffect e -> {
-                if (starterWatch != null) starterWatch.stop();
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCancelled(opId, e.request());
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ArmStarterDraftEffect e -> armStarterDraft(e);
@@ -10054,7 +10113,7 @@ public final class MainFrame extends JFrame {
                 if (slice != null) echo.put("text", slice.echo());
                 if (view.bean() != null) {
                     echo.put("nodeId", view.bean()); echo.put("recordsRelationship", "unverified");
-                    String fqn = view.document().beans(view.bean()).getFirst().attr("class");
+                    String fqn = view.document() == null ? "" : view.document().beans(view.bean()).getFirst().attr("class");
                     if (fqn.isBlank()) {
                         fqn = sourceService.fqnForInstance(view.bean());
                         if (fqn == null && !sourceService.modelRead()) echo.put("classLookup", "processor source not yet read");
@@ -10287,7 +10346,8 @@ public final class MainFrame extends JFrame {
             if (path == null || path.isBlank()) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'log' is empty");
             }
-            OpenRequest request = OpenRequest.socket(provenance, ActionExecutor.assistantOrigin());
+            OpenRequest request = new OpenRequest(true, provenance, OpenRequest.Launch.NONE, ActionExecutor.assistantOrigin(),
+                    hostedOutputOrigin(path, telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.LOG));
             // M35.7: no modal on this path
             if (format != null && !format.isBlank()) {
                 java.nio.file.Path f = java.nio.file.Path.of(path);
@@ -10620,6 +10680,8 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'graphml' is empty");
             }
             Path file = Path.of(path);
+            OpenRequest.OutputOrigin outputOrigin = hostedOutputOrigin(path,
+                    telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.GRAPHML);
             if (!Files.isReadable(file)) {
                 // A relative path resolves against this process's working directory, never the project: say so,
                 // or a model reports that the (committed) GraphML "does not exist".
@@ -10635,10 +10697,21 @@ public final class MainFrame extends JFrame {
             catch (java.io.IOException unavailable) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(unavailable.getMessage());
             }
+            long openingsBefore = session().processor().openGraph.openings();
             topologyPanel.load(file);
-            if (!topologyPanel.hasTopology()) {
+            if (!topologyPanel.hasTopology() || session().processor().openGraph.openings() == openingsBefore) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "not a readable Fluxtion .graphml: " + path);
+            }
+            if (outputOrigin != null && topologyPanel.loadedGraphSha256() != null && outputStillMatches(outputOrigin.file())) {
+                String actual = sessionSnapshot().graphPath();
+                try {
+                    if (actual != null && outputOrigin.file().pathKey().equals(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(
+                            Path.of(actual).toRealPath().toString()))) session().post(
+                            new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedProjectOutputOpened(
+                                    outputOrigin.watch(), outputOrigin.projectGeneration(), outputOrigin.generation(),
+                                    outputOrigin.ticket(), outputOrigin.file()));
+                } catch (java.io.IOException | RuntimeException unknown) { /* no proven successful file, no receipt */ }
             }
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
@@ -11129,6 +11202,8 @@ public final class MainFrame extends JFrame {
             out.put("project", proj);
             if (session != null) proj.put("assistant", telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ActivityText
                     .context(sessionSnapshot().localAgent(), localAgentStore::text));
+            if (session != null && !sessionSnapshot().projectOutputs().pendingKinds().isEmpty())
+                proj.put("pendingOutputOffers", sessionSnapshot().projectOutputs().pendingKinds());
             // #73: what this machine has been sent. A recipient could not otherwise find out what bundles they
             // hold — there is no list verb, and an unpacked working copy appears only as a recent LOG path.
             // need.test: up to 25 stat calls, so do not run them for a projection that did not ask. The same
@@ -11917,6 +11992,7 @@ public final class MainFrame extends JFrame {
             });
             step(() -> { if (followTimer != null) followTimer.stop(); });
             step(() -> { if (designFollowTimer != null) designFollowTimer.stop(); });
+            step(() -> { if (projectOutputsTimer != null) projectOutputsTimer.stop(); });
             step(() -> { if (mcpIndicatorTimer != null) mcpIndicatorTimer.stop(); });
             step(() -> { if (localAgentAdapter != null) localAgentAdapter.shutdown(); });   // M74 §4.7
             step(() -> { if (actionServer != null) actionServer.stop(); });
@@ -13998,82 +14074,112 @@ public final class MainFrame extends JFrame {
         return null;
     }
 
-    /**
-     * WatchStarterGraphmlEffect: the project is watched for its first build's GraphML — what is there when the watch starts
-     * is the baseline, and a new or rewritten graph is reported. The watch ends with the project or when it reports.
-     */
-    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result watchStarterGraphml(
-            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.WatchStarterGraphmlEffect e) {
-        if (starterWatch != null) starterWatch.stop();
-        String rootText = factRefs.get(e.rootRef());
-        if (rootText == null) {
-            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "watch:none");
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result observeProjectOutputs(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ObserveProjectOutputsEffect e) {
+        Path root = projectRoot();
+        boolean matches = project.activeFile() != null && e.profilePath() != null
+                && project.activeFile().toAbsolutePath().normalize().equals(Path.of(e.profilePath()).toAbsolutePath().normalize());
+        long rootRef = 0;
+        java.util.List<Long> dirs = new java.util.ArrayList<>();
+        if (matches && root != null) {
+            try {
+                root = root.toRealPath(); rootRef = factRefs.put(root.toString());
+                for (var environment : config.environments) if (environment.logDir() != null) {
+                    Path dir = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(root, environment.logDir());
+                    if (dir != null) dirs.add(factRefs.put(dir.toString()));
+                }
+            } catch (java.io.IOException | RuntimeException unavailable) { rootRef = 0; }
         }
-        Path root = Path.of(rootText);
-        java.util.Map<Path, Long> baseline = new java.util.HashMap<>();
-        boolean[] first = {true};
-        boolean[] scanning = {false};
-        javax.swing.Timer[] timer = new javax.swing.Timer[1];
-        timer[0] = new javax.swing.Timer(starterWatchMillis, ev -> {
-            if (scanning[0]) return;
-            scanning[0] = true;
-            Background.run(() -> {
-                var found = telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
-                        java.util.List.of(root.toString()), java.util.Set.of(), -1, -1, root);
-                java.util.Map<Path, Long> now = new java.util.LinkedHashMap<>();
-                for (var c : found.candidates()) {
-                    try {
-                        now.put(c.file(), Files.getLastModifiedTime(c.file()).toMillis());
-                    } catch (java.io.IOException ignored) {
-                        // gone between the scan and the stat: not reported
-                    }
-                }
-                return now;
-            }, now -> {
-                scanning[0] = false;
-                if (!timer[0].isRunning()) return;
-                if (first[0]) {
-                    first[0] = false;
-                    baseline.putAll(now);
-                    return;
-                }
-                for (var f : now.entrySet()) {
-                    Long before = baseline.get(f.getKey());
-                    if (before == null || before < f.getValue()) {
-                        timer[0].stop();
-                        String path = f.getKey().toString();
-                        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphmlAppeared(
-                                e.request(), factRefs.put(path), telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(path)));
-                        return;
-                    }
-                }
-            }, err -> scanning[0] = false);
-        });
-        timer[0].setInitialDelay(0);
-        timer[0].start();
-        starterWatch = timer[0];
-        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "watch");
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsBasisObserved(
+                e.opId(), e.watch(), e.projectGeneration(), rootRef, !matches || projectRootIsAnalyserOwned(), dirs);
     }
 
-    /** OfferStarterGraphEffect: the person's answer to the after-build offer; Open is the person's own graph open. */
-    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result offerStarterGraph(
-            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferStarterGraphEffect e) {
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result watchProjectOutputs(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.WatchProjectOutputsEffect e) {
+        if (projectOutputsTimer != null) projectOutputsTimer.stop();
+        projectOutputsTimerWatch = e.watch(); projectOutputRefs.clear();
+        String rootText = factRefs.get(e.rootRef());
+        java.util.List<Path> dirs = e.logDirs().stream().map(factRefs::get).filter(java.util.Objects::nonNull).map(Path::of).toList();
+        if (rootText != null) {
+            Path root = Path.of(rootText);
+            boolean[] scanning = {false};
+            javax.swing.Timer timer = new javax.swing.Timer(e.pollMillis(), event -> {
+                if (!session().processor().projectOutputs.permitsWatch(e.watch(), e.projectGeneration())) {
+                    ((javax.swing.Timer) event.getSource()).stop(); return;
+                }
+                if (scanning[0]) return;
+                scanning[0] = true;
+                Path current = logLocalPath == null ? null : Path.of(logLocalPath);
+                Background.run(() -> telamin.fluxtion.audit.analyser.analyser.project.ProjectOutputScanner.scan(root, dirs, current), scan -> {
+                    scanning[0] = false;
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned(
+                            e.watch(), e.projectGeneration(), System.currentTimeMillis(),
+                            scan.files().stream().map(this::outputObservation).toList(), scan.complete()));
+                }, failure -> {
+                    scanning[0] = false;
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned(
+                            e.watch(), e.projectGeneration(), System.currentTimeMillis(), java.util.List.of(), false));
+                });
+            });
+            timer.setInitialDelay(0); timer.start(); projectOutputsTimer = timer;
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsEffectStarted(e.opId(), e.watch(), "watch");
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File outputObservation(
+            telamin.fluxtion.audit.analyser.analyser.project.ProjectOutputScanner.Observed observation) {
+        String path = observation.realPath().toString();
+        Long ref = projectOutputRefs.get(path);
+        if (ref == null || factRefs.get(ref) == null) {
+            ref = factRefs.put(path); projectOutputRefs.put(path, ref);
+            while (projectOutputRefs.size() > 256) projectOutputRefs.remove(projectOutputRefs.keySet().iterator().next());
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File(observation.kind(), ref,
+                telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(path),
+                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(path), observation.revision());
+    }
+
+    private boolean outputStillMatches(telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File expected) {
+        if (expected == null || projectRoot() == null) return false;
+        String path = factRefs.get(expected.pathRef());
+        var now = path == null ? null : telamin.fluxtion.audit.analyser.analyser.project.ProjectOutputScanner.observe(
+                Path.of(path), expected.kind(), projectRoot());
+        return now != null && expected.pathKey().equals(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(now.realPath().toString()))
+                && expected.revision().equals(now.revision());
+    }
+
+    private OpenRequest.OutputOrigin hostedOutputOrigin(String path,
+            telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind kind) {
+        var origin = ActionExecutor.hostedOpenOrigin();
+        if (origin == null || origin.ticket() == 0 || projectRoot() == null
+                || !session().processor().projectOutputs.permitsWatch(origin.watch(), origin.projectGeneration())) return null;
+        try {
+            var file = telamin.fluxtion.audit.analyser.analyser.project.ProjectOutputScanner.observe(Path.of(path), kind, projectRoot());
+            return file == null ? null : new OpenRequest.OutputOrigin(origin.watch(), origin.projectGeneration(), 0,
+                    origin.generation(), origin.ticket(), outputObservation(file));
+        } catch (RuntimeException unavailable) { return null; }
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openProjectOutput(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenProjectOutputEffect e) {
         SwingUtilities.invokeLater(() -> {
-            String path = factRefs.get(e.pathRef());
-            boolean open = path != null && starterGraphOffer.test(e.shown());
-            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphOfferAnswered(
-                    e.request(), open));
+            if (!session().processor().projectOutputs.permitsOpen(e.watch(), e.offer(), e.projectGeneration())
+                    || !outputStillMatches(e.file()) || e.graph() != null && !outputStillMatches(e.graph())) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved(
+                        e.opId(), e.watch(), e.offer(), false, "SUPERSEDED")); return;
+            }
+            String path = factRefs.get(e.file().pathRef());
+            if (e.file().kind() == telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.GRAPHML) {
+                var result = actionControl.openGraphml(path);
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved(
+                        e.opId(), e.watch(), e.offer(), result.ok(), result.ok() ? null : "OPEN_FAILED"));
+            } else {
+                var origin = new OpenRequest.OutputOrigin(e.watch(), e.projectGeneration(), e.offer(), 0, 0, e.file());
+                requestOpenLog(path, null, new OpenRequest(false, null, OpenRequest.Launch.NONE, null, origin));
+                if (e.graph() != null) actionControl.openGraphml(factRefs.get(e.graph().pathRef()));
+            }
         });
-        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "offerGraph");
-    }
-
-    private boolean askStarterGraph(String shown) {
-        Object[] options = {"Open it", "Not now"};
-        int answer = JOptionPane.showOptionDialog(this, UiText.inert("The project's first build wrote " + shown
-                        + ". Open it now? The analyser pairs it with the logs this project writes."),
-                "The first build's graph", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options,
-                options[1]);
-        return answer == 0;
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsEffectStarted(e.opId(), e.watch(), "open");
     }
 
     /**
@@ -14082,6 +14188,8 @@ public final class MainFrame extends JFrame {
      */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result armStarterDraft(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ArmStarterDraftEffect e) {
+        if (!session().processor().starterProject.permitsDesign(e.request()))
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "draft:stale");
         String root = factRefs.get(e.rootRef());
         var entry = starterEntry(e.entriesRef(), e.idDigest());
         if (root != null && entry != null) {

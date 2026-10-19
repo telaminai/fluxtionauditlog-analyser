@@ -52,7 +52,11 @@ class FactFieldsTest {
          * The open log's own names and counts — its event types, as {@code LogOpened}'s node ids are the log's — with any
          * words a person or an assistant typed named by a {@code FactRefs} reference, never carried.
          */
-        LOG_COUNTS
+        LOG_COUNTS,
+        /** Opaque numeric references only, never a path or the referenced words. */
+        REFERENCES,
+        /** M81 output metadata, with its exact nested record fields pinned below. */
+        OUTPUT_METADATA
     }
 
     static final Map<String, Holds> M74 = new LinkedHashMap<>();
@@ -153,6 +157,12 @@ class FactFieldsTest {
         // the Records view's counts (usability review 2026-10-18): numbers, flags, the log's event-type names, and the
         // search text by reference only (RecordsViewCounts.textRef) — an assistant may have typed it
         M74.put("RecordsViewMeasured.counts", Holds.LOG_COUNTS);
+        M74.put("ProjectOutputsBasisObserved.logDirRefs", Holds.REFERENCES);
+        M74.put("ProjectOutputsScanned.files", Holds.OUTPUT_METADATA);
+        M74.put("ProjectOutputChanged.file", Holds.OUTPUT_METADATA);
+        M74.put("HostedProjectOutputOpened.file", Holds.OUTPUT_METADATA);
+        M74.put("ProjectOutputOpenObserved.why", Holds.ANALYSER_WORDS);
+        M74.put("ProjectOutputsEffectStarted.what", Holds.VOCABULARY);
         // owner follow-up 2026-10-18: file names RELATIVE to the unpacked root (mvnw, regen.sh) of the archive the
         // person's pack named — never an absolute path, never a model's words
         M74.put("ExampleUnpacked.runnable", Holds.PERSON_PACK);
@@ -261,6 +271,11 @@ class FactFieldsTest {
                     out.add(key + ": held as STRUCTURE but its type " + c.getGenericType().getTypeName()
                             + " is not a SessionEvents record (or a List of them)");
                 }
+                if (h == Holds.REFERENCES && !c.getGenericType().getTypeName().equals("java.util.List<java.lang.Long>"))
+                    out.add(key + ": references must be numeric handles only");
+                if (h == Holds.OUTPUT_METADATA && !(t == ProjectOutputsState.File.class
+                        || c.getGenericType().getTypeName().equals("java.util.List<" + ProjectOutputsState.File.class.getName() + ">")))
+                    out.add(key + ": output metadata must have the pinned file shape");
             }
         }
         return out;
@@ -295,6 +310,15 @@ class FactFieldsTest {
         stale.addAll(PRE_M74);
         stale.removeAll(present);
         assertEquals(Set.of(), stale, "an inventory entry no longer exists — remove it");
+    }
+
+    @Test void outputMetadataCarriesOnlyHandlesDigestsAndRedactedNames() {
+        assertEquals(List.of("kind:Kind", "pathRef:long", "pathKey:String", "shown:String", "revision:Revision"),
+                java.util.Arrays.stream(ProjectOutputsState.File.class.getRecordComponents())
+                        .map(c -> c.getName() + ":" + c.getType().getSimpleName()).toList());
+        assertEquals(List.of("size:long", "modifiedNanos:long", "fileKeyDigest:String"),
+                java.util.Arrays.stream(ProjectOutputsState.Revision.class.getRecordComponents())
+                        .map(c -> c.getName() + ":" + c.getType().getSimpleName()).toList());
     }
 
     /** The shapes the rule exists for — each flagged; the fixed shape passes. */

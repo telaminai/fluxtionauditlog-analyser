@@ -94,12 +94,26 @@ public final class ActionDispatcher {
      */
     public ActionResult dispatchHosted(String jsonBody, long generation,
                                        telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) {
+        return dispatchHosted(jsonBody, generation, admission, null);
+    }
+
+    /** M81 D: actual-open correlation, never permission authority; only the server's existing preallow supplies it. */
+    public record HostedOpenOrigin(long generation, long ticket, long watch, long projectGeneration) { }
+    private static final ThreadLocal<HostedOpenOrigin> OPEN_ORIGIN = new ThreadLocal<>();
+    public static HostedOpenOrigin hostedOpenOrigin() { return OPEN_ORIGIN.get(); }
+
+    public ActionResult dispatchHosted(String jsonBody, long generation,
+                                       telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission,
+                                       HostedOpenOrigin openOrigin) {
         var previous = REPORT_ADMISSION.get();
+        var priorOpen = OPEN_ORIGIN.get();
+        if (openOrigin == null) OPEN_ORIGIN.remove(); else OPEN_ORIGIN.set(openOrigin);
         if (admission != null) REPORT_ADMISSION.set(admission); else REPORT_ADMISSION.remove();
         try {
             return dispatch(jsonBody, generation < 0 ? -1 : generation);
         } finally {
             if (previous == null) REPORT_ADMISSION.remove(); else REPORT_ADMISSION.set(previous);
+            if (priorOpen == null) OPEN_ORIGIN.remove(); else OPEN_ORIGIN.set(priorOpen);
         }
     }
 

@@ -106,7 +106,8 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ### M81 · Activity, recovery and project outputs ([spec](spec-assistant-activity-and-project-trust.md))
 - [M81.C/A] ☑ Recovery #173 and activity #176 merged to main 2026-10-19 (`5bb43b57`); each independently reviewed at its exact head.
-- [M81.B/D] ◧ B explicitly deferred, draft #184 closed unmerged; D proceeds without B. ▸ [disposition](../handoff/m81-b-deferral.md)
+- [M81.B] ◧ Explicitly deferred, draft #184 closed unmerged. ▸ [disposition](../handoff/m81-b-deferral.md)
+- [M81.D] ◐ General project-output watcher and person-accepted sync offers in implementation; separate safe branch, no B dependency. Not yet a reviewed or shipping feature.
 
 ### Onboard assistant and conversation journeys — released in 1.29.0; acceptance open ([spec](spec-onboard-assistant-journeys.md))
 - [OA-1] ◐ Session-owned live loop — the authorised live-provider run (OA-A2) is unverified.
@@ -145,7 +146,8 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ### M80 · Design definitions ([spec](spec-design-definitions.md))
 - [M80-1] ☑ Source-root discovery and additive context, #175 merged to main 2026-10-19 (`2ab4f1e6`), approved at `0cfd86a0`; ▸ [evidence](../handoff/handoff_m80_pr1_2026_10_19.md). Header discovery stays gated; OD-2–OD-5 accepted.
-- [M80-2/3] ☐ Bounded Java anchors/spotlight synonyms, then the multi-file chooser, as separate dependent PRs.
+- [M80-2] ◧ Bounded Java anchors, spotlight synonyms and exact approved API-delta pins implemented; ▸ [local evidence](../handoff/handoff_m80_pr2_2026_10_19.md). Independent review and exact-head CI pending.
+- [M80-3] ☐ Multi-file definition chooser, on top of M80-2; processor-header discovery remains gated.
 
 ### M77 · Set up AI — the first-run wizard ([spec](spec-ai-setup-wizard.md), r5; OD-77.1 superseded by M79 OD-79.5)
 - [M77] ☑ **Set up AI wizard, with M77-1…M77-5 — released in 1.36.0 (PR #168).**

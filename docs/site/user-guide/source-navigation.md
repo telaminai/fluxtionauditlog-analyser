@@ -42,11 +42,20 @@ not added to the history.
 
 Opening a project, or changing its source roots, scans those authorised roots in the background for Spring
 `FluxtionSpringConfig` XML and Java `FluxtionGraphBuilder` definitions. `context {sections: ["design"]}` lists their
-`kind`, `files` (path and role) and discovery `source`; `nodes` is initially empty. The Design pane shows a single
+`kind`, `files` (path and role) and discovery `source`; `nodes` describes the open design's anchors. The Design pane shows a single
 candidate directly as a read-only glance, without adopting it as the session design. With no candidates it says
 so and points to `source_root {add: [...]}` or `open {design: <path>}`. Several candidates can be opened by naming
-one with `source {file: <path>}`; the chooser follows separately. Java builders are highlighted in Design mode;
-their node index follows separately. Existing Spring bean indexing is unchanged.
+one with `source {file: <path>}`; the chooser follows separately. Java builders are highlighted in Design mode.
+Their sidebar indexes literal `addNode`/`addPublicNode` names inside `buildGraph`, at the line the call starts,
+even when its arguments wrap. Computed or absent names say **name not literal**; constructor locations say
+**discovered, no name**, not that the object was proven to enter the runtime graph. A trailing varargs string is
+not treated as a registration name. Existing Spring bean indexing is unchanged.
+
+`source {bean: "a"}` selects either an XML bean id or a uniquely named Java builder declaration.
+`spotlight {target: "source:design:node:a"}` and `source:design:bean:a` name the same spotlight family;
+both locate the declaration without asserting its relationship to the running processor. Non-literal and
+ambiguous names are refused rather than guessed. A line-based anchor retires on an edit; a named anchor can
+rebind only when that literal name still resolves uniquely in the refreshed design.
 
 No generated processor header is inspected. A project is not a read grant: discovery reads only authorised roots,
 does not follow directory links and rechecks file containment. It counts at most 10,000 regular files and 20,000

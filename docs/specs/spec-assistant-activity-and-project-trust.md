@@ -1,6 +1,6 @@
 # M81 — Live activity, per-project build-script trust, a restart that always works, and staying in sync
 
-**Status:** DRAFT r5, 2026-10-19; **Feature B explicitly deferred by the owner, not shipping** (see disposition below).
+**Status:** DRAFT r6, 2026-10-19; **Feature B explicitly deferred by the owner, not shipping** (see disposition below).
 The B sections remain the historical proposed design, not current permission authority. C/A are merged
 (#173, #176, 2026-10-19); D proceeds without B. (r2 added Feature C, from an investigation of the 1.36.0 release; r3 adds Feature
 D, approved by the owner the same day). Four owner-approved features (2026-10-19) for the onboard Claude Code
@@ -251,7 +251,10 @@ Feature D touches neither Feature B's code nor its machine-tier trust records.
 - **Offer, never act.** A banner, not a modal (an improvement on today's starter dialog, consistent with M74's
   "a model call never raises a modal", OD-74.13) with **Open** / **Not now**; accepting pairs the new log with the
   regenerated graph through the existing pairing path.
-- **Debounced, on a complete file only** — one offer per real change, never one per intermediate write.
+- **Debounced, on settled metadata only** — one offer per observed revision, never one per intermediate growing write.
+  Two complete bounded observations at least four seconds apart must agree on size, mtime and file-key identity.
+  This is not semantic completeness: a paused or malformed writer can look settled; existing open/read validation
+  remains authoritative (§6). A `streamEnd` name/claim never bypasses this confirming poll.
 - **Correlated with the assistant's own turns** — when the hosted assistant itself produced the change, the offer
   waits for the turn to end rather than interrupting it; in Full, an in-project `open` the assistant already made
   under the existing pre-allow (§4.2's `McpTools.openInProject`, unchanged, OD-74.16) suppresses the redundant
@@ -448,6 +451,30 @@ itself already called `open` for that exact path under the existing in-project p
 that file is suppressed outright: it was already opened, and showing "open it?" for a file already open would be
 wrong, not just redundant.
 
+**Implementation boundary (r6).** The node owns watch epochs, stability, per-path revisions, held offers, one-use
+answers and supersession. The adapter observes metadata and reports actual read/display completions; the banner
+only renders. Each accepted open carries its original watch/project lifetime and immutable file revision. A pending
+project transition blocks acceptance without queuing it; a failed switch retains the old project/watch and requires
+a fresh click. Deferred work cannot borrow a later operation's identity, even when that later operation fails.
+Completed hosted opens carry their original admitted generation/ticket, canonical-path digest and revision through
+HTTP → EDT → asynchronous log loading. Admission/request alone is not completion, external clients acquire no
+hosted origin, and an old completion cannot clear a newer revision. An exact successful receipt also covers a short
+turn completed between polls; no ambient current turn is substituted as its owner.
+
+The candidate four-second scanner is bounded to depth 12, 10,000 visited entries and 100 candidate files under the real project
+root; `.git`, `.claude` and `node_modules` are excluded. GraphML is discovered there; audit-log candidates (`.yaml`,
+`.yml`, `.log`, `.jsonl`) are confined to declared log directories or the currently open local log's directory,
+within that root. Escaping symlinks, empty files, unreadable/incomplete scans and exceeded visit/file bounds cannot
+confirm stability. Files outside this scope and metadata-preserving rewrites are not detected. This does not parse
+arbitrary project contents every four seconds or certify the producer's stream complete.
+The first complete observation establishes the baseline. Polling does not reconstruct a file created and removed
+between samples, or distinguish a pre-existing baseline file from one created before that initial observation.
+Correlation retains eight known turns and at most 800 successful-open receipts, pruning absent/changed revisions
+on complete scans; missing or expired proof permits an ordinary offer, never an invented successful open.
+**Owner scope decision (2026-10-19): D watches inside the real project root only.** This includes declared/current
+local-log directories only when they are inside that root. Outside-root configured/current log folders are deferred
+to a later, explicit opt-in design; they are not silently watched by this feature.
+
 ---
 
 ## 4. The rule-9 node, fact and effect names
@@ -524,18 +551,19 @@ facts they already receive:
 
 ### 4.4 Feature D
 
-| Kind | Name | Carries | Home |
+| Effect/fact | Names | Carries | Home |
 |---|---|---|---|
-| Effect (new, replaces `WatchStarterGraphmlEffect`) | `SessionEffects.WatchProjectOutputsEffect` | `opId, projectGeneration, rootRef, java.util.List<String> declaredLogPathRefs` | Requested by the new node, on any project opening (never for the sample root or a bundle working copy — §2.8); the performer generalises `MainFrame.watchStarterGraphml`'s existing poll-and-diff loop (`GraphmlDiscovery.scan` + a `javax.swing.Timer`) to also poll the declared log paths and the current log's folder, and adds the stability check `§3.5`/`§6` needs (two consecutive polls, same size and mtime, before reporting) |
-| Fact (new, replaces `StarterGraphmlAppeared`) | `SessionEvents.ProjectOutputChanged` | `projectGeneration, OutputKind kind (GRAPHML \| LOG), long pathRef, String shown, long atMillis, boolean duringAssistantTurn` | Adapter → the new node, raised only once a change clears the stability check (for `LOG`, immediately if the log's own `streamEnd` claims complete, else after the same stability window) |
-| Node (new) | `ProjectOutputs` | Owns: the pending-offer state per kind, whether it is held for an open turn, and which paths the hosted assistant already opened this turn (read from `localAgentPermission`'s admitted-call facts, never duplicating that decision) | `session/node/ProjectOutputs.java`, a child of the session like `OnboardingProposal`/`LocalAgentPermission` |
-| Effect (new) | `SessionEffects.OfferProjectOutputEffect` | `opId, OutputKind kind, long pathRef, String shown` | Requested once the node decides to show a banner (never mid-turn, §3.5); the performer renders the M78-style conditional banner, not a modal — retiring `MainFrame.askStarterGraph`'s `JOptionPane` |
-| Fact (new) | `SessionEvents.ProjectOutputOfferAnswered` | `opId, boolean open` | The person's **Open**/**Not now** press → the node, which requests the existing `open {log, graphml}` pairing path on **Open** |
-| `StarterProject` (changed) | consumes `ProjectOutputChanged` for its own first-build offer instead of requesting its own, now-retired watch | — | — |
+| Observe basis | `ObserveProjectOutputsEffect` / `ProjectOutputsBasisObserved` | watch epoch, project generation, root/log-directory numeric references, analyser-owned observation | Node requests; frame observes the accepted profile's real project root. |
+| Poll | `WatchProjectOutputsEffect` / `ProjectOutputsScanned` | epoch/generation, bounded immutable file metadata, observation clock, scan-complete flag | Frame schedules 4 s raw observations; the node owns the two-sample stability decision. |
+| Stable change | `PublishProjectOutputChangedEffect` / `ProjectOutputChanged` | epoch/generation, one-use change id, canonical-path reference/digest, redacted name, kind, metadata revision | Node decides; adapter returns the fact. `StarterProject` consumes its own first-build graph cue, never starts a second watcher. |
+| Offer | `OfferProjectOutputEffect` / `ProjectOutputsState` | epoch, one-use offer ids, named log/graph revisions | Node publishes immutable unanswered offers; `ProjectOutputsPanel` renders banners, never a modal or automatic open. |
+| Person acceptance | `ProjectOutputOfferAnswered` / `OpenProjectOutputEffect` / `ProjectOutputOpenObserved` | captured epoch/id, explicit choice, original project lifetime and immutable file/paired-graph revisions, actual outcome | Node consumes the current one-use answer; deferred adapter rechecks its revocable node permission then uses existing local open/pairing. |
+| Hosted completion | `HostedProjectOutputOpened` | original admitted generation/ticket, watch/project lifetime, canonical file identity/revision | Only actual successful application reports it. Node suppresses an exact already-opened revision, never admission alone. |
+| Stop | `StopProjectOutputsWatchEffect` | epoch | Node ends its lifetime; an old stop/completion cannot affect a newer watch. |
 
-Both new facts carry no words beyond a store reference (`pathRef`) and the already-redacted `shown` string the
-existing `GraphmlDiscovery`/`FactWords.shown` pattern produces (§4.1 of M74) — unchanged discipline, nothing new to
-justify here.
+The retired starter watcher, modal and their effects/dispatch handlers are removed. Legacy starter fact DTOs remain
+only for historical offline capture compatibility and have no live handler. Facts carry numeric references, digests,
+fixed vocabulary and `FactWords.shown` names; the fact inventory pins this metadata shape.
 
 ---
 
@@ -616,8 +644,8 @@ narrow the full posture; it can only say so."*
 **Feature C and D carry no new privilege, so no abuse-case table.** C only changes what happens on a phase the
 analyser itself already reached (never a new way to reach it) and what a note says; D only ever offers, and an
 accepted offer runs through the existing `open` path with its existing checks (M74 §5.6, M34's pairing) unchanged —
-the watcher adds a fact, never a capability. D's one disclosed limit: the watcher reads file **names and
-timestamps** only (`GraphmlDiscovery.scan`'s existing scope), never file contents, so it cannot itself tell a
+the watcher adds a fact, never a capability. D's disclosed limit: the bounded watcher reads file **names, sizes,
+timestamps and file-key metadata** only, never file contents, so it cannot itself tell a
 regenerated graph from one rewritten with unrelated or malformed content — that judgement is `open`'s own, as it
 already is today when the person opens a file by hand.
 
@@ -727,6 +755,7 @@ followed by a further 60 s of silence (§3.1, §4.1). | accepted (owner, 2026-10
 | **OD-81.11** | **Truthful modal approval presentation.** Preserve existing application-modal approvals. Do not imply that a composer Show action is clickable while blocked. Test truthful status and native interaction; supersedes the original A5 Show affordance, not the permission policy. | accepted (owner, 2026-10-19) |
 | **OD-81.12** | Both root-reset and no-background safeguards were authorised only for explicitly opted-in Full script-trusting sessions, with no running-session retrofit. A bounded per-call helper investigation was subsequently authorised, not a self-report acceptance claim or execution proxy. | historical authorisation; implementation withheld by OD-81.13 |
 | **OD-81.13** | **Defer B, close #184 unmerged and preserve its evidence/WIP.** The absolute-path-only alternative was assessed read-only before implementation and does not close documented wrapper, shell-prelude or auto-background gaps. Do not ship pre-approval. Any future broader build consent, explicitly including assistant-edited build inputs, requires a separate design/security review. D proceeds without B. | explicitly confirmed by owner, 2026-10-19; supersedes B delivery/OD-81.3–6 in this milestone |
+| **OD-81.14** | **D watches inside the real project root only.** Declared/current local-log folders outside that root are deferred to a later explicit opt-in; the current root-only implementation may proceed to its own PR. | accepted (owner, 2026-10-19) |
 
 ### 8.3 Open questions
 
@@ -773,4 +802,9 @@ followed by a further 60 s of silence (§3.1, §4.1). | accepted (owner, 2026-10
 - **2026-10-19, DRAFT r5**: recorded explicit B deferral after the bounded helper investigation and the owner's
   read-only absolute-path assessment; preserved the historical proposal and existing effect-risk disclosure;
   recorded the separate-review boundary for any future broader consent. D proceeds without unsafe B ancestry.
+
+- **2026-10-19, DRAFT r6**: D implementation clarifies metadata stability versus semantic completeness, bounded
+  observation scope, node-owned lifetime/supersession, actual completed hosted-open correlation and the general
+  watcher's starter migration. Records owner-approved root-only scope (OD-81.14), with outside-root log folders
+  deferred to a later explicit opt-in. No `streamEnd` shortcut or new open privilege is introduced.
 

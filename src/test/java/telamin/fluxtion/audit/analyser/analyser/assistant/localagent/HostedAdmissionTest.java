@@ -12,6 +12,18 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Holistic review B4 (2026-10-17): a hosted call that stops waiting tells the session so; one answered in time does not. */
 class HostedAdmissionTest {
 
+    @Test void scopedAdmissionReturnsTheNodesOriginalTicket() {
+        HostedAdmission[] h = new HostedAdmission[1];
+        h[0] = new HostedAdmission(f -> {
+            var request = (SessionEvents.LocalAgentCallAdmissionRequested) f;
+            h[0].answer(new telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AnswerHostedCallEffect(
+                    0, request.call(), null, 41));
+        }, 5000);
+        var answer = h[0].admitScoped(3, "open");
+        assertNull(answer.refusal());
+        assertEquals(41, answer.ticket(), "open causality is the admitted ticket, not an ambient ticket read later");
+    }
+
     /** ★ Witness: return TIMEOUT_TEXT without posting HostedCallAbandoned — the session hears nothing. */
     @Test
     @DisplayName("★ a call not answered in time is refused AND reported abandoned; nothing is reported for an answered one")

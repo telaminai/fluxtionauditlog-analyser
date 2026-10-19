@@ -17,10 +17,25 @@ public sealed interface SessionEffects {
     /** The operation this effect belongs to; the answering result must carry the same id. */
     long opId();
 
+    record ObserveProjectOutputsEffect(long opId, long watch, long projectGeneration, String profilePath)
+            implements SessionEffects { }
+    record WatchProjectOutputsEffect(long opId, long watch, long projectGeneration, long rootRef,
+                                    java.util.List<Long> logDirs, int pollMillis) implements SessionEffects {
+        public WatchProjectOutputsEffect { logDirs = java.util.List.copyOf(logDirs); }
+    }
+    record StopProjectOutputsWatchEffect(long opId, long watch) implements SessionEffects { }
+    record PublishProjectOutputChangedEffect(long opId, long watch, long projectGeneration, long change,
+                                            ProjectOutputsState.File file) implements SessionEffects { }
+    record OfferProjectOutputEffect(long opId, long watch, long offer) implements SessionEffects { }
+    record OpenProjectOutputEffect(long opId, long watch, long projectGeneration, long offer,
+                                    ProjectOutputsState.File file, ProjectOutputsState.File graph)
+            implements SessionEffects { }
     /** M80: observe authorised definition candidates off the UI thread; the node owns the ticket and selection. */
     record DiscoverDesignEffect(long opId, long generation) implements SessionEffects { }
     /** Present the node's discovered zero/one/many state. No session design is silently replaced. */
     record PresentDesignDiscoveryEffect(long opId, long generation, String file) implements SessionEffects { }
+    /** Render an accepted Follow revision; stale background completions never request this effect. */
+    record PresentDesignRefreshEffect(long opId, long generation, String previousRevision) implements SessionEffects { }
 
     /** Answer the final, EDT-confined report-write check. The adapter acts only on this verdict. */
     record AnswerHostedReportApplyEffect(long opId, String refusal) implements SessionEffects { }
@@ -651,7 +666,8 @@ public sealed interface SessionEffects {
     }
 
     /** Review M6: the node's verdict on hosted call {@code call}: {@code refusal} null admits it. */
-    record AnswerHostedCallEffect(long opId, long call, String refusal) implements SessionEffects {
+    record AnswerHostedCallEffect(long opId, long call, String refusal, long ticket) implements SessionEffects {
+        public AnswerHostedCallEffect(long opId, long call, String refusal) { this(opId, call, refusal, 0); }
     }
 
     // ---- M74 P3: permission prompts in the analyser (spec §5.7, §8.3) --------------------------------------------------
@@ -841,18 +857,7 @@ public sealed interface SessionEffects {
     record OpenStarterDesignEffect(long opId, long request, long rootRef) implements SessionEffects {
     }
 
-    /** Watch the project for its first build's GraphML; {@link SessionEvents.StarterGraphmlAppeared} when one appears. */
-    record WatchStarterGraphmlEffect(long opId, long request, long rootRef) implements SessionEffects {
-    }
-
-    /** Offer the first build's graph: open it, which pairs it with the project's logs; {@link SessionEvents.StarterGraphOfferAnswered}. */
-    record OfferStarterGraphEffect(long opId, long request, long pathRef, String shown) implements SessionEffects {
-    }
-
-    /** The node accepted the still-owned graph offer. No dialog or deferred decision remains in the adapter. */
-    record OpenStarterGraphEffect(long opId, long request, long pathRef) implements SessionEffects { }
-
-    /** Stop the starter watch only; do not remove files or erase a person's draft. */
+    /** Cancel only this starter's outstanding work; do not remove files or erase a person's draft. */
     record CancelStarterWorkEffect(long opId, long request) implements SessionEffects { }
 
     /**

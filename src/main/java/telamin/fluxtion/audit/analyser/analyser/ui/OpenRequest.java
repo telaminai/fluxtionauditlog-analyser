@@ -31,7 +31,17 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
  *                         that had opened nothing was told it had opened a sibling run's log.
  */
 public record OpenRequest(boolean fromActionSocket, String provenance, Launch launch,
-                          telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin assistantOrigin) {
+                          telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin assistantOrigin,
+                          OutputOrigin outputOrigin) {
+
+    /** M81 D: actual-open causality, retained through the asynchronous reader; zero offer denotes hosted origin. */
+    public record OutputOrigin(long watch, long projectGeneration, long offer, long generation, long ticket,
+                               telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File file) { }
+
+    public OpenRequest(boolean fromActionSocket, String provenance, Launch launch,
+                       telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin assistantOrigin) {
+        this(fromActionSocket, provenance, launch, assistantOrigin, null);
+    }
 
     /** How a startup open differs from one somebody asked for in this session. */
     public enum Launch {

@@ -25,7 +25,7 @@ import java.util.List;
  * <p><b>Two ways in, ONE chain.</b> Claude's {@code propose {kind: starter}} (via {@code onboardingProposal}, which
  * pushes the accepted item here and hands over the person's Apply) and <i>Project ▸ New project from template…</i>
  * reach the same steps: defaults → (the folder) → download → skills → discovery → ONE combined review → the open →
- * the Spring design → a GraphML watch → (a proposal's) pointer-only draft for Claude Code, or (the menu's) the starter's
+ * the Spring design → the general project-output watch → (a proposal's) pointer-only draft for Claude Code, or (the menu's) the starter's
  * own commands to copy. Nothing is downloaded before the person's Apply, and nothing is ever built or run.
  */
 public class StarterProject implements EventLogSource {
@@ -67,9 +67,13 @@ public class StarterProject implements EventLogSource {
     private String offerDigest;
     private long offerRef;
     private boolean graphWatch;
-    private long offeredGraphRef;
     private long ownProjectOp;
     private OperationGate gate;
+    private ActiveProject activeProject;
+    private long ownProjectGeneration;
+
+    public ActiveProject getActiveProject() { return activeProject; }
+    public void setActiveProject(ActiveProject activeProject) { this.activeProject = activeProject; }
 
     public OperationGate getGate() { return gate; }
     public void setGate(OperationGate gate) { this.gate = gate; }
@@ -433,7 +437,6 @@ public class StarterProject implements EventLogSource {
         auditLog.info("starter", "OPEN").info("origin", origin);
         // the analyser now shows the state the project starts in: its design at once, its graph when a build writes one
         effects.request(new SessionEffects.OpenStarterDesignEffect(0L, request, rootRef));
-        effects.request(new SessionEffects.WatchStarterGraphmlEffect(0L, request, rootRef));
         if ("PROPOSAL".equals(origin)) {
             effects.request(new SessionEffects.ArmStarterDraftEffect(0L, request, rootRef, entriesRef, idDigest));
         } else {
@@ -452,33 +455,26 @@ public class StarterProject implements EventLogSource {
         return changed();
     }
 
-    @OnEventHandler
-    public boolean onGraphmlAppeared(SessionEvents.StarterGraphmlAppeared e) {
-        if (e.request() != request || !graphWatch) {
-            auditLog.info("staleFact", "StarterGraphmlAppeared").info("request", e.request());
-            return false;
-        }
-        graphWatch = false;
-        offeredGraphRef = e.pathRef();
-        auditLog.info("starterGraph", "APPEARED");
-        effects.request(new SessionEffects.OfferStarterGraphEffect(0L, request, e.pathRef(), e.shown()));
-        return changed();
-    }
-
-    @OnEventHandler
-    public boolean onGraphOfferAnswered(SessionEvents.StarterGraphOfferAnswered e) {
-        if (stale(e.request(), "OPEN", "StarterGraphOfferAnswered") || offeredGraphRef == 0) return false;
-        auditLog.info("starterGraphOffer", e.open()).info("request", e.request());
-        if (e.open()) effects.request(new SessionEffects.OpenStarterGraphEffect(0L, request, offeredGraphRef));
-        offeredGraphRef = 0;
-        return changed();
-    }
-
     /** Owner decision, integration review: project switches cancel later opens/drafts, never downloaded files. */
     @OnEventHandler
     public boolean onProfileApplied(SessionEvents.ProfileApplied e) {
-        if (!gate.accepted() || ownsProjectOpen(e.opId(), request)) return false;
+        if (!gate.accepted()) return false;
+        if (ownsProjectOpen(e.opId(), request)) {
+            ownProjectGeneration = activeProject == null ? 0 : activeProject.generation();
+            return false;
+        }
         return cancelForProject(e.opId());
+    }
+
+    /** M81 D: the first build uses the general project's stable-change fact, never its own watcher or modal. */
+    @OnEventHandler
+    public boolean onProjectOutputChanged(SessionEvents.ProjectOutputChanged e) {
+        if (!"OPEN".equals(phase) || !graphWatch || e.projectGeneration() != ownProjectGeneration
+                || e.file().kind() != telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.GRAPHML) return false;
+        graphWatch = false;
+        note = "The first build's graph is offered with this project's other outputs";
+        auditLog.info("starterGraph", "GENERAL_OUTPUT_OFFER");
+        return changed();
     }
 
     @OnEventHandler
@@ -489,7 +485,6 @@ public class StarterProject implements EventLogSource {
     private boolean cancelForProject(long opId) {
         if (!busy() && !"OPEN".equals(phase)) return false;
         graphWatch = false;
-        offeredGraphRef = 0;
         ownProjectOp = 0;
         end("CANCELLED", "The project changed: later starter opens and drafts were cancelled; downloaded files are kept");
         effects.request(new SessionEffects.CancelStarterWorkEffect(opId, request));
@@ -530,7 +525,6 @@ public class StarterProject implements EventLogSource {
         offerDigest = null;
         offerRef = 0;
         graphWatch = false;
-        offeredGraphRef = 0;
         ownProjectOp = 0;
         note = "";
     }

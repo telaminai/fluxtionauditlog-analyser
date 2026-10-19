@@ -17,6 +17,9 @@ import java.util.function.LongFunction;
  */
 public final class HostedCredentials {
 
+    /** The original admitted ticket, transport evidence only; a default/unknown ticket cannot suppress an offer. */
+    public record Admission(String refusal, long ticket) { }
+
     /** Decides nothing: maps a presented credential to its generation and asks the session whether that one is admitted. */
     public interface Gate {
         /** The generation {@code credential} was minted for while it is live, or -1. */
@@ -33,6 +36,7 @@ public final class HostedCredentials {
         default String admit(long generation, String verb) {
             return admit(generation);
         }
+        default Admission admitScoped(long generation, String verb) { return new Admission(admit(generation, verb), 0); }
 
         /**
          * M74 P3 (OD-74.17): a hosted DESTRUCTIVE call — admitted only by consuming the person's single-use grant for this
@@ -57,6 +61,7 @@ public final class HostedCredentials {
     /** What the session answers for the hosted bridge — implemented by the session's correlator (HostedAdmission). */
     public interface Decider {
         String admit(long generation, String verb);
+        default Admission admitScoped(long generation, String verb) { return new Admission(admit(generation, verb), 0); }
 
         String present(long generation, String verb, String inputDigest, String toolUseIdDigest);
 
@@ -105,6 +110,7 @@ public final class HostedCredentials {
             @Override public String admit(long generation, String verb) {
                 return decider.admit(generation, verb);
             }
+            @Override public Admission admitScoped(long generation, String verb) { return decider.admitScoped(generation, verb); }
 
             @Override public String present(long generation, String verb, String inputDigest, String toolUseIdDigest) {
                 return decider.present(generation, verb, inputDigest, toolUseIdDigest);
