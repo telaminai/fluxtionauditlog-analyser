@@ -89,7 +89,6 @@ CHANGELOG is right.
 - An approval no longer times out unseen: its window is brought to the front.
 - A proposal waiting for review is always visible, even with the assistant behind another tab.
 - Full Claude Code's report permission ends with the project, the destination or your own edit of the report.
-- A very large `source {text}` window returns the capped lines with a notice instead of an empty success.
 - The Event types checklist and the Records table always keep at least three rows each.
 
 ## Security
