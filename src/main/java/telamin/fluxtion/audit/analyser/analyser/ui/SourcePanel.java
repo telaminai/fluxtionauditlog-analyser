@@ -921,6 +921,8 @@ public final class SourcePanel extends JPanel {
 
     public JComponent designComponent() { return designPane; }
     public void revealDesignLine(int line) { designPane.revealLine(line); }
+    /** M80 PR1 review (Codex F1): reveal a design line RANGE by its whole band, not just its first line. */
+    public void revealDesignLine(int from, int to) { designPane.revealLine(from, to); }
     public Optional<Rectangle> designBounds(String file, Integer line) {
         if (mode != Mode.DESIGN || !Objects.equals(designPane.file(), file)) return Optional.empty();
         return line == null ? Optional.of(designPane.getVisibleRect()) : designPane.lineBounds(line);

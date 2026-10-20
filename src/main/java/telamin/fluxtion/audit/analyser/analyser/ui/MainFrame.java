@@ -4056,7 +4056,10 @@ public final class MainFrame extends JFrame {
                                 : telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(state.builder(), line, name), designNote(), false);
                         selectSideTab("source");
                         validate();
-                        sourcePanel.revealDesignLine(line);
+                        // Codex review F1: a DESIGN_LINE range reveals its WHOLE band, not just its first line.
+                        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && t.lineFrom() != t.lineTo())
+                            sourcePanel.revealDesignLine(line, t.lineTo());
+                        else sourcePanel.revealDesignLine(line);
                     }
                 }
                 case PROJECT, PROJECT_ROW -> {

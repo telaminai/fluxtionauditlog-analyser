@@ -169,6 +169,109 @@ class DesignSpotlightFrameTest {
         }
     }
 
+    /**
+     * Independent review (Codex, PR #188 F1, P2 VERIFIED): a range reveal must bring the WHOLE band into view,
+     * not just its first line — the committed tests all started near line 2, so they never exercised a scroll.
+     * Witness: red before the fix (reveal only showed line 70 at the bottom of the viewport, so 71-74 stayed off
+     * screen and the reply said {@code partial:true}), green after.
+     */
+    @Test void fittingDesignRangeFarFromTopIsFullyVisibleOnFirstReveal(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- DEMO -->\n".repeat(200)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            var reply=f.ex.render("spotlight",Map.of("target","source:design:line:70-74"));
+            assertTrue(reply.ok(),reply.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)reply.payload().get("lit")).getFirst();
+            assertEquals(false,lit.get("partial"),
+                    "five short design lines fit; reveal must not leave four of them below the viewport");
+            onEdt(()->{
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                assertTrue(design.lineBounds(74).isPresent(),"the range's LAST line is actually on screen, not just its first");
+            });
+        }
+    }
+
+    /** As above, but on a Java-BUILDER design document — the same reveal path serves both document kinds. */
+    @Test void fittingDesignRangeFarFromTopIsFullyVisibleOnAJavaBuilderDocument(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("definitions"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path builder=Files.writeString(tmp.resolve("DEMOBuilder.java"),
+                "import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
+                +"class DEMOBuilder implements FluxtionGraphBuilder {\n void buildGraph(Config cfg) {\n"
+                +"  // filler\n".repeat(200)
+                +" cfg.addNode(new DEMO(), \"a\");\n }\n}\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();});
+            assertTrue(f.ex.render("open",Map.of("design",builder.toString())).ok());
+            var reply=f.ex.render("spotlight",Map.of("target","source:design:line:100-104"));
+            assertTrue(reply.ok(),reply.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)reply.payload().get("lit")).getFirst();
+            assertEquals(false,lit.get("partial"),"five short lines fit on a Java builder design too");
+            onEdt(()->{
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                assertTrue(design.lineBounds(104).isPresent(),"the range's LAST line is actually on screen, not just its first");
+            });
+        }
+    }
+
+    /** A range too tall to fit, starting below the view the panel opens on: clips, but must still show its
+     * START (not strand an un-scrolled first line, and not leave it below the viewport either). */
+    @Test void tallDesignRangeFarFromTopClipsAndShowsItsStart(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- DEMO -->\n".repeat(200)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            var reply=f.ex.render("spotlight",Map.of("target","source:design:line:70-150"));
+            assertTrue(reply.ok(),reply.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)reply.payload().get("lit")).getFirst();
+            assertEquals(true,lit.get("partial"),"a range taller than the viewport, starting below the initial view, reports partial");
+            onEdt(()->{
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                try {
+                    int line70Start=telamin.fluxtion.audit.analyser.analyser.design.DesignDocument.offset(design.text.getText(),70,1);
+                    var r=design.text.modelToView2D(line70Start).getBounds();
+                    var visible=design.text.getVisibleRect();
+                    assertTrue(visible.y<=r.y && r.y<visible.y+visible.height,
+                            "too tall to fit: the range's START (line 70) stays on screen — line70.y="+r.y+", visible="+visible);
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
+    /** As above, but on a Java-BUILDER design document. */
+    @Test void tallDesignRangeFarFromTopClipsAndShowsItsStartOnAJavaBuilderDocument(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("definitions"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path builder=Files.writeString(tmp.resolve("DEMOBuilder.java"),
+                "import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
+                +"class DEMOBuilder implements FluxtionGraphBuilder {\n void buildGraph(Config cfg) {\n"
+                +"  // filler\n".repeat(200)
+                +" cfg.addNode(new DEMO(), \"a\");\n }\n}\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();});
+            assertTrue(f.ex.render("open",Map.of("design",builder.toString())).ok());
+            var reply=f.ex.render("spotlight",Map.of("target","source:design:line:100-180"));
+            assertTrue(reply.ok(),reply.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)reply.payload().get("lit")).getFirst();
+            assertEquals(true,lit.get("partial"),"a tall range on a Java builder design, starting below the initial view, reports partial");
+            onEdt(()->{
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                try {
+                    int line100Start=telamin.fluxtion.audit.analyser.analyser.design.DesignDocument.offset(design.text.getText(),100,1);
+                    var r=design.text.modelToView2D(line100Start).getBounds();
+                    var visible=design.text.getVisibleRect();
+                    assertTrue(visible.y<=r.y && r.y<visible.y+visible.height,
+                            "too tall to fit: the range's START (line 100) stays on screen — line100.y="+r.y+", visible="+visible);
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
     private static String designGeometry(Frame f, int line) {
         SourcePanel source = (SourcePanel) field(f.frame, "sourcePanel");
         DesignSourcePanel design = (DesignSourcePanel) source.designComponent();

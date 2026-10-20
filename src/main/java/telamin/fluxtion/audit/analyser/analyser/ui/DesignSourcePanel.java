@@ -117,17 +117,41 @@ final class DesignSourcePanel extends JPanel {
     }
     void clear() { document=null; builder=null; file=null; text.setText(""); index.clear(); status.setText("No session design open."); }
     /** Settle this reveal now; a previous render must not scroll it away after the echo. */
-    void revealLine(int line) {
+    void revealLine(int line) { revealLine(line, line); }
+
+    /**
+     * M80 PR1 review (Codex F1): a range reveal must bring the WHOLE band into view, not just its first line —
+     * the same move {@link SourcePanel#revealJava} already makes for a Java range. {@code from == to} (a plain
+     * line, including every call before this fix existed) keeps the exact single-line scroll it always had.
+     */
+    void revealLine(int from, int to) {
         navigation++;
         validate();
-        scroll(line);
+        scroll(from, to);
     }
-    void scroll(int line) {
-        int off = DesignDocument.offset(text.getText(), line, 1);
-        text.setCaretPosition(off);
-        try { var r = text.modelToView2D(off); if (r != null) text.scrollRectToVisible(r.getBounds()); }
-        catch (javax.swing.text.BadLocationException ignored) { }
+    void scroll(int line) { scroll(line, line); }
+
+    void scroll(int from, int to) {
+        int startOffset = DesignDocument.offset(text.getText(), from, 1);
+        text.setCaretPosition(startOffset);
+        if (from == to) {
+            try { var r = text.modelToView2D(startOffset); if (r != null) text.scrollRectToVisible(r.getBounds()); }
+            catch (javax.swing.text.BadLocationException ignored) { }
+            return;
+        }
+        try {
+            Rectangle band = rawBand(from, to);
+            if (band == null) return;
+            Rectangle view = text.getVisibleRect();
+            if (!view.contains(band)) {
+                // taller than the viewport: show the START of the range (band.y); otherwise centre the whole band —
+                // the identical rule SourcePanel#revealJava already applies to a Java range.
+                int y = band.height > view.height ? band.y : Math.max(0, band.y - (view.height - band.height) / 2);
+                text.scrollRectToVisible(new Rectangle(view.x, y, view.width, view.height));
+            }
+        } catch (javax.swing.text.BadLocationException ignored) { }
     }
+
     Optional<Rectangle> lineBounds(int line) {
         if (!text.isShowing() || file == null || line < 1 || line > 1 + text.getText().chars().filter(c -> c == '\n').count()) return Optional.empty();
         try {
@@ -146,21 +170,29 @@ final class DesignSourcePanel extends JPanel {
 
     Optional<DesignBand> lineBounds(int from, int to) {
         if (!text.isShowing() || file == null) return Optional.empty();
-        String content = text.getText();
-        int totalLines = 1 + (int) content.chars().filter(c -> c == '\n').count();
-        if (from < 1 || to < from || to > totalLines) return Optional.empty();
         try {
-            int start = DesignDocument.offset(content, from, 1);
-            int end = to < totalLines ? DesignDocument.offset(content, to + 1, 1) - 1 : content.length();
-            end = Math.max(start, end);
-            var first = text.modelToView2D(start);
-            var last = text.modelToView2D(end);
-            if (first == null || last == null) return Optional.empty();
+            Rectangle band = rawBand(from, to);
+            if (band == null) return Optional.empty();
             Rectangle view = text.getVisibleRect();
-            Rectangle band = JavaLineGeometry.band(first, last, view);
             return JavaLineGeometry.visible(band, view).map(v -> new DesignBand(
                     SwingUtilities.convertRectangle(text, v.bounds(), this), v.partial()));
         } catch (javax.swing.text.BadLocationException e) { return Optional.empty(); }
+    }
+
+    /** The union of lines {@code from}..{@code to}'s rects, unclipped — null if {@code from}/{@code to} are out
+     * of range or layout cannot measure them yet. Shared by {@link #lineBounds(int, int)} (measuring) and
+     * {@link #scroll(int, int)} (revealing), so the two always agree on what band a range means. */
+    private Rectangle rawBand(int from, int to) throws javax.swing.text.BadLocationException {
+        String content = text.getText();
+        int totalLines = 1 + (int) content.chars().filter(c -> c == '\n').count();
+        if (from < 1 || to < from || to > totalLines) return null;
+        int start = DesignDocument.offset(content, from, 1);
+        int end = to < totalLines ? DesignDocument.offset(content, to + 1, 1) - 1 : content.length();
+        end = Math.max(start, end);
+        var first = text.modelToView2D(start);
+        var last = text.modelToView2D(end);
+        if (first == null || last == null) return null;
+        return JavaLineGeometry.band(first, last, text.getVisibleRect());
     }
     private String selectedBean() {
         if (builder != null) {

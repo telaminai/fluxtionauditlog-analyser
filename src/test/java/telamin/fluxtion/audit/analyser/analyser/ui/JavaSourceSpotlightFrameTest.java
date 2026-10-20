@@ -402,6 +402,32 @@ class JavaSourceSpotlightFrameTest {
         }
     }
 
+    /**
+     * Independent review (Codex, PR #188 F1): the committed range tests all started at line 2 — already inside
+     * the initial viewport — so none of them exercised a scroll. {@link SourcePanel#revealJava} already computes
+     * the WHOLE band and centres it when it fits (unlike the design path's original single-line-only reveal,
+     * fixed alongside this test); this confirms the Java path never had F1's bug, with a range far from the top.
+     */
+    @Test void fittingJavaLineRangeFarFromTopIsFullyVisibleOnFirstReveal(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());Path src=source(tmp);
+        try(var f=new Frame(tmp)) {
+            show(f,tmp.resolve("src"));
+            String RANGE="source:java:com.acme.Node:line:100-104";
+            var r=f.ex.render("spotlight",Map.of("target",RANGE));assertTrue(r.ok(),r.toMap().toString());
+            assertEquals(false,javaEcho(r).get("partial"),"five short lines far from the top still fully fit the viewport");
+            onEdt(()->{
+                var a=anchor(f,RANGE);var text=(JTextPane)field(a.component(),"text");
+                try {
+                    var lastLineEnd=text.getDocument().getDefaultRootElement().getElement(103).getEndOffset()-1; // line 104 (0-based 103)
+                    var r2=text.modelToView2D(lastLineEnd).getBounds();
+                    var visible=text.getVisibleRect();
+                    assertTrue(visible.y<=r2.y && r2.y<visible.y+visible.height,
+                            "the range's LAST line (104) is actually on screen, not just its first: "+r2+" / "+visible);
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
     /** M80 ★ — a range taller than the viewport clips to it, shows the START of the range, and reports partial,
      * exactly as a single tall line already did (wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial above). */
     @Test void tallJavaLineRangeClipsToViewportShowsItsStartAndReportsPartial(@TempDir Path tmp) throws Exception {
