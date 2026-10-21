@@ -852,16 +852,26 @@ public final class SourcePanel extends JPanel {
     }
 
     public void revealJava(JavaAnchor anchor, Integer line) {
+        revealJava(anchor, line, line);
+    }
+
+    /**
+     * M80: a line RANGE reveals by the same move as a single line — bring its WHOLE band (first line's top to
+     * last line's bottom) into view, centred when it fits; when it is taller than the viewport, that is exactly
+     * the {@code band.height > view.height} branch below, and it scrolls to {@code band.y} — the START of the
+     * range, unchanged math, now reached by a band that can span more than one line.
+     */
+    public void revealJava(JavaAnchor anchor, Integer fromLine, Integer toLine) {
         Pane pane = (Pane) anchor.component();
         pane.navigation++;
         java.awt.Window window = SwingUtilities.getWindowAncestor(this);
         if (window != null) window.validate();
         if (giveSplitPaneRoom(pane) && window != null) window.validate();
         pane.scroll.validate(); pane.text.validate();
-        int offset = line == null ? 0 : pane.text.getDocument().getDefaultRootElement().getElement(line - 1).getStartOffset();
+        int offset = fromLine == null ? 0 : pane.text.getDocument().getDefaultRootElement().getElement(fromLine - 1).getStartOffset();
         pane.text.setCaretPosition(Math.min(offset, pane.text.getDocument().getLength()));
         try {
-            Rectangle band = pane.logicalBand(line == null ? 1 : line);
+            Rectangle band = fromLine == null ? pane.logicalBand(1, 1) : pane.logicalBand(fromLine, toLine == null ? fromLine : toLine);
             Rectangle view = pane.scroll.getViewport().getViewRect();
             if (!view.contains(band)) {
                 int y = band.height > view.height ? band.y : Math.max(0, band.y - (view.height - band.height) / 2);
@@ -889,12 +899,21 @@ public final class SourcePanel extends JPanel {
     }
 
     public Optional<JavaBand> javaBounds(JavaAnchor anchor, Integer line) {
+        return javaBounds(anchor, line, line);
+    }
+
+    /**
+     * M80: as above, for a line RANGE — the band is the union of {@code fromLine}..{@code toLine}'s rects (unchanged
+     * for a single line, where both are equal or {@code toLine} is omitted). {@link JavaBand#partial} still means
+     * "clipped to the viewport", whether that clip took a single tall line or a tall range down to what is shown.
+     */
+    public Optional<JavaBand> javaBounds(JavaAnchor anchor, Integer fromLine, Integer toLine) {
         Pane pane = (Pane) anchor.component();
         if (!pane.isShowing() || pane.snapshot == null || !pane.snapshot.equals(anchor.document())) return Optional.empty();
         Rectangle viewport = pane.scroll.getViewport().getViewRect().intersection(pane.text.getVisibleRect());
         if (viewport.isEmpty()) return Optional.empty();
         try {
-            Rectangle band = line == null ? viewport : pane.logicalBand(line);
+            Rectangle band = fromLine == null ? viewport : pane.logicalBand(fromLine, toLine == null ? fromLine : toLine);
             return JavaLineGeometry.visible(band, viewport).map(visible -> new JavaBand(
                     SwingUtilities.convertRectangle(pane.text, visible.bounds(), this), visible.partial()));
         } catch (BadLocationException | IllegalArgumentException ex) { return Optional.empty(); }
@@ -902,9 +921,21 @@ public final class SourcePanel extends JPanel {
 
     public JComponent designComponent() { return designPane; }
     public void revealDesignLine(int line) { designPane.revealLine(line); }
+    /** M80 PR1 review (Codex F1): reveal a design line RANGE by its whole band, not just its first line. */
+    public void revealDesignLine(int from, int to) { designPane.revealLine(from, to); }
     public Optional<Rectangle> designBounds(String file, Integer line) {
         if (mode != Mode.DESIGN || !Objects.equals(designPane.file(), file)) return Optional.empty();
         return line == null ? Optional.of(designPane.getVisibleRect()) : designPane.lineBounds(line);
+    }
+
+    /**
+     * M80: a design line RANGE — unlike a single design line ({@link #designBounds(String, Integer)}, which
+     * refuses outright when not fully on screen), a range may show PARTLY: {@link DesignSourcePanel.DesignBand#partial}
+     * says so, the same contract {@link #javaBounds} already gives a Java range.
+     */
+    public Optional<DesignSourcePanel.DesignBand> designBounds(String file, int fromLine, int toLine) {
+        if (mode != Mode.DESIGN || !Objects.equals(designPane.file(), file)) return Optional.empty();
+        return designPane.lineBounds(fromLine, toLine);
     }
 
     /**
@@ -1061,11 +1092,17 @@ public final class SourcePanel extends JPanel {
         }
 
         Rectangle logicalBand(int line) throws BadLocationException {
+            return logicalBand(line, line);
+        }
+
+        /** M80: the union of lines {@code from}..{@code to} — first line's top to last line's bottom. */
+        Rectangle logicalBand(int from, int to) throws BadLocationException {
             var root = text.getDocument().getDefaultRootElement();
-            if (line < 1 || line > root.getElementCount()) throw new BadLocationException("line", line);
-            var element = root.getElement(line - 1);
-            int start = Math.min(element.getStartOffset(), text.getDocument().getLength());
-            int end = Math.max(start, Math.min(element.getEndOffset() - 1, text.getDocument().getLength()));
+            if (from < 1 || to < from || to > root.getElementCount()) throw new BadLocationException("line", from);
+            var firstElement = root.getElement(from - 1);
+            var lastElement = root.getElement(to - 1);
+            int start = Math.min(firstElement.getStartOffset(), text.getDocument().getLength());
+            int end = Math.max(start, Math.min(lastElement.getEndOffset() - 1, text.getDocument().getLength()));
             Rectangle2D first = text.modelToView2D(start), last = text.modelToView2D(end);
             if (first == null || last == null) throw new BadLocationException("no layout", start);
             Rectangle view = scroll.getViewport().getViewRect();

@@ -131,6 +131,55 @@ class M80DesignDiscoveryFrameTest {
         }
     }
 
+    /**
+     * M80 PR1 (line ranges) merged with M80 PR2 (the node synonym): both widen the SAME {@code DESIGN_BEAN}/
+     * {@code DESIGN_LINE} families, and both must work on the SAME Java builder document — the node synonym
+     * finding the call token's line, and a range spanning the whole multi-line call it lives in.
+     */
+    @Test void nodeSynonymAndLineRangeBothLightTheSameJavaBuilder(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "real display required");
+        Path root=Files.createDirectories(tmp.resolve("definitions"));
+        Path builder=Files.writeString(root.resolve("DEMOBuilder.java"),
+                "import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
+                +"class DEMOBuilder implements FluxtionGraphBuilder {\n void buildGraph(Config cfg) {\n"
+                +" cfg.addNode(\n  new DEMO(),\n  \"a\");\n cfg.addNode(new Other(), computedName);\n }\n}\n");
+        try(var f=new Frame(tmp)) {
+            onEdt(()->{
+                ((telamin.fluxtion.audit.analyser.analyser.config.AppConfig)field(f.frame,"config")).sourceRoots.add(root.toString());
+                f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();
+            });
+            assertTrue(f.ex.render("open",Map.of("design",builder.toString())).ok());
+            // the node synonym lights the declaration — the call token's line, same as bean:a already does
+            var node=f.ex.render("spotlight",Map.of("target","source:design:node:a"));
+            assertTrue(node.ok(),node.toMap().toString());
+            onEdt(()->{
+                var panel=(SourcePanel)field(f.frame,"sourcePanel");
+                assertEquals(4,panel.fileView().line(),"node:a lands at the call token, same as bean:a");
+                assertTrue(((DesignSourcePanel)panel.designComponent()).lineBounds(4).isPresent());
+            });
+            // the SAME Java builder document also accepts a line RANGE spanning the whole addNode(...) call (4-6)
+            String RANGE="source:design:line:4-6";
+            var range=f.ex.render("spotlight",Map.of("target",RANGE));
+            assertTrue(range.ok(),range.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)range.payload().get("lit")).getFirst();
+            assertEquals(RANGE,lit.get("target"),"the range is echoed back exactly");
+            assertEquals(4,lit.get("line"));assertEquals(6,lit.get("toLine"));
+            assertEquals(false,lit.get("partial"),"three short lines fit the design panel");
+            onEdt(()->{
+                var panel=(SourcePanel)field(f.frame,"sourcePanel");
+                var design=(DesignSourcePanel)panel.designComponent();
+                try {
+                    var docRoot=design.text.getDocument().getDefaultRootElement();
+                    var first=design.text.modelToView2D(docRoot.getElement(3).getStartOffset());   // line 4 (0-based 3)
+                    var last=design.text.modelToView2D(docRoot.getElement(5).getEndOffset()-1);    // line 6 (0-based 5)
+                    int expectedHeight=(int)Math.ceil(last.getMaxY())-(int)Math.floor(first.getY());
+                    assertEquals(expectedHeight,((SpotlightOverlay)field(f.frame,"spotlight")).lit().getFirst().bounds().height,
+                            "the range's cut-out spans the whole addNode(...) call: first line's top to last line's bottom");
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
     @Test void aStubFindsTheBuilderInTwoCallsWithoutRefusals(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "real display required");
         Path project=Files.createDirectories(tmp.resolve("DEMO"));

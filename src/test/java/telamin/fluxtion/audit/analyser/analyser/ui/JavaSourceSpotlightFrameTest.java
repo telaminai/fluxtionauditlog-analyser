@@ -173,6 +173,39 @@ class JavaSourceSpotlightFrameTest {
         }
     }
 
+    /** M80: a line RANGE goes through the same async preparation pipeline as a single line — the 'superseded'
+     * refusal, and no late resurrection, both still hold when the pending target is a range. */
+    @Test void aPendingRangePreparationIsSupersededByANewerRequestJustLikeASingleLine(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());Path root=Files.createDirectories(tmp.resolve("src/com/acme"));
+        Files.writeString(root.resolve("Ready.java"),"package com.acme; class Ready {}\n");
+        Path repo=Files.createDirectories(tmp.resolve("repo"));
+        String RANGE_TARGET="source:java:com.acme.Node:line:2-3";
+        try(var f=new Frame(tmp)) {
+            show(f,tmp.resolve("src"));
+            onEdt(()->service(f).configure(List.of(tmp.resolve("src").toString()),"com.acme.Node",List.of(repo.toString()),true));
+            Object archives=field(service(f),"maven");
+            CompletableFuture<ActionResult> pending;
+            synchronized(archives) {
+                pending=CompletableFuture.supplyAsync(()->f.ex.render("spotlight",Map.of("target",RANGE_TARGET)));
+                // The actual resolver's discovery lock, not a substitute reader/helper entrance.
+                long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(5);Thread reader=null;
+                while(System.nanoTime()<deadline && reader==null) {
+                    for(var e:Thread.getAllStackTraces().entrySet())
+                        if(e.getKey().getState()==Thread.State.BLOCKED && java.util.Arrays.stream(e.getValue()).anyMatch(st->st.getMethodName().equals("jarList"))) reader=e.getKey();
+                    if(reader==null) Thread.sleep(10);
+                }
+                assertNotNull(reader,"archive read must be reached for a range target too");
+                assertTrue(reader.getName().startsWith("analyser-bg-"),"archive read must be off EDT");
+                assertTrue(f.ex.render("spotlight",Map.of("target","source:java:com.acme.Ready")).ok(),"a newer request supersedes the pending range");
+                jar(repo.resolve("demo-sources.jar"),Map.of("com/acme/Node.java","package com.acme;\nclass Node {\n public int a;\n public int b;\n}\n"));
+            }
+            var result=pending.get(10,TimeUnit.SECONDS);
+            assertFalse(result.ok(),"superseded range read must refuse");
+            assertTrue(result.toMap().toString().contains("superseded"),result.toMap().toString());
+            onEdt(()->assertTrue(overlay(f).lit().stream().noneMatch(l->l.target().equals(RANGE_TARGET)),"no late resurrection of the range"));
+        }
+    }
+
     @Test void preparationDeadlineRefusesBeforeReadReturnsAndLateCompletionCannotLight(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path repo=Files.createDirectories(tmp.resolve("repo"));
@@ -340,6 +373,96 @@ class JavaSourceSpotlightFrameTest {
                 var viewport=SwingUtilities.convertRectangle(text,text.getVisibleRect(),overlay(f));
                 assertEquals(viewport,overlay(f).lit().getFirst().bounds(),"whole Java means viewport, not its label");
             });
+        }
+    }
+
+    /** M80 ★ — witness: red before the range grammar (the target was UNKNOWN), green after. */
+    @Test void javaLineRangeSpansFirstLineTopToLastLineBottomAndEchoesExactly(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());Path src=source(tmp);
+        try(var f=new Frame(tmp)) {
+            show(f,tmp.resolve("src"));
+            String RANGE="source:java:com.acme.Node:line:2-6";
+            var r=f.ex.render("spotlight",Map.of("target",RANGE));assertTrue(r.ok(),r.toMap().toString());
+            var echo=javaEcho(r);
+            assertEquals(RANGE,echo.get("target"),"the range is echoed back exactly");
+            assertEquals(2,echo.get("line"));assertEquals(6,echo.get("toLine"));
+            assertEquals(false,echo.get("partial"),"five short lines fit the default window");
+            onEdt(()->{
+                var a=anchor(f,RANGE);var text=(JTextPane)field(a.component(),"text");
+                var root=text.getDocument().getDefaultRootElement();
+                try {
+                    var first=text.modelToView2D(root.getElement(1).getStartOffset());        // line 2 (0-based index 1)
+                    var last=text.modelToView2D(root.getElement(5).getEndOffset()-1);          // line 6 (0-based index 5)
+                    int expectedTop=(int)Math.floor(first.getY());
+                    int expectedHeight=(int)Math.ceil(last.getMaxY())-expectedTop;
+                    assertEquals(expectedHeight,overlay(f).lit().getFirst().bounds().height,
+                            "the cut-out spans first line's top to last line's bottom");
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
+    /**
+     * Independent review (Codex, PR #188 F1): the committed range tests all started at line 2 — already inside
+     * the initial viewport — so none of them exercised a scroll. {@link SourcePanel#revealJava} already computes
+     * the WHOLE band and centres it when it fits (unlike the design path's original single-line-only reveal,
+     * fixed alongside this test); this confirms the Java path never had F1's bug, with a range far from the top.
+     */
+    @Test void fittingJavaLineRangeFarFromTopIsFullyVisibleOnFirstReveal(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());Path src=source(tmp);
+        try(var f=new Frame(tmp)) {
+            show(f,tmp.resolve("src"));
+            String RANGE="source:java:com.acme.Node:line:100-104";
+            var r=f.ex.render("spotlight",Map.of("target",RANGE));assertTrue(r.ok(),r.toMap().toString());
+            assertEquals(false,javaEcho(r).get("partial"),"five short lines far from the top still fully fit the viewport");
+            onEdt(()->{
+                var a=anchor(f,RANGE);var text=(JTextPane)field(a.component(),"text");
+                try {
+                    var lastLineEnd=text.getDocument().getDefaultRootElement().getElement(103).getEndOffset()-1; // line 104 (0-based 103)
+                    var r2=text.modelToView2D(lastLineEnd).getBounds();
+                    var visible=text.getVisibleRect();
+                    assertTrue(visible.y<=r2.y && r2.y<visible.y+visible.height,
+                            "the range's LAST line (104) is actually on screen, not just its first: "+r2+" / "+visible);
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
+    /** M80 ★ — a range taller than the viewport clips to it, shows the START of the range, and reports partial,
+     * exactly as a single tall line already did (wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial above). */
+    @Test void tallJavaLineRangeClipsToViewportShowsItsStartAndReportsPartial(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());Path src=source(tmp);
+        try(var f=new Frame(tmp)) {
+            show(f,tmp.resolve("src"));
+            String RANGE="source:java:com.acme.Node:line:2-150";
+            var r=f.ex.render("spotlight",Map.of("target",RANGE));assertTrue(r.ok(),r.toMap().toString());
+            assertEquals(true,javaEcho(r).get("partial"),"a range taller than the viewport reports partial");
+            onEdt(()->{
+                var a=anchor(f,RANGE);var text=(JTextPane)field(a.component(),"text");
+                Rectangle viewport=SwingUtilities.convertRectangle(text,text.getVisibleRect(),overlay(f));
+                Rectangle lit=overlay(f).lit().getFirst().bounds();
+                assertTrue(viewport.contains(lit),"clipped range band must stay inside the viewport: "+lit+" / "+viewport);
+                assertTrue(lit.height>100,"a tall range lights the visible rows, not just one line");
+                try {
+                    var lineTwoStart=text.getDocument().getDefaultRootElement().getElement(1).getStartOffset();
+                    int lineTwoTop=(int)Math.floor(text.modelToView2D(lineTwoStart).getY());
+                    assertTrue(Math.abs(lineTwoTop-text.getVisibleRect().y)<3,
+                            "too tall to fit: the viewport shows the START of the range (line 2 at y="+lineTwoTop
+                                    +", visible.y="+text.getVisibleRect().y+")");
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
+    @Test void refusesARangePastTheSpanLimitAndOutsideTheDocument(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());source(tmp);
+        try(var f=new Frame(tmp)) {
+            show(f,tmp.resolve("src"));
+            var tooWide=f.ex.render("spotlight",Map.of("target","source:java:com.acme.Node:line:1-"+(SpotlightTarget.MAX_LINE_SPAN+1)));
+            assertFalse(tooWide.ok());assertTrue(String.valueOf(tooWide.error()).contains(String.valueOf(SpotlightTarget.MAX_LINE_SPAN)),tooWide.toMap().toString());
+            var pastEnd=f.ex.render("spotlight",Map.of("target","source:java:com.acme.Node:line:180-200"));
+            assertFalse(pastEnd.ok());assertTrue(String.valueOf(pastEnd.error()).contains("outside"),pastEnd.toMap().toString());
+            assertFalse(overlay(f).isLit(),"a refused range never lights anything");
         }
     }
 

@@ -22,8 +22,11 @@ record JavaSpotlightPlan(SourceService.Lookup lookup, Map<String, Prepared> targ
                             + ". Repeating rereads files and entries in known sources jars; a new sources jar"
                             + " requires source reconfiguration or restart. Lookup: source-viewer, first-match.")));
             if (target.family() == SpotlightTarget.Family.JAVA_LINE
-                    && target.number() > document.text().split("\n", -1).length)
-                throw new IllegalArgumentException("Line " + target.number() + " is outside " + document.identity());
+                    && target.lineTo() > document.text().split("\n", -1).length)
+                // M80: a range whose LAST line is past the document's end is refused whole (not clamped) — the
+                // same policy a single out-of-range line already had, said for the range it was asked for.
+                throw new IllegalArgumentException("Line " + (target.lineFrom() == target.lineTo() ? String.valueOf(target.lineFrom())
+                        : target.lineFrom() + "-" + target.lineTo()) + " is outside " + document.identity());
             identities.add(document.identity());
             if (identities.size() > 1) throw new IllegalArgumentException("Java spotlights must name one document; use separate calls");
             targets.put(target.name(), new Prepared(target, document, EventProcessorModel.parse(target.sourceFqn(), document.text())));
