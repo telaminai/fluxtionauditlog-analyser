@@ -127,11 +127,18 @@ architecture, conventions). This file is only the rules that must never be skipp
 
 ## Current work
 
-**Latest release: 1.31.0 (2026-10-05).** The tracker's delivery order is current as of 2026-10-01 and is the place to
-start; the notes below are older context and may lag it.
+**Latest release: 1.38.0 (2026-10-21).** The tracker's delivery order (refreshed 2026-10-19, after 1.36.0) is the
+place to start; the notes below are older context and may lag it. Since 1.31.0: **1.38.0** project-output offers
+(M81 D), Design discovery of Spring XML and Java builder definitions (M80), spotlight line ranges (PR #188);
+**1.37.0** Claude Code activity and silence cues, visible restart and recovery (M81 A/C), Markdown tables in the
+transcript; **1.36.0** (PR #168) Claude Code in the Assistant tab (Safe analysis / Full Claude Code), *Set up AI…*
+(M77), the quiet one-panel assistant (M78), the start page's numbered pathways and prompt packs, `source {text}`;
+**1.35.0/1.35.1** create a project over the socket, `open {project, create}` (M73); **1.34.0** M72's first slice
+(model choice, L0 token split); **1.33.0** audit-log comparison in `add-a-node`; **1.32.0** walkthrough reels and
+the MG-1 mutation gate. The verb count is 18. See `CHANGELOG.md` for each release.
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Latest: 1.27.0 (2026-09-28)**: evidence bundles, first delivery (PR #63, merged `77d268be`) — an investigation
+`docs/specs/completed/tracker.md`. **1.27.0 (2026-09-28)**: evidence bundles, first delivery (PR #63, merged `77d268be`) — an investigation
 as one verifiable `.fexp`. Capture is one operation on the running analyser, `report {bundle: {path, notes?, from?, to?}}`,
 decided by the `evidenceCapture` session node (rule 9); the recipient runs `--verify` / `--unpack` (bounded memory,
 nothing written until verified); optional time-window excerpts with re-based walks and reports; nothing machine-shaped
