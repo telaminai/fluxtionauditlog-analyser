@@ -46,6 +46,10 @@ architecture, conventions). This file is only the rules that must never be skipp
    merges — `607ea90d` (#81) and `a7d35335` (#86) on 2026-09-30, `a636959f` (#88) and `35c2f78d` (#108) on
    2026-10-06 — so the account's commit email had reverted for web merges. Every merge since is local, under
    the personal address; check a GitHub-made merge's author before trusting the button again.
+   **Counted again 2026-10-21** (1.38.0 release): the fourth is **100**. The two new ones, `8a819874` and `e102a871`, are
+   feature-branch commits a subagent made without the personal identity. A hand-made squash kept them out, but the PR was
+   then merged through GitHub (`e66f2635`), which brought them in. After a hand-made squash, **close** the PR, never merge it.
+   The owner's own company domain (`@telamin.com`, used by GitHub-made merges) is acceptable; only the two terms count.
    **Counted again 2026-10-19** (1.37.0 release check): the fourth is **98**. The four new ones are GitHub-made merges
    from before 1.36.0 — `a7d35335` (PR #86) and `607ea90d` on 2026-09-30, the #88 and #108 merges on 2026-10-06 — all
    already inside released versions. Every commit since `v1.36.0` carries the personal address; the third term is
