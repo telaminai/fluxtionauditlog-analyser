@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-10-21
+
 ### Added
 
 - Open, person-owned projects now offer settled GraphML and audit-log outputs with Open / Not now banners. Nothing auto-switches your log; accepting a log uses the existing graph-pairing path, even with assistant file exchange off. The starter's first-build cue uses this same ongoing watcher.
