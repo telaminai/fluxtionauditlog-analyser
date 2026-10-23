@@ -23,9 +23,9 @@
     <key id="fluxtion.relationshipCount" for="edge" attr.name="fluxtion.relationshipCount" attr.type="int"/>
     <graph edgedefault="directed">
         <data key="fluxtion.metaVersion">1.0</data>
-        <data key="fluxtion.sourceFingerprint">fb0ba2cbbabaa9037727f4a139a4951229befe74060e7778d3801ffbd61b82cd</data>
+        <data key="fluxtion.sourceFingerprint">7bd4d9cff1203ae834a9198c578e4ab1fda381866b510336cde624b9cdce316a</data>
         <data key="fluxtion.toolchainVersion">1.0.80-SNAPSHOT</data>
-        <data key="fluxtion.nodeCount">26</data>
+        <data key="fluxtion.nodeCount">27</data>
         <data key="fluxtion.authoredNodeCount">6</data>
         <node id="AdvanceBillingPeriod">
             <data key="vertex_label">
@@ -125,6 +125,17 @@
             </data>
             <data key="fluxtion.kind">EVENT</data>
             <data key="fluxtion.class">com.acme.entitlement.model.Commands$GrantAllowance</data>
+        </node>
+        <node id="IssueHandshake">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;IssueHandshake&#10;class:com.acme.entitlement.model.Commands$IssueHandshake&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$IssueHandshake</data>
         </node>
         <node id="ProvisionAccount">
             <data key="vertex_label">
@@ -471,7 +482,15 @@
             <data key="fluxtion.handlerMethod">onGrant</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="13" source="ProvisionAccount" target="decider">
+        <edge id="13" source="IssueHandshake" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onHandshake</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="14" source="ProvisionAccount" target="decider">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -479,7 +498,7 @@
             <data key="fluxtion.handlerMethod">onProvision</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="14" source="ReserveGeneration" target="decider">
+        <edge id="15" source="ReserveGeneration" target="decider">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -487,12 +506,12 @@
             <data key="fluxtion.handlerMethod">onReserve</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="15" source="ServiceListener" target="serviceRegistry">
+        <edge id="16" source="ServiceListener" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="16" source="SetEntitlement" target="decider">
+        <edge id="17" source="SetEntitlement" target="decider">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -500,7 +519,7 @@
             <data key="fluxtion.handlerMethod">onSetEntitlement</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="17" source="accounts" target="decider">
+        <edge id="18" source="accounts" target="decider">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -508,7 +527,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">accounts</data>
         </edge>
-        <edge id="18" source="callbackDispatcher" target="context">
+        <edge id="19" source="callbackDispatcher" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -516,7 +535,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">dirtyStateMonitor</data>
         </edge>
-        <edge id="19" source="callbackDispatcher" target="context">
+        <edge id="20" source="callbackDispatcher" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -524,7 +543,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">eventDispatcher</data>
         </edge>
-        <edge id="20" source="clock" target="context">
+        <edge id="21" source="clock" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -532,7 +551,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">clock</data>
         </edge>
-        <edge id="21" source="clock" target="eventLogger">
+        <edge id="22" source="clock" target="eventLogger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -540,7 +559,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">clock</data>
         </edge>
-        <edge id="22" source="context" target="serviceRegistry">
+        <edge id="23" source="context" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -548,7 +567,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">dataFlowContext</data>
         </edge>
-        <edge id="23" source="ledger" target="decider">
+        <edge id="24" source="ledger" target="decider">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -556,7 +575,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">ledger</data>
         </edge>
-        <edge id="24" source="nodeNameLookup" target="context">
+        <edge id="25" source="nodeNameLookup" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -564,7 +583,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">nodeNameLookup</data>
         </edge>
-        <edge id="25" source="period" target="decider">
+        <edge id="26" source="period" target="decider">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -572,7 +591,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">period</data>
         </edge>
-        <edge id="26" source="period" target="ledger">
+        <edge id="27" source="period" target="ledger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -580,7 +599,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">period</data>
         </edge>
-        <edge id="27" source="policy" target="decider">
+        <edge id="28" source="policy" target="decider">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -588,7 +607,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">policy</data>
         </edge>
-        <edge id="28" source="requests" target="decider">
+        <edge id="29" source="requests" target="decider">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -596,7 +615,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">requests</data>
         </edge>
-        <edge id="29" source="subscriptionManager" target="context">
+        <edge id="30" source="subscriptionManager" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
