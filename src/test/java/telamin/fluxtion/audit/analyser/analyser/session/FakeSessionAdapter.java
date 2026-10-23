@@ -171,6 +171,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     String closedGraphPath;
     /** What a records-view measurement reports (null: no installed view). */
     telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView;
+    /** M79-3: what the fake's file observation answers — a test sets the state; the basis is FileObservation's. */
+    String fileState = "unchanged-metadata";
+    long fileRef = 1;
+    boolean readReported = true, readIdentified = true;
 
     FakeSessionAdapter withProfile(String path) {
         loadable.add(path);
@@ -205,6 +209,9 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             // the records view: the fake measures nothing of its own — a test supplies what the view would count
             case SessionEffects.MeasureRecordsViewEffect e -> new SessionEvents.RecordsViewMeasured(e.opId(), e.generation(),
                     recordsView);
+            case SessionEffects.ObserveLogFileEffect e -> new SessionEvents.FileObservationObserved(e.opId(), e.generation(),
+                    fileState, "size, modification time and file identity; unchanged metadata does not prove identical bytes",
+                    fileRef, readReported, readIdentified);
             // M69: the recording backend for walk playback — what the node ASKED, and a plain answer
             case SessionEffects.ApplyWalkViewEffect e -> {
                 walkViews.add(e);

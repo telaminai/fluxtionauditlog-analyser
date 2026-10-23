@@ -111,7 +111,16 @@ class OneDispatchModelTest {
             new OnlyIn("the Search box is written", Pattern.compile("searchField\\.setText\\("),
                     "private void renderRecordsView(", true),
             new OnlyIn("the Records title is set", Pattern.compile("tableArea\\.setBorder\\("),
-                    List.of("private void renderRecordsView(", "private void buildLayout("), true));
+                    List.of("private void renderRecordsView(", "private void buildLayout("), true),
+            // ★ M79-3 A3.1 (spec-first-minute §8.1): the open log's file observation is computed ONCE, in the performer of
+            // logObservation's effect; context, the report header and a bundle request read the published value. Witness:
+            // restore `FileObservation.compare(...)` in the context build (the retired MainFrame.logFreshness()).
+            new OnlyIn("the open log's file observation is computed",
+                    Pattern.compile("FileObservation\\s*(\\.\\s*compare\\s*\\(|::\\s*compare\\b)"),
+                    "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result observeLogFile(", true),
+            // M79-3: the evidence chip renders the snapshot, from one place. Witness: compose its lines in refreshProjectPanel.
+            new OnlyIn("the evidence chip's lines are composed", Pattern.compile("EvidenceChipLines\\s*\\.\\s*of\\s*\\("),
+                    "private void onSessionSnapshot("));
 
     @Test
     @DisplayName("each piece of the log's derived state is computed, composed or started in exactly one place")

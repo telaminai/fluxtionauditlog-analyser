@@ -63,7 +63,10 @@ public final class SessionAuditSink implements LogRecordListener {
     static final java.util.List<String> RESCOPE_EVENTS = java.util.List.of(RESCOPE_EVENT,
             "event: ProducerFindingsObserved", "event: TimeOrderObserved", "event: ScanScheduled",
             // the Records view re-measured — on every Follow append, like the evidence scan
-            "event: RecordsViewMeasured");
+            "event: RecordsViewMeasured",
+            // M79-3: the log's file observation, asked for at every context read — retained like a re-scope, so a busy
+            // agent's reads never evict the transitions an investigation needs
+            "event: LogFileObservationDue", "event: FileObservationObserved");
 
     /** M44.5: every Follow poll's content observation — kept apart, so an idle poll evicts nothing but its own kind. */
     static final String OBSERVATION_EVENT = "event: LogContentObserved";

@@ -403,6 +403,7 @@ public final class MainFrame extends JFrame {
         addWindowFocusListener(new java.awt.event.WindowAdapter() {
             @Override public void windowGainedFocus(java.awt.event.WindowEvent e) {
                 observeReadIdentity();              // a person coming back to the window is the next observation
+                reportLogObservationDue("window focused");   // M79-3: and of the log's file metadata
             }
             @Override public void windowLostFocus(java.awt.event.WindowEvent e) {
                 // Cancel only when an owned modal blocks this frame. A non-modal focus change can
@@ -807,6 +808,8 @@ public final class MainFrame extends JFrame {
     }
 
     private ProjectPanel projectPanel;
+    /** M79-3 (spec-first-minute §8.1): the evidence chip at the top of the Context column, rendered from the snapshot. */
+    private final EvidenceChipView evidenceChip = new EvidenceChipView(() -> reportLogObservationDue("details"));
     private JToggleButton projectRailToggle;
     private JSplitPane westSplit;            // Event types over Project, inside the west column
     private JSplitPane westOuter;            // the west column beside the records — the user drags this
@@ -1025,7 +1028,12 @@ public final class MainFrame extends JFrame {
         java.awt.Component context = contextStack();
         boolean loaded = context != null;
         if (loaded) {
-            west.add(context, BorderLayout.CENTER);
+            // M79-3: the evidence chip heads the column, above the project and this machine's memory
+            JPanel column = new JPanel(new BorderLayout());
+            column.setOpaque(false);
+            column.add(evidenceChip, BorderLayout.NORTH);
+            column.add(context, BorderLayout.CENTER);
+            west.add(column, BorderLayout.CENTER);
         }
         if (loaded) {
             west.add(columnHeading("Context",
@@ -6226,13 +6234,58 @@ public final class MainFrame extends JFrame {
     private LogStore observedLogStore;
     private List<Map<String,Object>> logObservations = List.of();
     private String snapshotNote() {
-        return "loaded snapshot; log " + logFreshness().get("state") + "; graph "
+        reportLogObservationDue("report");
+        return "loaded snapshot; log " + publishedLogFreshness().get("state") + "; graph "
                 + topologyPanel.fileFreshness().get("state") + " (metadata observation, not content verification)"
                 + trailingPendingNote();
     }
-    private Map<String,Object> logFreshness() {
-        return telamin.fluxtion.audit.analyser.analyser.core.FileObservation.compare(
-                observedLogStore == store ? logObservations : List.of());
+
+    /**
+     * M79-3 (spec-first-minute §8.1, rule 9): a surface is about to state the open log's file observation. The session's
+     * {@code logObservation} decides whether to observe; {@link #observeLogFile} performs it. This only reports the moment.
+     */
+    private void reportLogObservationDue(String why) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> reportLogObservationDue(why));
+            return;
+        }
+        if (session == null || store == null) return;
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogFileObservationDue(
+                sessionLogGeneration, why));
+    }
+
+    /**
+     * M79-3: the ONE place the open log's file is compared with what was read — the performer of the session's
+     * {@code ObserveLogFileEffect}. The full observation is held here by reference (its members carry paths, which no
+     * fact may); an unchanged observation keeps its reference, so the session publishes nothing new.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result observeLogFile(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ObserveLogFileEffect e) {
+        boolean installed = store != null && observedLogStore == store && sessionLogGeneration == e.generation();
+        Map<String, Object> freshness = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.compare(
+                installed ? logObservations : List.of());
+        var read = installed ? store.readIdentities() : List.<telamin.fluxtion.audit.analyser.analyser.parse.FileReadIdentity>of();
+        boolean identified = !read.isEmpty() && read.stream().allMatch(i -> i.sha256() != null && i.problem() == null);
+        if (!freshness.equals(heldObservations.get(heldObservationRef))) heldObservations.put(++heldObservationRef, freshness);
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FileObservationObserved(e.opId(),
+                e.generation(), String.valueOf(freshness.get("state")), String.valueOf(freshness.get("basis")),
+                heldObservationRef, !read.isEmpty(), identified);
+    }
+
+    /** The observations {@link #observeLogFile} made, by reference — the last few, since a fact names one by its ref. */
+    private final Map<Long, Map<String, Object>> heldObservations = new java.util.LinkedHashMap<>() {
+        @Override protected boolean removeEldestEntry(Map.Entry<Long, Map<String, Object>> eldest) {
+            return size() > 8;
+        }
+    };
+    private long heldObservationRef;
+
+    /** The open log's file observation as the session PUBLISHED it, resolved to its full detail. */
+    private Map<String, Object> publishedLogFreshness() {
+        var snap = sessionSnapshot();
+        var o = snap.logObservation();
+        Map<String, Object> held = o.about(snap.logGeneration()) ? heldObservations.get(o.freshnessRef()) : null;
+        return held != null ? held : telamin.fluxtion.audit.analyser.analyser.core.FileObservation.UNOBSERVED;
     }
 
     /** Describes the loaded log so the LLM prompt can seed file access (path, shape, byte anchors). */
@@ -6808,6 +6861,7 @@ public final class MainFrame extends JFrame {
                         loadedLogFormat = (String) out[1];
                         observedLogStore = store;
                         logObservations = List.of((Map<String,Object>)out[3]);
+                        reportLogObservationDue("installed");
                         refreshProjectPanel();
                         @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
                         loadedLogIdentity = identity;
@@ -6878,6 +6932,7 @@ public final class MainFrame extends JFrame {
                         loadedLogIdentity = identity;
                         observedLogStore = store;
                         logObservations = (List<Map<String,Object>>)out[2];
+                        reportLogObservationDue("installed");
                         refreshProjectPanel();
                     }
                     } finally { readCopies.close(); }
@@ -7594,6 +7649,7 @@ public final class MainFrame extends JFrame {
         renderRecordsView(next);                 // what the Records view shows and hides, as recordsView measured it
         renderAssistant(next);                   // OA-1: the assistant, as assistantLoop decided it
         projectOutputsPanel.render(next.projectOutputs());
+        evidenceChip.render(EvidenceChipLines.of(next));   // M79-3: the evidence chip, as the session published it
         releaseUnusedBundleCopies(next);
         renderBundleProvenance(next);            // #76: whether this session is received evidence, and which bundle
     }
@@ -7768,7 +7824,7 @@ public final class MainFrame extends JFrame {
         try {
             var observed = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(Path.of(followPath));
             added = store.appendFrom(Path.of(followPath));
-            if (added > 0) { observedLogStore = store; logObservations = List.of(observed); }
+            if (added > 0) { observedLogStore = store; logObservations = List.of(observed); reportLogObservationDue("follow"); }
             reportIdentityToSession(store.followIdentity());   // M68.5: before anything the poll adds is published
         } catch (java.io.IOException ex) {
             reportIdentityToSession(store.followIdentity());   // a failed poll also retires the session's earlier verification
@@ -8894,7 +8950,8 @@ public final class MainFrame extends JFrame {
         if (session == null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("the session is not running");
         var identity = observeReadIdentity();
         String observed = identity == null ? null : identity.verdict().name().toLowerCase(java.util.Locale.ROOT);
-        Map<String, Object> freshness = store == null ? Map.of() : logFreshness();
+        reportLogObservationDue("capture");
+        Map<String, Object> freshness = store == null ? Map.of() : publishedLogFreshness();
         Object state = freshness.get("state");
         Object members = freshness.get("members");
         var info = store == null ? null : currentLogFileInfo();
@@ -9338,6 +9395,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ResolveWalkTargetsEffect e -> walkPresenter.resolveAgain(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.EndWalkEffect e -> walkPresenter.end(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.MeasureRecordsViewEffect e -> measureRecordsView(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ObserveLogFileEffect e -> observeLogFile(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ScanLogEvidenceEffect e -> {
                 // M44.5: the processor decided the log's evidence is stale. The scan never runs inside the dispatch, and
                 // only against the store of the generation it names: see scanWhenInstalled.
@@ -11105,7 +11163,8 @@ public final class MainFrame extends JFrame {
             // M37: who asked. The OpenRequest carries it (M35.9); the Project panel is its first human reader
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
             if (store != null) {
-                log.put("freshness", logFreshness());
+                reportLogObservationDue("context");          // M79-3: the session observes; the reply states what it published
+                log.put("freshness", publishedLogFreshness());
                 // evidence bundle v1, B1 (spec §4.1): the session's log generation, PROJECTED from the snapshot. A
                 // capture skill records it, copies, and re-reads it: if it moved, another log was opened meanwhile and the
                 // copy is incoherent. The same rule the walk save enforces internally, exposed rather than duplicated.

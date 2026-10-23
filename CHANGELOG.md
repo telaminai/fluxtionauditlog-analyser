@@ -6,6 +6,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- The Context column's verification rows collapse into one evidence chip at its top: **⚠ changed**, **⚠ unknown**,
+  **Evidence ✓ checked** (a byte or digest check passed: Follow, or a verified bundle's own log) or **Evidence · as
+  read** (an ordinary log with unchanged metadata, which is never shown as checked). Click it for each check's own
+  words: the file observation and its basis, the bundle's "verified on open; unsigned" and its limits, and Follow's
+  verdict as the records table states it. The log's file observation is now the session's, observed when a surface
+  reads it, so `context`, the Project panel, reports and the chip state one value; `context.log.freshness` is
+  unchanged. The Context column's Fluxtion key, evidence bundle and GraphML rows carry the app's existing words as
+  their accessible descriptions.
+
 ## [1.38.0] - 2026-10-21
 
 ### Added

@@ -2769,3 +2769,32 @@ CONTROLS += [
      'if (false) {',
      'TranscriptViewTest#displayedLinkDestinationsDetermineStackingAtDefaultWidth'),
 ]
+
+# M79-3 (spec-first-minute §8.1, A3.1/A3.2): the evidence chip's three states and the session-owned file observation.
+CONTROLS += [
+    ('m79-3-unchanged-metadata-is-not-checked', UI + 'EvidenceChipLines.java',
+     'else if ("VERIFIED".equals(verdict) || bundleLog) state = State.CHECKED;',
+     'else if ("VERIFIED".equals(verdict) || bundleLog || "unchanged-metadata".equals(o.state())) state = State.CHECKED;',
+     'EvidenceChipLinesTest#everyRowHasItsState'),
+    ('m79-3-unknown-is-warned', UI + 'EvidenceChipLines.java',
+     'else if (!observed || "unknown".equals(o.state()) || (o.readReported() && !o.readIdentified())) state = State.UNKNOWN;',
+     'else if (!observed) state = State.UNKNOWN;',
+     'EvidenceChipLinesTest#everyRowHasItsState'),
+    ('m79-3-details-keep-the-basis', UI + 'EvidenceChipLines.java',
+     'new Line("File observation", o.state() + " — " + o.basis())',
+     'new Line("File observation", o.state())',
+     'EvidenceChipLinesTest#theDetailsKeepTheWords'),
+    ('m79-3-freshness-computed-once', UI + 'MainFrame.java',
+     '                log.put("freshness", publishedLogFreshness());',
+     '                log.put("freshness", telamin.fluxtion.audit.analyser.analyser.core.FileObservation.compare('
+     'observedLogStore == store ? logObservations : List.of()));',
+     'OneDispatchModelTest#everyDerivedStepHasOneHome'),
+    ('m79-3-stale-observation-refused', NODE + 'LogObservation.java',
+     'if (!current(event.generation(), "FileObservationObserved")) return false;',
+     'if (!openLog.isOpen()) return false;',
+     'LogObservationTest#staleIsRefusedAndANewLogClears'),
+    ('m79-3-new-log-clears', NODE + 'LogObservation.java',
+     '        observation = LogObservationState.NONE;\n        if (had)',
+     '        if (had)',
+     'LogObservationTest#staleIsRefusedAndANewLogClears'),
+]

@@ -2093,4 +2093,26 @@ public final class SessionEvents {
     public record HostedProjectOutputOpened(long watch, long projectGeneration, long generation, long ticket,
                                             ProjectOutputsState.File file) { }
 
+    // ---- M79-3 (spec-first-minute §8.1, rule 9): the open log's file observation, owned by the session ------------
+
+    /**
+     * A surface is about to state the open log's FILE observation: the load of {@code generation} installed its read-time
+     * observation ({@code why} "installed"), a {@code context} read is being answered ("context"), the person came back to
+     * the window ("window focused"), opened the evidence details ("details") or asked for a bundle ("capture").
+     * {@code logObservation} decides whether to observe; the adapter never observes on its own.
+     */
+    public record LogFileObservationDue(long generation, String why) {
+    }
+
+    /**
+     * The answer to {@code ObserveLogFileEffect}: the open log's metadata observation for {@code generation} — its
+     * {@code state} ({@code unchanged-metadata}, {@code changed-on-disk} or {@code unknown}) and {@code basis}, the
+     * analyser's own words. The full observation (the members, with their paths) stays in the frame, named here by
+     * {@code freshnessRef}, because a fact never carries a path. {@code readReported}: whether the log's reader reports
+     * a read identity at all; {@code readIdentified}: whether every byte read was identified by its SHA-256.
+     */
+    public record FileObservationObserved(long opId, long generation, String state, String basis, long freshnessRef,
+                                          boolean readReported, boolean readIdentified) implements Result {
+    }
+
 }

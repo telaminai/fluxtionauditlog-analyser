@@ -217,6 +217,8 @@ public final class ProjectPanel extends JPanel {
         if (r.tone() == ProjectModel.Tone.MUTED) primary.setForeground(UiTheme.mutedForeground());
         if (r.tone() == ProjectModel.Tone.WARN) primary.setForeground(UiTheme.warnForeground());
         primary.setToolTipText(UiText.tooltip(r.path() != null ? r.path() : r.primary()));
+        // M79-3 (spec §8.2): where a product term first appears, its existing words are the accessible description
+        if (r.description() != null) primary.getAccessibleContext().setAccessibleDescription(r.description());
         head.add(primary, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
