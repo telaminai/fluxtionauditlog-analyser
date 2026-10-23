@@ -120,6 +120,8 @@ class FactFieldsTest {
             M74.put(c, Holds.DIGEST);
         }
         for (String c : List.of("ProposalPreviewDone.setupDirShown", "LocalAgentSetupDirectoryChosen.dirShown",
+                // #177: where unsaved edits were set aside; #182: the exchange folder a write created — both …/name
+                "ProjectProfileSetAside.shown", "ProjectExchangeCreated.shown",
                 "ExampleDownloadConfirmed.targetShown", "ExampleUnpacked.rootShown")) {
             M74.put(c, Holds.SHOWN_PATH);
         }

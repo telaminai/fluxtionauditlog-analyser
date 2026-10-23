@@ -55,11 +55,17 @@ public record ExchangeDir(String dir, String source, String refusal, boolean pro
      * #182: make the project default directory when a write is about to land in it, and nothing else — a declared
      * directory is never created (the profile rule above), and the machine tier is the person's own choice.
      */
-    public void ensureCreated() throws java.io.IOException {
-        if (!projectDefault || dir == null || dir.isBlank()) return;
+    public boolean ensureCreated() throws java.io.IOException {
+        if (!projectDefault || dir == null || dir.isBlank()) return false;
         Path d = Path.of(dir);
-        if (!Files.isDirectory(d)) Files.createDirectory(d);
+        if (Files.isDirectory(d)) return false;
+        Files.createDirectory(d);
+        return true;                       // made by THIS write: the caller says so, once
     }
+
+    /** #182: the one sentence said, once, when a write first makes the project's default directory. */
+    public static final String CREATED_NOTE = "Created " + PROJECT_DEFAULT_DIR + "/ in the project; you may want to add "
+            + "it to .gitignore";
 
     /** The project tier supplied it. */
     public static final String PROJECT = "project";
@@ -138,9 +144,14 @@ public record ExchangeDir(String dir, String source, String refusal, boolean pro
      * write will land. Only for a write that is about to happen: reading the location never creates anything.
      */
     public static ExchangeDir forWrite(AppConfig c) {
+        return forWrite(c, null);
+    }
+
+    /** As {@link #forWrite(AppConfig)}, telling {@code created} (with the directory) when this write made it. */
+    public static ExchangeDir forWrite(AppConfig c, java.util.function.Consumer<String> created) {
         ExchangeDir d = of(c);
         try {
-            d.ensureCreated();
+            if (d.ensureCreated() && created != null) created.accept(d.dir());
         } catch (java.io.IOException | SecurityException e) {
             return new ExchangeDir(d.dir(), d.source(), "the project's default exchange directory could not be created ("
                     + e.getMessage() + ")", true);

@@ -104,6 +104,14 @@ public final class ActionExecutor implements RenderExecutor {
     }
 
     private java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.config.AppConfig> exportConfig;
+    /** #182: told when a write made the project's default exchange directory (the frame reports it to the session). */
+    private java.util.function.Consumer<String> exchangeCreated = dir -> { };
+    /** #182: the directory THIS thread's last guarded write created, for its reply; cleared when the reply is built. */
+    private final ThreadLocal<String> createdForReply = new ThreadLocal<>();
+
+    public void onExchangeCreated(java.util.function.Consumer<String> listener) {
+        this.exchangeCreated = listener == null ? dir -> { } : listener;
+    }
     private java.util.function.Supplier<java.util.Set<java.nio.file.Path>> readGrants = java.util.Set::of;
     private java.util.function.Supplier<String> timeOrderNote = () -> null;
 
@@ -124,7 +132,10 @@ public final class ActionExecutor implements RenderExecutor {
                 requested == null ? null : requested.toString(),
                 cfg != null && cfg.assistantExports,
                 // #182: a write into an open project's default exchange directory makes it first
-                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.forWrite(cfg).dir());
+                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.forWrite(cfg, dir -> {
+                    createdForReply.set(dir);
+                    exchangeCreated.accept(dir);
+                }).dir());
     }
 
     /**
@@ -132,15 +143,19 @@ public final class ActionExecutor implements RenderExecutor {
      * the folder is new to the caller, and "where did my file go" is answered in the answer, not inferred.
      */
     private ActionResult withExchangeNote(ActionResult r) {
+        String created = createdForReply.get();
+        createdForReply.remove();
         if (r == null || !r.ok() || r.payload() == null) return r;
         var cfg = exportConfig == null ? null : exportConfig.get();
         var ex = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg);
         if (!ex.projectDefault()) return r;
         Map<String, Object> payload = new LinkedHashMap<>(r.payload());
-        payload.put("exchange", Map.of("dir", ex.dir(), "source", "project default",
+        Map<String, Object> exchange = new LinkedHashMap<>(Map.of("dir", ex.dir(), "source", "project default",
                 "note", "the open project declares no exchange directory, so its own "
                         + telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.PROJECT_DEFAULT_DIR
                         + "/ is used; Settings ▸ Assistant can name another"));
+        if (created != null) exchange.put("created", telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.CREATED_NOTE);
+        payload.put("exchange", exchange);
         return new ActionResult(r.ok(), r.action(), r.payloadKey(), payload, r.error(), r.reportReceipt());
     }
 

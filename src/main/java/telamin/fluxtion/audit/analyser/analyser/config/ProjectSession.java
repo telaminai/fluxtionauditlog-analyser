@@ -1,6 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.config;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -222,7 +223,7 @@ public final class ProjectSession {
     }
 
     public ProjectProfile.LoadResult open(Path file, String expectedDigest) {
-        flush();
+        leave();
         rememberDefaultsOnce();
         ProjectProfile.LoadResult result = ProjectProfile.load(file, config, share, expectedDigest);
         if (!result.loaded()) {
@@ -258,7 +259,7 @@ public final class ProjectSession {
      * save wrote that over the PREVIOUS project's profile — or over the person's own settings.
      */
     public Created createNew(Path file, ProjectAdoption.Plan plan) throws IOException {
-        flush();
+        leave();
         ProjectProfile.Snapshot defaultsBefore = noProjectDefaults;
         rememberDefaultsOnce();
         ProjectProfile.Snapshot before = ProjectProfile.snapshot(config);
@@ -313,7 +314,7 @@ public final class ProjectSession {
      * promise in the spec.
      */
     public void close() {
-        flush();
+        leave();
         if (noProjectDefaults != null) {
             ProjectProfile.restore(noProjectDefaults, config);
         }
@@ -375,6 +376,44 @@ public final class ProjectSession {
     private String lastError;
 
     // ---- #177: the profile changed on disk ------------------------------------------------------
+
+    /**
+     * Leaving the project (a switch, a close, a quit): write what is pending — and when the write is refused because the
+     * file changed on disk, the window's unsaved edits are NOT dropped. They are written beside the profile, as
+     * {@code <profile>.unsaved-<time>} (never a profile name, so nothing opens it by accident), and
+     * {@link #takeSetAside()} says where. The file on disk is never overwritten without the person's choice, and the
+     * person's edits are never discarded without their knowing.
+     */
+    public void leave() {
+        flush();
+        if (activeFile == null || !dirty || conflict == null) return;
+        if (preSave != null) preSave.run();
+        String text = ProjectProfile.write(config, share, activeFile);
+        String stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        for (int n = 0; n < 100; n++) {
+            Path side = activeFile.resolveSibling(activeFile.getFileName() + ".unsaved-" + stamp + (n == 0 ? "" : "-" + n));
+            try {
+                Files.writeString(side, text, java.nio.file.StandardOpenOption.CREATE_NEW);
+                setAside = side.toString();
+                dirty = false;
+                return;
+            } catch (java.nio.file.FileAlreadyExistsException taken) {
+                // the next name
+            } catch (IOException e) {
+                lastError = "project settings not saved and could not be set aside beside " + activeFile + ": " + e.getMessage();
+                return;
+            }
+        }
+    }
+
+    private String setAside;
+
+    /** Where {@link #leave()} last wrote unsaved edits it could not save, or null. Cleared by reading it. */
+    public String takeSetAside() {
+        String s = setAside;
+        setAside = null;
+        return s;
+    }
 
     /** The digest this session last read or wrote, or null. What an observation of the file is compared against. */
     public String baselineDigest() {

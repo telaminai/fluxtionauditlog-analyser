@@ -183,6 +183,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectExchangeCreated;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputChanged;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOfferAnswered;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved;
@@ -192,6 +193,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectPro
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileKept;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileSetAside;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenReady;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenRequested;
@@ -451,6 +453,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectExchangeCreated
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputChanged
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOfferAnswered
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved
@@ -460,6 +463,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileKept
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileSetAside
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenReady
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenRequested
@@ -1272,6 +1276,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded",
                 false),
             new ProcessorDescriptor.Input(
+                "ProjectExchangeCreated",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectExchangeCreated",
+                false),
+            new ProcessorDescriptor.Input(
                 "ProjectOutputChanged",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputChanged",
                 false),
@@ -1306,6 +1314,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "ProjectProfileReloaded",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded",
+                false),
+            new ProcessorDescriptor.Input(
+                "ProjectProfileSetAside",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileSetAside",
                 false),
             new ProcessorDescriptor.Input(
                 "ProjectReopenPresented",
@@ -1549,7 +1561,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "12b980ab8eb22cdc84dbe1e4a562d5cea2d45dde06755958e5b9fb756dd47772",
+              "64b2854f69cf798ea78a681df1a5d5635b9b593cf32054794520f775c304cb85",
               null));
 
   @Override
@@ -2157,6 +2169,9 @@ public class SessionProcessor
     } else if (event instanceof ProfileLoaded) {
       ProfileLoaded typedEvent = (ProfileLoaded) event;
       handleEvent(typedEvent);
+    } else if (event instanceof ProjectExchangeCreated) {
+      ProjectExchangeCreated typedEvent = (ProjectExchangeCreated) event;
+      handleEvent(typedEvent);
     } else if (event instanceof ProjectOutputChanged) {
       ProjectOutputChanged typedEvent = (ProjectOutputChanged) event;
       handleEvent(typedEvent);
@@ -2183,6 +2198,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof ProjectProfileReloaded) {
       ProjectProfileReloaded typedEvent = (ProjectProfileReloaded) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProjectProfileSetAside) {
+      ProjectProfileSetAside typedEvent = (ProjectProfileSetAside) event;
       handleEvent(typedEvent);
     } else if (event instanceof ProjectReopenPresented) {
       ProjectReopenPresented typedEvent = (ProjectReopenPresented) event;
@@ -3105,6 +3123,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectExchangeCreated event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ProjectOutputChanged event) {
     processEvent(event);
   }
@@ -3146,6 +3169,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ProjectProfileReloaded event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectProfileSetAside event) {
     processEvent(event);
   }
 
@@ -5507,6 +5535,14 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(ProjectExchangeCreated typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(profileOnDisk, "profileOnDisk", "onExchangeCreated", typedEvent);
+    profileOnDisk.onExchangeCreated(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(ProjectOutputChanged typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -5578,6 +5614,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(profileOnDisk, "profileOnDisk", "onReloaded", typedEvent);
     profileOnDisk.onReloaded(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectProfileSetAside typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(profileOnDisk, "profileOnDisk", "onSetAside", typedEvent);
+    profileOnDisk.onSetAside(typedEvent);
     afterEvent();
   }
 
@@ -7154,6 +7198,11 @@ public class SessionProcessor
       isDirty_assistantLoop = assistantLoop.onProfileLoaded(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onProfileLoaded", typedEvent);
       isDirty_sessionBoundary = sessionBoundary.onProfileLoaded(typedEvent);
+    } else if (event instanceof ProjectExchangeCreated) {
+      ProjectExchangeCreated typedEvent = (ProjectExchangeCreated) event;
+      auditEvent(typedEvent);
+      auditInvocation(profileOnDisk, "profileOnDisk", "onExchangeCreated", typedEvent);
+      profileOnDisk.onExchangeCreated(typedEvent);
     } else if (event instanceof ProjectOutputChanged) {
       ProjectOutputChanged typedEvent = (ProjectOutputChanged) event;
       auditEvent(typedEvent);
@@ -7201,6 +7250,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(profileOnDisk, "profileOnDisk", "onReloaded", typedEvent);
       profileOnDisk.onReloaded(typedEvent);
+    } else if (event instanceof ProjectProfileSetAside) {
+      ProjectProfileSetAside typedEvent = (ProjectProfileSetAside) event;
+      auditEvent(typedEvent);
+      auditInvocation(profileOnDisk, "profileOnDisk", "onSetAside", typedEvent);
+      profileOnDisk.onSetAside(typedEvent);
     } else if (event instanceof ProjectReopenPresented) {
       ProjectReopenPresented typedEvent = (ProjectReopenPresented) event;
       auditEvent(typedEvent);

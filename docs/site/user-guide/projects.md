@@ -231,13 +231,18 @@ This includes edits made by an **assistant over the socket**. If an agent adds a
 
 An auto-save never writes over a profile that changed on disk since the analyser read or last wrote it. The
 change can come from an editor, an agent or a `git pull`. The analyser checks the file the way it checks a loaded
-log, by size, modification time and identity, and then compares its content. When it differs, the analyser
-asks **Project settings changed on disk** and offers three answers:
+log, by size, modification time and identity, and then compares its content. When it differs, a banner above the
+workspace says **Project settings changed on disk.** and offers three buttons:
 
-- **Reload from disk** replaces the project settings in the window with the file's. Edits not yet saved in the
-  window are discarded. The log and graph stay open.
-- **Keep my version** writes the window's settings over the file. This is the only way that happens.
+- **Reload** replaces the project settings in the window with the file's. Edits not yet saved in the window are
+  discarded. The log and graph stay open.
+- **Keep mine** writes the window's settings over the file. This is the only way that happens.
 - **Not now** keeps both. The file stays as it is, and the window's edits wait in memory and are not saved.
+
+Your edits are never dropped without a word. If you switch or close the project, or quit, while **Not now** stands
+and the window has unsaved edits, they are written beside the profile as
+`.analyser/project.fluxtion-settings.unsaved-<date>-<time>`, and the status line says so. That name is not a
+profile, so nothing opens it by accident; copy what you need from it into the profile.
 
 An agent reads the same state as `context.project.profileOnDisk`, and takes the file's version with
 `open {project: "<the open profile>", reload: true}`. Without `reload`, opening the project already in force

@@ -85,6 +85,8 @@ public final class MainFrame extends JFrame {
     private long projectOutputsTimerWatch;
     private final java.util.Map<String, Long> projectOutputRefs = new java.util.LinkedHashMap<>();
     private final ProjectOutputsPanel projectOutputsPanel = new ProjectOutputsPanel(answer -> session().post(answer));
+    /** #177: the open profile changed on disk — the session's offer, as a banner. */
+    final ProjectProfileBanner profileBanner = new ProjectProfileBanner(answer -> session().post(answer));
 
     private final LogTablePanel tablePanel = new LogTablePanel();
     /** The start page uses the whole workspace; an open investigation uses the split view. */
@@ -387,6 +389,11 @@ public final class MainFrame extends JFrame {
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
         actionControl = new AppControlAdapter();
         actionExecutor.bind(topologyPanel, actionControl);
+        // #182: the first write into a project's own analyser-exchange/ made it — a fact for the session, posted on the EDT
+        actionExecutor.onExchangeCreated(dir -> SwingUtilities.invokeLater(() -> {
+            if (session != null) session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                    .ProjectExchangeCreated(telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(dir)));
+        }));
         installSpotlight();                          // M64: the glass pane, and re-measuring on resize
         initialiseRecovery();
         refreshProjectPanel();                       // M37: state the empty session too
@@ -827,33 +834,24 @@ public final class MainFrame extends JFrame {
     static volatile java.util.function.Function<String,
             telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileChoice> profileReloadChooser;
 
-    /** #177: the person answers here; the answer goes to the session, which decides what is performed. */
+    /**
+     * #177: a test's answer to the offer. The person answers on the banner ({@link ProjectProfileBanner}), which renders
+     * the session's decision; with a chooser installed, the answer is posted at once instead.
+     */
     private void presentProfileOffer(String profileKey, String reason) {
         var chooser = profileReloadChooser;
-        if (chooser != null) {
-            postProfileChoice(profileKey, chooser.apply(reason), "person");
-            return;
-        }
-        // the reopen offer's rule: an UNASKED dialog only in a real session (the application enables it); otherwise the
-        // change is stated in context.project.profileOnDisk, and open {project, reload: true} answers it
-        if (!offersEnabled) return;
-        if (project.activeFile() != null) reason = reason + " — " + project.activeLabel();
-        String[] options = {"Reload from disk", "Keep my version", "Not now"};
-        var pane = new JOptionPane(UiText.inert(reason + ".\n\nReload from disk replaces the project settings in this window "
-                + "with the file's (edits not yet saved here are discarded).\nKeep my version writes this window's "
-                + "settings over the file."), JOptionPane.QUESTION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, options, options[0]);
-        var dialog = pane.createDialog(this, "Project settings changed on disk");
-        dialog.setModal(false);   // a session driven over the socket must never sit behind a modal nobody can answer
-        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override public void windowClosed(java.awt.event.WindowEvent e) {
-                Object v = pane.getValue();
-                var choice = options[0].equals(v) ? telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileChoice.RELOAD
-                        : options[1].equals(v) ? telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileChoice.KEEP_MINE
-                        : telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileChoice.LATER;
-                postProfileChoice(profileKey, choice, "person");
-            }
-        });
-        dialog.setVisible(true);
+        if (chooser != null) postProfileChoice(profileKey, chooser.apply(reason), "person");
+    }
+
+    /**
+     * #177: leaving the project set the window's unsaved edits aside — report it as a fact (the file's {@code …/name}),
+     * and the session says where. Called after every path that leaves a project: switch, create, close and quit.
+     */
+    private void reportProfileSetAside() {
+        String aside = project.takeSetAside();
+        if (aside == null || session == null) return;
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileSetAside(
+                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(aside)));
     }
 
     private void postProfileChoice(String profileKey,
@@ -5256,6 +5254,7 @@ public final class MainFrame extends JFrame {
         workspaceNotices.setLayout(new javax.swing.BoxLayout(workspaceNotices, javax.swing.BoxLayout.Y_AXIS));
         workspaceNotices.add(proposalCue);
         workspaceNotices.add(projectOutputsPanel);
+        workspaceNotices.add(profileBanner);
         workspaceArea.add(workspaceNotices, BorderLayout.NORTH);
         workspaceArea.add(workspaceCards, BorderLayout.CENTER);
         add(workspaceArea, BorderLayout.CENTER);
@@ -7697,6 +7696,7 @@ public final class MainFrame extends JFrame {
         renderRecordsView(next);                 // what the Records view shows and hides, as recordsView measured it
         renderAssistant(next);                   // OA-1: the assistant, as assistantLoop decided it
         projectOutputsPanel.render(next.projectOutputs());
+        profileBanner.render(next.profileOnDisk());   // #177: the changed-on-disk banner, from the snapshot
         releaseUnusedBundleCopies(next);
         renderBundleProvenance(next);            // #76: whether this session is received evidence, and which bundle
     }
@@ -9241,6 +9241,7 @@ public final class MainFrame extends JFrame {
                 // that the close is proven by LogClosed rather than assumed from the request.
                 bundleCopies.hold(Path.of(e.profilePath()));
                 var r = project.open(Path.of(e.profilePath()), e.expectedDigest());
+                reportProfileSetAside();   // #177: the previous project's unsaved edits, if the switch had to set them aside
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
                         opId, e.profilePath(), r.loaded(),
                         r.loaded() ? project.activeName() : null, 0, r.message(), null, r.contentDigest());
@@ -9249,6 +9250,7 @@ public final class MainFrame extends JFrame {
                 // M73: ONE write of the node-approved selection (D-73.6). A failure throws: ProjectSession has put the
                 // settings back, and the session hears EffectFailed and warns (G2).
                 var created = project.createNew(Path.of(e.profilePath()), CreateProjectObservation.plan(e.approved()));
+                reportProfileSetAside();
                 // Only now that the profile exists: the reference guide, if approved. Its failure is REPORTED and
                 // neither fails nor rolls back the create [R r2-2].
                 String guide = e.approved() != null && e.approved().referenceGuide()
@@ -9461,6 +9463,7 @@ public final class MainFrame extends JFrame {
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreSettingsEffect e -> {
                 project.close();       // THE REAL HALF: after this there is no project, whatever follows
+                reportProfileSetAside();
                 handoff.clear();       // M48.7: leaving a project ends the session the handoff belonged to
                 // The mirror of ApplyProfileEffect, and it needs the same treatment for the same reason:
                 // the project is already gone, so reporting a failure here left the session naming a project
@@ -11423,8 +11426,9 @@ public final class MainFrame extends JFrame {
             } else {
                 proj.put("note", "your own settings — no project is open");
             }
-            // #177: the open profile changed on disk — the session's statement of it, and how to take the file's version
-            if (session != null && project.hasProject()) {
+            // #177: the open profile changed on disk — the session's statement of it, and how to take the file's version;
+            // after a close or switch, where the window's unsaved edits were set aside
+            if (session != null) {
                 var disk = session.processor().profileOnDisk.state();
                 if (disk != null) proj.put("profileOnDisk", disk);
             }
@@ -12244,8 +12248,17 @@ public final class MainFrame extends JFrame {
                 // B-M20-3: the profile gets the final state too — without this, graphs made this
                 // session never reached the active project at all
                 if (project != null) {
-                    project.requestSave();
-                    project.flush();
+                    // #177: with the file changed on disk, quitting is leaving: unsaved edits are set aside, not dropped,
+                    // and a forced save would only mark nothing-new as unsaved
+                    if (project.conflict() == null) project.requestSave();
+                    project.leave();
+                    String aside = project.takeSetAside();
+                    if (aside != null) {
+                        System.err.println("[analyser] unsaved project edits kept in " + aside
+                                + " (the profile had changed on disk)");
+                        if (offersEnabled) JOptionPane.showMessageDialog(this, UiText.inert("Unsaved project edits kept in\n"
+                                + aside + "\n(the profile had changed on disk)"), "Quit", JOptionPane.INFORMATION_MESSAGE);
+                    }
                 }
             });
             step(this::saveConfigQuietly);   // still runs even if the steps above failed

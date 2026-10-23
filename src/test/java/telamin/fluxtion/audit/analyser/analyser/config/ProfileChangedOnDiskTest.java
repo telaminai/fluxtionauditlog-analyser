@@ -122,6 +122,52 @@ class ProfileChangedOnDiskTest {
         assertEquals(4, onDiskProcessors(s.activeFile()).size());
     }
 
+    @Test
+    @DisplayName("★ #177: close with unsaved edits pending while 'Not now' stands — they are NOT silently lost, and the file is not overwritten")
+    void closingWithUnsavedEditsSetsThemAside(@TempDir Path dir) throws Exception {
+        AppConfig c = new AppConfig();
+        ProjectSession s = openedWithOneProcessor(dir, c);
+        Path file = s.activeFile();
+        externalEdit(file, processors(10));
+        c.eventProcessorFqns.add("com.acme.demo.MineUnsaved");
+        s.requestSave();
+        s.flush();                                 // refused: the file changed on disk ("Not now" leaves it so)
+        s.takeError();
+
+        s.close();
+
+        assertEquals(processors(10), onDiskProcessors(file), "the outside edit still wins on disk");
+        String aside = s.takeSetAside();
+        assertNotNull(aside, "★ the window's edits went somewhere, and the session says where (red before: dropped)");
+        Path side = Path.of(aside);
+        assertEquals(file.getParent(), side.getParent(), "beside the profile");
+        assertTrue(side.getFileName().toString().startsWith("project.fluxtion-settings.unsaved-"), side.toString());
+        assertFalse(ProjectProfile.isProjectProfileFileName(side.getFileName().toString()), "never a profile name");
+        AppConfig kept = new AppConfig();
+        assertTrue(ProjectProfile.load(side, kept, share).loaded() || Files.readString(side).contains("MineUnsaved"));
+        assertTrue(Files.readString(side).contains("com.acme.demo.MineUnsaved"), "the unsaved edit is in it");
+        assertNull(s.takeSetAside(), "said once");
+    }
+
+    @Test
+    @DisplayName("#177: leaving with nothing unsaved, or with no conflict, writes no side file")
+    void noSideFileWithoutUnsavedConflictedEdits(@TempDir Path dir) throws Exception {
+        AppConfig c = new AppConfig();
+        ProjectSession s = openedWithOneProcessor(dir, c);
+        externalEdit(s.activeFile(), processors(10));
+        s.close();                                  // a change on disk, but no edit here
+        assertNull(s.takeSetAside());
+        AppConfig d = new AppConfig();
+        ProjectSession t = openedWithOneProcessor(Files.createDirectories(dir.resolve("other")), d);
+        d.sourceRoots.add("/work/src");
+        t.requestSave();
+        t.close();                                  // an edit, no conflict: it is simply saved
+        assertNull(t.takeSetAside());
+        try (var listing = Files.list(dir.resolve(".analyser"))) {
+            assertEquals(1, listing.count(), "only the profile");
+        }
+    }
+
     private List<String> onDiskProcessors(Path file) {
         AppConfig onDisk = new AppConfig();
         ProjectProfile.load(file, onDisk, share);

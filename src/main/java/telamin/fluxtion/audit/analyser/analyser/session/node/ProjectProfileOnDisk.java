@@ -32,6 +32,8 @@ public class ProjectProfileOnDisk implements EventLogSource {
     private String offered;
     private boolean deferred;
     private String outcome = "";
+    /** Where unsaved edits were last set aside, as {@code …/name}; survives the switch that caused it. */
+    private String setAside;
 
     public ProjectProfileOnDisk(EffectQueue effects) {
         this.effects = effects;
@@ -85,6 +87,34 @@ public class ProjectProfileOnDisk implements EventLogSource {
         auditLog.info("profileOnDisk", "changed").info("saveRefused", saveRefused);
         effects.request(new SessionEffects.OfferProjectProfileReloadEffect(0L, path, reason()));
         return true;
+    }
+
+    /** The adapter set the window's unsaved edits aside while leaving; say where, once, on the status line. */
+    @OnEventHandler
+    public boolean onSetAside(SessionEvents.ProjectProfileSetAside e) {
+        setAside = e.shown();
+        auditLog.info("profileOnDisk", "setAside");
+        effects.request(new SessionEffects.ShowStatusEffect(0L, "Unsaved project edits kept in " + setAside
+                + " — the profile had changed on disk"));
+        return true;
+    }
+
+    /**
+     * #182: a write made the project's {@code analyser-exchange/} — a new folder in the person's repository, said ONCE on
+     * the status line (this node owns what the session says about the project's files on disk).
+     */
+    @OnEventHandler
+    public boolean onExchangeCreated(SessionEvents.ProjectExchangeCreated e) {
+        auditLog.info("exchange", "created");
+        effects.request(new SessionEffects.ShowStatusEffect(0L,
+                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.CREATED_NOTE));
+        return true;
+    }
+
+    /** The banner as decided here, for the snapshot: the open profile while its change waits for an answer, else null. */
+    public telamin.fluxtion.audit.analyser.analyser.session.ProfileOnDiskState banner() {
+        return changed && !deferred && path != null
+                ? new telamin.fluxtion.audit.analyser.analyser.session.ProfileOnDiskState(path, saveRefused) : null;
     }
 
     @OnEventHandler
@@ -154,7 +184,9 @@ public class ProjectProfileOnDisk implements EventLogSource {
 
     /** For {@code context.project.profileOnDisk}: null when the profile is in step and nothing was just done. */
     public java.util.Map<String, Object> state() {
-        if (path == null || (!changed && outcome.isEmpty())) return null;
+        if (path == null || (!changed && outcome.isEmpty())) {
+            return setAside == null ? null : new java.util.LinkedHashMap<>(java.util.Map.of("setAside", setAside));
+        }
         java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
         out.put("state", changed ? "changedOnDisk" : "inStep");
         if (changed) {
@@ -164,6 +196,7 @@ public class ProjectProfileOnDisk implements EventLogSource {
                     + "in-memory edits are discarded); the person can instead keep this session's version");
         }
         if (!outcome.isEmpty()) out.put("last", outcome);
+        if (setAside != null) out.put("setAside", setAside);
         return out;
     }
 

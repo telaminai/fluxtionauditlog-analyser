@@ -78,44 +78,68 @@ class ProfileChangedOnDiskFrameTest {
         });
     }
 
+    static void open(AsyncOpenInterleavingFrameTest.Frame f, Path dir) throws Exception {
+        onEdt(() -> render(f.ex, "open", Map.of("project", dir.toString())));
+        EvidenceCaptureFrameTest.openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+        // the test observes by hand: the frame's own 1.5 s watch would race it on a slow display
+        onEdt(() -> ((javax.swing.Timer) field(f.frame, "profileWatchTimer")).stop());
+    }
+
+    static Path seeded(Path tmp) throws Exception {
+        Path dir = Files.createDirectories(tmp.resolve("demo-project"));
+        AppConfig seed = new AppConfig();
+        seed.eventProcessorFqns.addAll(processors(1));
+        ProjectProfile.save(ProjectProfile.pathFor(dir), seed, new SettingsShare());
+        return dir;
+    }
+
+    static boolean bannerShown(AsyncOpenInterleavingFrameTest.Frame f) throws Exception {
+        AtomicReference<Boolean> shown = new AtomicReference<>();
+        onEdt(() -> shown.set(f.frame.profileBanner.isVisible()));
+        return shown.get();
+    }
+
+    static void changeOnDisk(AsyncOpenInterleavingFrameTest.Frame f, Path file, int n) throws Exception {
+        externalEdit(file, n);
+        onEdt(() -> f.frame.observeProfile(false));
+        WalkPlaybackFrameTest.await("the banner offers the change", () -> f.frame.profileBanner.isVisible());   // runs on the EDT
+    }
+
+    static void editAndSave(AsyncOpenInterleavingFrameTest.Frame f, Path tmp) throws Exception {
+        AppConfig config = (AppConfig) field(f.frame, "config");
+        onEdt(() -> {
+            config.sourceRoots.add(tmp.resolve("src").toString());
+            ((telamin.fluxtion.audit.analyser.analyser.config.ProjectSession) field(f.frame, "project")).requestSave();
+        });
+        flushProject(f);
+    }
+
     @Test
-    @DisplayName("★ #177: an outside edit is offered, survives an auto-save, and open {project, reload: true} reads it (log stays open)")
+    @DisplayName("★ #177: an outside edit is offered on a banner, survives an auto-save, and open {project, reload: true} reads it (log stays open)")
     @SuppressWarnings("unchecked")
     void anOutsideEditIsOfferedKeptAndReloaded(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
-        Path dir = Files.createDirectories(tmp.resolve("demo-project"));
+        Path dir = seeded(tmp);
         Path file = ProjectProfile.pathFor(dir);
-        AppConfig seed = new AppConfig();
-        seed.eventProcessorFqns.addAll(processors(1));
-        ProjectProfile.save(file, seed, new SettingsShare());
-        List<String> asked = new ArrayList<>();
-        var answer = new AtomicReference<>(SessionEvents.ProfileChoice.LATER);
-        MainFrame.profileReloadChooser = reason -> { asked.add(reason); return answer.get(); };
         try (var f = EvidenceCaptureFrameTest.shown(tmp)) {
-            onEdt(() -> render(f.ex, "open", Map.of("project", dir.toString())));
-            EvidenceCaptureFrameTest.openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            open(f, dir);
             AppConfig config = (AppConfig) field(f.frame, "config");
-            // the test observes by hand: the frame's own 1.5 s watch would race it on a slow display
-            onEdt(() -> ((javax.swing.Timer) field(f.frame, "profileWatchTimer")).stop());
             assertEquals(processors(1), named(config.eventProcessorFqns), "control: one processor");
             assertNull(profileOnDisk(f), "control: in step, nothing to say");
+            assertFalse(bannerShown(f), "control: no banner");
 
-            externalEdit(file, 10);
-            onEdt(() -> f.frame.observeProfile(false));
-            WalkPlaybackFrameTest.await("the offer was made", () -> !asked.isEmpty());
-            assertTrue(asked.get(0).startsWith("Project settings changed on disk"), asked.get(0));
-            Map<String, Object> state = profileOnDisk(f);
-            assertEquals("changedOnDisk", state.get("state"), "context states it: " + state);
+            changeOnDisk(f, file, 10);
+            onEdt(() -> assertTrue(f.frame.profileBanner.text().startsWith("Project settings changed on disk"),
+                    f.frame.profileBanner.text()));
+            assertEquals("changedOnDisk", profileOnDisk(f).get("state"), "context states it");
 
-            // "not now", then an in-memory edit and the debounced save: the file is NOT overwritten
-            onEdt(() -> {
-                config.sourceRoots.add(tmp.resolve("src").toString());
-                ((telamin.fluxtion.audit.analyser.analyser.config.ProjectSession) field(f.frame, "project")).requestSave();
-            });
-            flushProject(f);
+            // "Not now", then an in-memory edit and the debounced save: the file is NOT overwritten
+            onEdt(f.frame.profileBanner.notNow::doClick);
+            assertFalse(bannerShown(f), "Not now puts the banner away");
+            editAndSave(f, tmp);
             assertEquals(processors(10), onDisk(file), "★ the outside edit survives the auto-save (red before #177: reverted to 1)");
             assertEquals(Boolean.TRUE, profileOnDisk(f).get("saveRefused"), "and the refusal is stated");
-            assertEquals(1, asked.size(), "one change is offered once");
+            assertFalse(bannerShown(f), "the same change is not offered again");
 
             AtomicReference<Map<String, Object>> reply = new AtomicReference<>();
             onEdt(() -> reply.set(render(f.ex, "open", Map.of("project", dir.toString(), "reload", true))));
@@ -129,20 +153,44 @@ class ProfileChangedOnDiskFrameTest {
             assertTrue(logOpen.get(), "the log stays open: a reload is not a switch");
             assertEquals("inStep", profileOnDisk(f).get("state"));
 
-            // "keep my version" is the only way this session's settings go over a newer file
-            answer.set(SessionEvents.ProfileChoice.KEEP_MINE);
-            externalEdit(file, 3);
-            onEdt(() -> f.frame.observeProfile(false));
-            try {
-                WalkPlaybackFrameTest.await("the second offer, answered keep", () -> asked.size() >= 2
-                        && onDisk(file).size() == 10);
-            } catch (AssertionError timedOut) {
-                throw new AssertionError(timedOut.getMessage() + " — asked=" + asked + " onDisk=" + onDisk(file)
-                        + " profileOnDisk=" + profileOnDisk(f) + " status=" + f.status(), timedOut);
+            // "Keep mine" is the only way this session's settings go over a newer file
+            changeOnDisk(f, file, 3);
+            onEdt(f.frame.profileBanner.keep::doClick);
+            WalkPlaybackFrameTest.await("keep mine wrote the session's version", () -> onDisk(file).size() == 10);
+            assertFalse(bannerShown(f), "and the banner goes");
+        }
+    }
+
+    @Test
+    @DisplayName("★ #177: closing the project with unsaved edits while 'Not now' stands keeps them beside the profile, and says where")
+    @SuppressWarnings("unchecked")
+    void closingWithUnsavedEditsDoesNotLoseThem(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path dir = seeded(tmp);
+        Path file = ProjectProfile.pathFor(dir);
+        try (var f = EvidenceCaptureFrameTest.shown(tmp)) {
+            open(f, dir);
+            changeOnDisk(f, file, 10);
+            onEdt(f.frame.profileBanner.notNow::doClick);
+            editAndSave(f, tmp);
+            assertEquals(processors(10), onDisk(file), "control: the save was refused");
+
+            onEdt(() -> render(f.ex, "open", Map.of("close", "project")));
+
+            assertEquals(processors(10), onDisk(file), "the outside edit still wins on disk");
+            List<Path> aside;
+            try (var listing = Files.list(file.getParent())) {
+                aside = listing.filter(p -> p.getFileName().toString().startsWith("project.fluxtion-settings.unsaved-")).toList();
             }
-            assertEquals(processors(10), onDisk(file), "the person's choice wrote the session's version");
-        } finally {
-            MainFrame.profileReloadChooser = null;
+            assertEquals(1, aside.size(), "★ the window's unsaved edits were kept beside the profile (red before: dropped)");
+            assertTrue(Files.readString(aside.get(0)).contains("src"), "with the edit in it");
+            WalkPlaybackFrameTest.await("the status line says where", () -> String.valueOf(f.status()).startsWith("Unsaved project edits kept in"));
+            assertTrue(f.status().contains(aside.get(0).getFileName().toString()), f.status());
+            AtomicReference<Map<String, Object>> ctx = new AtomicReference<>();
+            onEdt(() -> ctx.set((Map<String, Object>) ((Map<String, Object>) render(f.ex, "context",
+                    Map.of("sections", List.of("project"))).get("context")).get("project")));
+            assertEquals("…/" + aside.get(0).getFileName(), ((Map<String, Object>) ctx.get().get("profileOnDisk")).get("setAside"),
+                    "context says it too: " + ctx.get());
         }
     }
 }

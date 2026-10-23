@@ -349,6 +349,15 @@ public final class SessionEvents {
      */
     public record ProjectProfileChoice(String profileKey, ProfileChoice choice, String origin) { }
 
+    /**
+     * #177: leaving the project (switch, close, quit) while the file had changed on disk, the window's unsaved edits were
+     * written beside the profile rather than dropped. {@code shown} is that file as {@code …/name}, never its path.
+     */
+    public record ProjectProfileSetAside(String shown) { }
+
+    /** #182: a write made the open project's default exchange directory; {@code shown} is its {@code …/name}. */
+    public record ProjectExchangeCreated(String shown) { }
+
     /** #177: the three answers. LATER keeps both: nothing is written over the file, and nothing is reloaded. */
     public enum ProfileChoice { RELOAD, KEEP_MINE, LATER }
 

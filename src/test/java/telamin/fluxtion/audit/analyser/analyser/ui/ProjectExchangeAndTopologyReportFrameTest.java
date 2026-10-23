@@ -67,6 +67,13 @@ class ProjectExchangeAndTopologyReportFrameTest {
             assertNotNull(exchange, "the reply says where it went: " + shot.get());
             assertEquals("project default", exchange.get("source"));
             assertEquals(projectDir.toRealPath().resolve("analyser-exchange").toString(), exchange.get("dir"));
+            assertEquals("Created analyser-exchange/ in the project; you may want to add it to .gitignore", exchange.get("created"),
+                    "★ the first write that makes the folder says so, once (owner, #182)");
+            WalkPlaybackFrameTest.await("the status line says it too",
+                    () -> String.valueOf(((javax.swing.JLabel) field(f.frame, "status")).getText()).startsWith("Created analyser-exchange/"));
+            AtomicReference<Map<String, Object>> again = new AtomicReference<>();
+            onEdt(() -> again.set(render(f.ex, "screenshot", Map.of("path", "shot2.png"))));
+            assertNull(((Map<String, Object>) payload(again.get()).get("exchange")).get("created"), "and only the first time");
 
             AtomicReference<Map<String, Object>> report = new AtomicReference<>();
             onEdt(() -> report.set(render(f.ex, "report", Map.of("name", "topo", "title", "DEMO topology",
