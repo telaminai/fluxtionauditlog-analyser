@@ -783,7 +783,11 @@ public final class MainFrame extends JFrame {
      * person the choice. Nothing here reloads or writes. A poll, because nothing notifies us of another writer.
      */
     private void startProfileWatch() {
-        profileWatchTimer = new javax.swing.Timer(1500, e -> observeProfile(false));
+        profileWatchTimer = new javax.swing.Timer(1500, e -> {
+            // a disposed window observes nothing: its project may be gone, and nobody is there to answer an offer
+            if (!isDisplayable()) { profileWatchTimer.stop(); return; }
+            observeProfile(false);
+        });
         profileWatchTimer.setRepeats(true);
         profileWatchTimer.start();
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -808,6 +812,8 @@ public final class MainFrame extends JFrame {
         Path file = project.activeFile();
         var now = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(file);
         if (!saveRefused && now.equals(profileObservation)) return;
+        // a removed profile is not an edit to reload from; a save over it is still refused and reported (saveRefused)
+        if (!saveRefused && now.containsKey("problem")) { profileObservation = now; return; }
         profileObservation = now;
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileObserved(
                 telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.identityKey(file), telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.contentDigestOf(file),
@@ -828,6 +834,9 @@ public final class MainFrame extends JFrame {
             postProfileChoice(profileKey, chooser.apply(reason), "person");
             return;
         }
+        // the reopen offer's rule: an UNASKED dialog only in a real session (the application enables it); otherwise the
+        // change is stated in context.project.profileOnDisk, and open {project, reload: true} answers it
+        if (!offersEnabled) return;
         if (project.activeFile() != null) reason = reason + " — " + project.activeLabel();
         String[] options = {"Reload from disk", "Keep my version", "Not now"};
         var pane = new JOptionPane(UiText.inert(reason + ".\n\nReload from disk replaces the project settings in this window "
