@@ -2742,6 +2742,29 @@ CONTROLS += [
      'BuilderDocumentTest#nestedRegistrationsUseIndexedDelimiterAndArgumentSpans'),
 ]
 
+# M79-7 (spec-first-minute §19.3, A7.1-A7.3): the published philosophy packs stay droppable, refuse an unshipped
+# teach: entry, and pin the run §6.4 records.
+CONTROLS += [
+    ('m79-7-published-pack-stays-valid', 'docs/site/start/packs/local-knowledge-global-behaviour.md',
+     '— example: https://github.com/telaminai/fluxtion-diamond/', '— https://github.com/telaminai/fluxtion-diamond/',
+     'PhilosophyPacksTest#eachPublishedPackIsValid'),
+    ('m79-7-teach-entry-refused', J + 'assistant/PromptPack.java',
+     '            if (prompt.startsWith("teach:")) return refuse(i + 1, Cause.TEACH_NOT_SHIPPED);\n', '',
+     'PhilosophyPacksTest#aTeachEntryNamingAnUnshippedConversationIsRefused'),
+    ('m79-7-pack-pin-drift', 'docs/site/start/packs/what-is-fluxtion.md',
+     'dad9b4382099a9ff26d9fe624f01fbbc80f67c50', '35e4849aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+     'PhilosophyPacksTest#thePinnedRunMatchesTheSpecsPin'),
+    ('m79-7-spec-pin-drift', 'docs/specs/spec-first-minute.md',
+     'byte-identical at `dad9b43`, the', 'byte-identical at `35e4849`, the',
+     'PhilosophyPacksTest#thePinnedRunMatchesTheSpecsPin'),
+    # review PR #197 (P2): without the loose-shape check a bare "teach: id" is read as a label and a question
+    ('m79-7-loose-teach-refused', J + 'assistant/PromptPack.java',
+     '            else if (!TEACH_LINE.matcher(l).lookingAt() && LOOSE_TEACH.matcher(l).find()) {\n'
+     '                return refuse(line, Cause.TEACH_NOT_SHIPPED);\n'
+     '            }\n', '',
+     'PhilosophyPacksTest#aTeachEntryNamingAnUnshippedConversationIsRefused'),
+]
+
 # PR #174 review: bounded table expansion and widths from the final displayed runs, not the Markdown source.
 CONTROLS += [
     ('transcript-table-cell-expansion-bound', UI + 'SafeMarkdown.java',

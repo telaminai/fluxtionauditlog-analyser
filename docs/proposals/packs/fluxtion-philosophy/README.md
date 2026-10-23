@@ -10,10 +10,10 @@ Mongoose plugins. They are drafts: most teaching examples are placeholders until
 
 | Pack | Title | For | What it should leave the person with |
 |---|---|---|---|
-| [01-basic.md](01-basic.md) | What is Fluxtion? | A Java developer who has never used Fluxtion | What an event, a handler, a trigger and dispatch are; how to read them in the records; which code they wrote and which the compiler generated; why "it wires my objects at build time" is a useful (and limited) DI comparison; how their own classes would look as nodes. |
-| [02-intermediate.md](02-intermediate.md) | Local knowledge, global behaviour | Someone who has run a Fluxtion processor and read its records | Each node declares only its parents; the compiler derives the global order. The diamond, the returned boolean, guards and change detection — each checked against the records rather than asserted — and how this compares with hand-written callbacks, an event bus or a scheduler. |
+| 01-basic.md | What is Fluxtion? | A Java developer who has never used Fluxtion | **Moved** to the docs site (M79-7): [`docs/site/start/packs/what-is-fluxtion.md`](../../../site/start/packs/what-is-fluxtion.md) |
+| 02-intermediate.md | Local knowledge, global behaviour | Someone who has run a Fluxtion processor and read its records | **Moved** to the docs site (M79-7): [`docs/site/start/packs/local-knowledge-global-behaviour.md`](../../../site/start/packs/local-knowledge-global-behaviour.md) |
 | [03-advanced.md](03-advanced.md) | Thinking in Fluxtion | Someone designing a graph, or reviewing one | The closed-world build step and its assumptions; where the model stops (hidden shared state, undeclared dependencies, side effects, threads, mutation from outside); determinism and replay; composing components they did not write. |
-| [04-audit-and-evidence.md](04-audit-and-evidence.md) | Audit logs and evidence | Anyone reading a log in the analyser, or handed one | What a record shows; audit levels (INFO against TRACE); what a silent node means; whether order in a record is meaningful; flags, reports and walks; packing and verifying an evidence bundle; trusting the evidence rather than the author. |
+| 04-audit-and-evidence.md | Audit logs and evidence | Anyone reading a log in the analyser, or handed one | **Moved** to the docs site (M79-7): [`docs/site/start/packs/audit-logs-and-evidence.md`](../../../site/start/packs/audit-logs-and-evidence.md) |
 | [05-deploy-mongoose.md](05-deploy-mongoose.md) | Running it in Mongoose | Someone taking a processor to a Mongoose server | The Fluxtion / Mongoose split; how configuration composes an app; how events reach the processor and on which thread; server and processor lifecycle; sinks and services; getting the audit log to the analyser; observing a running server. |
 | [06-deploy-embedded.md](06-deploy-embedded.md) | Embedding the processor | Someone putting the generated processor straight into their own application | Embedded against hosted; creating the processor by name; wiring the event input and its thread; the lifecycle in order; reusing an instance; testing; audit output; changing a node from outside safely. |
 | [07-cpp-preview.md](07-cpp-preview.md) | C++ generation (preview) | Someone curious about, or evaluating, the C++ target | That it is a **preview** and evolving: what the path takes and produces, what the supported subset is *today* (asked, never assumed), what is tested against Java, its audit output, and what to check before depending on it. |
@@ -39,7 +39,7 @@ asks the analyser to *write* something (04/7, an evidence bundle) asks it to exp
 Check a pack before dropping it, with no analyser built:
 
 ```
-python3 tools/m74_onboarding_runner.py lint-pack docs/proposals/packs/fluxtion-philosophy/01-basic.md
+python3 tools/m74_onboarding_runner.py lint-pack docs/proposals/packs/fluxtion-philosophy/03-advanced.md
 ```
 
 It prints the parsed pack, or one refusal with its line and cause (the runner's mirror of the Java parser).
@@ -71,9 +71,12 @@ golden-path shape. The others:
   draft (2026-10-17). It is the only real pin. The repository has no scheduler module (Mongoose's scheduler is a
   built-in service), so 08's tour uses `connector-file`, the plainest source-and-sink pair.
 
-No teaching project is published yet. Entry 1 of packs 01–07 is therefore a clearly marked **PLACEHOLDER**
-(owner `example`, an all-zero commit), and each pack's description line says so. **Pin it before use**: replace it
-with the published project's `…/archive/<40-hex commit>.zip` URL (and, ideally, its `sha256:`), then re-run the lint.
+**The diamond is published**: `telaminai/fluxtion-diamond`, pinned at commit `dad9b43…` (commit `d1e38e2b` here,
+2026-10-18). Entry 1 of packs 01–04 and 06 names that archive. Its `sample/diamond-audit.yaml` is byte-identical to
+the generic run at the first minute's pin `24d6d74` (`docs/specs/spec-first-minute.md` §6.4), and
+`PhilosophyPacksTest` fails if the two references drift apart. Entry 1 of 07 is still a clearly marked
+**PLACEHOLDER** (owner `example`, an all-zero commit): replace it with the published project's
+`…/archive/<40-hex commit>.zip` URL (and, ideally, its `sha256:`), then re-run the lint.
 
 ## Toolchain observations
 
@@ -111,8 +114,8 @@ first-event behaviour, what a silent node means — are deliberately phrased as 
 
 Where no authoritative public source states something, the prompt asks rather than asserts, and the gap is here:
 
-1. **The teaching projects.** None of the seven placeholder examples exists; each needs a published, pinned project
-   of the shape described above.
+1. **The teaching projects.** Stale for 01–04 and 06, which name the published diamond (above). Still open for 07,
+   whose placeholder needs a published, pinned project of the shape described above.
 2. **C++ supported subset (07/3).** No public page states which annotations, node shapes, event types, services or DSL
    features the C++ target supports. The public material (FLXA format page, performance pages, the compiler config's
    `targetId`, this repo's latency-kit README) says only that a C++ generator and header-only runtime exist, that the

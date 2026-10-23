@@ -194,6 +194,13 @@ _PLAIN_LABEL = re.compile(r'^([^*:—–]{1,60}?)[ \t]+(—|–|--|-)[ \t]+(\S.*
 _LOOSE_EXAMPLE = re.compile(r'^(?:\d{1,2}[.)]|[-*+])[ \t]+(?:\*\*[^*]*\*\*[ \t]*(?:—|–|--|-|:)?[ \t]*'
                             r'|[^*]{0,60}?[ \t]+(?:—|–|--|-)[ \t]+|[^*:]{0,60}:[ \t]+)?example:[ \t]*<?https?://',
                             re.ASCII | re.IGNORECASE)
+# Review PR #197 (P2): a teach entry in any loose shape or case is refused by name, as _LOOSE_EXAMPLE; only the strict
+# shape (_TEACH_LINE) goes on to the entry check. PromptPack.LOOSE_TEACH / TEACH_LINE.
+_LOOSE_TEACH = re.compile(r'^(?:\d{1,2}[.)]|[-*+])[ \t]+(?:\*\*[^*]*\*\*[ \t]*(?:—|–|--|-|:)?[ \t]*'
+                          r'|[^*]{0,60}?[ \t]+(?:—|–|--|-)[ \t]+|[^*:]{0,60}:[ \t]+)?(?:\*\*)?teach(?:[ \t]*:'
+                          r'|(?:\*\*[ \t]*(?:—|–|--|-|:)?|[ \t]+(?:—|–|--|-))[ \t]*[a-z0-9][a-z0-9._-]*[ \t]*$)',
+                          re.ASCII | re.IGNORECASE)
+_TEACH_LINE = re.compile(r'^\d{1,2}\. \*\*[^*]+\*\* — teach: ', re.ASCII)
 _HTML_TAG = re.compile(r'<\s*[/!?A-Za-z]', re.ASCII)
 _PLACEHOLDER = re.compile(r'\{[A-Za-z_][A-Za-z0-9_]*\}')
 _LINK = re.compile(r'\]\(|https?://|\bwww\.|<https?:', re.IGNORECASE)
@@ -335,6 +342,8 @@ def lint_pack(data):
             l = ex.group(1)
         elif _LOOSE_EXAMPLE.search(l):
             return refuse(i, 'EXAMPLE_MALFORMED')
+        elif not _TEACH_LINE.match(l) and _LOOSE_TEACH.search(l):
+            return refuse(i, 'TEACH_NOT_SHIPPED')
         if _HTML_TAG.search(l):
             return refuse(i, 'HTML')
         if _LINK.search(l):
@@ -409,6 +418,8 @@ def lint_pack(data):
             return refuse(i + 1, 'EMPTY_TEXT')
         if len(prompt) > MAX_TEXT:
             return refuse(i + 1, 'TEXT_TOO_LONG')
+        if prompt.startswith('teach:'):         # M79-7 A7.2: no teaching conversation ships before M79-2
+            return refuse(i + 1, 'TEACH_NOT_SHIPPED')
         if prompt.startswith('example:'):
             x = _EXAMPLE.fullmatch(prompt)
             if not x:

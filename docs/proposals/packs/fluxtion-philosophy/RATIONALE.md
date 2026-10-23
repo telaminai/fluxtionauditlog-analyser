@@ -37,11 +37,14 @@ Sources, read 2026-10-17 (CLAUDE.md rule 6):
 "Check, don't assert" marks an entry whose answer the sources do not state outright, so the prompt makes the
 assistant check the records and generated code and say when it cannot tell.
 
-Entry 1 of every pack is the same **PLACEHOLDER** teaching example (owner `example`, all-zero commit). It teaches
+Entry 1 of 01–04 and 06 is the published diamond (`telaminai/fluxtion-diamond` at `dad9b43…`); entry 1 of 07 is
+still a **PLACEHOLDER** (owner `example`, all-zero commit). Entry 1 teaches
 nothing by itself; its shape (builder, written source and GraphML, audit on) follows GP §2 and CT *Build-time
 generation — `FluxtionGraphBuilder`*. See README ▸ *The teaching example each pack expects*.
 
 ## 01-basic.md — What is Fluxtion?
+
+Published as [`docs/site/start/packs/what-is-fluxtion.md`](../../../site/start/packs/what-is-fluxtion.md) (M79-7).
 
 | # | Label | Concept | Source |
 |---|---|---|---|
@@ -54,6 +57,8 @@ generation — `FluxtionGraphBuilder`*. See README ▸ *The teaching example eac
 | 8 | How would my own code look? | Plain Java classes, state in fields, upstreams in the constructor; side effects at terminal nodes | CT *House style*; CT *Why this framework fits AI authoring* (local reasoning per node) |
 
 ## 02-intermediate.md — Local knowledge, global behaviour
+
+Published as [`docs/site/start/packs/local-knowledge-global-behaviour.md`](../../../site/start/packs/local-knowledge-global-behaviour.md) (M79-7).
 
 | # | Label | Concept | Source |
 |---|---|---|---|
@@ -96,6 +101,8 @@ generation — `FluxtionGraphBuilder`*. See README ▸ *The teaching example eac
   whether the framing is fair rather than asserting it.
 
 ## 04-audit-and-evidence.md — Audit logs and evidence
+
+Published as [`docs/site/start/packs/audit-logs-and-evidence.md`](../../../site/start/packs/audit-logs-and-evidence.md) (M79-7).
 
 | # | Label | Concept | Source |
 |---|---|---|---|

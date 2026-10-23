@@ -27,9 +27,18 @@ first about the DEMO log, and one example entry whose address is a placeholder. 
 page to try it: [download it from GitHub](https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/site/user-guide/sample-prompt-pack.md).
 A test reads that file on every build and fails if it stops being a valid pack.
 
-!!! info "Coming: the Fluxtion philosophy packs"
-    Packs that teach how Fluxtion thinks (events, dependencies, dispatch, the audit) are being written. They are not
-    published yet; this page will offer them when they are.
+## The Fluxtion philosophy packs
+
+Three packs teach how Fluxtion thinks: events, dependencies, dispatch and the audit. Each starts with the same
+example, the published four-node diamond pinned by commit, so every answer can point at real records, a real graph
+and real generated source.
+
+- [What is Fluxtion?](packs/what-is-fluxtion.md), for a Java developer who has never used Fluxtion: [download it from GitHub](https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/site/start/packs/what-is-fluxtion.md).
+- [Local knowledge, global behaviour](packs/local-knowledge-global-behaviour.md), for someone who has run a processor and read its records: [download it from GitHub](https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/site/start/packs/local-knowledge-global-behaviour.md).
+- [Audit logs and evidence](packs/audit-logs-and-evidence.md), for anyone reading a log in the analyser, or handed one: [download it from GitHub](https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/site/start/packs/audit-logs-and-evidence.md).
+
+Entry 1 of each is the diamond: choose it and press **Download example…** to fetch it, then build and run it so its
+log is open. A test reads each file on every build and fails if it stops being a valid pack.
 
 ## Write your own
 
@@ -69,6 +78,7 @@ What is unsafe or out of bounds is still refused:
   which can carry text no one sees; one U+FE0F directly after an emoji (the emoji form of ⚠, for example) is allowed;
 - no title line, no entries, or a number out of order;
 - an example entry that is not exactly its strict shape;
+- a `teach:` entry: it names a teaching conversation shipped with the analyser, and none ships yet;
 - any other line after the entries, or an unclosed `**`.
 
 A refused file names **one cause and its line**, for example *"This prompt pack was not used: line 5 — HTML is not

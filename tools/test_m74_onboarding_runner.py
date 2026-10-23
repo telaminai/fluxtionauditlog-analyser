@@ -31,7 +31,7 @@ class PackGrammarTest(unittest.TestCase):
         self.assertGreaterEqual(len(cases), 89)
         for name, c in cases.items():
             with self.subTest(name):
-                got = r.lint_pack(c['input'])
+                got = r.lint_pack((HERE.parent / c['path']).read_bytes() if 'path' in c else c['input'])
                 if 'cause' in c['java']:
                     self.assertEqual(got.get('refusal'), c['java'])
                 else:
@@ -54,7 +54,8 @@ class PackGrammarTest(unittest.TestCase):
         self.assertEqual(fixes, set(r.FIXES))
         causes = {c['java']['cause'] for c in cases.values() if 'cause' in c['java']}
         for kept in ('HTML', 'IMAGE', 'HIDDEN_CHARACTER', 'TOO_MANY', 'LABEL_TOO_LONG', 'TEXT_TOO_LONG', 'TITLE_TOO_LONG',
-                     'DESCRIPTION_TOO_LONG', 'PLACEHOLDER', 'LINK', 'MISSING_LABEL', 'EMPTY_TEXT', 'EXAMPLE_MALFORMED'):
+                     'DESCRIPTION_TOO_LONG', 'PLACEHOLDER', 'LINK', 'MISSING_LABEL', 'EMPTY_TEXT', 'EXAMPLE_MALFORMED',
+                     'TEACH_NOT_SHIPPED'):
             self.assertIn(kept, causes)
         for name in ('fix-dash-hyphen', 'fix-dash-double-hyphen', 'fix-dash-en', 'fix-dash-colon', 'fix-colon-in-bold',
                      'fix-plain-label-em', 'fix-bare-first-sentence', 'fix-bare-first-words-capped', 'fix-bullet-hyphen',
@@ -109,9 +110,18 @@ class PackGrammarTest(unittest.TestCase):
                     self.assertNotRegex(text, r'analyser_|\bopen \{|\brecord #|#\d|\.yaml|\.graphml|spotlight')
 
     def test_every_published_pack_lints(self):
-        """The teaching packs under docs/proposals/packs/ are dropped on the start page as they are: each must parse."""
-        packs = sorted((HERE.parent / 'docs/proposals/packs').glob('*/[0-9]*.md'))
-        self.assertGreaterEqual(len(packs), 8)
+        """The teaching packs are dropped on the start page as they are: each must parse. The drafts stay under
+        docs/proposals/packs/; M79-7 moved three to the docs site (docs/site/start/packs/), which the cross-check also
+        pins by path (OD-79.28)."""
+        drafts = sorted((HERE.parent / 'docs/proposals/packs').glob('*/[0-9]*.md'))
+        published = sorted((HERE.parent / 'docs/site/start/packs').glob('*.md'))
+        self.assertGreaterEqual(len(drafts), 5)
+        self.assertEqual(len(published), 3)
+        cases = json.loads((FIX / 'pack-crosscheck.json').read_text())['cases']
+        pinned = {c['path'] for c in cases.values() if 'path' in c}
+        self.assertEqual(pinned, {str(p.relative_to(HERE.parent)) for p in published},
+                         'every published pack has a Java-recorded cross-check row')
+        packs = drafts + published
         for p in packs:
             with self.subTest(p.name):
                 self.assertIn('pack', r.lint_pack(p.read_bytes()), p.name)

@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
  *   description := one line that is not an entry                         (1–140 characters)
  *   entry-line  := n ". **" label "** — " text                           (n = 1, 2, … in order; label 1–60; text 1–500)
  *                | n ". **" label "** — example: " url [" sha256:" hex64] (P2b: a downloadable example, ExampleSource)
+ *                | n ". **" label "** — teach: " id                     (M79-2's kind; refused until one ships, A7.2)
  * </pre>
  *
  * <p>An <b>example</b> entry (owner request 2026-10-17) names an archive of a PINNED commit on an allowed host
@@ -144,7 +145,13 @@ public final class PromptPack {
         EXAMPLE_HOST("an example's host must be one of " + String.join(", ", ExampleSource.ALLOWED_HOSTS)),
         EXAMPLE_NOT_ARCHIVE("an example must be a commit archive (…/archive/<commit>.zip), with no user, port, query or fragment"),
         EXAMPLE_MOVING_REF("an example must pin a 40-character commit, not a branch or tag"),
-        EXAMPLE_DIGEST("an example's sha256 must be 64 hexadecimal characters");
+        EXAMPLE_DIGEST("an example's sha256 must be 64 hexadecimal characters"),
+        /**
+         * M79-7 (spec-first-minute §19.2 item 4, ★ A7.2; OD-79.19): a {@code teach:} entry may name only a teaching
+         * conversation shipped in the jar. None ships before M79-2, so every one is refused rather than read as prose
+         * the person would send. M79-2 replaces this with the lookup by id and digest (A2.2).
+         */
+        TEACH_NOT_SHIPPED("a teach: entry must name a teaching conversation shipped with the analyser, and none is");
 
         public final String words;
 
@@ -177,6 +184,16 @@ public final class PromptPack {
     /** A line that reads as an example entry in any shape — it must then be EXACTLY the strict shape. */
     private static final Pattern LOOSE_EXAMPLE = Pattern.compile("(?i)^(?:\\d{1,2}[.)]|[-*+])[ \\t]+(?:\\*\\*[^*]*\\*\\*[ \\t]*"
             + "(?:—|–|--|-|:)?[ \\t]*|[^*]{0,60}?[ \\t]+(?:—|–|--|-)[ \\t]+|[^*:]{0,60}:[ \\t]+)?example:[ \\t]*<?https?://");
+    /**
+     * Review PR #197 (P2): a line that reads as a teach entry in any shape — bare ("1. teach: id"), in a bold label
+     * ("1. **teach:** id"), as a plain label ("- teach - id") or in any case ("Teach:") — is refused by name, as
+     * LOOSE_EXAMPLE refuses a loose example, rather than read as a label and a question. Only the strict shape
+     * (TEACH_LINE) goes on to the entry check, where M79-2's lookup will replace the refusal.
+     */
+    private static final Pattern LOOSE_TEACH = Pattern.compile("(?i)^(?:\\d{1,2}[.)]|[-*+])[ \\t]+(?:\\*\\*[^*]*\\*\\*[ \\t]*"
+            + "(?:—|–|--|-|:)?[ \\t]*|[^*]{0,60}?[ \\t]+(?:—|–|--|-)[ \\t]+|[^*:]{0,60}:[ \\t]+)?(?:\\*\\*)?teach(?:[ \\t]*:"
+            + "|(?:\\*\\*[ \\t]*(?:—|–|--|-|:)?|[ \\t]+(?:—|–|--|-))[ \\t]*[a-z0-9][a-z0-9._-]*[ \\t]*$)");
+    private static final Pattern TEACH_LINE = Pattern.compile("^\\d{1,2}\\. \\*\\*[^*]+\\*\\* — teach: ");
     private static final Pattern HTML_TAG = Pattern.compile("<\\s*[/!?A-Za-z]");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{[A-Za-z_][A-Za-z0-9_]*\\}");
     private static final Pattern LINK = Pattern.compile("\\]\\(|https?://|\\bwww\\.|<https?:", Pattern.CASE_INSENSITIVE);
@@ -224,6 +241,9 @@ public final class PromptPack {
             // An example entry is never normalised: one that is not exactly the strict shape is refused by name.
             if (example.matches()) l = example.group(1);
             else if (LOOSE_EXAMPLE.matcher(l).find()) return refuse(line, Cause.EXAMPLE_MALFORMED);
+            else if (!TEACH_LINE.matcher(l).lookingAt() && LOOSE_TEACH.matcher(l).find()) {
+                return refuse(line, Cause.TEACH_NOT_SHIPPED);
+            }
             if (HTML_TAG.matcher(l).find()) return refuse(line, Cause.HTML);
             if (LINK.matcher(l).find()) return refuse(line, Cause.LINK);
             if (PLACEHOLDER.matcher(l).find()) return refuse(line, Cause.PLACEHOLDER);
@@ -285,6 +305,7 @@ public final class PromptPack {
             if (length(label) > MAX_LABEL) return refuse(i + 1, Cause.LABEL_TOO_LONG);
             if (prompt.isEmpty()) return refuse(i + 1, Cause.EMPTY_TEXT);
             if (length(prompt) > MAX_TEXT) return refuse(i + 1, Cause.TEXT_TOO_LONG);
+            if (prompt.startsWith("teach:")) return refuse(i + 1, Cause.TEACH_NOT_SHIPPED);
             if (prompt.startsWith("example:")) {
                 Matcher x = EXAMPLE.matcher(prompt);
                 if (!x.matches()) return refuse(i + 1, Cause.EXAMPLE_MALFORMED);
