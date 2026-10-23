@@ -20,6 +20,11 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>Witness: change any other part of the source schema (a word of {@code fqn}'s description), or add a second
  * parameter — the reverted digest no longer matches {@link #BEFORE} and the named surface fails.
+ *
+ * <p>{@link #AFTER} was this change's live pin at the time ({@code WorkModeKeepsTheApiTest.PINNED} held exactly these
+ * values, and this test said so). A later change — {@code SpotlightLineRangeApiDeltaTest} (M80) — moved four of these
+ * five pins again, so that check now belongs there, not here; {@link #AFTER} stays as the historical record of what
+ * this change alone produced.
  */
 class SourceTextApiDeltaTest {
 
@@ -82,18 +87,29 @@ class SourceTextApiDeltaTest {
     @Test
     @DisplayName("★ source gains only the optional text parameter and one sentence: undone, every surface is as before")
     void theOnlyDeltaIsSourceText() throws Exception {
-        assertEquals(BEFORE.get("VerbSchemas.all"), WorkModeKeepsTheApiTest.sha(revertSchemas(VerbSchemas.all())));
-        assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(revertSchemas(VerbSchemas.hosted())));
-        assertEquals(BEFORE.get("McpTools.list"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.list())));
-        assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.hostedList())));
-        String manifest = M80DesignApiDeltaTest.withoutM80(PromptBuilder.inProcessActionManifest(3));
+        // M80's line-range grammar (this branch) and M80 PR2's node synonym are both LATER, sibling deltas
+        // (SpotlightLineRangeApiDeltaTest / M80DesignApiDeltaTest); undone first everywhere. revertSchemas/
+        // revertTools already strip M80 PR2's text internally, so only this branch's needs stripping here too.
+        assertEquals(BEFORE.get("VerbSchemas.all"), WorkModeKeepsTheApiTest.sha(
+                revertSchemas(SpotlightLineRangeApiDeltaTest.revertSchemas(VerbSchemas.all()))));
+        assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(
+                revertSchemas(SpotlightLineRangeApiDeltaTest.revertSchemas(VerbSchemas.hosted()))));
+        assertEquals(BEFORE.get("McpTools.list"), WorkModeKeepsTheApiTest.sha(
+                revertTools(SpotlightLineRangeApiDeltaTest.revertTools(McpTools.list()))));
+        assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(
+                revertTools(SpotlightLineRangeApiDeltaTest.revertTools(McpTools.hostedList()))));
+        String manifest = M80DesignApiDeltaTest.withoutM80(SpotlightLineRangeApiDeltaTest.withoutLineRange(
+                PromptBuilder.inProcessActionManifest(3)));
         String added = "  source {file, bean, line, fqn, method, text} -> ";
         assertTrue(manifest.contains(added), "the in-process manifest lists the parameter");
         assertEquals(BEFORE.get("PromptBuilder.inProcessActionManifest"), WorkModeKeepsTheApiTest.sha(
                 manifest.replace(added, "  source {file, bean, line, fqn, method} -> ")));
+        // "the pin before M80 and the line-range grammar": strip BOTH sibling deltas from the LIVE surfaces and
+        // you get back to what this change alone produced (AFTER) — proves neither sibling touched source {text}.
         for (var e : AFTER.entrySet()) {
             assertEquals(e.getValue(), WorkModeKeepsTheApiTest.sha(M80DesignApiDeltaTest.withoutM80(
-                    WorkModeKeepsTheApiTest.surfaces().get(e.getKey()))), "the pin before M80: " + e.getKey());
+                    SpotlightLineRangeApiDeltaTest.withoutLineRange(WorkModeKeepsTheApiTest.surfaces().get(e.getKey())))),
+                    "the pin before M80 and the line-range grammar: " + e.getKey());
         }
     }
 

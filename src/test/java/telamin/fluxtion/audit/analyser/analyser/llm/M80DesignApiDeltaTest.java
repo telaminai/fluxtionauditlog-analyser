@@ -49,9 +49,12 @@ class M80DesignApiDeltaTest {
 
     @Test
     void undoingOnlyTheApprovedMetadataRestoresEveryPreviousHash() throws Exception {
+        // M80 PR1 (a sibling branch, merged alongside this one) widened the spotlight line grammar in disjoint
+        // text of the same five surfaces; peel it off too, so this stays "undo ONLY the approved M80 PR2 metadata".
         Set<String> changed = new TreeSet<>();
         for (var surface : WorkModeKeepsTheApiTest.surfaces().entrySet()) {
-            assertEquals(BEFORE.get(surface.getKey()), WorkModeKeepsTheApiTest.sha(withoutM80(surface.getValue())),
+            Object withoutPR1 = SpotlightLineRangeApiDeltaTest.withoutLineRange(surface.getValue());
+            assertEquals(BEFORE.get(surface.getKey()), WorkModeKeepsTheApiTest.sha(withoutM80(withoutPR1)),
                     "only the approved M80 delta may change: " + surface.getKey());
             if (!BEFORE.get(surface.getKey()).equals(WorkModeKeepsTheApiTest.sha(surface.getValue()))) changed.add(surface.getKey());
         }

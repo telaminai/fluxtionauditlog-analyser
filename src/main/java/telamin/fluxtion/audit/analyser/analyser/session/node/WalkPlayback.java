@@ -185,6 +185,14 @@ public class WalkPlayback implements EventLogSource {
         return true;
     }
 
+    @OnEventHandler public boolean onFirstContactGraphOpened(SessionEvents.GraphOpened e) {
+        if (!firstContact || e.firstMinuteTicket() > 0) return false;
+        if (walk != null) end("another topology was opened");
+        firstContact = false;
+        stage = WalkPlaybackState.Stage.RECORDS;
+        return true;
+    }
+
     @OnEventHandler
     public boolean onFirstMinuteDoorChosen(SessionEvents.FirstMinuteDoorChosen e) { return leaveFirstContact(); }
 

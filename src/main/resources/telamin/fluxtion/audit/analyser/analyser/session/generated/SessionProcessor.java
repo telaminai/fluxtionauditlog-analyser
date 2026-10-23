@@ -1590,7 +1590,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "810e7b096cae079be23f1e8843e044ce34aeca2f23d44ce06e1df851ec3088e5",
+              "9682441948bb30a33622c188378f060bfebd6f83f8dc4d9ba81a5a41afa2ad95",
               null));
 
   @Override
@@ -4672,10 +4672,14 @@ public class SessionProcessor
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       isDirty_walkPlayback = walkPlayback.onLogChanged();
     }
+    auditInvocation(walkPlayback, "walkPlayback", "onFirstContactGraphOpened", typedEvent);
+    isDirty_walkPlayback = walkPlayback.onFirstContactGraphOpened(typedEvent);
     if (guardCheck_firstMinute()) {
       auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
       firstMinute.changed();
     }
+    auditInvocation(firstMinute, "firstMinute", "graphChosen", typedEvent);
+    firstMinute.graphChosen(typedEvent);
     auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
     projectReopenOffer.onGraphOpened(typedEvent);
     afterEvent();
@@ -5770,6 +5774,8 @@ public class SessionProcessor
       auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
       firstMinute.changed();
     }
+    auditInvocation(firstMinute, "firstMinute", "logChosen", typedEvent);
+    firstMinute.logChosen(typedEvent);
     auditInvocation(projectReopenOffer, "projectReopenOffer", "onOpenLogRequested", typedEvent);
     projectReopenOffer.onOpenLogRequested(typedEvent);
     afterEvent();
@@ -5822,6 +5828,8 @@ public class SessionProcessor
       auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
       firstMinute.changed();
     }
+    auditInvocation(firstMinute, "firstMinute", "projectChosen", typedEvent);
+    firstMinute.projectChosen(typedEvent);
     auditInvocation(projectReopenOffer, "projectReopenOffer", "onOpenProjectRequested", typedEvent);
     projectReopenOffer.onOpenProjectRequested(typedEvent);
     afterEvent();
@@ -7301,6 +7309,10 @@ public class SessionProcessor
       isDirty_onboardingProposal = onboardingProposal.onGraphOpened(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onGraphOpened", typedEvent);
       isDirty_assistantLoop = assistantLoop.onGraphOpened(typedEvent);
+      auditInvocation(walkPlayback, "walkPlayback", "onFirstContactGraphOpened", typedEvent);
+      isDirty_walkPlayback = walkPlayback.onFirstContactGraphOpened(typedEvent);
+      auditInvocation(firstMinute, "firstMinute", "graphChosen", typedEvent);
+      firstMinute.graphChosen(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
       projectReopenOffer.onGraphOpened(typedEvent);
     } else if (event instanceof HostedCallAbandoned) {
@@ -7676,6 +7688,8 @@ public class SessionProcessor
       logArrival.onOpenLogRequested(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onOpenLogRequested", typedEvent);
       isDirty_assistantLoop = assistantLoop.onOpenLogRequested(typedEvent);
+      auditInvocation(firstMinute, "firstMinute", "logChosen", typedEvent);
+      firstMinute.logChosen(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onOpenLogRequested", typedEvent);
       projectReopenOffer.onOpenLogRequested(typedEvent);
     } else if (event instanceof OpenProjectRequested) {
@@ -7689,6 +7703,8 @@ public class SessionProcessor
       isDirty_assistantLoop = assistantLoop.onOpenProjectRequested(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onOpenProjectRequested", typedEvent);
       isDirty_sessionBoundary = sessionBoundary.onOpenProjectRequested(typedEvent);
+      auditInvocation(firstMinute, "firstMinute", "projectChosen", typedEvent);
+      firstMinute.projectChosen(typedEvent);
       auditInvocation(
           projectReopenOffer, "projectReopenOffer", "onOpenProjectRequested", typedEvent);
       projectReopenOffer.onOpenProjectRequested(typedEvent);

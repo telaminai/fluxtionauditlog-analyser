@@ -140,6 +140,76 @@ class SpotlightTargetTest {
         assertEquals(2, SpotlightTarget.parse("graph:note:2").target().number());
     }
 
+    // ---- M80: a line target may be a range ("the form is <n>" ⟷ "the form is the range n-n") -----------
+
+    @ParameterizedTest
+    @ValueSource(strings = {"source:java:com.acme.Node:line:7", "source:design:line:7"})
+    void aPlainLineIsTheRangeNToN(String target) {
+        SpotlightTarget t = SpotlightTarget.parse(target).target();
+        assertEquals(7, t.lineFrom());
+        assertEquals(7, t.lineTo());
+    }
+
+    @Test
+    void aRangeParsesToItsFromAndToAndIsEchoedBackExactly() {
+        SpotlightTarget java = SpotlightTarget.parse("source:java:com.acme.Node:line:20-28").target();
+        assertEquals(SpotlightTarget.Family.JAVA_LINE, java.family());
+        assertEquals(20, java.lineFrom());
+        assertEquals(28, java.lineTo());
+        assertEquals("source:java:com.acme.Node:line:20-28", java.name(), "the range is echoed back exactly as asked");
+
+        SpotlightTarget design = SpotlightTarget.parse("source:design:line:5-9").target();
+        assertEquals(SpotlightTarget.Family.DESIGN_LINE, design.family());
+        assertEquals(5, design.lineFrom());
+        assertEquals(9, design.lineTo());
+        assertEquals("source:design:line:5-9", design.name());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"source:java:com.acme.Node:line:10-5", "source:design:line:10-5"})
+    void aRangeWhoseFirstLineIsAfterItsLastIsRefused(String target) {
+        SpotlightTarget.Parsed p = SpotlightTarget.parse(target);
+        assertFalse(p.ok());
+        assertTrue(p.error().contains("must not be after"), p.error());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"source:java:com.acme.Node:line:0", "source:java:com.acme.Node:line:0-5",
+            "source:design:line:0", "source:design:line:0-5"})
+    void aZeroLineInAPlainOrRangeFormIsRefused(String target) {
+        assertFalse(SpotlightTarget.parse(target).ok(), target);
+    }
+
+    @Test
+    void aRangeWiderThanTheSpanLimitIsRefusedExactlyAtTheLimit() {
+        int n = SpotlightTarget.MAX_LINE_SPAN;
+        assertTrue(SpotlightTarget.parse("source:java:com.acme.Node:line:1-" + n).ok(), "exactly the limit is fine");
+        assertTrue(SpotlightTarget.parse("source:design:line:1-" + n).ok(), "exactly the limit is fine (design)");
+
+        SpotlightTarget.Parsed javaOver = SpotlightTarget.parse("source:java:com.acme.Node:line:1-" + (n + 1));
+        assertFalse(javaOver.ok());
+        assertTrue(javaOver.error().contains(String.valueOf(n)), javaOver.error());
+
+        SpotlightTarget.Parsed designOver = SpotlightTarget.parse("source:design:line:1-" + (n + 1));
+        assertFalse(designOver.ok());
+        assertTrue(designOver.error().contains(String.valueOf(n)), designOver.error());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"source:java:com.acme.Node:line:5-", "source:java:com.acme.Node:line:-5",
+            "source:java:com.acme.Node:line:5-abc", "source:java:com.acme.Node:line:5-6-7",
+            "source:java:com.acme.Node:line:2147483648-2147483649",
+            "source:design:line:5-", "source:design:line:-5", "source:design:line:5-abc", "source:design:line:5-6-7"})
+    void junkOrOverflowingLineArgumentsAreRefused(String target) {
+        assertFalse(SpotlightTarget.parse(target).ok(), target);
+    }
+
+    @Test
+    void theRangeFormsAreInTheVocabulary() {
+        assertTrue(SpotlightTarget.vocabulary().contains("source:java:<fqn>:line:<n|from-to>"));
+        assertTrue(SpotlightTarget.vocabulary().contains("source:design:line:<n|from-to>"));
+    }
+
     // ---- one vocabulary, stated once ----------------------------------------------------------------
 
     @Test

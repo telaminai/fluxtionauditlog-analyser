@@ -38,4 +38,21 @@ class JavaSpotlightPlanTest {
                 lookup.freshDocumentForSpotlight("demo.Other").orElseThrow())),"retained add targets participate in the one-document rule");
         SwingUtilities.invokeAndWait(()->assertThrows(IllegalStateException.class,()->JavaSpotlightPlan.read(lookup,requests.requests(),List.of())));
     }
+
+    /** M80: a line RANGE follows the same one-document and bounds rules as a single line. */
+    @Test void rangeTargetsBindOneDocumentAndRefuseWholeWhenPastEnd(@TempDir Path tmp) throws Exception {
+        Path file=tmp.resolve("demo/Outer.java");Files.createDirectories(file.getParent());
+        Files.writeString(file,"package demo;\npublic class Outer { class Inner {} }\n");
+        var service=new SourceService();service.configure(List.of(tmp.toString()),null);var lookup=service.captureLookup();
+        // a range inside the document, alongside the plain whole-document target: same document, both prepared
+        var inRange=SpotlightTarget.requests(Map.of("targets",List.of("source:java:demo.Outer","source:java:demo.Outer:line:1-3")));
+        var plan=JavaSpotlightPlan.read(lookup,inRange.requests(),List.of());
+        assertEquals(2,plan.targets().size());
+        assertEquals(1,plan.targets().values().stream().map(p->p.document().identity()).distinct().count());
+        var rangeTarget=plan.targets().get("source:java:demo.Outer:line:1-3").target();
+        assertEquals(1,rangeTarget.lineFrom());assertEquals(3,rangeTarget.lineTo());
+        // a range whose LAST line is past the document's end is refused WHOLE — even though its first line exists
+        var pastEnd=SpotlightTarget.requests(Map.of("target","source:java:demo.Outer:line:2-4"));
+        assertThrows(IllegalArgumentException.class,()->JavaSpotlightPlan.read(lookup,pastEnd.requests(),List.of()));
+    }
 }

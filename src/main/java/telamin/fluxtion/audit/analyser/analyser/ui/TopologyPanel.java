@@ -112,6 +112,9 @@ public final class TopologyPanel extends JPanel {
     private Consumer<String> nodeActivated = id -> { };
     /** Told whenever a topology loads successfully, from any entry point — menu, recent list or drop. */
     private Consumer<Path> topologyLoaded = f -> { };
+    /** Receipt of the successful load, never inferred from the path or the current frame operation. */
+    private long firstMinuteTicket;
+    public long firstMinuteTicket() { return firstMinuteTicket; }
 
     /** The nodeLogs of the record the table has selected — the cycle being stepped through. */
     private List<NodeLog> cycle = List.of();
@@ -781,6 +784,7 @@ public final class TopologyPanel extends JPanel {
         refreshCrumbs();
         applyView(false);
         setStatus("No graph loaded — open a .graphml to see the topology.");
+        firstMinuteTicket = 0;
         graphChanged.run();
     }
 
@@ -886,6 +890,7 @@ public final class TopologyPanel extends JPanel {
                 + candidate.describe
                 + (candidate.supportsCoverage() ? ""
                         : " — coverage cannot find a dead node in a graph built from what ran"));
+        firstMinuteTicket = 0;
         graphChanged.run();
         return true;
     }
@@ -910,6 +915,10 @@ public final class TopologyPanel extends JPanel {
     }
 
     public void load(Path file) {
+        load(file, 0);
+    }
+
+    public void load(Path file, long firstMinuteTicket) {
         var before = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("topology", file.toString());
         var observation = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(file);
         ProcessorTopology topology = GraphMlParser.parse(file);
@@ -921,6 +930,7 @@ public final class TopologyPanel extends JPanel {
         var after = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("topology", file.toString());
         loadedGraphSha256 = before.sha256() != null && before.sha256().equals(after.sha256()) ? after.sha256() : null;
         loadedFrom = file;
+        this.firstMinuteTicket = firstMinuteTicket;
         graphObservation = observation;
         graphSource = telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.OPENED;
         fullTopology = topology;

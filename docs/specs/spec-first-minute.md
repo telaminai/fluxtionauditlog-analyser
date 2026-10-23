@@ -144,7 +144,12 @@ offer to recover the diamond. A session whose only content is a manifest-matched
 for recovery. Anything the person added makes it an ordinary session (A1.9). **First run only, never again**
 (OD-79.2): `firstMinute.played=true` is written when the walk's first step is shown, so skipping counts as played. A
 launch that defers leaves the key unset. Once any project is recent, the first minute never qualifies again. The
-diamond stays one act away: *Learn ▸ The diamond*.
+diamond stays one act away: *Learn ▸ The diamond*, once M79-1b provides that returning entry.
+
+**Owner decision, 2026-10-23 (OD-79.29): M79-1a-i is startup-only.** It plays only on a genuinely
+fresh, no-project startup under the admission rules above. It adds no *Help ▸ The diamond* action
+and no other manual re-entry. M79-1b owns the returning *Learn ▸ The diamond* entry and must design
+re-entry so it never disturbs an active project's `selectedEventProcessor`, open log or graph.
 
 ### 5.2 What the person sees
 
@@ -1305,6 +1310,12 @@ full reasoning each recommendation rests on):
 | **OD-79.27** | Which pack (if any) gets the first `teach:` entry once M79-2 ships the *The diamond* teaching conversation, and does that land as part of M79-2's own PR or a small follow-up after it? | 04 (*Audit logs and evidence*) is the closest fit — the teaching conversation's content is composition-and-silence, which 04's entries already probe — as a small follow-up PR after M79-2, not inside it, so M79-2 is not gated on a packs edit. | **Accepted** (owner, 2026-10-19) |
 | **OD-79.28** | Should the Python lint harness (`tools/m74_onboarding_runner.py lint-pack`, cross-checked against the Java parser by `tools/m74_record_pack_crosscheck.py`) also gain fixture rows for 01, 02 and 04 at their new published paths, duplicating A7.1 in the existing dual-check pattern? | Yes, for parity: the existing 89-input cross-check would otherwise cover every pack except the three that actually ship. | **Accepted** (owner, 2026-10-19) |
 
+**Implementation scope decision, owner, 2026-10-23:**
+
+| # | Decision | Owner |
+|---|---|---|
+| **OD-79.29** | M79-1a-i is **startup-only**, for a genuinely fresh, no-project startup. No temporary Help action or manual re-entry. The returning *Learn ▸ The diamond* entry belongs to M79-1b, designed not to disturb an active project's selected processor, open log or graph. | **Accepted** (owner, 2026-10-23) |
+
 ## 17. Phasing and size — one PR each, under about 5,000 hand-written lines
 
 Generated `SessionProcessor` lines are not counted. Each PR is a reviewed feature branch with its CHANGELOG lines
@@ -1314,7 +1325,7 @@ Generated `SessionProcessor` lines are not counted. Each PR is a reviewed featur
 |---|---|---|---|
 | **M79-1a-i — the first minute, generic domain** | `firstMinute` (with `sessionRecovery` as a parent); `Launch.FIRST_MINUTE` and `LogOpened.launch`; `stage`, `origin`, autoplay advance, the record-basis caption rule and first contact in `walkPlayback`; the **new topology-centre layout** (the canvas moves out of the right-hand tabs), with the generic design beside it (OD-79.21); `WalkReelRecorder` onto the advance effect; the generic Spring-authored run, its XML and GraphML, the manifest and digest-checked extraction; **one hand-written generic walk** (§5.2), played through the generalised journey effect; the end card; no recovery offer for a first-minute session; A1.1–A1.3, A1.5 and A1.7–A1.10 for the generic domain | D-1, D-6, D-7 | **L** |
 | **M79-1a-ii — the four other domains** | the mathematics, accounting, logistics and trading runs and GraphMLs; the caption template filled from each GraphML's structure (§6.3); the five tiles and `firstMinute.domain`; A1.4, and A1.5 per domain | M79-1a-i | **M** |
-| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,358 lines, re-confirmed on `main` at 1.37.0), the collapse, the visible-label changes and constants, the short AI line against the real six-state `aiLine()` (D-3, satisfied); A1.6 | M79-1a-i; M77-2 and M77-4 have already shipped (1.36.0), so this PR edits the page as it stands, not a moving target | **M** |
+| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,358 lines, re-confirmed on `main` at 1.37.0), the collapse, the visible-label changes and constants, the short AI line against the real six-state `aiLine()` (D-3, satisfied); the returning *Learn ▸ The diamond* entry, preserving an active project's selected processor, open log and graph (OD-79.29); A1.6 | M79-1a-i; M77-2 and M77-4 have already shipped (1.36.0), so this PR edits the page as it stands, not a moving target | **M** |
 | **M79-2 — the teaching conversation in the onboard assistant** (phase 2, owner) | the teaching conversation as a shipped walk with a recorded conversation, its real capture (the `capture-conversations` extension) and its re-derivation test; the pack's `teach:` entry; *Continue with Claude* (`AssistantHandoffRequested(origin=TEACHING)` for in-app and Claude Code, the wizard branch); `TeachingLog` and its read-only band; the basis sentence; A2.1–A2.7 | M79-1a-i; M77-2 for the wizard branch (D-4) | **L** |
 | **M79-3 — quiet evidence wording** | the three-state chip, `EvidenceChipLines`, the details popover; **the metadata observation moved into the session** (§8.1, rule 9); the accessible descriptions (tooltips cut); A3.1–A3.4 | — | **M** |
 | **M79-4 — the broken-diamond quest** | the teaching bundle and quest manifest; **flags routed through the session** (a fact, a node, both entrances; §9.2); the `quest` node with teacher mode (OD-79.17); the quest card; A4.1–A4.6 | D-2 (published at `6bff0d67`), M79-1a-i | **L** |

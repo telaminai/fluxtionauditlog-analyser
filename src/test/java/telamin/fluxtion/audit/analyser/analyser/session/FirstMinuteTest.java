@@ -86,6 +86,71 @@ class FirstMinuteTest {
         }
     }
 
+    @Test void aProjectChosenBeforeRecoverySettlesNeverQualifiesForStartupAutoplay() {
+        for (boolean projectBeforeStartup : List.of(false, true)) {
+            var a = new FakeSessionAdapter(); var d = new SessionDriver(a);
+            a.withProfile("/demo/project/profile");
+            d.post(new ResumeEvents.Activated(null));
+            if (!projectBeforeStartup) d.post(startup(0));
+            d.post(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/demo/project/profile",
+                    TransitionKind.EXPLICIT_SWITCH, "person"));
+            assertEquals("/demo/project/profile", a.appliedProfile, "the fixture really opened the project");
+            if (projectBeforeStartup) d.post(startup(0));
+            d.post(new ResumeEvents.OfferLoaded(d.processor().sessionRecovery.generation(),
+                    SessionResumeStore.NO_PROJECT, null, null, null));
+            assertFalse(a.performed.stream().anyMatch(SessionEffects.OpenDiamondEffect.class::isInstance),
+                    "a project chosen while startup/recovery was pending must not be overwritten by the diamond");
+        }
+    }
+
+    @Test void cancellingBundlePreparationCannotMakeAnActiveProjectLookLikeFreshStartup() {
+        var a = new FakeSessionAdapter().withProfile("/demo/project/profile"); var d = new SessionDriver(a);
+        d.post(new ResumeEvents.Activated(null)); d.post(startup(0));
+        d.post(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/demo/project/profile",
+                TransitionKind.EXPLICIT_SWITCH, "person"));
+        d.post(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/demo/pending.fexp",
+                TransitionKind.OPEN_BUNDLE, "person"));
+        d.post(SessionFixtures.graph("/demo/chosen.graphml"));
+        assertEquals(-1, d.processor().operationGate.expectedOpId(), "explicit graph cancels the pending bundle");
+        assertEquals("/demo/project/profile", a.appliedProfile, "the earlier project is still active");
+        d.post(new ResumeEvents.OfferLoaded(d.processor().sessionRecovery.generation(),
+                SessionResumeStore.NO_PROJECT, null, null, null));
+        assertFalse(a.performed.stream().anyMatch(SessionEffects.OpenDiamondEffect.class::isInstance),
+                "a resettable operation id cannot make the active project eligible for autoplay");
+    }
+
+    @Test void aGraphChoiceSupersedesExtractionReadingAndPresentationButNotTheOwnedGraph() {
+        for (int phase = 0; phase < 3; phase++) {
+            Run r = opening();
+            if (phase > 0) land(r, "FIRST_MINUTE");
+            if (phase > 1) {
+                long generation = r.driver.snapshot().logGeneration();
+                r.driver.post(new SessionEvents.FirstMinuteLogReadObserved(r.ticket, generation, DiamondDefinition.LOG_SHA256, null));
+                r.driver.post(new SessionEvents.GraphOpened("/demo/diamond.graphml", "OPENED", Set.of("a", "b", "c", "d"),
+                        List.of(), null, r.ticket));
+                assertTrue(r.driver.processor().firstMinute.permitsPreparation(r.ticket, generation),
+                        "the graph fact carrying this preparation's receipt must not cancel itself");
+            }
+            r.driver.post(SessionFixtures.graph("/demo/person-chosen.graphml"));
+            assertEquals("DONE", r.driver.snapshot().firstMinute().phase(), "the person's graph supersedes startup at phase " + phase);
+            assertFalse(r.driver.processor().firstMinute.permitsOpen(r.ticket));
+            assertFalse(r.driver.processor().firstMinute.permitsPreparation(r.ticket, r.driver.snapshot().logGeneration()),
+                    "late read/design callbacks cannot replace the graph the person chose");
+        }
+    }
+
+    @Test void aGraphOpenedDuringFirstContactRestoresTheInvestigationStage() {
+        Run r = playing(); showStep(r);
+        r.driver.post(SessionFixtures.graph("/demo/person-chosen.graphml"));
+        assertEquals("DONE", r.driver.snapshot().firstMinute().phase());
+        assertEquals(WalkPlaybackState.Stage.RECORDS, r.driver.snapshot().walkPlayback().stage(),
+                "another graph is an ordinary investigation, not continued first contact");
+        assertFalse(r.driver.snapshot().walkPlayback().showing());
+        r.driver.post(new SessionEvents.FirstMinuteCaptureObserved(99, r.driver.snapshot().logGeneration(),
+                r.ticket, DiamondDefinition.LOG_SHA256, false));
+        assertTrue(capture(r).capture(), "a person's replacement topology is recoverable content");
+    }
+
     @Test void anOfferedRecoveryDefersWithoutMarkingPlayedEvenIfItIsLaterDismissed() {
         var a = new FakeSessionAdapter(); var d = new SessionDriver(a);
         d.post(new ResumeEvents.Activated(null)); d.post(startup(0));

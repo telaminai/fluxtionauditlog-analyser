@@ -92,6 +92,186 @@ class DesignSpotlightFrameTest {
             onEdt(()->{});onEdt(()->assertFalse(((SpotlightOverlay)field(f.frame,"spotlight")).isLit(),"design viewport hook must extinguish the partial band"));
         }
     }
+    /** M80 ★ — witness: red before the range grammar (the target was UNKNOWN), green after. Unlike a single design
+     * line, a range may show PARTLY: here it fits, so the cut-out is the whole band, not partial. */
+    @Test void designLineRangeSpansFirstLineTopToLastLineBottomAndEchoesExactly(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- context -->\n".repeat(150)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            String RANGE="source:design:line:2-6";
+            var r=f.ex.render("spotlight",Map.of("target",RANGE));
+            assertTrue(r.ok(),r.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)r.payload().get("lit")).getFirst();
+            assertEquals(RANGE,lit.get("target"),"the range is echoed back exactly");
+            assertEquals(2,lit.get("line"));assertEquals(6,lit.get("toLine"));
+            assertEquals(false,lit.get("partial"),"five short lines fit the design panel");
+            onEdt(()->{
+                var panel=(SourcePanel)field(f.frame,"sourcePanel");var design=(DesignSourcePanel)panel.designComponent();
+                try {
+                    var root=design.text.getDocument().getDefaultRootElement();
+                    var first=design.text.modelToView2D(root.getElement(1).getStartOffset());
+                    var last=design.text.modelToView2D(root.getElement(5).getEndOffset()-1);
+                    int expectedHeight=(int)Math.ceil(last.getMaxY())-(int)Math.floor(first.getY());
+                    assertEquals(expectedHeight,((SpotlightOverlay)field(f.frame,"spotlight")).lit().getFirst().bounds().height,
+                            "the cut-out spans first line's top to last line's bottom");
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
+    /** M80 ★ — a design range taller than the panel clips to it, shows the START of the range, and reports partial:
+     * unlike a single design line (refused outright when not fully visible, see the test above it in this file). */
+    @Test void tallDesignLineRangeClipsToViewportShowsItsStartAndReportsPartial(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- context -->\n".repeat(150)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            String RANGE="source:design:line:2-120";
+            var r=f.ex.render("spotlight",Map.of("target",RANGE));
+            assertTrue(r.ok(),r.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)r.payload().get("lit")).getFirst();
+            assertEquals(true,lit.get("partial"),"a range taller than the design panel reports partial");
+            onEdt(()->{
+                var panel=(SourcePanel)field(f.frame,"sourcePanel");var design=(DesignSourcePanel)panel.designComponent();
+                var viewport=SwingUtilities.convertRectangle(design.text,design.text.getVisibleRect(),(SpotlightOverlay)field(f.frame,"spotlight"));
+                var cut=((SpotlightOverlay)field(f.frame,"spotlight")).lit().getFirst().bounds();
+                assertTrue(viewport.contains(cut),"clipped range band must stay inside the viewport: "+cut+" / "+viewport);
+                assertTrue(cut.height>50,"a tall range lights the visible rows, not just one line");
+                try {
+                    int lineTwoStart=design.text.getDocument().getDefaultRootElement().getElement(1).getStartOffset();
+                    var lineTwoRect=design.text.modelToView2D(lineTwoStart).getBounds();
+                    var visible=design.text.getVisibleRect();
+                    assertTrue(visible.y<=lineTwoRect.y && lineTwoRect.y<visible.y+visible.height,
+                            "too tall to fit: the START of the range (line 2) stays on screen — line2.y="+lineTwoRect.y
+                                    +", visible="+visible);
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
+    @Test void refusesADesignRangePastTheSpanLimitAndOutsideTheDocument(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- context -->\n".repeat(150)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            var tooWide=f.ex.render("spotlight",Map.of("target","source:design:line:1-"+(SpotlightTarget.MAX_LINE_SPAN+1)));
+            assertFalse(tooWide.ok());assertTrue(String.valueOf(tooWide.error()).contains(String.valueOf(SpotlightTarget.MAX_LINE_SPAN)),tooWide.toMap().toString());
+            var pastEnd=f.ex.render("spotlight",Map.of("target","source:design:line:145-160"));
+            assertFalse(pastEnd.ok());assertTrue(String.valueOf(pastEnd.error()).contains("outside"),pastEnd.toMap().toString());
+            assertFalse(((SpotlightOverlay)field(f.frame,"spotlight")).isLit(),"a refused range never lights anything");
+        }
+    }
+
+    /**
+     * Independent review (Codex, PR #188 F1, P2 VERIFIED): a range reveal must bring the WHOLE band into view,
+     * not just its first line — the committed tests all started near line 2, so they never exercised a scroll.
+     * Witness: red before the fix (reveal only showed line 70 at the bottom of the viewport, so 71-74 stayed off
+     * screen and the reply said {@code partial:true}), green after.
+     */
+    @Test void fittingDesignRangeFarFromTopIsFullyVisibleOnFirstReveal(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- DEMO -->\n".repeat(200)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            var reply=f.ex.render("spotlight",Map.of("target","source:design:line:70-74"));
+            assertTrue(reply.ok(),reply.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)reply.payload().get("lit")).getFirst();
+            assertEquals(false,lit.get("partial"),
+                    "five short design lines fit; reveal must not leave four of them below the viewport");
+            onEdt(()->{
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                assertTrue(design.lineBounds(74).isPresent(),"the range's LAST line is actually on screen, not just its first");
+            });
+        }
+    }
+
+    /** As above, but on a Java-BUILDER design document — the same reveal path serves both document kinds. */
+    @Test void fittingDesignRangeFarFromTopIsFullyVisibleOnAJavaBuilderDocument(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("definitions"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path builder=Files.writeString(tmp.resolve("DEMOBuilder.java"),
+                "import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
+                +"class DEMOBuilder implements FluxtionGraphBuilder {\n void buildGraph(Config cfg) {\n"
+                +"  // filler\n".repeat(200)
+                +" cfg.addNode(new DEMO(), \"a\");\n }\n}\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();});
+            assertTrue(f.ex.render("open",Map.of("design",builder.toString())).ok());
+            var reply=f.ex.render("spotlight",Map.of("target","source:design:line:100-104"));
+            assertTrue(reply.ok(),reply.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)reply.payload().get("lit")).getFirst();
+            assertEquals(false,lit.get("partial"),"five short lines fit on a Java builder design too");
+            onEdt(()->{
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                assertTrue(design.lineBounds(104).isPresent(),"the range's LAST line is actually on screen, not just its first");
+            });
+        }
+    }
+
+    /** A range too tall to fit, starting below the view the panel opens on: clips, but must still show its
+     * START (not strand an un-scrolled first line, and not leave it below the viewport either). */
+    @Test void tallDesignRangeFarFromTopClipsAndShowsItsStart(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("design"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- DEMO -->\n".repeat(200)+"</beans>\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            var reply=f.ex.render("spotlight",Map.of("target","source:design:line:70-150"));
+            assertTrue(reply.ok(),reply.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)reply.payload().get("lit")).getFirst();
+            assertEquals(true,lit.get("partial"),"a range taller than the viewport, starting below the initial view, reports partial");
+            onEdt(()->{
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                try {
+                    int line70Start=telamin.fluxtion.audit.analyser.analyser.design.DesignDocument.offset(design.text.getText(),70,1);
+                    var r=design.text.modelToView2D(line70Start).getBounds();
+                    var visible=design.text.getVisibleRect();
+                    assertTrue(visible.y<=r.y && r.y<visible.y+visible.height,
+                            "too tall to fit: the range's START (line 70) stays on screen — line70.y="+r.y+", visible="+visible);
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
+    /** As above, but on a Java-BUILDER design document. */
+    @Test void tallDesignRangeFarFromTopClipsAndShowsItsStartOnAJavaBuilderDocument(@TempDir Path base) throws Exception {
+        Path tmp=Files.createDirectories(base.resolve("definitions"));
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path builder=Files.writeString(tmp.resolve("DEMOBuilder.java"),
+                "import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;\n"
+                +"class DEMOBuilder implements FluxtionGraphBuilder {\n void buildGraph(Config cfg) {\n"
+                +"  // filler\n".repeat(200)
+                +" cfg.addNode(new DEMO(), \"a\");\n }\n}\n");
+        try(var f=new Frame(base)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();});
+            assertTrue(f.ex.render("open",Map.of("design",builder.toString())).ok());
+            var reply=f.ex.render("spotlight",Map.of("target","source:design:line:100-180"));
+            assertTrue(reply.ok(),reply.toMap().toString());
+            @SuppressWarnings("unchecked") var lit=((List<Map<String,Object>>)reply.payload().get("lit")).getFirst();
+            assertEquals(true,lit.get("partial"),"a tall range on a Java builder design, starting below the initial view, reports partial");
+            onEdt(()->{
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                try {
+                    int line100Start=telamin.fluxtion.audit.analyser.analyser.design.DesignDocument.offset(design.text.getText(),100,1);
+                    var r=design.text.modelToView2D(line100Start).getBounds();
+                    var visible=design.text.getVisibleRect();
+                    assertTrue(visible.y<=r.y && r.y<visible.y+visible.height,
+                            "too tall to fit: the range's START (line 100) stays on screen — line100.y="+r.y+", visible="+visible);
+                } catch(Exception ex){throw new AssertionError(ex);}
+            });
+        }
+    }
+
     private static String designGeometry(Frame f, int line) {
         SourcePanel source = (SourcePanel) field(f.frame, "sourcePanel");
         DesignSourcePanel design = (DesignSourcePanel) source.designComponent();

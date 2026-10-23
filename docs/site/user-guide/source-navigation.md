@@ -84,6 +84,9 @@ parse error; an initially malformed file is visible as text with no bean index. 
 SHA-256 identity. `source:design`, `source:design:bean:<id>` and `source:design:line:<n>` spotlights always
 refer to the **session** design, even after a glance at another file. An edited bean's caption is qualified;
 a removed/duplicate bean or an edited line anchor goes out. Cross-tab targets are shown in sequence.
+`source:design:line` may instead name a range, `source:design:line:<from>-<to>` (first line at or before last, at
+most 200 lines); unlike a single design line, a range may show partly — one taller than the Source pane clips to
+it and shows the range's start.
 
 The `source {bean}` echo's `records` is a preview count over `recordsScanned` records; `recordsExact` says
 whether that covers the whole log. It never proves that this XML produced those records. File reads are
@@ -114,7 +117,10 @@ processor or a node class.
 An assistant can light a named Java document with `source:java:<fqn>`, or a one-based logical line with
 `source:java:<fqn>:line:<n>`. Line numbers follow the editor: a trailing newline creates one final empty line that can also be
 anchored. Read the actual source before choosing a line number. There is no implicit
-current-file target or node-to-source inference.
+current-file target or node-to-source inference. A line target may instead be a range,
+`source:java:<fqn>:line:<from>-<to>` (first line at or before last, at most 200 lines): the cut-out spans the
+range's first line's top to its last line's bottom, scrolled so the range is visible; one taller than the
+viewport clips to it, shows the range's start, and reports `partial` in the spotlight reply.
 
 For example, after inspecting `com.acme.Node`, send one `spotlight` call:
 

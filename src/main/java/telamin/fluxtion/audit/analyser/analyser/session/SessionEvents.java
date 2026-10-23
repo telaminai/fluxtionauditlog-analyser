@@ -450,7 +450,12 @@ public final class SessionEvents {
      * @param nodeTypes       every node's simple type name, which is how audit installation is read
      */
     public record GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
-                              java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin) {
+                              java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin,
+                              long firstMinuteTicket) {
+        public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
+                           java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin) {
+            this(graphPath, source, declaredNodeIds, nodeTypes, assistantOrigin, 0);
+        }
         public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
                            java.util.List<String> nodeTypes) {
             this(graphPath, source, declaredNodeIds, nodeTypes, null);

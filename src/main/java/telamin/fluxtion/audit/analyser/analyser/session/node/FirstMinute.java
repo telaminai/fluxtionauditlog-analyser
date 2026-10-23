@@ -22,7 +22,7 @@ public class FirstMinute implements EventLogSource {
     @PushReference private final EffectQueue effects;
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private SessionEvents.FirstMinuteStartupObserved startup;
-    private boolean startupDecided;
+    private boolean startupDecided, startupSuperseded;
     private String phase = "NONE", reason = "";
     private long ticket, operationAtStart, launchOperation = -1, generation = -1;
     private long walkTicketAtStart;
@@ -43,6 +43,26 @@ public class FirstMinute implements EventLogSource {
         return true;
     }
 
+    @OnEventHandler public boolean projectChosen(SessionEvents.OpenProjectRequested e) { return supersedeStartup(); }
+    @OnEventHandler public boolean logChosen(SessionEvents.OpenLogRequested e) { return supersedeStartup(); }
+    @OnEventHandler public boolean graphChosen(SessionEvents.GraphOpened e) {
+        if (List.of("OPENING", "PLAYING", "DOORS").contains(phase)) {
+            if (presentationRequested && e.firstMinuteTicket() == ticket) return false;
+            // A graph is a new choice even when the operation gate has no request id for it.
+            // Preserve it and invalidate all extraction/read/design callbacks from this startup.
+            personalContent = true;
+            phase = "DONE"; bundled = false; ticket++;
+            return true;
+        }
+        return supersedeStartup();
+    }
+
+    private boolean supersedeStartup() {
+        if (startupDecided || startupSuperseded) return false;
+        startupSuperseded = true;
+        return true;
+    }
+
     private boolean decideStartup() {
         if (startup == null || startupDecided) return false;
         String recovery = sessionRecovery.state();
@@ -50,7 +70,9 @@ public class FirstMinute implements EventLogSource {
         startupDecided = true;
         boolean fresh = startup.firstRunAtStart() && startup.recentProjects() == 0 && startup.recentFiles() == 0
                 && startup.recentBundles() == 0 && !startup.played() && !startup.restLaunch() && !startup.launchFile()
-                && !startup.startupSurfaceDue() && !openLog.isOpen() && gate.inFlightWhat() == null && !walkPlayback.state().showing();
+                && !startup.startupSurfaceDue() && !openLog.isOpen()
+                // Unlike the operation gate's resettable id, this remembers any earlier choice at startup.
+                && !startupSuperseded && gate.inFlightWhat() == null && !walkPlayback.state().showing();
         if (!fresh || "offered".equals(recovery) || "verifying".equals(recovery) || "restoring".equals(recovery)) {
             auditLog.info("firstMinute", "deferred");
             return true;
