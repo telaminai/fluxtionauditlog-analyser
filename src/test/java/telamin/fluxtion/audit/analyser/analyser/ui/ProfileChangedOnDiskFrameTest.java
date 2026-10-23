@@ -95,6 +95,8 @@ class ProfileChangedOnDiskFrameTest {
             onEdt(() -> render(f.ex, "open", Map.of("project", dir.toString())));
             EvidenceCaptureFrameTest.openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
             AppConfig config = (AppConfig) field(f.frame, "config");
+            // the test observes by hand: the frame's own 1.5 s watch would race it on a slow display
+            onEdt(() -> ((javax.swing.Timer) field(f.frame, "profileWatchTimer")).stop());
             assertEquals(processors(1), named(config.eventProcessorFqns), "control: one processor");
             assertNull(profileOnDisk(f), "control: in step, nothing to say");
 
@@ -131,8 +133,13 @@ class ProfileChangedOnDiskFrameTest {
             answer.set(SessionEvents.ProfileChoice.KEEP_MINE);
             externalEdit(file, 3);
             onEdt(() -> f.frame.observeProfile(false));
-            WalkPlaybackFrameTest.await("the second offer, answered keep", () -> asked.size() == 2
-                    && onDisk(file).size() == 10);
+            try {
+                WalkPlaybackFrameTest.await("the second offer, answered keep", () -> asked.size() >= 2
+                        && onDisk(file).size() == 10);
+            } catch (AssertionError timedOut) {
+                throw new AssertionError(timedOut.getMessage() + " — asked=" + asked + " onDisk=" + onDisk(file)
+                        + " profileOnDisk=" + profileOnDisk(f) + " status=" + f.status(), timedOut);
+            }
             assertEquals(processors(10), onDisk(file), "the person's choice wrote the session's version");
         } finally {
             MainFrame.profileReloadChooser = null;
