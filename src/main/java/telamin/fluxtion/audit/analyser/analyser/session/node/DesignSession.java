@@ -1,6 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.session.node;
 
 import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
+import com.telamin.fluxtion.runtime.annotations.PushReference;
 import com.telamin.fluxtion.runtime.audit.*;
 import telamin.fluxtion.audit.analyser.analyser.design.*;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
@@ -10,7 +11,8 @@ import java.util.*;
 /** Authoritative design/result lifecycle; replayed through the same generated processor as log/project state. */
 public class DesignSession implements EventLogSource, DesignWorkspace.State {
     private final OperationGate gate;
-    private final EffectQueue effects;
+    // Decisions push effects outward; a dependent owner may consume our accepted-read verdict first.
+    @PushReference private final EffectQueue effects;
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private DesignDocument document;
     private BuilderDocument builder;
@@ -20,6 +22,7 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     private String path, error = "", resultError = "";
     private ProducerResult result;
     private long generation;
+    private boolean acceptedRead;
     public DesignSession(OperationGate gate, EffectQueue effects) { this.gate = gate; this.effects = effects; }
     @Override public void setLogger(EventLogger logger) { auditLog = logger; }
 
@@ -30,11 +33,13 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     }
 
     @OnEventHandler public boolean read(DesignEvents.ReadCompleted e) {
+        acceptedRead = false;
         if (e.generation() != generation) { auditLog.info("designRead", "stale result ignored"); return false; }
         if (e.sessionOpen()) {
             if (!Objects.equals(path, e.file())) { document = null; builder = null; result = null; resultError = ""; }
             path = e.file();
         } else if (!Objects.equals(path, e.file())) return false;
+        acceptedRead = true;
         generation++; // a newer explicit read also supersedes an older background completion
         error = e.error() == null ? "" : e.error();
         if (e.document() != null) document = e.document(); // an intermediate parse error retains the last good revision
@@ -89,6 +94,8 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     public ProducerResult result() { return result; }
     public String resultError() { return resultError; }
     public long generation() { return generation; }
+    /** Verdict for the current ReadCompleted dispatch; dependent nodes never repeat the epoch decision. */
+    public boolean acceptedRead() { return acceptedRead; }
     public String discoveryNote() {
         String note = discovery.source().startsWith("unavailable")
                 ? "Definition discovery " + discovery.source() + ". No partial list is shown."

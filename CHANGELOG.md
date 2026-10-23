@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- On a genuinely fresh launch, the shipped Spring diamond plays a four-step, evidence-bound introduction with its topology and XML side by side. Arrow keys take over the pace; the end card leads to the guided tour, a log or a template. An untouched first-minute demo is not offered as your saved session; anything you add remains recoverable.
+
+### Fixed
+
+- First-minute recovery keeps a replacement graph or design after Close or a cancelled Investigate choice. A design chosen while startup recovery is being checked prevents autoplay, and later choices retire deferred first-minute callbacks without treating the diamond's own design read as personal content.
+
 ## [1.38.0] - 2026-10-21
 
 ### Added

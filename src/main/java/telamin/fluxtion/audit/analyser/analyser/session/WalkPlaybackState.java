@@ -23,7 +23,16 @@ import java.util.Map;
  */
 public record WalkPlaybackState(String walk, int step, int count, String phase, String reason, long ticket,
                                 List<SessionEvents.WalkTargetState> targets, Map<String, Integer> lastShown,
-                                telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition, Answer answer, int accepted) {
+                                telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition, Answer answer, int accepted,
+                                Stage stage, String origin) {
+
+    public enum Stage { RECORDS, TOPOLOGY }
+
+    public WalkPlaybackState(String walk, int step, int count, String phase, String reason, long ticket,
+                             List<SessionEvents.WalkTargetState> targets, Map<String, Integer> lastShown,
+                             telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition, Answer answer, int accepted) {
+        this(walk, step, count, phase, reason, ticket, targets, lastShown, definition, answer, accepted, Stage.RECORDS, "");
+    }
 
     public WalkPlaybackState(String walk, int step, int count, String phase, String reason, long ticket,
                              List<SessionEvents.WalkTargetState> targets, Map<String, Integer> lastShown,
@@ -49,6 +58,8 @@ public record WalkPlaybackState(String walk, int step, int count, String phase, 
         targets = List.copyOf(targets == null ? List.of() : targets);
         lastShown = Map.copyOf(lastShown == null ? Map.of() : lastShown);
         answer = answer == null ? Answer.NONE : answer;
+        stage = stage == null ? Stage.RECORDS : stage;
+        origin = origin == null ? "" : origin;
     }
 
     public boolean showing() {

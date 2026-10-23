@@ -39,3 +39,8 @@ src/test/resources/conformance/c27-whitespace-only.yaml whitespace=-blank-at-eof
 
 # UPS-1 captures, kept byte for byte as the producer wrote them.
 docs/handoff/evidence/ups1-admin-command-records-2026-10-01/*.yaml whitespace=-blank-at-eol
+
+# M79's manifest binds the original evidence/source bytes, including checkout line endings.
+src/main/resources/demo/diamond/** -text
+# This one real producer log intentionally ends structural-key lines with a space; retain every byte.
+src/main/resources/demo/diamond/diamond-spring-audit.yaml whitespace=-blank-at-eol

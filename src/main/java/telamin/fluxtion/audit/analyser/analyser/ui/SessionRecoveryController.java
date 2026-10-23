@@ -22,6 +22,7 @@ final class SessionRecoveryController {
     interface Host {
         SessionDriver driver();
         Capture capture();
+        default void admit(Capture capture, Consumer<Boolean> answer) { answer.accept(true); }
         void render();
         void apply(long generation, SessionRecovery.Plan plan, Consumer<ResumeEvents.Outcome> completion);
         void failed(String message);
@@ -37,7 +38,16 @@ final class SessionRecoveryController {
     void capture() {
         Capture capture = host.capture();
         if (capture.inputs().isEmpty()) return; // an unopened offer is not overwritten by an empty landing
-        io.execute(() -> save(capture));
+        // Reserve the outgoing write's place before asking the node. The answer may arrive after this
+        // call returns (the driver queues facts raised during dispatch); neither the next lookup nor
+        // shutdown may overtake it. Only the serial I/O worker waits, never the EDT.
+        var admitted = new CompletableFuture<Boolean>();
+        io.execute(() -> {
+            try { if (admitted.join()) save(capture); }
+            catch (CompletionException failure) { later(() -> host.failed("Session capture admission failed: " + failure.getCause())); }
+        });
+        try { host.admit(capture, admitted::complete); }
+        catch (RuntimeException failure) { admitted.completeExceptionally(failure); }
     }
     private void save(Capture c) {
         try {

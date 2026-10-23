@@ -321,6 +321,14 @@ public final class SessionDriver {
             case SessionEffects.LightWalkTargetsEffect ignored -> "lightWalkTargets";
             case SessionEffects.ResolveWalkTargetsEffect ignored -> "resolveWalkTargets";
             case SessionEffects.EndWalkEffect ignored -> "endWalk";
+            case SessionEffects.ScheduleWalkAdvanceEffect ignored -> "scheduleWalkAdvance";
+            case SessionEffects.OpenDiamondEffect ignored -> "openDiamond";
+            case SessionEffects.VerifyDiamondReadEffect ignored -> "verifyDiamondRead";
+            case SessionEffects.PrepareDiamondPresentationEffect ignored -> "prepareDiamondPresentation";
+            case SessionEffects.PlayBundledWalkEffect ignored -> "playBundledWalk";
+            case SessionEffects.MarkFirstMinutePlayedEffect ignored -> "markFirstMinutePlayed";
+            case SessionEffects.RunFirstMinuteDoorEffect ignored -> "firstMinuteDoor";
+            case SessionEffects.AdmitSessionCaptureEffect ignored -> "admitSessionCapture";
             case SessionEffects.SetFollowEffect ignored -> "setFollow";
             case SessionEffects.CaptureBundleEffect ignored -> "captureBundle";
             case SessionEffects.DeleteBundleEffect ignored -> "deleteBundle";

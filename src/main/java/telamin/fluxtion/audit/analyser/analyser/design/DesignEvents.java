@@ -3,7 +3,9 @@ package telamin.fluxtion.audit.analyser.analyser.design;
 /** Completed adapter facts; no filesystem or Swing operations run inside the session graph. */
 public final class DesignEvents {
     private DesignEvents() { }
-    public record ReadRequested(String kind) { }
+    public record ReadRequested(String kind, long firstMinuteTicket) {
+        public ReadRequested(String kind) { this(kind, 0); }
+    }
     /** A background Follow observation; presentation is requested only after the session accepts this read. */
     public record FollowReadCompleted(ReadCompleted read) { }
     public record ReadCompleted(String file, DesignDocument document, String error, boolean sessionOpen, long generation,

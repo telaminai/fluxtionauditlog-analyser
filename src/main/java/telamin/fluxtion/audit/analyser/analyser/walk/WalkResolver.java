@@ -45,6 +45,9 @@ public final class WalkResolver {
 
         String graphDigest();
 
+        /** Internal pinned design targets only; ordinary saved walks cannot author these. */
+        default String designDigest() { return null; }
+
         boolean nodeExists(String instanceId);
     }
 
@@ -58,6 +61,11 @@ public final class WalkResolver {
         SpotlightTarget.Parsed parsed = SpotlightTarget.parse(t.target());
         if (!parsed.ok()) return new Verdict(WalkIdentity.State.UNRESOLVED, false, parsed.error());
         SpotlightTarget target = parsed.target();
+        if (target.family() == SpotlightTarget.Family.DESIGN_BEAN && "design".equals(t.basis().kind())) {
+            WalkIdentity.State state = WalkIdentity.compare(t.basis().digest(), now.designDigest());
+            return new Verdict(state, state == WalkIdentity.State.CURRENT,
+                    state == WalkIdentity.State.CURRENT ? "" : "the displayed design does not match the shipped caption's revision");
+        }
         return switch (WalkSteps.basisKind(t.target())) {
             case "record" -> {
                 int index = target.family() == SpotlightTarget.Family.RECORDS_ROW ? target.number()

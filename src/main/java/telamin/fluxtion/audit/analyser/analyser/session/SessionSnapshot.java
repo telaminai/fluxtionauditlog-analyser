@@ -52,7 +52,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               ProfileState profiles, ListenerState listener, long logOpenedAt,
                               AiSetupState aiSetup,
                               telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView,
-                              StarterState starter, StatusLineState statusLine, ProjectOutputsState projectOutputs) {
+                              StarterState starter, StatusLineState statusLine, ProjectOutputsState projectOutputs,
+                              FirstMinuteState firstMinute) {
 
     /** Earlier snapshot constructors carry no output offers; retained for existing clients and replay fixtures. */
     public SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
@@ -72,7 +73,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 pairing, claim, pending, qualifications, filterKey, logIdentity, logIdentityReason, producerFindings,
                 timeOrder, provenance, provenanceSource, following, contentSignature, followReadFailure, evidencePending,
                 walkPlayback, capture, assistant, bundle, localAgent, startPage, proposal, example, permission, profiles,
-                listener, logOpenedAt, aiSetup, recordsView, starter, statusLine, ProjectOutputsState.NONE);
+                listener, logOpenedAt, aiSetup, recordsView, starter, statusLine, ProjectOutputsState.NONE, FirstMinuteState.NONE);
     }
 
     /**
@@ -97,6 +98,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
         if (starter == null) starter = StarterState.IDLE;
         if (statusLine == null) statusLine = StatusLineState.NONE;
         if (projectOutputs == null) projectOutputs = ProjectOutputsState.NONE;
+        if (firstMinute == null) firstMinute = FirstMinuteState.NONE;
     }
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
@@ -136,7 +138,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.recordsView.counts(),             // the Records view's counts, as recordsView measured them
                 p.starterProject.state(),           // Option 2: the starter catalogue and chain, as starterProject decided
                 p.statusLine.state(),               // INTEG-R10: the status bar's one line, as statusLine decided it
-                p.projectOutputs.state());          // M81 D: explicit person-owned output offers, never auto-switches
+                p.projectOutputs.state(), p.firstMinute.state());
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */
