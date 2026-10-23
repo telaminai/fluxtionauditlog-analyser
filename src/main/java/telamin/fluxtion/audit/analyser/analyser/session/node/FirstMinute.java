@@ -8,6 +8,7 @@ import com.telamin.fluxtion.runtime.audit.EventLogger;
 import com.telamin.fluxtion.runtime.audit.NullEventLogger;
 import telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition;
 import telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines;
+import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents;
 import telamin.fluxtion.audit.analyser.analyser.session.FirstMinuteState;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEffects;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
@@ -19,6 +20,7 @@ public class FirstMinute implements EventLogSource {
     private final WalkPlayback walkPlayback;
     private final SessionRecovery sessionRecovery;
     private final OperationGate gate;
+    private final DesignSession designSession;
     @PushReference private final EffectQueue effects;
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private SessionEvents.FirstMinuteStartupObserved startup;
@@ -28,11 +30,12 @@ public class FirstMinute implements EventLogSource {
     private long walkTicketAtStart;
     private boolean readRequested, presentationRequested, bundled, marked, personalContent;
     private long verifiedGeneration = -1, verifiedTicket = -1;
+    private long ownedDesignReadGeneration = -1;
 
     public FirstMinute(OpenLog openLog, WalkPlayback walkPlayback, SessionRecovery sessionRecovery,
-                       OperationGate gate, EffectQueue effects) {
+                       OperationGate gate, DesignSession designSession, EffectQueue effects) {
         this.openLog = openLog; this.walkPlayback = walkPlayback; this.sessionRecovery = sessionRecovery;
-        this.gate = gate; this.effects = effects;
+        this.gate = gate; this.designSession = designSession; this.effects = effects;
     }
     @Override public void setLogger(EventLogger logger) { auditLog = logger; }
 
@@ -46,15 +49,43 @@ public class FirstMinute implements EventLogSource {
     @OnEventHandler public boolean projectChosen(SessionEvents.OpenProjectRequested e) { return supersedeStartup(); }
     @OnEventHandler public boolean logChosen(SessionEvents.OpenLogRequested e) { return supersedeStartup(); }
     @OnEventHandler public boolean graphChosen(SessionEvents.GraphOpened e) {
-        if (List.of("OPENING", "PLAYING", "DOORS").contains(phase)) {
-            if (presentationRequested && e.firstMinuteTicket() == ticket) return false;
-            // A graph is a new choice even when the operation gate has no request id for it.
-            // Preserve it and invalidate all extraction/read/design callbacks from this startup.
-            personalContent = true;
+        if (presentationRequested && e.firstMinuteTicket() == ticket) return false;
+        return personalPresentation();
+    }
+
+    @OnEventHandler public boolean designChosen(DesignEvents.ReadRequested e) {
+        if (presentationRequested && e.firstMinuteTicket() > 0
+                && permitsPreparation(e.firstMinuteTicket(), generation)) {
+            ownedDesignReadGeneration = designSession.generation();
+            return true;
+        }
+        // Intent supersedes startup immediately, even while the person's file is still being read.
+        boolean moved = supersedeStartup();
+        return cancelPresentation() || moved;
+    }
+
+    @OnEventHandler public boolean designOpened(DesignEvents.ReadCompleted e) {
+        // The parent accepts the epoch first. A stale/refused completion cannot invent an addition.
+        if (!e.sessionOpen() || !designSession.acceptedRead()
+                || e.generation() == ownedDesignReadGeneration) return false;
+        return personalPresentation();
+    }
+
+    private boolean personalPresentation() {
+        boolean moved = supersedeStartup();
+        if (!personalContent) { personalContent = true; moved = true; }
+        bundled = false;
+        // Ownership is sticky in every phase, including after Close or a cancelled door.
+        return cancelPresentation() || moved;
+    }
+
+    private boolean cancelPresentation() {
+        // DONE can still own a queued door callback; another choice retires that receipt too.
+        if (List.of("OPENING", "PLAYING", "DOORS", "DONE").contains(phase)) {
             phase = "DONE"; bundled = false; ticket++;
             return true;
         }
-        return supersedeStartup();
+        return false;
     }
 
     private boolean supersedeStartup() {

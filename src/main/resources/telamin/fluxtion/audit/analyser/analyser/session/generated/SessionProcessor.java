@@ -652,7 +652,7 @@ public class SessionProcessor
           openLog, assistantLoop, effectQueue);;
   public final transient FirstMinute firstMinute =
       new telamin.fluxtion.audit.analyser.analyser.session.node.FirstMinute(
-          openLog, walkPlayback, sessionRecovery, operationGate, effectQueue);;
+          openLog, walkPlayback, sessionRecovery, operationGate, designSession, effectQueue);;
   public final transient IgnoredParameters ignoredParameters = new IgnoredParameters();
   private final transient ExportFunctionAuditEvent functionAudit = new ExportFunctionAuditEvent();
   //Dirty flags
@@ -664,9 +664,9 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(21);
+      new IdentityHashMap<>(22);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(21);
+      new IdentityHashMap<>(22);
 
   private boolean isDirty_actionListener = false;
   private boolean isDirty_activeProject = false;
@@ -674,6 +674,7 @@ public class SessionProcessor
   private boolean isDirty_assistantLoop = false;
   private boolean isDirty_assistantMode = false;
   private boolean isDirty_auditInstallation = false;
+  private boolean isDirty_designSession = false;
   private boolean isDirty_localAgentPermission = false;
   private boolean isDirty_localAgentSession = false;
   private boolean isDirty_logEvidence = false;
@@ -1590,7 +1591,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "9682441948bb30a33622c188378f060bfebd6f83f8dc4d9ba81a5a41afa2ad95",
+              "e87daa9f0f1cf77896939a4d519fb515f06240c796f9b4a5bf5bddfc4e8cbc10",
               null));
 
   @Override
@@ -3566,7 +3567,11 @@ public class SessionProcessor
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "cleared", typedEvent);
-    designSession.cleared(typedEvent);
+    isDirty_designSession = designSession.cleared(typedEvent);
+    if (guardCheck_firstMinute()) {
+      auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
+      firstMinute.changed();
+    }
     afterEvent();
   }
 
@@ -3574,7 +3579,11 @@ public class SessionProcessor
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "discovered", typedEvent);
-    designSession.discovered(typedEvent);
+    isDirty_designSession = designSession.discovered(typedEvent);
+    if (guardCheck_firstMinute()) {
+      auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
+      firstMinute.changed();
+    }
     afterEvent();
   }
 
@@ -3582,7 +3591,11 @@ public class SessionProcessor
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "discover", typedEvent);
-    designSession.discover(typedEvent);
+    isDirty_designSession = designSession.discover(typedEvent);
+    if (guardCheck_firstMinute()) {
+      auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
+      firstMinute.changed();
+    }
     afterEvent();
   }
 
@@ -3590,7 +3603,11 @@ public class SessionProcessor
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "followed", typedEvent);
-    designSession.followed(typedEvent);
+    isDirty_designSession = designSession.followed(typedEvent);
+    if (guardCheck_firstMinute()) {
+      auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
+      firstMinute.changed();
+    }
     afterEvent();
   }
 
@@ -3598,7 +3615,13 @@ public class SessionProcessor
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "read", typedEvent);
-    designSession.read(typedEvent);
+    isDirty_designSession = designSession.read(typedEvent);
+    if (guardCheck_firstMinute()) {
+      auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
+      firstMinute.changed();
+    }
+    auditInvocation(firstMinute, "firstMinute", "designOpened", typedEvent);
+    firstMinute.designOpened(typedEvent);
     afterEvent();
   }
 
@@ -3606,7 +3629,15 @@ public class SessionProcessor
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "requested", typedEvent);
-    designSession.requested(typedEvent);
+    isDirty_designSession = designSession.requested(typedEvent);
+    auditInvocation(walkPlayback, "walkPlayback", "onFirstContactDesignRequested", typedEvent);
+    isDirty_walkPlayback = walkPlayback.onFirstContactDesignRequested(typedEvent);
+    if (guardCheck_firstMinute()) {
+      auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
+      firstMinute.changed();
+    }
+    auditInvocation(firstMinute, "firstMinute", "designChosen", typedEvent);
+    firstMinute.designChosen(typedEvent);
     afterEvent();
   }
 
@@ -3614,7 +3645,11 @@ public class SessionProcessor
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "result", typedEvent);
-    designSession.result(typedEvent);
+    isDirty_designSession = designSession.result(typedEvent);
+    if (guardCheck_firstMinute()) {
+      auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
+      firstMinute.changed();
+    }
     afterEvent();
   }
 
@@ -5877,6 +5912,8 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onProfileApplied(typedEvent);
     auditInvocation(activeProject, "activeProject", "onProfileApplied", typedEvent);
     isDirty_activeProject = activeProject.onProfileApplied(typedEvent);
+    auditInvocation(designSession, "designSession", "project", typedEvent);
+    isDirty_designSession = designSession.project(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
     effectOutcomes.onProfileApplied(typedEvent);
     auditInvocation(openBundle, "openBundle", "onProfileApplied", typedEvent);
@@ -5927,8 +5964,6 @@ public class SessionProcessor
     }
     auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
     bundleAnchor.onProfileApplied(typedEvent);
-    auditInvocation(designSession, "designSession", "project", typedEvent);
-    designSession.project(typedEvent);
     auditInvocation(projectReopenOffer, "projectReopenOffer", "onProfileApplied", typedEvent);
     projectReopenOffer.onProfileApplied(typedEvent);
     afterEvent();
@@ -6241,6 +6276,8 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onSettingsRestored(typedEvent);
     auditInvocation(activeProject, "activeProject", "onSettingsRestored", typedEvent);
     isDirty_activeProject = activeProject.onSettingsRestored(typedEvent);
+    auditInvocation(designSession, "designSession", "restored", typedEvent);
+    isDirty_designSession = designSession.restored(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
     effectOutcomes.onSettingsRestored(typedEvent);
     auditInvocation(openBundle, "openBundle", "onSettingsRestored", typedEvent);
@@ -6287,8 +6324,6 @@ public class SessionProcessor
       auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
       firstMinute.changed();
     }
-    auditInvocation(designSession, "designSession", "restored", typedEvent);
-    designSession.restored(typedEvent);
     afterEvent();
   }
 
@@ -6303,10 +6338,14 @@ public class SessionProcessor
   public void handleEvent(SourceRootsObserved typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(designSession, "designSession", "roots", typedEvent);
+    isDirty_designSession = designSession.roots(typedEvent);
+    if (guardCheck_firstMinute()) {
+      auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
+      firstMinute.changed();
+    }
     auditInvocation(bundleAnchor, "bundleAnchor", "onSourceRootsObserved", typedEvent);
     bundleAnchor.onSourceRootsObserved(typedEvent);
-    auditInvocation(designSession, "designSession", "roots", typedEvent);
-    designSession.roots(typedEvent);
     afterEvent();
   }
 
@@ -6822,37 +6861,43 @@ public class SessionProcessor
       Cleared typedEvent = (Cleared) event;
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "cleared", typedEvent);
-      designSession.cleared(typedEvent);
+      isDirty_designSession = designSession.cleared(typedEvent);
     } else if (event instanceof DiscoveryCompleted) {
       DiscoveryCompleted typedEvent = (DiscoveryCompleted) event;
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "discovered", typedEvent);
-      designSession.discovered(typedEvent);
+      isDirty_designSession = designSession.discovered(typedEvent);
     } else if (event instanceof DiscoveryRequested) {
       DiscoveryRequested typedEvent = (DiscoveryRequested) event;
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "discover", typedEvent);
-      designSession.discover(typedEvent);
+      isDirty_designSession = designSession.discover(typedEvent);
     } else if (event instanceof FollowReadCompleted) {
       FollowReadCompleted typedEvent = (FollowReadCompleted) event;
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "followed", typedEvent);
-      designSession.followed(typedEvent);
+      isDirty_designSession = designSession.followed(typedEvent);
     } else if (event instanceof ReadCompleted) {
       ReadCompleted typedEvent = (ReadCompleted) event;
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "read", typedEvent);
-      designSession.read(typedEvent);
+      isDirty_designSession = designSession.read(typedEvent);
+      auditInvocation(firstMinute, "firstMinute", "designOpened", typedEvent);
+      firstMinute.designOpened(typedEvent);
     } else if (event instanceof ReadRequested) {
       ReadRequested typedEvent = (ReadRequested) event;
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "requested", typedEvent);
-      designSession.requested(typedEvent);
+      isDirty_designSession = designSession.requested(typedEvent);
+      auditInvocation(walkPlayback, "walkPlayback", "onFirstContactDesignRequested", typedEvent);
+      isDirty_walkPlayback = walkPlayback.onFirstContactDesignRequested(typedEvent);
+      auditInvocation(firstMinute, "firstMinute", "designChosen", typedEvent);
+      firstMinute.designChosen(typedEvent);
     } else if (event instanceof ResultReadCompleted) {
       ResultReadCompleted typedEvent = (ResultReadCompleted) event;
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "result", typedEvent);
-      designSession.result(typedEvent);
+      isDirty_designSession = designSession.result(typedEvent);
     } else if (event instanceof ActionListenerConfigured) {
       ActionListenerConfigured typedEvent = (ActionListenerConfigured) event;
       auditEvent(typedEvent);
@@ -7732,6 +7777,8 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onProfileApplied(typedEvent);
       auditInvocation(activeProject, "activeProject", "onProfileApplied", typedEvent);
       isDirty_activeProject = activeProject.onProfileApplied(typedEvent);
+      auditInvocation(designSession, "designSession", "project", typedEvent);
+      isDirty_designSession = designSession.project(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
       effectOutcomes.onProfileApplied(typedEvent);
       auditInvocation(openBundle, "openBundle", "onProfileApplied", typedEvent);
@@ -7746,8 +7793,6 @@ public class SessionProcessor
       projectOutputs.onProfileApplied(typedEvent);
       auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
       bundleAnchor.onProfileApplied(typedEvent);
-      auditInvocation(designSession, "designSession", "project", typedEvent);
-      designSession.project(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onProfileApplied", typedEvent);
       projectReopenOffer.onProfileApplied(typedEvent);
     } else if (event instanceof ProfileLoaded) {
@@ -7902,6 +7947,8 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onSettingsRestored(typedEvent);
       auditInvocation(activeProject, "activeProject", "onSettingsRestored", typedEvent);
       isDirty_activeProject = activeProject.onSettingsRestored(typedEvent);
+      auditInvocation(designSession, "designSession", "restored", typedEvent);
+      isDirty_designSession = designSession.restored(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
       effectOutcomes.onSettingsRestored(typedEvent);
       auditInvocation(openBundle, "openBundle", "onSettingsRestored", typedEvent);
@@ -7912,8 +7959,6 @@ public class SessionProcessor
       isDirty_starterProject = starterProject.onSettingsRestored(typedEvent);
       auditInvocation(projectOutputs, "projectOutputs", "onClosed", typedEvent);
       projectOutputs.onClosed(typedEvent);
-      auditInvocation(designSession, "designSession", "restored", typedEvent);
-      designSession.restored(typedEvent);
     } else if (event instanceof SkillsVendored) {
       SkillsVendored typedEvent = (SkillsVendored) event;
       auditEvent(typedEvent);
@@ -7922,10 +7967,10 @@ public class SessionProcessor
     } else if (event instanceof SourceRootsObserved) {
       SourceRootsObserved typedEvent = (SourceRootsObserved) event;
       auditEvent(typedEvent);
+      auditInvocation(designSession, "designSession", "roots", typedEvent);
+      isDirty_designSession = designSession.roots(typedEvent);
       auditInvocation(bundleAnchor, "bundleAnchor", "onSourceRootsObserved", typedEvent);
       bundleAnchor.onSourceRootsObserved(typedEvent);
-      auditInvocation(designSession, "designSession", "roots", typedEvent);
-      designSession.roots(typedEvent);
     } else if (event instanceof StageToggleRequested) {
       StageToggleRequested typedEvent = (StageToggleRequested) event;
       auditEvent(typedEvent);
@@ -8300,6 +8345,7 @@ public class SessionProcessor
     isDirty_assistantLoop = false;
     isDirty_assistantMode = false;
     isDirty_auditInstallation = false;
+    isDirty_designSession = false;
     isDirty_localAgentPermission = false;
     isDirty_localAgentSession = false;
     isDirty_logEvidence = false;
@@ -8351,6 +8397,7 @@ public class SessionProcessor
       dirtyFlagSupplierMap.put(assistantLoop, () -> isDirty_assistantLoop);
       dirtyFlagSupplierMap.put(assistantMode, () -> isDirty_assistantMode);
       dirtyFlagSupplierMap.put(auditInstallation, () -> isDirty_auditInstallation);
+      dirtyFlagSupplierMap.put(designSession, () -> isDirty_designSession);
       dirtyFlagSupplierMap.put(localAgentPermission, () -> isDirty_localAgentPermission);
       dirtyFlagSupplierMap.put(localAgentSession, () -> isDirty_localAgentSession);
       dirtyFlagSupplierMap.put(logEvidence, () -> isDirty_logEvidence);
@@ -8379,6 +8426,7 @@ public class SessionProcessor
       dirtyFlagUpdateMap.put(assistantLoop, (b) -> isDirty_assistantLoop = b);
       dirtyFlagUpdateMap.put(assistantMode, (b) -> isDirty_assistantMode = b);
       dirtyFlagUpdateMap.put(auditInstallation, (b) -> isDirty_auditInstallation = b);
+      dirtyFlagUpdateMap.put(designSession, (b) -> isDirty_designSession = b);
       dirtyFlagUpdateMap.put(localAgentPermission, (b) -> isDirty_localAgentPermission = b);
       dirtyFlagUpdateMap.put(localAgentSession, (b) -> isDirty_localAgentSession = b);
       dirtyFlagUpdateMap.put(logEvidence, (b) -> isDirty_logEvidence = b);
@@ -8448,7 +8496,11 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_firstMinute() {
-    return isDirty_openLog | isDirty_operationGate | isDirty_sessionRecovery | isDirty_walkPlayback;
+    return isDirty_designSession
+        | isDirty_openLog
+        | isDirty_operationGate
+        | isDirty_sessionRecovery
+        | isDirty_walkPlayback;
   }
 
   private boolean guardCheck_localAgentPermission() {

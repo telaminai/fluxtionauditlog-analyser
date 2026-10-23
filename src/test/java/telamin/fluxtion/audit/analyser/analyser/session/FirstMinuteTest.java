@@ -103,6 +103,114 @@ class FirstMinuteTest {
         }
     }
 
+    @Test void aDesignChosenBeforeRecoverySettlesNeverQualifiesForStartupAutoplay() {
+        for (boolean designBeforeStartup : List.of(false, true)) {
+            var a = new FakeSessionAdapter(); var d = new SessionDriver(a);
+            d.post(new ResumeEvents.Activated(null));
+            if (!designBeforeStartup) d.post(startup(0));
+            // The person's read is still pending: startup must not replace it before it completes.
+            d.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested("open"));
+            if (designBeforeStartup) d.post(startup(0));
+            d.post(new ResumeEvents.OfferLoaded(d.processor().sessionRecovery.generation(),
+                    SessionResumeStore.NO_PROJECT, null, null, null));
+            assertFalse(a.performed.stream().anyMatch(SessionEffects.OpenDiamondEffect.class::isInstance),
+                    "a design chosen while startup/recovery was pending must not be overwritten by the diamond");
+        }
+    }
+
+    @Test void aReplacementGraphAfterCloseRemainsRecoverable() throws Exception { replacementAfterDone(false, false); }
+    @Test void aReplacementGraphAfterCancelledInvestigateRemainsRecoverable() throws Exception { replacementAfterDone(true, false); }
+    @Test void aReplacementDesignAfterCloseRemainsRecoverable() throws Exception { replacementAfterDone(false, true); }
+    @Test void aReplacementDesignAfterCancelledInvestigateRemainsRecoverable() throws Exception { replacementAfterDone(true, true); }
+
+    private static void replacementAfterDone(boolean investigate, boolean design) throws Exception {
+        Run r = playing(); showStep(r);
+        r.driver.post(new SessionEvents.WalkEndRequested("Esc"));
+        assertEquals("DOORS", r.driver.snapshot().firstMinute().phase());
+        if (investigate) r.driver.post(new SessionEvents.FirstMinuteDoorChosen("investigate"));
+        else r.driver.post(new SessionEvents.FirstMinuteCardClosed());
+        assertEquals("DONE", r.driver.snapshot().firstMinute().phase());
+        observeCapture(r, 100);
+        assertFalse(capture(r).capture(), "closing or cancelling the chooser alone leaves the demo untouched");
+
+        if (design) {
+            var doc = telamin.fluxtion.audit.analyser.analyser.design.DesignDocument.parse(
+                    "/demo/person-chosen.xml", "<beans><bean id=\"chosen\" class=\"com.acme.Chosen\"/></beans>");
+            r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested("open"));
+            long epoch = r.driver.processor().designSession.generation();
+            r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted(
+                    doc.file(), doc, "", true, epoch));
+            assertEquals(doc.file(), r.driver.processor().designSession.path(), "the replacement really became the design");
+        } else r.driver.post(SessionFixtures.graph("/demo/person-chosen.graphml"));
+        observeCapture(r, 101);
+        assertTrue(capture(r).capture(), "the person's replacement " + (design ? "design" : "graph")
+                + " after " + (investigate ? "Investigate then cancel" : "Close") + " must survive recovery");
+        assertFalse(r.driver.snapshot().firstMinute().bundled(), "a replacement is no longer the verified bundled presentation");
+        assertFalse(r.driver.processor().firstMinute.permitsDoor(r.ticket), "a replacement also retires any deferred first-minute door");
+    }
+
+    private static void observeCapture(Run r, long request) {
+        r.driver.post(new SessionEvents.FirstMinuteCaptureObserved(request, r.driver.snapshot().logGeneration(),
+                r.ticket, DiamondDefinition.LOG_SHA256, false));
+    }
+
+    @Test void theOwnedDesignReadDoesNotCancelPreparationOrInventPersonalContent() throws Exception {
+        Run r = playingWithOwnedDesign();
+        observeCapture(r, 102);
+        assertFalse(capture(r).capture(), "the diamond's own receipt-bearing design is still untouched evidence");
+    }
+
+    @Test void aStaleDesignCompletionDoesNotInventPersonalContent() throws Exception {
+        Run r = playingWithOwnedDesign();
+        var state = r.driver.processor().designSession;
+        r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted(
+                state.path(), state.document(), "", true, 0));
+        observeCapture(r, 103);
+        assertFalse(capture(r).capture(), "a refused old design epoch is not a person's replacement");
+    }
+
+    @Test void aPlainOpenOfTheSameDesignIsPersonalContent() throws Exception {
+        Run r = playingWithOwnedDesign();
+        r.driver.post(new SessionEvents.FirstMinuteCardClosed());
+        var state = r.driver.processor().designSession;
+        var doc = state.document();
+        r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested("open"));
+        r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted(
+                doc.file(), doc, "", true, state.generation()));
+        observeCapture(r, 104);
+        assertTrue(capture(r).capture(), "the same pathname and bytes do not grant an ordinary design open the diamond's receipt");
+    }
+
+    @Test void aDesignChoiceSupersedesPreparationAndTheShowingWalk() {
+        for (boolean showing : List.of(false, true)) {
+            Run r = showing ? playing() : opening();
+            if (showing) showStep(r);
+            r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested("open"));
+            assertEquals("DONE", r.driver.snapshot().firstMinute().phase(), "a design request retires pending first contact");
+            assertFalse(r.driver.processor().firstMinute.permitsOpen(r.ticket));
+            assertFalse(r.driver.snapshot().walkPlayback().showing(), "a replacement design must not retain the diamond overlay");
+            assertEquals(WalkPlaybackState.Stage.RECORDS, r.driver.snapshot().walkPlayback().stage());
+        }
+    }
+
+    private static Run playingWithOwnedDesign() throws Exception {
+        Run r = opening(); land(r, "FIRST_MINUTE");
+        long generation = r.driver.snapshot().logGeneration();
+        r.driver.post(new SessionEvents.FirstMinuteLogReadObserved(r.ticket, generation, DiamondDefinition.LOG_SHA256, null));
+        r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested("open", r.ticket));
+        assertTrue(r.driver.processor().firstMinute.permitsPreparation(r.ticket, generation),
+                "the diamond's own design request must not supersede its preparation");
+        long epoch = r.driver.processor().designSession.generation();
+        var doc = telamin.fluxtion.audit.analyser.analyser.design.DesignDocument.parse(
+                "/demo/diamond.xml", "<beans><bean id=\"a\" class=\"com.acme.A\"/></beans>");
+        r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted(doc.file(), doc, "", true, epoch));
+        assertEquals(doc.file(), r.driver.processor().designSession.path());
+        r.driver.post(new SessionEvents.FirstMinutePresentationObserved(r.ticket, generation,
+                DiamondDefinition.GRAPH_SHA256, DiamondDefinition.DESIGN_SHA256, null));
+        assertEquals("PLAYING", r.driver.snapshot().firstMinute().phase());
+        return r;
+    }
+
     @Test void cancellingBundlePreparationCannotMakeAnActiveProjectLookLikeFreshStartup() {
         var a = new FakeSessionAdapter().withProfile("/demo/project/profile"); var d = new SessionDriver(a);
         d.post(new ResumeEvents.Activated(null)); d.post(startup(0));

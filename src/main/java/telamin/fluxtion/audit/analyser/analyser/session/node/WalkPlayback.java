@@ -193,6 +193,15 @@ public class WalkPlayback implements EventLogSource {
         return true;
     }
 
+    @OnEventHandler public boolean onFirstContactDesignRequested(
+            telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested e) {
+        if (e.firstMinuteTicket() > 0 || !firstContact) return false;
+        if (walk != null) end("another design was requested");
+        firstContact = false;
+        stage = WalkPlaybackState.Stage.RECORDS;
+        return true;
+    }
+
     @OnEventHandler
     public boolean onFirstMinuteDoorChosen(SessionEvents.FirstMinuteDoorChosen e) { return leaveFirstContact(); }
 

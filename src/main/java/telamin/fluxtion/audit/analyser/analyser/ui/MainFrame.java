@@ -1846,7 +1846,8 @@ public final class MainFrame extends JFrame {
         }
         var captured = actionExecutor.onEdt(() -> {
             if (!allowed.getAsBoolean()) return null;
-            session().submit(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested(kind));
+            long firstMinuteTicket = allowed instanceof FirstMinuteDesignGuard guard ? guard.ticket : 0;
+            session().submit(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested(kind, firstMinuteTicket));
             designExplicitReads++;
             var state = session().processor().designSession;
             // ReadRequested advances the design epoch. It is THIS guard's own read, not a
