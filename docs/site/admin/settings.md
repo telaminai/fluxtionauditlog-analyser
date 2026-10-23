@@ -125,3 +125,6 @@ and restart ([Log-source plugins](../user-guide/plugins.md)).
   panel write the same switches as this tab
   ([Assistant profiles](profiles.md)).
 - **The Fluxtion build key**: **AI ▸ Fluxtion API key…**.
+- **The compiler account**: **AI ▸ Compiler account…**. Its service address is a machine setting
+  (`compilerServiceUrl`, empty by default); its credential is not a setting and is kept in the OS credential store
+  ([Connect a compiler account](../getting-started.md#connect-a-compiler-account)).

@@ -211,7 +211,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ### CA · Compiler account and entitlement investigations (cross-repo; the hosted compiler's managed sign-in)
 - [CA-14] ◐ An exported entitlement investigation opens unchanged: `EntitlementInvestigationConformanceTest` pins the producer's projection (fixture pseudonymous, placeholder packages); the producer half lives with the compiler.
-- [CA-1] ☐ *Connect compiler account*: device sign-in, OS credential storage per platform, read-only plan and usage; never written to projects, bundles or reports. Phase 2; the analyser reads, it never operates the service.
+- [CA-1] ◐ *AI ▸ Compiler account…* (`ui/CompilerAccountDialog`, package `account`): device sign-in, Keychain / Secret Service / owner-only file, read-only plan and credits, disconnect, revoke; tested against a loopback stand-in (`CompilerAccountClientTest`, `CredentialStoreTest`, `CompilerAccountSafetyTest`, `CompilerAccountFrameTest`). Open: acceptance against the deployed service.
 
 ### Mongoose audit format ([proposal](../proposals/mongoose-audit-format/README.md), rev 9; [spec](spec-mongoose-audit-production.md))
 - [AF-8] ☐ **(owner)** Does a record scalar support a trailing `#` comment? Decide with AF-9.

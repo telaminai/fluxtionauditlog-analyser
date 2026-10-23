@@ -1,0 +1,206 @@
+package telamin.fluxtion.audit.analyser.analyser.account;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.AccountException;
+import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.DeviceStart;
+import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Outcome;
+
+import java.net.http.HttpClient;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static telamin.fluxtion.audit.analyser.analyser.account.StandInCompilerService.BEARER;
+import static telamin.fluxtion.audit.analyser.analyser.account.StandInCompilerService.DEVICE_CODE;
+
+/** CA-1: the device sign-in, usage read and revoke against a loopback stand-in, on a fake clock. */
+class CompilerAccountClientTest {
+
+    private StandInCompilerService service;
+    private final AtomicLong clock = new AtomicLong(1_000_000_000L);
+    private final List<Long> sleeps = new ArrayList<>();
+    private CompilerAccountClient client;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        service = new StandInCompilerService();
+        client = new CompilerAccountClient(HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build(),
+                d -> {
+                    sleeps.add(d.toSeconds());
+                    clock.addAndGet(d.toNanos());
+                }, clock::get);
+    }
+
+    @AfterEach
+    void tearDown() {
+        service.close();
+    }
+
+    private DeviceStart start() throws AccountException {
+        return client.start(service.base());
+    }
+
+    @Test
+    void pendingThenSlowDownThenApproved_honoursTheIntervalAndLengthensItOnSlowDown() throws Exception {
+        service.token("pending", "slow_down", "approved");
+        DeviceStart s = start();
+        assertEquals(StandInCompilerService.USER_CODE, s.userCode());
+        assertTrue(s.browserUri().endsWith("user_code=" + StandInCompilerService.USER_CODE));
+
+        Outcome o = client.await(s, () -> false);
+
+        CompilerCredential c = assertInstanceOf(CompilerAccountClient.Approved.class, o).credential();
+        assertEquals("cred01", c.credentialId());
+        assertEquals("acct-demo", c.accountId());
+        assertEquals(service.base(), c.service());
+        assertEquals(BEARER, c.bearer());
+        assertEquals(List.of(2L, 2L, 7L), sleeps, "the interval before every poll; slow_down adds five seconds");
+        assertEquals(3, service.count("/auth/device/token"));
+        assertTrue(service.requests().stream().filter(r -> r.path().equals("/auth/device/token"))
+                .allMatch(r -> r.body().contains(DEVICE_CODE)), "each poll presents the device code");
+        assertFalse(o.toString().contains(BEARER), "an outcome's text never carries the credential: " + o);
+        assertFalse(s.toString().contains(DEVICE_CODE), "a start's text never carries the device code: " + s);
+    }
+
+    @Test
+    void deniedInTheBrowser_isDenied() throws Exception {
+        service.token("pending", "access_denied");
+        assertInstanceOf(CompilerAccountClient.Denied.class, client.await(start(), () -> false));
+    }
+
+    @Test
+    void theServiceSayingExpired_isExpired() throws Exception {
+        service.token("expired_token");
+        assertInstanceOf(CompilerAccountClient.Expired.class, client.await(start(), () -> false));
+    }
+
+    @Test
+    void noPollIsSentOnceTheCodeHasExpired() throws Exception {
+        service.expiresIn = 5;
+        service.interval = 2;
+        service.token("pending");
+        // bounded: a client that ignored expiry would poll a pending service for ever
+        CompilerAccountClient bounded = new CompilerAccountClient(HttpClient.newHttpClient(), d -> {
+            clock.addAndGet(d.toNanos());
+            if (service.count("/auth/device/token") > 10) throw new AssertionError("still polling long after the code expired");
+        }, clock::get);
+        Outcome o = bounded.await(bounded.start(service.base()), () -> false);
+        assertInstanceOf(CompilerAccountClient.Expired.class, o);
+        // polls at t=2 and t=4; the third sleep reaches t=6, past the five-second expiry, so it is not sent
+        assertEquals(2, service.count("/auth/device/token"), "no poll after expiry");
+    }
+
+    @Test
+    void cancellingStopsPolling() throws Exception {
+        service.token("pending");
+        AtomicBoolean cancelled = new AtomicBoolean();
+        CompilerAccountClient counting = new CompilerAccountClient(HttpClient.newHttpClient(), d -> {
+            clock.addAndGet(d.toNanos());
+            if (service.count("/auth/device/token") == 1) cancelled.set(true);   // the person presses Cancel
+            if (service.count("/auth/device/token") > 10) throw new AssertionError("still polling after cancel");
+        }, clock::get);
+        Outcome o = counting.await(counting.start(service.base()), cancelled::get);
+        assertInstanceOf(CompilerAccountClient.Cancelled.class, o);
+        assertEquals(1, service.count("/auth/device/token"), "nothing is polled after a cancel");
+    }
+
+    @Test
+    void anInterruptIsACancellation() throws Exception {
+        service.token("pending");
+        CompilerAccountClient interrupted = new CompilerAccountClient(HttpClient.newHttpClient(), d -> {
+            throw new InterruptedException();
+        }, clock::get);
+        assertInstanceOf(CompilerAccountClient.Cancelled.class, interrupted.await(interrupted.start(service.base()), () -> false));
+        assertTrue(Thread.interrupted(), "the interrupt is preserved for the caller");
+        assertEquals(0, service.count("/auth/device/token"));
+    }
+
+    @Test
+    void usageIsRead_andANullNextResetStaysNull() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        CompilerAccountClient.Usage u = client.usage(c);
+        assertEquals("free", u.plan());
+        assertEquals(120, u.available());
+        assertNull(u.nextReset());
+        assertTrue(u.active());
+
+        service.usageBody = service.usageBody.replace("\"nextReset\":null", "\"nextReset\":\"2026-11-01T00:00:00Z\"");
+        assertEquals("2026-11-01T00:00:00Z", client.usage(c).nextReset());
+        StandInCompilerService.Request read = service.requests().get(service.requests().size() - 1);
+        assertEquals("GET", read.method());
+        assertEquals("Bearer " + BEARER, read.authorization());
+    }
+
+    @Test
+    void aRevokedCredentialReadsAsUnauthorized() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        service.usageStatus = 401;
+        AccountException e = assertThrows(CompilerAccountClient.Unauthorized.class, () -> client.usage(c));
+        assertFalse(e.getMessage().contains(BEARER));
+    }
+
+    @Test
+    void revokeDeletesThisDevicesCredential_andAlreadyInvalidStillCountsAsDone() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        assertTrue(client.revoke(c));
+        StandInCompilerService.Request r = service.requests().get(service.requests().size() - 1);
+        assertEquals("DELETE", r.method());
+        assertEquals("/v1/credentials/cred01", r.path());
+        assertEquals("Bearer " + BEARER, r.authorization());
+
+        service.revokeStatus = 401;
+        assertFalse(client.revoke(c), "already not accepted: the caller still disconnects");
+        service.revokeStatus = 500;
+        assertThrows(AccountException.class, () -> client.revoke(c), "any other answer leaves it connected");
+    }
+
+    @Test
+    void theAnalyserOnlyEverCallsTheFourDocumentedEndpoints() throws Exception {
+        service.token("pending", "approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        client.usage(c);
+        client.revoke(c);
+        for (StandInCompilerService.Request r : service.requests()) {
+            assertTrue(List.of("POST /auth/device/authorize", "POST /auth/device/token", "GET /v1/usage",
+                    "DELETE /v1/credentials/cred01").contains(r.method() + " " + r.path()), "reads, never operates: " + r);
+        }
+    }
+
+    @Test
+    void aBearerIsNeverSentInClearToAnotherHost_andNothingIsSent() {
+        AccountException e = assertThrows(AccountException.class, () -> client.start("http://compiler.example.com"));
+        assertTrue(e.getMessage().contains("https://"));
+        assertNotNull(ServiceAddress.refusal("https://user@compiler.example.com"));
+        assertNull(ServiceAddress.refusal("https://compiler.example.com/"));
+        assertEquals("https://compiler.example.com", ServiceAddress.require("https://compiler.example.com/"));
+        assertEquals(0, service.requests().size());
+    }
+
+    @Test
+    void aFailureMessageNeverQuotesWhatTheServiceSent() throws Exception {
+        DeviceStart s = start();
+        // a misbehaving service echoing the device code and a credential in an unexpected error answer
+        service.token("weird_" + DEVICE_CODE.replaceAll("[^A-Za-z0-9_]", "") + "_" + "x".repeat(80));
+        Outcome o = client.await(s, () -> false);
+        String reason = assertInstanceOf(CompilerAccountClient.Failed.class, o).reason();
+        assertFalse(reason.contains(DEVICE_CODE.replaceAll("[^A-Za-z0-9_]", "")), reason);
+        assertTrue(reason.length() < 120, reason);
+    }
+
+    @Test
+    void sleepsAreWholeIntervals_neverBusyPolling() throws Exception {
+        service.interval = 0;   // a service asking for no interval still gets at least one second
+        service.token("pending", "approved");
+        client.await(start(), () -> false);
+        assertTrue(sleeps.stream().allMatch(s -> s >= 1), "" + sleeps);
+        assertEquals(Duration.ofSeconds(5).toSeconds(), CompilerAccountClient.SLOW_DOWN_SECONDS);
+    }
+}

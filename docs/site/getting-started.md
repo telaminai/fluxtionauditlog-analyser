@@ -59,6 +59,27 @@ only whether a key is present; it does not check it or show it again. A `-Dfluxt
 overrides the file, and the builder does not read `FLUXTION_API_KEY`. Existing generated processors and the bundled
 demo run without this key.
 
+## Connect a compiler account
+
+If your compiler service uses accounts, **AI ▸ Compiler account…** connects this analyser to yours. Enter the service's
+address (for example `https://compiler.example.com`; plain `http` is accepted only for this machine) and press
+**Connect compiler account**. The analyser asks the service for a sign-in code, opens your browser at the service's
+sign-in page and shows the code to enter there. While you approve it, it checks back only as often as the service
+asks, slows down when told to, and stops when the code expires; **Cancel sign-in**, or closing the dialog, stops it
+with nothing stored. It never shows or logs the device code, or the credential it receives.
+
+Once you approve, the credential is kept in your operating system's credential store: the macOS Keychain, or the
+Secret Service keyring on Linux (through `secret-tool`). Where neither is available (Windows, or Linux without
+`secret-tool`), it is kept in `~/.fluxtion-analyser/compiler-account.credential`, a file only your account can read.
+That protects it from other users of the machine, not from programs you run yourself. The credential never reaches a
+command line, a project, a settings export, a report, a walk, an evidence bundle or an assistant's `context`. It also
+remembers which service issued it, so changing the address later never sends it anywhere else.
+
+The dialog then shows the account, its plan and available credits, and the next reset when the plan has one;
+**Refresh** reads them again. The analyser only reads: it never grants credits or changes the account.
+**Disconnect** deletes the credential from this machine, and the service keeps accepting it until it is revoked.
+**Revoke this device** asks the service to stop accepting it, then deletes it here.
+
 ## Watch a log as it grows (Follow)
 
 Turn on **Follow** (the toolbar toggle, or **Audit log ▸ Follow (tail)**) to watch a local text log that another

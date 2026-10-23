@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **AI ▸ Compiler account…** connects the analyser to a compiler account by device sign-in: it opens your browser at the
+  service's sign-in page, shows the code to enter, honours the service's polling interval, slow-down and expiry, and can
+  be cancelled. The credential is kept in the macOS Keychain or the Linux Secret Service keyring (an owner-only file
+  elsewhere), never on a command line or in a project, export, report, bundle or `context`. The dialog shows the plan,
+  available credits and next reset (when there is one), and offers *Disconnect* and *Revoke this device*. The analyser
+  only reads the account; it never changes it.
+
 ## [1.38.0] - 2026-10-21
 
 ### Added
