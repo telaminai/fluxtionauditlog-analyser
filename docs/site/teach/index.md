@@ -46,9 +46,11 @@ thing it shows ([Prompt packs](../start/prompt-packs.md)).
 With no assistant, choosing an entry still puts the question in the box. **Copy prompt** gives it to any assistant you
 use, or answer it yourself from the views.
 
-!!! info "Coming: the Fluxtion philosophy packs"
-    Packs that teach how Fluxtion thinks (events, dependencies, dispatch, the audit) are being written, for teaching
-    sessions in particular. They are not published yet.
+To teach Fluxtion itself rather than one log, use a philosophy pack. Each starts from the published diamond:
+
+- [What is Fluxtion?](../start/packs/what-is-fluxtion.md) ([download](https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/site/start/packs/what-is-fluxtion.md))
+- [Local knowledge, global behaviour](../start/packs/local-knowledge-global-behaviour.md) ([download](https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/site/start/packs/local-knowledge-global-behaviour.md))
+- [Audit logs and evidence](../start/packs/audit-logs-and-evidence.md) ([download](https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/site/start/packs/audit-logs-and-evidence.md))
 
 ## 3. A walk (5 minutes)
 

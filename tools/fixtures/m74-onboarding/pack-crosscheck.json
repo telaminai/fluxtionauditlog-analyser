@@ -1,5 +1,5 @@
 {
- "_about": "Verdicts of the analyser's own assistant/PromptPack.parse, PR 155 base dd70ea80, JDK 21; NBSP regression added, recorded by tools/m74_record_pack_crosscheck.py running the Java parser over each input. tools/test_m74_onboarding_runner.py pins the Python mirror to them, so a divergence fails a test; re-record when PromptPack changes.",
+ "_about": "Verdicts of the analyser's own assistant/PromptPack.parse, feat/m79-7-philosophy-packs (M79-7: teach: refusal, published philosophy packs by path), JDK 21, recorded by tools/m74_record_pack_crosscheck.py running the Java parser over each input. tools/test_m74_onboarding_runner.py pins the Python mirror to them, so a divergence fails a test; re-record when PromptPack changes.",
  "cases": {
   "angle-placeholder": {
    "input": "# T\n1. **x** — example: https://github.com/example/demo/archive/<40-hex>.zip\n",
@@ -1014,6 +1014,100 @@
     "cause": "EXAMPLE_NOT_ARCHIVE"
    }
   },
+  "published-philosophy-audit-logs-and-evidence": {
+   "path": "docs/site/start/packs/audit-logs-and-evidence.md",
+   "java": {
+    "entries": 9,
+    "thirdParty": false,
+    "title": "Audit logs and evidence",
+    "description": "Audit and evidence track. Entry 1 is the published diamond, pinned by commit.",
+    "labels": [
+     "Teaching example: the diamond",
+     "What does a record show?",
+     "Audit levels: INFO versus TRACE",
+     "What silence means",
+     "Is the order in a record meaningful?",
+     "Flags, reports and walks",
+     "Packing an evidence bundle",
+     "Checking a bundle I was sent",
+     "Trust the evidence, not the author"
+    ],
+    "texts": [
+     null,
+     "Pick one record on screen and explain each part: the event, the times, the thread and the node logs. Which values did a node write itself, and which did the framework add? Please use the analyser's log format pages and the Fluxtion audit docs, and tell me if you can't tell from what's here.",
+     "What does the audit level change about what gets written? At the level this log was written at, would a node that ran but logged nothing appear at all? Can you tell from these records which level was in force? Check against the docs and the records, and tell me if you can't tell from what's here.",
+     "Which nodes never appear in this log? For each one, can you say it didn't run, or only that it may have run without logging? Explain from what the records carry and the format specification, and tell me if you can't tell from what's here.",
+     "Is the order of the node entries in a record the order they ran in? What does the analyser say about ordering for this log, and what would be different for a log from another engine? Check against the format specification, and tell me if you can't tell from what's here.",
+     "I've found something in this log. What's the difference between flagging a record, writing a report and saving a spotlight walk? Which of them would someone else see if I sent them this investigation, and which stay on my machine? Answer from the analyser's docs, and tell me if you can't tell from what's here.",
+     "I'd like to send this investigation as an evidence bundle. Before making anything, explain what would go in it, what would be left out and why, and when the analyser would refuse to make one. Then ask me before you write it. Answer from the evidence bundle docs, and tell me if you can't tell from what's here.",
+     "Someone has sent me a .fexp file. How do I check that it hasn't changed, and what does a successful check prove and not prove? What should I compare with the sender, and what won't the bundle let me do? Answer from the evidence bundle docs, and tell me if you can't tell from what's here.",
+     "In this investigation, which statements are backed by a record, a chart or the generated code, and which are only someone's account, including yours? Point at the evidence for each one, and tell me if you can't tell from what's here."
+    ],
+    "normalised": []
+   }
+  },
+  "published-philosophy-local-knowledge-global-behaviour": {
+   "path": "docs/site/start/packs/local-knowledge-global-behaviour.md",
+   "java": {
+    "entries": 9,
+    "thirdParty": false,
+    "title": "Local knowledge, global behaviour",
+    "description": "Intermediate track. Entry 1 is the published diamond, pinned by commit.",
+    "labels": [
+     "Teaching example: the diamond",
+     "A node only knows its parents",
+     "The diamond: how often does D run?",
+     "When only one side changes",
+     "The very first event",
+     "The true or false a node returns",
+     "Guards and change detection",
+     "Compared with hand-written callbacks",
+     "Compared with an event bus or a scheduler"
+    ],
+    "texts": [
+     null,
+     "Look at node D's source. What does D know about the rest of the graph? If it only knows its parents, who decided that it runs after both B and C? Show me where that order is fixed, in the generated code or the graph, and tell me if you can't tell from what's here.",
+     "Here A feeds B and C, and both feed D. When one event changes A, how many times does D run in that cycle, and where does it sit relative to B and C? Please check this against the records and the generated code rather than answering from general knowledge, and tell me if you can't tell from what's here.",
+     "Find a cycle where one branch reported a change and the other did not, if there is one. Which branch was it? Did D still run, and what did it see from the branch that didn't change? Check it in the records and the generated code. If no such cycle is on screen, or a silent node leaves it open, tell me if you can't tell from what's here.",
+     "What happens on the very first event, before any node has built up state? Do B, C and D behave differently from later events? Show me the first cycle in the records, and tell me if you can't tell from what's here.",
+     "What does the true or false returned by a handler or trigger do? Find a record where a node reported no change and show me what happened downstream. Does a child running prove which way its parent answered? Check against the docs and the records, and tell me if you can't tell from what's here.",
+     "How do I stop D recalculating when nothing it cares about has changed? Explain the options the Fluxtion docs describe, such as the returned boolean, @OnTrigger(dirty=false), @OnParentUpdate and @NoTriggerReference, and show which ones this project uses. Tell me if you can't tell from what's here or the docs.",
+     "If I wired A, B, C and D myself with listener callbacks, in what order could D be called, and could it see B's new value alongside C's old one? Contrast that with what the records here show. Keep the Fluxtion side to what the docs and records say, and tell me if you can't tell from what's here.",
+     "How is this different from posting events on an event bus, or running these steps on a scheduler or thread pool? What do I gain and what do I give up? Base the Fluxtion side on the docs and what's on screen, and tell me if you can't tell from what's here."
+    ],
+    "normalised": []
+   }
+  },
+  "published-philosophy-what-is-fluxtion": {
+   "path": "docs/site/start/packs/what-is-fluxtion.md",
+   "java": {
+    "entries": 8,
+    "thirdParty": false,
+    "title": "What is Fluxtion?",
+    "description": "Basic track. Entry 1 is the published diamond, pinned by commit.",
+    "labels": [
+     "Teaching example: the diamond",
+     "What is Fluxtion, in plain words?",
+     "Follow one event through",
+     "Show me in the records",
+     "What I wrote versus what Fluxtion generated",
+     "Who calls my methods?",
+     "Fluxtion as a DI container",
+     "How would my own code look?"
+    ],
+    "texts": [
+     null,
+     "I'm new to Fluxtion. Using this project and the records on screen, explain in plain words what an event, an event handler and a trigger are, and point at one of each in this project. Please answer from what's here and the Fluxtion docs, not from general knowledge, and tell me if you can't tell from what's here.",
+     "Pick one event in this log and walk me through it: which handler received it first, which nodes ran after it, and in what order. Show me in the records. If a node wrote nothing to the log, please say whether that means it didn't run or only that you can't tell from what's here.",
+     "Open one audit record and tell me what each part means. Which values did my own code write, and which did Fluxtion add by itself? If a field's meaning isn't clear from the record or the docs, tell me if you can't tell from what's here rather than guessing.",
+     "Show me one of my node classes next to the generated processor code that calls it. Which part did I write, which part did the compiler write, and where is the order of calls decided? If the generated source isn't on screen, don't describe it from memory: tell me if you can't tell from what's here.",
+     "I never call my @OnEventHandler or @OnTrigger methods myself. Who does, and how does it decide when? Show me where that happens in the generated code or the records, and tell me if you can't tell from what's here.",
+     "Is it fair to say Fluxtion wires my objects together at build time, a bit like a dependency-injection container? Show me in this project where my objects are created and connected: constructors, the registered roots, anything injected with @ServiceRegistered. Where does the comparison hold and where does it break down? Tell me if you can't tell from what's here.",
+     "In my own application I have a class that reacts when a price changes and another that recalculates a total from it. Using this project as the pattern, how would those two classes look as Fluxtion nodes, and what would I stop writing by hand? Point at the matching parts of this project, and tell me if you can't tell from what's here."
+    ],
+    "normalised": []
+   }
+  },
   "query": {
    "input": "# T\n1. **x** — example: https://github.com/o/r/archive/0123456789abcdef0123456789abcdef01234567.zip?x=1\n",
    "java": {
@@ -1154,6 +1248,20 @@
     "cause": "EXAMPLE_MALFORMED"
    }
   },
+  "refuse-teach-loose-label": {
+   "input": "# T\n- Watch it - teach: the-diamond\n",
+   "java": {
+    "line": 2,
+    "cause": "TEACH_NOT_SHIPPED"
+   }
+  },
+  "refuse-teach-unshipped": {
+   "input": "# T\n1. **Watch it explained** — teach: the-diamond\n",
+   "java": {
+    "line": 2,
+    "cause": "TEACH_NOT_SHIPPED"
+   }
+  },
   "refuse-ten-bullets": {
    "input": "# Ten\n- L1 - text\n- L2 - text\n- L3 - text\n- L4 - text\n- L5 - text\n- L6 - text\n- L7 - text\n- L8 - text\n- L9 - text\n- L10 - text\n",
    "java": {
@@ -1196,6 +1304,22 @@
    "java": {
     "line": 2,
     "cause": "EXAMPLE_MOVING_REF"
+   }
+  },
+  "teach-word-in-prose-is-a-prompt": {
+   "input": "# T\n1. **Teach me** — Please teach: what is a trigger?\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "Teach me"
+    ],
+    "texts": [
+     "Please teach: what is a trigger?"
+    ],
+    "normalised": []
    }
   },
   "text-long": {

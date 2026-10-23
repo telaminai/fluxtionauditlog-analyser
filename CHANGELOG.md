@@ -6,6 +6,19 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- Three Fluxtion philosophy prompt packs are published on the docs site, ready to download and drop on the start page:
+  *What is Fluxtion?*, *Local knowledge, global behaviour* and *Audit logs and evidence* (*Get started ▸ Prompt packs*).
+  Each starts from the published diamond example, pinned by commit, and a build test fails if one stops being a valid
+  pack or its example drifts from the first minute's pinned run.
+
+### Changed
+
+- A prompt pack entry whose words begin `teach:` is refused by line ("a teach: entry must name a teaching
+  conversation shipped with the analyser, and none is"), rather than read as a question; teaching conversations are
+  not shipped yet.
+
 ## [1.38.0] - 2026-10-21
 
 ### Added

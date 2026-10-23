@@ -6,7 +6,8 @@
 The checkout must have compiled classes (`mvn -o compile` there). Every case's `input` in the fixture is written to a
 scratch directory as bytes, tools/m74_record_pack_crosscheck/RecordPackVerdicts.java parses each with
 assistant/PromptPack.parse, and each case's `java` verdict is replaced by what the Java parser said. Inputs are never
-changed here: a new case is added to the fixture with any `java` value and this is re-run. The Python mirror
+changed here: a new case is added to the fixture with any `java` value and this is re-run. A case may name a committed
+file by `path` instead of an inline `input` (the published philosophy packs, OD-79.28). The Python mirror
 (m74_onboarding_runner.lint_pack) is pinned to these verdicts by tools/test_m74_onboarding_runner.py.
 """
 import argparse
@@ -30,6 +31,14 @@ def visible_json(doc):
     return ''.join(c if c == '\n' or not _hidden(ord(c)) else json.dumps(c)[1:-1] for c in text)
 
 
+def case_bytes(c):
+    """A case's input: its inline `input`, or (M79-7, OD-79.28) the bytes of the committed file its `path` names, relative
+    to the repository root, so a published pack is checked where it is published and never copied into the fixture."""
+    if 'path' in c:
+        return (HERE.parent / c['path']).read_bytes()
+    return c['input'].encode('utf-8')
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('checkout')
@@ -44,7 +53,7 @@ def main(argv=None):
     cases = doc['cases']
     with tempfile.TemporaryDirectory() as tmp:
         for name, c in cases.items():
-            (Path(tmp) / f'{name}.bin').write_bytes(c['input'].encode('utf-8'))
+            (Path(tmp) / f'{name}.bin').write_bytes(case_bytes(c))
         out = subprocess.run(['java', '-cp', str(classes), str(RECORDER), tmp], check=True, capture_output=True,
                              text=True).stdout
     got = dict(line.split('\t', 1) for line in out.splitlines() if line)

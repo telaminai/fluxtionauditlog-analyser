@@ -409,6 +409,8 @@ def lint_pack(data):
             return refuse(i + 1, 'EMPTY_TEXT')
         if len(prompt) > MAX_TEXT:
             return refuse(i + 1, 'TEXT_TOO_LONG')
+        if prompt.startswith('teach:'):         # M79-7 A7.2: no teaching conversation ships before M79-2
+            return refuse(i + 1, 'TEACH_NOT_SHIPPED')
         if prompt.startswith('example:'):
             x = _EXAMPLE.fullmatch(prompt)
             if not x:

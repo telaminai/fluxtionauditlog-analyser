@@ -153,6 +153,9 @@ nav:
       - Starter templates and examples: start/templates-and-examples.md
       - Prompt packs: start/prompt-packs.md
       - Sample prompt pack: user-guide/sample-prompt-pack.md
+      - 'Pack: What is Fluxtion?': start/packs/what-is-fluxtion.md
+      - 'Pack: Local knowledge, global behaviour': start/packs/local-knowledge-global-behaviour.md
+      - 'Pack: Audit logs and evidence': start/packs/audit-logs-and-evidence.md
       - Open your own log, step by step: getting-started.md
       - Guided start with an external assistant: guided-start.md
       - Playground to analyser in 10 minutes: tutorial-playground.md

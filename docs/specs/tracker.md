@@ -167,7 +167,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M79-4] ☐ The broken-diamond quest: works with No AI, confirmed by record digest, teacher mode (spec §9).
 - [M79-5] ☐ *Start here*, its GIF and the docs/app label parity test (spec §10).
 - [M79-6] ☐ The external teacher kit: *Connect your own Claude*, the bridge instructions addition, `teach-fluxtion` (spec §11.6; after M79-2 and M77-3, both prerequisites now shipped).
-- [M79-7] ☐ **(new, r7, owner)** The first philosophy packs: 01, 02, 04 published and build-tested on the docs site; no code dependency beyond M79-1a-i (spec §19; OD-79.26–.28 open).
+- [M79-7] ◧ The first philosophy packs: 01, 02, 04 moved to `docs/site/start/packs/`, build-tested (`PhilosophyPacksTest`, A7.1–A7.3) and cross-checked by path; `teach:` refused until M79-2 (spec §19; OD-79.26–.28 accepted). Implemented on `feat/m79-7-philosophy-packs`; review and exact-head CI pending.
 - [M79-D1] ☑ The diamond domains — done in another repo. ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 - [M79-D2] ☑ The broken-diamond teaching run — published. ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
