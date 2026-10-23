@@ -54,10 +54,18 @@ class PhilosophyPacksTest {
         assertFalse(r.ok(), "a teach: entry naming an unshipped conversation was accepted");
         assertEquals(line, r.refusal().line());
         assertEquals(PromptPack.Cause.TEACH_NOT_SHIPPED, r.refusal().cause());
-        // the loose label forms reach the same check (the forgiving reader never turns teach: into prose)
+        // a loose label form reaches the same refusal
         var loose = PromptPack.parse((pack.stripTrailing() + "\n- Watch it - teach: the-diamond\n")
                 .getBytes(StandardCharsets.UTF_8));
         assertEquals(PromptPack.Cause.TEACH_NOT_SHIPPED, loose.refusal().cause());
+        // review PR #197 (P2): the forgiving reader WOULD read a bare "teach: id" as the label "teach" and the question
+        // "id" (and "Teach:" in a label as prose), so a teach entry in any loose shape or case is refused by line before
+        // the label is taken off (PromptPack.LOOSE_TEACH; the other shapes are pack-crosscheck.json's refuse-teach-* rows)
+        String withBare = pack.stripTrailing() + "\n9. teach: the-diamond\n";
+        var bare = PromptPack.parse(withBare.getBytes(StandardCharsets.UTF_8));
+        assertFalse(bare.ok(), "a bare teach: entry was accepted as the label \"teach\" and a question");
+        assertEquals((int) withBare.lines().count(), bare.refusal().line());
+        assertEquals(PromptPack.Cause.TEACH_NOT_SHIPPED, bare.refusal().cause());
     }
 
     /**

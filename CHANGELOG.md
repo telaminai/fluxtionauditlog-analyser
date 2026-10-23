@@ -15,7 +15,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Changed
 
-- A prompt pack entry whose words begin `teach:` is refused by line ("a teach: entry must name a teaching
+- A prompt pack entry that names `teach:`, in any label shape or letter case (`1. teach: …`, `**teach:** …`,
+  `- teach - …`, `Teach: …`), is refused by line ("a teach: entry must name a teaching
   conversation shipped with the analyser, and none is"), rather than read as a question; teaching conversations are
   not shipped yet.
 

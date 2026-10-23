@@ -184,6 +184,16 @@ public final class PromptPack {
     /** A line that reads as an example entry in any shape — it must then be EXACTLY the strict shape. */
     private static final Pattern LOOSE_EXAMPLE = Pattern.compile("(?i)^(?:\\d{1,2}[.)]|[-*+])[ \\t]+(?:\\*\\*[^*]*\\*\\*[ \\t]*"
             + "(?:—|–|--|-|:)?[ \\t]*|[^*]{0,60}?[ \\t]+(?:—|–|--|-)[ \\t]+|[^*:]{0,60}:[ \\t]+)?example:[ \\t]*<?https?://");
+    /**
+     * Review PR #197 (P2): a line that reads as a teach entry in any shape — bare ("1. teach: id"), in a bold label
+     * ("1. **teach:** id"), as a plain label ("- teach - id") or in any case ("Teach:") — is refused by name, as
+     * LOOSE_EXAMPLE refuses a loose example, rather than read as a label and a question. Only the strict shape
+     * (TEACH_LINE) goes on to the entry check, where M79-2's lookup will replace the refusal.
+     */
+    private static final Pattern LOOSE_TEACH = Pattern.compile("(?i)^(?:\\d{1,2}[.)]|[-*+])[ \\t]+(?:\\*\\*[^*]*\\*\\*[ \\t]*"
+            + "(?:—|–|--|-|:)?[ \\t]*|[^*]{0,60}?[ \\t]+(?:—|–|--|-)[ \\t]+|[^*:]{0,60}:[ \\t]+)?(?:\\*\\*)?teach(?:[ \\t]*:"
+            + "|(?:\\*\\*[ \\t]*(?:—|–|--|-|:)?|[ \\t]+(?:—|–|--|-))[ \\t]*[a-z0-9][a-z0-9._-]*[ \\t]*$)");
+    private static final Pattern TEACH_LINE = Pattern.compile("^\\d{1,2}\\. \\*\\*[^*]+\\*\\* — teach: ");
     private static final Pattern HTML_TAG = Pattern.compile("<\\s*[/!?A-Za-z]");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{[A-Za-z_][A-Za-z0-9_]*\\}");
     private static final Pattern LINK = Pattern.compile("\\]\\(|https?://|\\bwww\\.|<https?:", Pattern.CASE_INSENSITIVE);
@@ -231,6 +241,9 @@ public final class PromptPack {
             // An example entry is never normalised: one that is not exactly the strict shape is refused by name.
             if (example.matches()) l = example.group(1);
             else if (LOOSE_EXAMPLE.matcher(l).find()) return refuse(line, Cause.EXAMPLE_MALFORMED);
+            else if (!TEACH_LINE.matcher(l).lookingAt() && LOOSE_TEACH.matcher(l).find()) {
+                return refuse(line, Cause.TEACH_NOT_SHIPPED);
+            }
             if (HTML_TAG.matcher(l).find()) return refuse(line, Cause.HTML);
             if (LINK.matcher(l).find()) return refuse(line, Cause.LINK);
             if (PLACEHOLDER.matcher(l).find()) return refuse(line, Cause.PLACEHOLDER);

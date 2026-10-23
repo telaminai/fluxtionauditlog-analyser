@@ -1248,6 +1248,20 @@
     "cause": "EXAMPLE_MALFORMED"
    }
   },
+  "refuse-teach-bare": {
+   "input": "# T\n1. teach: the-diamond\n",
+   "java": {
+    "line": 2,
+    "cause": "TEACH_NOT_SHIPPED"
+   }
+  },
+  "refuse-teach-bold-colon-label": {
+   "input": "# T\n1. **teach:** the-diamond\n",
+   "java": {
+    "line": 2,
+    "cause": "TEACH_NOT_SHIPPED"
+   }
+  },
   "refuse-teach-loose-label": {
    "input": "# T\n- Watch it - teach: the-diamond\n",
    "java": {
@@ -1255,8 +1269,22 @@
     "cause": "TEACH_NOT_SHIPPED"
    }
   },
+  "refuse-teach-plain-dash-label": {
+   "input": "# T\n- teach - the-diamond\n",
+   "java": {
+    "line": 2,
+    "cause": "TEACH_NOT_SHIPPED"
+   }
+  },
   "refuse-teach-unshipped": {
    "input": "# T\n1. **Watch it explained** — teach: the-diamond\n",
+   "java": {
+    "line": 2,
+    "cause": "TEACH_NOT_SHIPPED"
+   }
+  },
+  "refuse-teach-upper-case": {
+   "input": "# T\n1. **W** — Teach: the-diamond\n",
    "java": {
     "line": 2,
     "cause": "TEACH_NOT_SHIPPED"
@@ -1304,6 +1332,27 @@
    "java": {
     "line": 2,
     "cause": "EXAMPLE_MOVING_REF"
+   }
+  },
+  "teach-label-with-prose-is-a-prompt": {
+   "input": "# T\n1. Teach - explain the diamond to me\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "Teach"
+    ],
+    "texts": [
+     "explain the diamond to me"
+    ],
+    "normalised": [
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
    }
   },
   "teach-word-in-prose-is-a-prompt": {

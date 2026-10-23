@@ -2757,6 +2757,12 @@ CONTROLS += [
     ('m79-7-spec-pin-drift', 'docs/specs/spec-first-minute.md',
      'byte-identical at `dad9b43`, the', 'byte-identical at `35e4849`, the',
      'PhilosophyPacksTest#thePinnedRunMatchesTheSpecsPin'),
+    # review PR #197 (P2): without the loose-shape check a bare "teach: id" is read as a label and a question
+    ('m79-7-loose-teach-refused', J + 'assistant/PromptPack.java',
+     '            else if (!TEACH_LINE.matcher(l).lookingAt() && LOOSE_TEACH.matcher(l).find()) {\n'
+     '                return refuse(line, Cause.TEACH_NOT_SHIPPED);\n'
+     '            }\n', '',
+     'PhilosophyPacksTest#aTeachEntryNamingAnUnshippedConversationIsRefused'),
 ]
 
 # PR #174 review: bounded table expansion and widths from the final displayed runs, not the Markdown source.
