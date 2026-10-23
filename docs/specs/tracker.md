@@ -209,6 +209,10 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ## Producers and readers
 
+### CA · Compiler account and entitlement investigations (cross-repo; the hosted compiler's managed sign-in)
+- [CA-14] ◐ An exported entitlement investigation opens unchanged: `EntitlementInvestigationConformanceTest` pins the producer's projection (fixture pseudonymous, placeholder packages); the producer half lives with the compiler.
+- [CA-1] ☐ *Connect compiler account*: device sign-in, OS credential storage per platform, read-only plan and usage; never written to projects, bundles or reports. Phase 2; the analyser reads, it never operates the service.
+
 ### Mongoose audit format ([proposal](../proposals/mongoose-audit-format/README.md), rev 9; [spec](spec-mongoose-audit-production.md))
 - [AF-8] ☐ **(owner)** Does a record scalar support a trailing `#` comment? Decide with AF-9.
 - [AF-9] ☐ No real Mongoose export is classified as an exported call (§5).
