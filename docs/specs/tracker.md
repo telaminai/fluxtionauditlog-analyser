@@ -163,7 +163,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M79-1a-ii] ☐ The four other domains: runs, GraphMLs, the caption template, the five tiles (spec §6.3).
 - [M79-1b] ☐ The start page under 40 words, against M77's shipped wizard/AI line (spec §5.4).
 - [M79-2] ☐ The teaching conversation in the onboard assistant: a shipped, recorded walk, *Continue with Claude*, the passive log (spec §11).
-- [M79-3] ☐ Quiet evidence wording: the three-state chip, accessible descriptions (spec §8).
+- [M79-3] ◧ Quiet evidence wording: the three-state chip (`EvidenceChipLines`, details on click), the file observation moved into the session (`logObservation`), accessible descriptions in the Context column; A3.1–A3.4 (spec §8). Implemented on `feat/m79-3-evidence-chip`; review and exact-head CI pending. Start-page descriptions are ActionChip's already; no edit there (M79-1b owns the page).
 - [M79-4] ☐ The broken-diamond quest: works with No AI, confirmed by record digest, teacher mode (spec §9).
 - [M79-5] ☐ *Start here*, its GIF and the docs/app label parity test (spec §10).
 - [M79-6] ☐ The external teacher kit: *Connect your own Claude*, the bridge instructions addition, `teach-fluxtion` (spec §11.6; after M79-2 and M77-3, both prerequisites now shipped).

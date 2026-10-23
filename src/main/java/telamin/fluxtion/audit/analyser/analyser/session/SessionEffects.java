@@ -153,6 +153,14 @@ public sealed interface SessionEffects {
     record MeasureRecordsViewEffect(long opId, long generation) implements SessionEffects {
     }
 
+    /**
+     * M79-3 (spec-first-minute §8.1): observe the open log's file now — size, modification time and file identity against
+     * what was read — for {@code generation}. Decided by {@code logObservation}; the adapter observes and answers
+     * {@link SessionEvents.FileObservationObserved} at once. It reads file metadata and changes nothing.
+     */
+    record ObserveLogFileEffect(long opId, long generation) implements SessionEffects {
+    }
+
     // ---- M69 spotlight walks: decided by the walkPlayback node, performed by the frame (spec §3.8) ----------
 
     /**

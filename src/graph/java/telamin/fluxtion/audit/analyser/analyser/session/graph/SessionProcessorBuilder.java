@@ -133,6 +133,9 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView recordsView =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView(openLog, effects);
         cfg.addNode(recordsView, "recordsView");
+        // M79-3 (spec-first-minute §8.1): the open log's file observation — observed on request, published once
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.LogObservation(openLog, effects),
+                "logObservation");
         // M69: spotlight-walk playback — every transition and decision about a showing walk, in one place (owner)
         // OA-1 (spec-onboard-assistant-journeys.md §5): the onboard assistant's turns, tickets, budgets and basis, in one place
         // M74 (spec-claude-code-provider.md §4.1): one assistant mode at a time, as a session fact, upstream of both

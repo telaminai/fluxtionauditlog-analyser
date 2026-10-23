@@ -28,7 +28,21 @@ public record ProjectModel(List<Section> sections) {
      * for every row whose target is a tab or a settings page rather than a thing.
      */
     public record Row(String primary, String secondary, String path, String provenance, Tone tone,
-                      Target target, String item, String label) {
+                      Target target, String item, String label, String description) {
+
+        /**
+         * A row with no accessible description — every row but those where a product term first appears (M79-3, spec
+         * §8.2: the Fluxtion key, a {@code .fexp}, a GraphML), which carry the app's existing words for it.
+         */
+        public Row(String primary, String secondary, String path, String provenance, Tone tone,
+                   Target target, String item, String label) {
+            this(primary, secondary, path, provenance, tone, target, item, label, null);
+        }
+
+        /** This row, carrying {@code words} as the accessible description of what it names (M79-3, §8.2). */
+        public Row described(String words) {
+            return new Row(primary, secondary, path, provenance, tone, target, item, label, words);
+        }
 
         /** A row that names no addressable item — the shape every pre-35eeb320 caller uses. */
         public Row(String primary, String secondary, String path, String provenance, Tone tone, Target target) {
@@ -85,7 +99,7 @@ public record ProjectModel(List<Section> sections) {
             "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
-            "log.tailNote", "log.pendingNote", "log.freshness", "graphPairing.freshness", "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
+            "log.tailNote", "log.pendingNote", "graphPairing.freshness", "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
             "graphPairing.auditLogging", "graphPairing.auditLoggingNote",
@@ -106,6 +120,19 @@ public record ProjectModel(List<Section> sections) {
             "handoff.posture.value", "handoff.posture.source", "handoff.posture.setBy", "handoff.posture.derivedWouldBe",
             "handoff.record.modes", "handoff.record.resolvedFigures", "handoff.record.authoringRequired",
             "handoff.record.selectionCandidates", "handoff.record.setBy");
+
+    /**
+     * M79-3 (spec-first-minute §8.2): the accessible descriptions where a product term first appears in the Context
+     * column — the app's EXISTING words, not new ones: the start page's Fluxtion key card and GraphML opener, and the
+     * Evidence bundles page's definition of a {@code .fexp} (which says it is unsigned). {@code TermDescriptionsTest}
+     * holds them equal to their sources.
+     */
+    static final String KEY_PRESENT_WORDS = "Available for a future processor regeneration; this analyser does not validate it.";
+    static final String KEY_ABSENT_WORDS = "Needed to regenerate a processor; existing generated projects still run without one.";
+    static final String GRAPHML_WORDS = "View a processor topology, with or without a log.";
+    static final String FEXP_WORDS = "An evidence bundle is one .fexp file that carries an investigation to someone else. "
+            + "Unsigned. Verification shows that nothing in the bundle has changed since it was packed. It does not show "
+            + "who packed it.";
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
             PROCESSORS = "Event processors", ROOTS = "Source roots", SAVED_GRAPHS = "Saved charts", REPORTS = "Reports", ANALYSES = "Analyses";
@@ -138,12 +165,12 @@ public record ProjectModel(List<Section> sections) {
             // received evidence exactly as it does for the person's own work.
             Map<String, Object> bundle = map(proj.get("bundle"));
             if (!bundle.isEmpty()) {
+                // M79-3 (spec-first-minute §8.1): "verified on open; unsigned…" is the evidence chip's, one click down
                 rows.add(new Row("Evidence bundle " + str(bundle.get("identity")),
                         abbreviate(str(bundle.get("source"))) + " · working copy "
                                 + abbreviate(str(bundle.get("workingCopy"))),
-                        str(bundle.get("source")),
-                        "verified on open; unsigned, so it is not authenticated to a sender",
-                        Tone.NORMAL, Target.NONE));
+                        str(bundle.get("source")), null,
+                        Tone.NORMAL, Target.NONE).described(FEXP_WORDS));
                 // #75: the remedy for "I cannot see the code" is a root, so the row says so and leads there.
                 String anchor = str(bundle.get("sourceAnchor"));
                 if (anchor == null || "none".equals(anchor)) {
@@ -200,7 +227,8 @@ public record ProjectModel(List<Section> sections) {
             boolean present = Boolean.TRUE.equals(key.get("canonicalFilePresent"));
             rows.add(new Row("Fluxtion key file: " + (present ? "present" : "absent"),
                     str(key.get("precedenceNote")), str(key.get("canonicalFile")),
-                    "observed locally; validity not checked", present ? Tone.NORMAL : Tone.MUTED, Target.NONE));
+                    "observed locally; validity not checked", present ? Tone.NORMAL : Tone.MUTED, Target.NONE)
+                    .described(present ? KEY_PRESENT_WORDS : KEY_ABSENT_WORDS));
         }
         Map<String, Object> skills = map(ctx.get("skills"));
         if (skills.get("provenance") != null) {
@@ -281,9 +309,8 @@ public record ProjectModel(List<Section> sections) {
             for (String framingKey : List.of("tailNote", "pendingNote"))
                 if (log.get(framingKey) != null) rows.add(new Row("Record framing",str(log.get(framingKey)),
                         null,null,Tone.MUTED,Target.NONE));
-            Map<String,Object> freshness = map(log.get("freshness"));
-            if (!freshness.isEmpty()) rows.add(new Row("File observation",str(freshness.get("state")),
-                    null,str(freshness.get("basis")),"changed-on-disk".equals(freshness.get("state")) ? Tone.WARN : Tone.MUTED,Target.NONE));
+            // M79-3 (spec-first-minute §8.1): the log's file observation is the evidence chip at the top of the column now;
+            // its state and basis are in the chip's details, verbatim. context keeps log.freshness unchanged (A3.3).
             List<Object> files = list(ctx.get("files"));
             if (files.size() > 1) {
                 // members are display names, in load order — the set's directory is the row above
@@ -320,7 +347,8 @@ public record ProjectModel(List<Section> sections) {
                 verdict = "⚠ does not fit this log — " + pair.get("verdict");
                 tone = Tone.WARN;
             }
-            rows.add(new Row(str(pair.get("graph")), verdict, str(pair.get("graphPath")), prov, tone, Target.TOPOLOGY));
+            rows.add(new Row(str(pair.get("graph")), verdict, str(pair.get("graphPath")), prov, tone, Target.TOPOLOGY)
+                    .described(GRAPHML_WORDS));
             Map<String,Object> freshness = map(pair.get("freshness"));
             if (!freshness.isEmpty()) rows.add(new Row("File observation",str(freshness.get("state")),
                     null,str(freshness.get("basis")),"changed-on-disk".equals(freshness.get("state")) ? Tone.WARN : Tone.MUTED,Target.TOPOLOGY));

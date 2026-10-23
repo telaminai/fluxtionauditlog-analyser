@@ -36,6 +36,7 @@ import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
  *                       before the first measurement of the open log, and with no log
  * @param starter        Option 2: the starter catalogue and a starter project being created, as starterProject decided them
  * @param statusLine     INTEG-R10: which line the status bar states about the log and graph, as statusLine decided it
+ * @param logObservation M79-3: the open log's file observation, as logObservation last received it
  */
 public record SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
                               boolean graphOpen, String graphPath, String graphSource, long graphRevision,
@@ -52,7 +53,29 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               ProfileState profiles, ListenerState listener, long logOpenedAt,
                               AiSetupState aiSetup,
                               telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView,
-                              StarterState starter, StatusLineState statusLine, ProjectOutputsState projectOutputs) {
+                              StarterState starter, StatusLineState statusLine, ProjectOutputsState projectOutputs,
+                              LogObservationState logObservation) {
+
+    /** Before M79-3 a snapshot carried no file observation; retained for existing clients and replay fixtures. */
+    public SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
+                           boolean graphOpen, String graphPath, String graphSource, long graphRevision,
+                           GraphPairing pairing, CoveragePolicy.Assessment claim, boolean pending,
+                           PairingQualifications qualifications, String filterKey, String logIdentity, String logIdentityReason,
+                           telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics producerFindings,
+                           telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrder,
+                           String provenance, String provenanceSource, boolean following, String contentSignature,
+                           String followReadFailure, boolean evidencePending, WalkPlaybackState walkPlayback,
+                           CaptureState capture, AssistantState assistant, BundleProvenance bundle, LocalAgentState localAgent,
+                           StartPageState startPage, ProposalState proposal, ExampleDownloadState example,
+                           PermissionState permission, ProfileState profiles, ListenerState listener, long logOpenedAt,
+                           AiSetupState aiSetup, telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView,
+                           StarterState starter, StatusLineState statusLine, ProjectOutputsState projectOutputs) {
+        this(logOpen, logPath, logGeneration, sampled, total, graphOpen, graphPath, graphSource, graphRevision,
+                pairing, claim, pending, qualifications, filterKey, logIdentity, logIdentityReason, producerFindings,
+                timeOrder, provenance, provenanceSource, following, contentSignature, followReadFailure, evidencePending,
+                walkPlayback, capture, assistant, bundle, localAgent, startPage, proposal, example, permission, profiles,
+                listener, logOpenedAt, aiSetup, recordsView, starter, statusLine, projectOutputs, LogObservationState.NONE);
+    }
 
     /** Earlier snapshot constructors carry no output offers; retained for existing clients and replay fixtures. */
     public SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
@@ -97,6 +120,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
         if (starter == null) starter = StarterState.IDLE;
         if (statusLine == null) statusLine = StatusLineState.NONE;
         if (projectOutputs == null) projectOutputs = ProjectOutputsState.NONE;
+        if (logObservation == null) logObservation = LogObservationState.NONE;
     }
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
@@ -136,7 +160,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.recordsView.counts(),             // the Records view's counts, as recordsView measured them
                 p.starterProject.state(),           // Option 2: the starter catalogue and chain, as starterProject decided
                 p.statusLine.state(),               // INTEG-R10: the status bar's one line, as statusLine decided it
-                p.projectOutputs.state());          // M81 D: explicit person-owned output offers, never auto-switches
+                p.projectOutputs.state(),           // M81 D: explicit person-owned output offers, never auto-switches
+                p.logObservation.observation());    // M79-3: the open log's file observation, as logObservation received it
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */

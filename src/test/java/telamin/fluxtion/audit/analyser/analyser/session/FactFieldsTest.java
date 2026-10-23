@@ -163,6 +163,11 @@ class FactFieldsTest {
         M74.put("HostedProjectOutputOpened.file", Holds.OUTPUT_METADATA);
         M74.put("ProjectOutputOpenObserved.why", Holds.ANALYSER_WORDS);
         M74.put("ProjectOutputsEffectStarted.what", Holds.VOCABULARY);
+        // M79-3 (spec-first-minute §8.1): the log's file observation — the moment, in the analyser's own words; the state
+        // from FileObservation's three; its basis, the analyser's sentence. The members (with paths) stay in the frame.
+        M74.put("LogFileObservationDue.why", Holds.ANALYSER_WORDS);
+        M74.put("FileObservationObserved.state", Holds.VOCABULARY);
+        M74.put("FileObservationObserved.basis", Holds.ANALYSER_WORDS);
         // owner follow-up 2026-10-18: file names RELATIVE to the unpacked root (mvnw, regen.sh) of the archive the
         // person's pack named — never an absolute path, never a model's words
         M74.put("ExampleUnpacked.runnable", Holds.PERSON_PACK);

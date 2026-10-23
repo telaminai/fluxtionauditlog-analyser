@@ -387,6 +387,22 @@ uses its explicit append/rotation route; a growing pending tail can be reported 
 its next complete record is indexed. Exported reports identify the loaded snapshot and its metadata
 observation instead of presenting it as the latest disk contents.
 
+### The evidence chip
+
+One chip at the top of the Context column says how far the log on screen has been checked. Click it, or
+press **Enter** or **Space** when it has focus, to see each check in its own words.
+
+| Chip | When |
+|---|---|
+| **⚠ changed** | Follow found the file changed or replaced, or its metadata no longer matches what was read |
+| **⚠ unknown** | nothing was observed, or the bytes read could not be identified |
+| **Evidence ✓ checked** | a byte or digest check passed: Follow's comparison of every byte, or the log of an evidence bundle verified on open (unsigned) |
+| **Evidence · as read** | an ordinary log with unchanged metadata: the records are the bytes as they were read, and nothing has re-checked them since |
+
+Only a byte or digest check earns ✓. Unchanged metadata does not, which is why an ordinary log reads *as
+read*. The chip checks the file again when you return to the window or open its details, and whenever
+`context` is read. `context.log.freshness` is unchanged: it states the same observation.
+
 Producer comparisons are **as of intake**. If an observed result, receipt, authoring record or
 Java source changes, the Source header and design input facts expire the old comparison and ask
 you to reopen diagnostics. `open {discover: "diagnostics"}` lists the candidates; it does not

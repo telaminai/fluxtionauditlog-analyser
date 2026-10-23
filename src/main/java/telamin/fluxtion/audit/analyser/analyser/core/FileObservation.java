@@ -18,8 +18,10 @@ public final class FileObservation {
         catch(java.io.IOException | SecurityException e) {out.put("problem","unavailable");}
         return Collections.unmodifiableMap(out);
     }
+    /** What is stated when there is no read-time observation to compare against (M79-3: also before the first one lands). */
+    public static final Map<String,Object> UNOBSERVED = Map.of("state","unknown","basis","no read-time metadata observation");
     public static Map<String,Object> compare(List<Map<String,Object>> loaded) {
-        if(loaded.isEmpty()) return Map.of("state","unknown","basis","no read-time metadata observation");
+        if(loaded.isEmpty()) return UNOBSERVED;
         var members=new ArrayList<Map<String,Object>>();String state="unchanged-metadata";
         for(var before:loaded) {
             var now=capture(Path.of(before.get("path").toString()));
