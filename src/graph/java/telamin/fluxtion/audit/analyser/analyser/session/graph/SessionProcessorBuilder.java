@@ -111,6 +111,11 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // nothing to look at, offer its logs and topologies -- never for a bundle, which brings its own.
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectReopenOffer(openBundle, effects),
                 "projectReopenOffer");
+        // #178: a bundle's flags go back on its own log, once, matched record by record
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.BundleFlagsRestore(openBundle, openLog, effects),
+                "bundleFlags");
+        // #177: the open profile changed on disk — offered, never silently overwritten or reloaded
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectProfileOnDisk(effects), "profileOnDisk");
         cfg.addNode(openLog, "openLog");
         cfg.addNode(openGraph, "openGraph");
         cfg.addNode(boundary, "sessionBoundary");

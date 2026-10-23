@@ -72,19 +72,22 @@ class WorkModeKeepsTheApiTest {
     // before it back (its BEFORE), and holds the pins after (its AFTER)
     // owner-approved M80 metadata: the node spotlight synonym and Java-builder source descriptions only.
     // M80DesignApiDeltaTest independently retains all eleven previous pins and undoes only those literal edits.
+    // #177: open {reload} — one optional parameter and two manifest lines — moved the two schema maps, the two tool
+    // lists and the in-process manifest; ProjectReloadApiDeltaTest proves undoing exactly that gives the pins before it
+    // back (its BEFORE, the combined M80 pins below were), and holds these (its AFTER)
     static final Map<String, String> PINNED = Map.ofEntries(
             // COMBINED (M80 PR2's node synonym + this branch's line-range grammar), recomputed for the merged text —
             // SpotlightLineRangeApiDeltaTest peels this branch's text off first, then M80DesignApiDeltaTest's, landing
             // on the pins the chain held before either (StarterProposeApiDeltaTest.BEFORE / GraphRestoreApiDeltaTest.BEFORE
             // / SourceTextApiDeltaTest.BEFORE, all unchanged).
-            Map.entry("VerbSchemas.all", "9c13fb070c6c6be1b20e65e1359824264d685494b6e9388fcde8d2727983aa54"),
+            Map.entry("VerbSchemas.all", "0a8bd7ec27c442ff27f7d676b63ac103b1009db980c82d06dddcf21dad7bf9c4"),
             // Option 2 (owner, 2026-10-18): the HOSTED propose gained the starter kind — never an external client's
             // surface (propose is hosted-only); StarterProposeApiDeltaTest proves undoing it gives the earlier pins back
-            Map.entry("VerbSchemas.hosted", "686b70bf0308d32fa7fe640efbe7034c768d4f6284c1ccdf9c6510e0e68c21cc"),
-            Map.entry("McpTools.list", "be6bcdfa779d941fe0f6f2ba2a62fa76040daf11bee3a36b0d230e28835488aa"),
-            Map.entry("McpTools.hostedList", "54c1cd7bbd4304dc0277584f7e1eaef1ec0c2ed2fdab209f2b32e2ecdf5be6cd"),
+            Map.entry("VerbSchemas.hosted", "633f05a2989abef2f8eec294f5210d9facdd3e5d0f730b57d6d41e350644ad07"),
+            Map.entry("McpTools.list", "78b434f6a321c5023d272ab92a3fe104f256e6d71099397b5223b4d8d426390f"),
+            Map.entry("McpTools.hostedList", "04f6619bbcab56479e16e6659576c193b502eab286eb49763c3cb0794a4acd85"),
             Map.entry("McpBridge.INSTRUCTIONS", "fdcf8b03dab8d45d9c197d230961a41518faa0319b6f5a9cc6a51662cfdf144a"),
-            Map.entry("PromptBuilder.inProcessActionManifest", "8dae33cf340c384a1bd16508e8b4fe05c3e9a45130003c08459a675d9f782979"),
+            Map.entry("PromptBuilder.inProcessActionManifest", "150eebe3666980ae31f7ef9ae094dcd69f0f52785eeedd3feefa8bc09cf2626d"),
             Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
             Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),
             Map.entry("context.handoff derived, none", "1623b4af915aef11455cfc7a7587804fa90504f869dde67de3f5177393a04679"),

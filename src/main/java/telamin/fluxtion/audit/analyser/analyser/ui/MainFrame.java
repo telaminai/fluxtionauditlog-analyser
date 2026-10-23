@@ -85,6 +85,8 @@ public final class MainFrame extends JFrame {
     private long projectOutputsTimerWatch;
     private final java.util.Map<String, Long> projectOutputRefs = new java.util.LinkedHashMap<>();
     private final ProjectOutputsPanel projectOutputsPanel = new ProjectOutputsPanel(answer -> session().post(answer));
+    /** #177: the open profile changed on disk — the session's offer, as a banner. */
+    final ProjectProfileBanner profileBanner = new ProjectProfileBanner(answer -> session().post(answer));
 
     private final LogTablePanel tablePanel = new LogTablePanel();
     /** The start page uses the whole workspace; an open investigation uses the split view. */
@@ -387,11 +389,17 @@ public final class MainFrame extends JFrame {
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
         actionControl = new AppControlAdapter();
         actionExecutor.bind(topologyPanel, actionControl);
+        // #182: the first write into a project's own analyser-exchange/ made it — a fact for the session, posted on the EDT
+        actionExecutor.onExchangeCreated(dir -> SwingUtilities.invokeLater(() -> {
+            if (session != null) session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                    .ProjectExchangeCreated(telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(dir)));
+        }));
         installSpotlight();                          // M64: the glass pane, and re-measuring on resize
         initialiseRecovery();
         refreshProjectPanel();                       // M37: state the empty session too
         refreshMcpIndicator();                       // D-AI9: and say whether an AI client reaches us
         startMcpIndicatorWatch();
+        startProfileWatch();                         // #177: an edit to the open profile is seen, never overwritten
         // M44.2: the coverage verdict is the processor's. Lazily read, so the driver is not built
         // before the fields its adapter performs against exist.
         // M44.4b: read from the SNAPSHOT. The coverage verb runs on the socket thread, which used to read the processor's
@@ -773,6 +781,90 @@ public final class MainFrame extends JFrame {
                 refreshMcpIndicator();   // returning to this window is exactly when you need the truth
             }
         });
+    }
+
+    /**
+     * #177: observe the open project's profile file the way a loaded log is observed (M68's {@code FileObservation}:
+     * size, modification time, file identity). When that moves, the content digest is read and REPORTED with the
+     * digest this session last read or wrote; {@code profileOnDisk} decides whether it is a change, and offers the
+     * person the choice. Nothing here reloads or writes. A poll, because nothing notifies us of another writer.
+     */
+    private void startProfileWatch() {
+        profileWatchTimer = new javax.swing.Timer(1500, e -> {
+            // a disposed window observes nothing: its project may be gone, and nobody is there to answer an offer
+            if (!isDisplayable()) { profileWatchTimer.stop(); return; }
+            observeProfile(false);
+        });
+        profileWatchTimer.setRepeats(true);
+        profileWatchTimer.start();
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowActivated(java.awt.event.WindowEvent e) {
+                observeProfile(false);   // back from the editor that changed it: say so now, not in 1.5 s
+            }
+        });
+    }
+
+    private javax.swing.Timer profileWatchTimer;
+    /** #177: the settings before and after the last reload this session performed — for the reload's echo. */
+    private Object[] lastProfileReplaced;
+    /** The profile file's metadata when last observed, and which file it was. */
+    private Map<String, Object> profileObservation;
+
+    /** Report the open profile's on-disk content when its metadata moved, or always when a save was refused. */
+    void observeProfile(boolean saveRefused) {
+        if (session == null || !project.hasProject()) {
+            profileObservation = null;
+            return;
+        }
+        Path file = project.activeFile();
+        var now = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(file);
+        if (!saveRefused && now.equals(profileObservation)) return;
+        // a removed profile is not an edit to reload from; a save over it is still refused and reported (saveRefused)
+        if (!saveRefused && now.containsKey("problem")) { profileObservation = now; return; }
+        profileObservation = now;
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileObserved(
+                telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.identityKey(file), telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.contentDigestOf(file),
+                project.baselineDigest(), saveRefused));
+    }
+
+    /**
+     * #177: the offer's chooser, or null for the real dialog — the same seam as {@link #reopenChooser}, so a frame test
+     * answers it without a window. Given the node's sentence, returns the person's answer.
+     */
+    static volatile java.util.function.Function<String,
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileChoice> profileReloadChooser;
+
+    /**
+     * #177: a test's answer to the offer. The person answers on the banner ({@link ProjectProfileBanner}), which renders
+     * the session's decision; with a chooser installed, the answer is posted at once instead.
+     */
+    private void presentProfileOffer(String profileKey, String reason) {
+        var chooser = profileReloadChooser;
+        if (chooser != null) postProfileChoice(profileKey, chooser.apply(reason), "person");
+    }
+
+    /**
+     * #177: leaving the project set the window's unsaved edits aside — report it as a fact (the file's {@code …/name}),
+     * and the session says where. Called after every path that leaves a project: switch, create, close and quit.
+     */
+    private void reportProfileSetAside() {
+        String aside = project.takeSetAside();
+        if (aside == null || session == null) return;
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileSetAside(
+                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(aside)));
+    }
+
+    private void postProfileChoice(String profileKey,
+                                   telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileChoice choice,
+                                   String origin) {
+        if (session == null) return;
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileChoice(
+                profileKey, choice, origin));
+    }
+
+    /** #177: whether {@code key} names the profile open now. */
+    private boolean isActiveProfile(String key) {
+        return project.hasProject() && java.util.Objects.equals(key, telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.identityKey(project.activeFile()));
     }
 
     /** Re-read the local transport state and repaint the light. Cheap: a file read and a pid compare. */
@@ -2325,15 +2417,24 @@ public final class MainFrame extends JFrame {
                             mk.table().rows().isEmpty() ? null : mk.table());
                 }
                 case TOPOLOGY -> {
-                    // the review's gap table (M68.2): the focus is drawn off-screen; one that no longer resolves says why
-                    var focus = topologyPanel.renderFocusForReport(s.ref(), 1200, 800);
-                    yield focus == null
-                            ? new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
-                                    "Focus · " + s.ref(), java.util.List.of("the focus is not defined, or names no node "
-                                            + "in the loaded graph"), null, null)
-                            : new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(null, null,
-                                    new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
-                                            "Focus · " + s.ref(), focus.caption(), focus.image()), null);
+                    // the review's gap table (M68.2): the focus is drawn off-screen; one that no longer resolves says why.
+                    // #183: no focus is the whole authored graph, and a section that cannot be drawn says why in the
+                    // reply too, not only on the page
+                    boolean whole = s.ref() == null;
+                    var focus = whole ? topologyPanel.renderWholeGraphForReport(1200, 800)
+                            : topologyPanel.renderFocusForReport(s.ref(), 1200, 800);
+                    String heading = whole ? "Topology · whole graph" : "Focus · " + s.ref();
+                    if (focus == null) {
+                        String why = whole ? (topologyPanel.hasTopology() ? "the loaded graph declares no authored node"
+                                : "no graph is loaded — open the GraphML, then render the report again")
+                                : "the focus is not defined, or names no node in the loaded graph";
+                        warnings.add("section " + i + ": topology not rendered — " + why);
+                        yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                                heading, java.util.List.of(why), null, null);
+                    }
+                    yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(null, null,
+                            new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                                    heading, focus.caption(), focus.image()), null);
                 }
                 case SERIES -> {
                     // the review's gap table (M68.2): drawn from the Graph tab's own extraction and chart, off-screen
@@ -4914,7 +5015,7 @@ public final class MainFrame extends JFrame {
                                 .assembleTable(sec, store, this::coverageForReport),
                 row -> openRecordFromReport(row),
                 gname -> { sideTabs.setSelectedComponent(graphTabs); revealGraphByName(gname); },
-                fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
+                fname -> { sideTabs.setSelectedComponent(topologyPanel); if (fname != null) topologyPanel.recallFocus(fname); },
                 snap -> snap.applyTo(filter),
                 name -> exportReportPdfWithChooser(name),
                 this::removeReport,
@@ -5153,6 +5254,7 @@ public final class MainFrame extends JFrame {
         workspaceNotices.setLayout(new javax.swing.BoxLayout(workspaceNotices, javax.swing.BoxLayout.Y_AXIS));
         workspaceNotices.add(proposalCue);
         workspaceNotices.add(projectOutputsPanel);
+        workspaceNotices.add(profileBanner);
         workspaceArea.add(workspaceNotices, BorderLayout.NORTH);
         workspaceArea.add(workspaceCards, BorderLayout.CENTER);
         add(workspaceArea, BorderLayout.CENTER);
@@ -5566,7 +5668,7 @@ public final class MainFrame extends JFrame {
                     return onEdtOr(() -> {
                         var out = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(path,
                                 config.assistantExports,
-                                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config).dir());
+                                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.forWrite(config).dir());
                         return out.ok() ? out.path() : null;
                     }, null);
                 }
@@ -7594,6 +7696,7 @@ public final class MainFrame extends JFrame {
         renderRecordsView(next);                 // what the Records view shows and hides, as recordsView measured it
         renderAssistant(next);                   // OA-1: the assistant, as assistantLoop decided it
         projectOutputsPanel.render(next.projectOutputs());
+        profileBanner.render(next.profileOnDisk());   // #177: the changed-on-disk banner, from the snapshot
         releaseUnusedBundleCopies(next);
         renderBundleProvenance(next);            // #76: whether this session is received evidence, and which bundle
     }
@@ -8955,6 +9058,10 @@ public final class MainFrame extends JFrame {
             settingsText = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().export(config,
                     telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.PROJECT_SCOPED);
         }
+        // #178: the flags travel too, each anchored by its record's digest, so a finding section arrives with its text
+        settingsText = telamin.fluxtion.audit.analyser.bundle.BundleFlags.append(settingsText,
+                telamin.fluxtion.audit.analyser.bundle.BundleFlags.of(findings, flaggedRows,
+                        row -> row >= 0 && row < store.size() ? store.rawText(row) : null));
         byte[] settingsBytes = settingsText.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         var info = currentLogFileInfo();
         Path log = Path.of(info.localPath());
@@ -9134,6 +9241,7 @@ public final class MainFrame extends JFrame {
                 // that the close is proven by LogClosed rather than assumed from the request.
                 bundleCopies.hold(Path.of(e.profilePath()));
                 var r = project.open(Path.of(e.profilePath()), e.expectedDigest());
+                reportProfileSetAside();   // #177: the previous project's unsaved edits, if the switch had to set them aside
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
                         opId, e.profilePath(), r.loaded(),
                         r.loaded() ? project.activeName() : null, 0, r.message(), null, r.contentDigest());
@@ -9142,6 +9250,7 @@ public final class MainFrame extends JFrame {
                 // M73: ONE write of the node-approved selection (D-73.6). A failure throws: ProjectSession has put the
                 // settings back, and the session hears EffectFailed and warns (G2).
                 var created = project.createNew(Path.of(e.profilePath()), CreateProjectObservation.plan(e.approved()));
+                reportProfileSetAside();
                 // Only now that the profile exists: the reference guide, if approved. Its failure is REPORTED and
                 // neither fails nor rolls back the create [R r2-2].
                 String guide = e.approved() != null && e.approved().referenceGuide()
@@ -9242,6 +9351,81 @@ public final class MainFrame extends JFrame {
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleRootsRestored(
                         e.opId(), e.bundleSource(), remembered, List.copyOf(config.sourceRoots));
             }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferProjectProfileReloadEffect e -> {
+                // #177: the person's choice is asked outside the driver's cycle, and only while the node still offers it
+                SwingUtilities.invokeLater(() -> {
+                    if (session == null || !session.processor().profileOnDisk.mayOffer(e.profileKey())) return;
+                    presentProfileOffer(e.profileKey(), e.reason());
+                });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(opId, "offerProjectProfileReload");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReloadProjectProfileEffect e -> {
+                // #177: PERFORM only — read the profile again and render it; the log and graph are untouched
+                if (!isActiveProfile(e.profileKey())) {
+                    yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded(opId,
+                            e.profileKey(), false, "not reloaded: that project is no longer the one open", e.origin());
+                }
+                boolean discarded = project.isDirty();
+                lastProfileReplaced = null;
+                var before = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
+                var r = project.reload();
+                if (r.loaded()) {
+                    renderAfterTheRealWorkIsDone("reloadProfile");
+                    lastProfileReplaced = new Object[]{before,
+                            telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config)};
+                    profileObservation = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(project.activeFile());
+                }
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded(opId,
+                        e.profileKey(), r.loaded(), r.loaded()
+                                ? "Project settings reloaded from disk" + (discarded
+                                        ? " — this window's unsaved edits were discarded" : "")
+                                : "Project settings not reloaded: "
+                                        + telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(r.message()),
+                        e.origin());
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.KeepProjectProfileEffect e -> {
+                // #177: PERFORM only — the person chose to write this window's version over the file
+                if (!isActiveProfile(e.profileKey())) {
+                    yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileKept(opId,
+                            e.profileKey(), false, "not written: that project is no longer the one open");
+                }
+                syncOpenGraphsIntoConfig();
+                project.keepMine();
+                String err = project.takeError();
+                boolean ok = project.conflict() == null && !project.isDirty();
+                profileObservation = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(project.activeFile());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileKept(opId,
+                        e.profileKey(), ok, ok ? "This window's project settings were written over the file on disk"
+                                : "Project settings not written: " + (err == null ? "the write failed"
+                                        : telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(err)));
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreBundleFlagsEffect e -> {
+                // #178: PERFORM only. bundleFlags decided this log is the bundle's; which flags still sit on their
+                // records is a question about the records, answered here by digest, and reported as a fact. The log's
+                // arrival is still being applied when the session hears it opened (its view, and its flags, are reset
+                // after), so the records are read once that has finished — the reopen offer's shape.
+                SwingUtilities.invokeLater(() -> {
+                    if (session == null) return;
+                    var carried = telamin.fluxtion.audit.analyser.bundle.BundleFlags.read(project.activeFile());
+                    boolean same = store != null && sessionLogGeneration == e.generation();
+                    var rebind = !same
+                            ? new telamin.fluxtion.audit.analyser.bundle.BundleFlags.Rebind(java.util.List.of(),
+                                    java.util.List.of("the bundle's log is no longer the one open, so no flag was put back"))
+                            : telamin.fluxtion.audit.analyser.bundle.BundleFlags.rebind(carried, store.size(), store::rawText);
+                    if (!rebind.restored().isEmpty()) {
+                        for (var f : rebind.restored()) {
+                            findings.put(f.recordIndex(), f);
+                            flaggedRows.add(f.recordIndex());
+                        }
+                        tablePanel.repaintRows(); topologyPanel.refreshFinding(); graphTabs.refreshFlagRug(); reportFlagsToSession();
+                        if (reportsPanel != null) reportsPanel.refresh();
+                    }
+                    session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleFlagsRestored(e.opId(),
+                            e.generation(), e.bundleIdentity(), carried.size(), rebind.restored().size(),
+                            rebind.withheld().stream().map(telamin.fluxtion.audit.analyser.analyser.session.FactWords::withoutPaths).toList()));
+                });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(opId, "restoring bundle flags");
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenBundleEvidenceEffect e -> {
                 var plan = e.plan();
                 // #73: a recipient could not find out what they had been sent. Recorded here, where the
@@ -9279,6 +9463,7 @@ public final class MainFrame extends JFrame {
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreSettingsEffect e -> {
                 project.close();       // THE REAL HALF: after this there is no project, whatever follows
+                reportProfileSetAside();
                 handoff.clear();       // M48.7: leaving a project ends the session the handoff belonged to
                 // The mirror of ApplyProfileEffect, and it needs the same treatment for the same reason:
                 // the project is already gone, so reporting a failure here left the session naming a project
@@ -9851,6 +10036,11 @@ public final class MainFrame extends JFrame {
     private void flushProject() {
         project.flush();
         String err = project.takeError();
+        if (project.conflict() != null) {
+            // #177: refused because the file changed on disk — a FACT for the session, which offers the choice
+            observeProfile(true);
+            return;
+        }
         if (err != null) {
             status.setText(err);
         }
@@ -10494,6 +10684,11 @@ public final class MainFrame extends JFrame {
          */
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openProject(String path) {
+            return openProject(path, false);
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openProject(String path, boolean reload) {
             if (path == null || path.isBlank()) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'project' is empty");
             }
@@ -10512,6 +10707,31 @@ public final class MainFrame extends JFrame {
             Path active = project.activeFile();
             Path target = file.toAbsolutePath().normalize();
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            if (active != null && active.toAbsolutePath().normalize().equals(target) && reload) {
+                // #177: read the open profile from disk again. The session decides and performs it (profileOnDisk);
+                // the log and graph stay open, because this is the same project, not a switch.
+                lastProfileReplaced = null;
+                postProfileChoice(telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.identityKey(active),
+                        telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileChoice.RELOAD, "socket");
+                var disk = session().processor().profileOnDisk.state();
+                Object last = disk == null ? null : disk.get("last");
+                echo.put("project", project.activeName());
+                echo.put("settings", active.toString());
+                echo.put("alreadyActive", true);
+                echo.put("reloaded", lastProfileReplaced != null);
+                if (lastProfileReplaced != null) {
+                    echo.put("replaced", replacedCounts(
+                            (telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.Snapshot) lastProfileReplaced[0],
+                            (telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.Snapshot) lastProfileReplaced[1]));
+                }
+                if (last != null) echo.put("note", last);
+                echo.put("kept", "the log and graph stay open: a reload re-reads this project's settings, it is not a switch");
+                if (lastProfileReplaced == null) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            last == null ? "the profile was not reloaded" : String.valueOf(last));
+                }
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", echo);
+            }
             if (active != null && active.toAbsolutePath().normalize().equals(target)) {
                 // Re-opening the active project would flush its in-memory state OVER the file and read
                 // it back — nothing changes, but the session would end for nothing. Say so instead.
@@ -10519,7 +10739,8 @@ public final class MainFrame extends JFrame {
                 echo.put("settings", active.toString());
                 echo.put("alreadyActive", true);
                 echo.put("note", "nothing replaced and nothing closed — this project is already in force, "
-                        + "and its edits auto-save, so a reload would only read back what is live");
+                        + "and its edits auto-save; open {project, reload: true} reads the file again if it was "
+                        + "edited outside the analyser");
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", echo);
             }
             String previousName = project.hasProject() ? project.activeName() : null;
@@ -11197,10 +11418,19 @@ public final class MainFrame extends JFrame {
                     if (anchors.isEmpty()) bundle.put("sourceAnchorNote",
                             "the bundle carries no source; add a root to read the code behind these records");
                     if (!received.limits().isEmpty()) bundle.put("limits", received.limits());
+                    // #178: the flags the bundle carried, how many went back on their records, and why any did not
+                    var flags = session == null ? null : session.processor().bundleFlags.state();
+                    if (flags != null) bundle.put("flags", flags);
                     proj.put("bundle", bundle);
                 }
             } else {
                 proj.put("note", "your own settings — no project is open");
+            }
+            // #177: the open profile changed on disk — the session's statement of it, and how to take the file's version;
+            // after a close or switch, where the window's unsaved edits were set aside
+            if (session != null) {
+                var disk = session.processor().profileOnDisk.state();
+                if (disk != null) proj.put("profileOnDisk", disk);
             }
             out.put("project", proj);
             if (session != null) proj.put("assistant", telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ActivityText
@@ -11436,6 +11666,8 @@ public final class MainFrame extends JFrame {
                 if (config.assistantExports && exchange.dir() != null && !exchange.dir().isBlank()) {
                     exports.put("dir", exchange.dir());
                     exports.put("source", exchange.source());
+                    // #182: the project declared nothing, so its own analyser-exchange/ answers (made on first write)
+                    if (exchange.projectDefault()) exports.put("projectDefault", true);
                 }
                 if (exchange.refusal() != null) {
                     exports.put("refused", exchange.refusal());
@@ -12016,8 +12248,17 @@ public final class MainFrame extends JFrame {
                 // B-M20-3: the profile gets the final state too — without this, graphs made this
                 // session never reached the active project at all
                 if (project != null) {
-                    project.requestSave();
-                    project.flush();
+                    // #177: with the file changed on disk, quitting is leaving: unsaved edits are set aside, not dropped,
+                    // and a forced save would only mark nothing-new as unsaved
+                    if (project.conflict() == null) project.requestSave();
+                    project.leave();
+                    String aside = project.takeSetAside();
+                    if (aside != null) {
+                        System.err.println("[analyser] unsaved project edits kept in " + aside
+                                + " (the profile had changed on disk)");
+                        if (offersEnabled) JOptionPane.showMessageDialog(this, UiText.inert("Unsaved project edits kept in\n"
+                                + aside + "\n(the profile had changed on disk)"), "Quit", JOptionPane.INFORMATION_MESSAGE);
+                    }
                 }
             });
             step(this::saveConfigQuietly);   // still runs even if the steps above failed

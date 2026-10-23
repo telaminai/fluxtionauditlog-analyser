@@ -470,9 +470,11 @@ public record ProjectModel(List<Section> sections) {
             // always this machine's; the location may be the open project's, and a row that said
             // "own settings" either way would misattribute the project's choice to the reader.
             boolean fromProject = "project".equals(str(exports.get("source")));
+            boolean projectDefault = Boolean.TRUE.equals(exports.get("projectDefault"));
             rows.add(new Row("Exports to " + fileName(str(exports.get("dir"))),
                     "screenshots, PDF/CSV exports and rendered reports land here"
-                            + (fromProject ? " — this project asked for it; the permission is still yours" : ""),
+                            + (projectDefault ? " — this project's own folder, because it names no other (made on first write)"
+                            : fromProject ? " — this project asked for it; the permission is still yours" : ""),
                     str(exports.get("dir")), fromProject ? "project" : "own settings",
                     Tone.NORMAL, Target.SETTINGS_ASSISTANT));
         } else {

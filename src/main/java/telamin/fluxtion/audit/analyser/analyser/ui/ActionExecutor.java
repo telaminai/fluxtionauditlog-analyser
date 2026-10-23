@@ -104,6 +104,14 @@ public final class ActionExecutor implements RenderExecutor {
     }
 
     private java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.config.AppConfig> exportConfig;
+    /** #182: told when a write made the project's default exchange directory (the frame reports it to the session). */
+    private java.util.function.Consumer<String> exchangeCreated = dir -> { };
+    /** #182: the directory THIS thread's last guarded write created, for its reply; cleared when the reply is built. */
+    private final ThreadLocal<String> createdForReply = new ThreadLocal<>();
+
+    public void onExchangeCreated(java.util.function.Consumer<String> listener) {
+        this.exchangeCreated = listener == null ? dir -> { } : listener;
+    }
     private java.util.function.Supplier<java.util.Set<java.nio.file.Path>> readGrants = java.util.Set::of;
     private java.util.function.Supplier<String> timeOrderNote = () -> null;
 
@@ -123,7 +131,32 @@ public final class ActionExecutor implements RenderExecutor {
         return telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(
                 requested == null ? null : requested.toString(),
                 cfg != null && cfg.assistantExports,
-                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg).dir());
+                // #182: a write into an open project's default exchange directory makes it first
+                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.forWrite(cfg, dir -> {
+                    createdForReply.set(dir);
+                    exchangeCreated.accept(dir);
+                }).dir());
+    }
+
+    /**
+     * #182: when a write landed in the open project's DEFAULT exchange directory (it declares none), the reply says so —
+     * the folder is new to the caller, and "where did my file go" is answered in the answer, not inferred.
+     */
+    private ActionResult withExchangeNote(ActionResult r) {
+        String created = createdForReply.get();
+        createdForReply.remove();
+        if (r == null || !r.ok() || r.payload() == null) return r;
+        var cfg = exportConfig == null ? null : exportConfig.get();
+        var ex = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg);
+        if (!ex.projectDefault()) return r;
+        Map<String, Object> payload = new LinkedHashMap<>(r.payload());
+        Map<String, Object> exchange = new LinkedHashMap<>(Map.of("dir", ex.dir(), "source", "project default",
+                "note", "the open project declares no exchange directory, so its own "
+                        + telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.PROJECT_DEFAULT_DIR
+                        + "/ is used; Settings ▸ Assistant can name another"));
+        if (created != null) exchange.put("created", telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.CREATED_NOTE);
+        payload.put("exchange", exchange);
+        return new ActionResult(r.ok(), r.action(), r.payloadKey(), payload, r.error(), r.reportReceipt());
     }
 
     @Override
@@ -220,7 +253,7 @@ public final class ActionExecutor implements RenderExecutor {
                     if (app == null) return ActionResult.error("'walk' is not enabled here");
                     var out = guardedPath(params.get("reel"));   // B1: opt-in + confined, like every verb write
                     if (!out.ok()) return ActionResult.error(out.error());
-                    return app.walkReel(params, out.path().toString());
+                    return withExchangeNote(app.walkReel(params, out.path().toString()));
                 }
                 // M69: a walk of tabs, panels and graph nodes needs no log; one bound to records says so itself
                 return onEdt(() -> app == null ? ActionResult.error("'walk' is not enabled here") : app.walk(params));
@@ -261,9 +294,9 @@ public final class ActionExecutor implements RenderExecutor {
             case "screenshot" -> {
                 var out = guardedPath(params.get("path"));   // B1: opt-in + confined; verbs never write elsewhere
                 if (!out.ok()) return ActionResult.error(out.error());
-                return onEdt(() -> app == null
+                return withExchangeNote(onEdt(() -> app == null
                         ? ActionResult.error("'screenshot' is not enabled here")
-                        : app.screenshot(out.path().toString(), str(params.get("scope"))));
+                        : app.screenshot(out.path().toString(), str(params.get("scope")))));
             }
             case "report" -> {
                 // final review #2: the operation is chosen ONCE (VerbOperations.report) — the approval dialog
@@ -289,9 +322,9 @@ public final class ActionExecutor implements RenderExecutor {
                     if (replay != null && !(replay instanceof String r && !r.isBlank())) {
                         return ActionResult.error("bundle 'replay' is the path of the run's replay records");
                     }
-                    return onEdt(() -> app == null
+                    return withExchangeNote(onEdt(() -> app == null
                             ? ActionResult.error("'report' is not enabled here")
-                            : app.captureBundle(out.path().toString(), (String) notes, from, to, (String) replay));
+                            : app.captureBundle(out.path().toString(), (String) notes, from, to, (String) replay)));
                 }
                 // M33.3: the sections form builds/replaces a NAMED report (path optional — render or
                 // CSV when given); the shipped single-record form stays below as sugar
@@ -304,19 +337,20 @@ public final class ActionExecutor implements RenderExecutor {
                         resolved = out.path().toString();
                     }
                     final String rp = resolved;
-                    return onEdt(() -> app == null
+                    ActionResult reported = onEdt(() -> app == null
                             ? ActionResult.error("'report' is not enabled here")
                             : admission == null ? app.report(params, rp) : app.report(params, rp, admission));
+                    return rp == null ? reported : withExchangeNote(reported);
                 }
                 var out = guardedPath(params.get("path"));   // B1: opt-in + confined; verbs never write elsewhere
                 if (!out.ok()) return ActionResult.error(out.error());
-                return onEdt(() -> app == null
+                return withExchangeNote(onEdt(() -> app == null
                         ? ActionResult.error("'report' is not enabled here")
                         // the topology goes in unless asked otherwise: a diagnosis of one cycle that does
                         // not show the cycle is the half of the evidence a reader cannot reconstruct
                         : app.exportFinding(out.path().toString(), intOrNull(params.get("recordIndex")),
                                 str(params.get("title")), str(params.get("graph")),
-                                !params.containsKey("topology") || bool(params.get("topology"))));
+                                !params.containsKey("topology") || bool(params.get("topology")))));
             }
             case "graph" -> {
                 // owner decision 2026-10-18: the chart bin needs no log — listing and restoring work as report's do
@@ -1378,12 +1412,18 @@ public final class ActionExecutor implements RenderExecutor {
             }
             return opened;
         }
+        if (params.get("reload") != null && op != telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.PROJECT) {
+            // #177: a reload re-reads the PROJECT named; on its own, or beside another act, it has nothing to re-read
+            return ActionResult.error("'reload' goes with 'project' (the open project's profile), and nothing else");
+        }
         if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.PROJECT) {
             // M35.8: the largest act on this verb goes first. A project switch is a session boundary
             // (M35.5) — the log and graph close with it — so "open a project and a log" in one call
             // has no coherent reading: whatever the log arrived into would be swept away by the switch.
             // Sequence the calls instead; the ignored params are NAMED (M26.4, review R2).
-            ActionResult r = onEdt(() -> app.openProject(str(params.get("project"))));
+            Object reload = params.get("reload");
+            if (reload != null && !(reload instanceof Boolean)) return ActionResult.error("'reload' is true or false");
+            ActionResult r = onEdt(() -> app.openProject(str(params.get("project")), Boolean.TRUE.equals(reload)));
             var decision = onEdt(() -> openDecision(params));
             if (r.ok() && decision != null && decision.anythingIgnored()) {
                 Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("opened")));

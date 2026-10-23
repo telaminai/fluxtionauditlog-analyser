@@ -89,13 +89,22 @@ class SpotlightLineRangeApiDeltaTest {
      */
     @SuppressWarnings("unchecked")
     static <T> T withoutLineRange(T value) {
+        return withoutLineRangeOnly(ProjectReloadApiDeltaTest.withoutReload(value));
+    }
+
+    /**
+     * This branch's layer alone. {@link #withoutLineRange} — the entry every older *ApiDeltaTest goes through — first
+     * peels the LATER #177 layer ({@link ProjectReloadApiDeltaTest#withoutReload}), so each still lands on its own pins.
+     */
+    @SuppressWarnings("unchecked")
+    static <T> T withoutLineRangeOnly(T value) {
         if (value instanceof String text) return (T) text.replace(NEW_JAVA_BLOCK, OLD_JAVA_BLOCK).replace(SpotlightVocabulary.TEXT, OLD_TARGETS_TEXT);
         if (value instanceof Map<?, ?> map) {
             Map<Object, Object> out = new LinkedHashMap<>();
-            map.forEach((key, entry) -> out.put(key, withoutLineRange(entry)));
+            map.forEach((key, entry) -> out.put(key, withoutLineRangeOnly(entry)));
             return (T) out;
         }
-        if (value instanceof List<?> list) return (T) list.stream().map(SpotlightLineRangeApiDeltaTest::withoutLineRange).toList();
+        if (value instanceof List<?> list) return (T) list.stream().map(SpotlightLineRangeApiDeltaTest::withoutLineRangeOnly).toList();
         return value;
     }
 
@@ -115,8 +124,9 @@ class SpotlightLineRangeApiDeltaTest {
         String manifest = PromptBuilder.inProcessActionManifest(3);
         assertTrue(manifest.contains(SpotlightVocabulary.TEXT), "the in-process manifest embeds the live target grammar directly");
         assertEquals(BEFORE.get("PromptBuilder.inProcessActionManifest"), WorkModeKeepsTheApiTest.sha(withoutLineRange(manifest)));
+        // #177's open {reload} is the next layer (ProjectReloadApiDeltaTest): this AFTER is the pin it started from
         for (var e : AFTER.entrySet()) {
-            assertEquals(e.getValue(), WorkModeKeepsTheApiTest.PINNED.get(e.getKey()), "the pin now: " + e.getKey());
+            assertEquals(e.getValue(), ProjectReloadApiDeltaTest.BEFORE.get(e.getKey()), "the pin before #177: " + e.getKey());
         }
     }
 

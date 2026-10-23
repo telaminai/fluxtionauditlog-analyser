@@ -1,6 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.config;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -53,6 +54,15 @@ public final class ProjectSession {
     private ProjectProfile.Snapshot noProjectDefaults;
     private boolean dirty;
     private int writes;
+    /**
+     * #177: the profile's content digest as this session last READ or WROTE it — what is "ours" on disk. A write is made
+     * only while the file still has this digest: anything else is newer content someone else wrote (an editor, an agent,
+     * git), and auto-save must never overwrite it without the person's choice. Null with no project, or before one is
+     * read.
+     */
+    private String baseline;
+    /** #177: why the last write was refused because the file changed on disk, or null; cleared by a reload or a keep. */
+    private String conflict;
     /**
      * Runs immediately before every profile write, so live UI state (the open graph tabs) is captured
      * into {@code config} at the moment it is persisted — B-M20-3: {@code config.savedGraphs} was only
@@ -195,6 +205,8 @@ public final class ProjectSession {
             return new ProjectProfile.LoadResult(false, result.message() + " — continuing without a project");
         }
         activeNonce = result.nonce();
+        baseline = result.contentDigest();
+        conflict = null;
         return result;
     }
 
@@ -211,7 +223,7 @@ public final class ProjectSession {
     }
 
     public ProjectProfile.LoadResult open(Path file, String expectedDigest) {
-        flush();
+        leave();
         rememberDefaultsOnce();
         ProjectProfile.LoadResult result = ProjectProfile.load(file, config, share, expectedDigest);
         if (!result.loaded()) {
@@ -219,6 +231,8 @@ public final class ProjectSession {
         }
         activeFile = file;
         activeNonce = result.nonce();
+        baseline = result.contentDigest();
+        conflict = null;
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
         dirty = false;
@@ -245,7 +259,7 @@ public final class ProjectSession {
      * save wrote that over the PREVIOUS project's profile — or over the person's own settings.
      */
     public Created createNew(Path file, ProjectAdoption.Plan plan) throws IOException {
-        flush();
+        leave();
         ProjectProfile.Snapshot defaultsBefore = noProjectDefaults;
         rememberDefaultsOnce();
         ProjectProfile.Snapshot before = ProjectProfile.snapshot(config);
@@ -263,6 +277,8 @@ public final class ProjectSession {
         writes++;
         activeFile = file;
         activeNonce = ProjectProfile.nonce(file).orElse(null);
+        baseline = ProjectProfile.contentDigestOf(file);
+        conflict = null;
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
         dirty = false;
@@ -284,6 +300,8 @@ public final class ProjectSession {
         writes++;
         activeFile = file;
         activeNonce = ProjectProfile.nonce(file).orElse(null);
+        baseline = ProjectProfile.contentDigestOf(file);
+        conflict = null;
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
         dirty = false;
@@ -296,12 +314,14 @@ public final class ProjectSession {
      * promise in the spec.
      */
     public void close() {
-        flush();
+        leave();
         if (noProjectDefaults != null) {
             ProjectProfile.restore(noProjectDefaults, config);
         }
         activeFile = null;
         activeNonce = null;
+        baseline = null;
+        conflict = null;
         config.activeProjectPath = "";
         dirty = false;
     }
@@ -328,10 +348,22 @@ public final class ProjectSession {
             return;
         }
         if (preSave != null) preSave.run();   // capture live state (open graphs) before writing (B-M20-3)
+        // #177: never over content someone else wrote. The edit stays in memory (dirty), and the refusal is reported
+        // once per change, so the session can offer the person the choice: reload from disk, or keep this version.
+        String onDisk = ProjectProfile.contentDigestOf(activeFile);
+        if (baseline != null && !baseline.equals(onDisk)) {
+            String was = conflict;
+            conflict = activeFile + (onDisk == null ? " was removed or cannot be read" : " changed on disk")
+                    + " since this session read it — not overwritten; reload it, or keep this session's version";
+            if (!conflict.equals(was)) lastError = "project settings not saved: " + conflict;
+            return;
+        }
         try {
             ProjectProfile.save(activeFile, config, share);
             writes++;
             dirty = false;
+            baseline = ProjectProfile.contentDigestOf(activeFile);
+            conflict = null;
             // the write keeps the file's nonce, or adopts one for a profile that had none (see NONCE_KEY)
             activeNonce = ProjectProfile.nonce(activeFile).orElse(null);
         } catch (IOException e) {
@@ -342,6 +374,83 @@ public final class ProjectSession {
     }
 
     private String lastError;
+
+    // ---- #177: the profile changed on disk ------------------------------------------------------
+
+    /**
+     * Leaving the project (a switch, a close, a quit): write what is pending — and when the write is refused because the
+     * file changed on disk, the window's unsaved edits are NOT dropped. They are written beside the profile, as
+     * {@code <profile>.unsaved-<time>} (never a profile name, so nothing opens it by accident), and
+     * {@link #takeSetAside()} says where. The file on disk is never overwritten without the person's choice, and the
+     * person's edits are never discarded without their knowing.
+     */
+    public void leave() {
+        flush();
+        if (activeFile == null || !dirty || conflict == null) return;
+        if (preSave != null) preSave.run();
+        String text = ProjectProfile.write(config, share, activeFile);
+        String stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        for (int n = 0; n < 100; n++) {
+            Path side = activeFile.resolveSibling(activeFile.getFileName() + ".unsaved-" + stamp + (n == 0 ? "" : "-" + n));
+            try {
+                Files.writeString(side, text, java.nio.file.StandardOpenOption.CREATE_NEW);
+                setAside = side.toString();
+                dirty = false;
+                return;
+            } catch (java.nio.file.FileAlreadyExistsException taken) {
+                // the next name
+            } catch (IOException e) {
+                lastError = "project settings not saved and could not be set aside beside " + activeFile + ": " + e.getMessage();
+                return;
+            }
+        }
+    }
+
+    private String setAside;
+
+    /** Where {@link #leave()} last wrote unsaved edits it could not save, or null. Cleared by reading it. */
+    public String takeSetAside() {
+        String s = setAside;
+        setAside = null;
+        return s;
+    }
+
+    /** The digest this session last read or wrote, or null. What an observation of the file is compared against. */
+    public String baselineDigest() {
+        return activeFile == null ? null : baseline;
+    }
+
+    /** Why the last write was refused, or null. */
+    public String conflict() {
+        return activeFile == null ? null : conflict;
+    }
+
+    /**
+     * Read the active profile again, REPLACING the in-memory project settings — unsaved edits included, which is why only
+     * the person (or an explicit {@code open {project, reload: true}}) asks for it. Never throws.
+     */
+    public ProjectProfile.LoadResult reload() {
+        if (activeFile == null) return new ProjectProfile.LoadResult(false, "no project is open");
+        ProjectProfile.LoadResult result = ProjectProfile.load(activeFile, config, share);
+        if (!result.loaded()) return result;
+        activeNonce = result.nonce();
+        baseline = result.contentDigest();
+        conflict = null;
+        dirty = false;
+        return result;
+    }
+
+    /**
+     * Keep THIS session's version: the person chose to write it over what is on disk now. Adopts the on-disk digest as
+     * the baseline — so this one write is allowed — and writes.
+     */
+    public void keepMine() {
+        if (activeFile == null) return;
+        baseline = ProjectProfile.contentDigestOf(activeFile);
+        conflict = null;
+        dirty = true;
+        flush();
+    }
 
     /** The last write failure, or null. Cleared by reading it, so a caller reports it once. */
     public String takeError() {

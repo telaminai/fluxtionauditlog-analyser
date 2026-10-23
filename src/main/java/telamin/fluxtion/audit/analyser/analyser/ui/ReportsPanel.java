@@ -446,8 +446,8 @@ public final class ReportsPanel extends JPanel {
                     () -> gotoRecord.accept(s.recordIndex())));
             case CHART -> detail.add(link("open graph '" + s.ref() + "'",
                     () -> openGraph.accept(s.ref())));
-            case TOPOLOGY -> detail.add(link("apply focus '" + s.ref() + "'",
-                    () -> openFocus.accept(s.ref())));
+            case TOPOLOGY -> detail.add(link(s.ref() == null ? "show the whole graph" : "apply focus '" + s.ref() + "'",
+                    () -> openFocus.accept(s.ref())));    // #183: no focus is the whole authored graph
             case SERIES -> detail.add(muted("series: " + s.call()));
             case TABLE -> table(s);
         }

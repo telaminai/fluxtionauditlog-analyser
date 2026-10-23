@@ -57,16 +57,90 @@ class ProjectSuppliedExchangeDirTest {
     }
 
     @Test
-    @DisplayName("No project value: the machine's directory, and no noise about it")
-    void machineTierIsTheDefault(@TempDir Path root) throws IOException {
+    @DisplayName("★ #182: no project value — the open project's own analyser-exchange/, never the machine's (another project's) folder")
+    void anOpenProjectDefaultsToItsOwnExchangeDirectory(@TempDir Path root) throws IOException {
         AppConfig c = projectAt(root);
         c.projectExchangeDir = "";
 
         ExchangeDir resolved = ExchangeDir.of(c);
 
+        assertEquals(root.toRealPath().resolve("analyser-exchange").toString(), resolved.dir(),
+                "★ the project's own folder, not the machine tier's (red before #182: the machine directory)");
+        assertEquals(ExchangeDir.PROJECT, resolved.source());
+        assertTrue(resolved.projectDefault(), "and it says it is the default, so a reply can say where the file went");
+        assertNull(resolved.refusal(), "nothing was refused — nothing was asked for");
+        assertFalse(Files.exists(root.resolve("analyser-exchange")), "reading the location creates nothing");
+
+        ExchangeDir.forWrite(c);
+        assertTrue(Files.isDirectory(root.resolve("analyser-exchange")), "a write makes it, once");
+        assertEquals(resolved.dir(), ExchangeDir.of(c).dir(), "and the same directory answers afterwards");
+    }
+
+    @Test
+    @DisplayName("#182: no project open — the machine's directory, unremarked, as before")
+    void noProjectKeepsTheMachineTier() {
+        AppConfig c = new AppConfig();
+        c.assistantExports = true;
+        c.assistantExportDir = "/tmp/machine-tier";
+        ExchangeDir resolved = ExchangeDir.of(c);
+        assertEquals("/tmp/machine-tier", resolved.dir());
+        assertEquals(ExchangeDir.MACHINE, resolved.source());
+        assertFalse(resolved.projectDefault());
+        assertNull(resolved.refusal());
+    }
+
+    @Test
+    @DisplayName("#182: a machine directory already inside the open project is this project's folder, and stays")
+    void aMachineDirectoryInsideTheProjectStays(@TempDir Path root) throws IOException {
+        AppConfig c = projectAt(root);
+        Path inside = Files.createDirectories(root.resolve("reports"));
+        c.assistantExportDir = inside.toString();
+        ExchangeDir resolved = ExchangeDir.of(c);
+        assertEquals(inside.toString(), resolved.dir());
+        assertFalse(resolved.projectDefault());
+    }
+
+    @Test
+    @DisplayName("#182: a declared project value still wins over the default")
+    void aDeclaredValueStillWins(@TempDir Path root) throws IOException {
+        AppConfig c = projectAt(root);
+        Files.createDirectories(root.resolve("out"));
+        Files.createDirectories(root.resolve("analyser-exchange"));
+        c.projectExchangeDir = "out";
+        ExchangeDir resolved = ExchangeDir.of(c);
+        assertEquals(root.resolve("out").toRealPath().toString(), resolved.dir());
+        assertFalse(resolved.projectDefault());
+    }
+
+    @Test
+    @DisplayName("#182: an analyser-exchange that is a link out of the project is refused, never written through")
+    void aDefaultThatLeavesTheProjectIsRefused(@TempDir Path root, @TempDir Path elsewhere) throws IOException {
+        AppConfig c = projectAt(root);
+        Files.createSymbolicLink(root.resolve("analyser-exchange"), elsewhere);
+        ExchangeDir resolved = ExchangeDir.of(c);
         assertEquals(c.assistantExportDir, resolved.dir());
         assertEquals(ExchangeDir.MACHINE, resolved.source());
-        assertNull(resolved.refusal(), "nothing was refused — nothing was asked for");
+        assertNotNull(resolved.refusal());
+        assertTrue(resolved.refusal().contains("leaves the project"), resolved.refusal());
+    }
+
+    @Test
+    @DisplayName("#182: a bundle's working copy and the sample project are the analyser's own — they keep the machine tier")
+    void analyserOwnedProjectsKeepTheMachineTier(@TempDir Path home) throws IOException {
+        String was = System.getProperty("user.home");
+        try {
+            System.setProperty("user.home", home.toString());
+            for (Path owned : java.util.List.of(home.resolve(".fluxtion-analyser/bundles/bundle-abc"),
+                    home.resolve(".fluxtion-analyser/demo"))) {
+                AppConfig c = projectAt(Files.createDirectories(owned));
+                ExchangeDir resolved = ExchangeDir.of(c);
+                assertEquals(c.assistantExportDir, resolved.dir(), owned.toString());
+                assertFalse(resolved.projectDefault(), owned.toString());
+                assertNull(resolved.refusal());
+            }
+        } finally {
+            System.setProperty("user.home", was);
+        }
     }
 
     // ---- WHERE, never WHETHER ------------------------------------------------------------------

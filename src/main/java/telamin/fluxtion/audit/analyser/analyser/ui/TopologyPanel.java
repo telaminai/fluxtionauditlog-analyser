@@ -2080,6 +2080,23 @@ public final class TopologyPanel extends JPanel {
     }
 
     /**
+     * #183: a report's TOPOLOGY section with no focus — the whole AUTHORED graph (scaffolding left out, as the default
+     * view leaves it out), drawn off-screen like a focus; null when no graph is loaded or it declares no authored node.
+     */
+    public FocusPicture renderWholeGraphForReport(int width, int height) {
+        if (fullTopology.isEmpty()) return null;
+        java.util.Set<String> authored = new java.util.LinkedHashSet<>(authoredNodeIds());
+        if (authored.isEmpty()) return null;
+        java.awt.image.BufferedImage img = paintOffscreen(fullTopology.subgraph(authored), List.of(), List.of(), false,
+                java.util.Set.of(), width, height);
+        int scaffolding = fullTopology.nodes().size() - authored.size();
+        String caption = "whole graph · " + authored.size() + " authored node" + (authored.size() == 1 ? "" : "s")
+                + (scaffolding > 0 ? " · " + scaffolding + " scaffolding node" + (scaffolding == 1 ? "" : "s") + " not drawn" : "")
+                + " · no focus was named";
+        return new FocusPicture(img, caption);
+    }
+
+    /**
      * How far a report picture may magnify to fill its frame. Bounded rather than unlimited: a two-node
      * cycle scaled until it fits looks like a diagram of something important, and the reader deserves to
      * see that it is two boxes.

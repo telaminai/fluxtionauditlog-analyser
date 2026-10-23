@@ -102,8 +102,8 @@ Connect an AI client…, External MCP/REST access and the exchange folders](../a
 | **External MCP/REST access (for an AI client on this machine)** | off | Asks first when turned on (on save). Opens the loopback-only endpoint an outside client uses, with a per-run token. `--rest` turns it on and it stays on ([External access](external-access.md)) |
 | **Allow assistant file exchange (screenshot/report writes, external-series reads)** | off | Lets an assistant write screenshots, PDFs, CSVs, reels and bundles, and read external CSV series, **only inside the exchange folder**, and never over an existing file |
 | **Allow the assistant to create projects** | off | Lets an assistant create a project with `open {project, create}`, never over an existing one. *Project ▸ New project…* is never gated by it |
-| **Exchange folder (this machine)** | empty | Where file exchange reads and writes. Empty means no folder, so nothing is written |
-| **Exchange folder (this project)** | empty | A project-relative folder the open project prefers, stored in the project. No `..`, no absolute path; empty means the machine's folder |
+| **Exchange folder (this machine)** | empty | Where file exchange reads and writes when no project is open (and for the sample project and an evidence bundle's working copy). Empty means no folder, so nothing is written |
+| **Exchange folder (this project)** | empty | A project-relative folder the open project prefers, stored in the project. No `..`, no absolute path. Empty means the project's own `analyser-exchange/`, created on the first write. That write's reply and the status line say so once: you may want to add the folder to `.gitignore`, and the analyser does not edit `.gitignore` for you |
 
 † Carried by an exported settings file's *Assistant limits* category, the only settings on this tab that travel; see above.
 
