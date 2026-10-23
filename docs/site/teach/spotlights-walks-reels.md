@@ -86,7 +86,9 @@ analyser itself, with no assistant connected.
 - **A walk is bound to what it was saved against.** Each record, chart and graph node a step points at is
   checked against what is open now. Played against another run, a record that differs is shown as *not
   available* rather than lit somewhere else, and a callout on something that changed is marked *(historical)*;
-  one whose identity cannot be checked is marked *(unresolved)*. A walk never opens, edits or saves a chart,
+  one whose identity cannot be checked is marked *(unresolved)*. The identical file reopened is the same run, even
+  when it is served as one more record (a followed log holds back an unterminated last record, a cold open includes
+  it): record targets stay current, and a chart step says it describes the records served then. A walk never opens, edits or saves a chart,
   a filter or a focus of yours — it only selects what is already there. A chart that is closed is named, with
   an **Open chart** button for you to press.
 - **A walk never claims more than it can show.** If the log's file changes after it was read, the walk's record

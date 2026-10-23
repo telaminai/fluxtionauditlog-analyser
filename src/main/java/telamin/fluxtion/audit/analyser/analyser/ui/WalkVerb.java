@@ -339,6 +339,16 @@ final class WalkVerb {
         boolean observational = w.allTargets().stream().anyMatch(t -> "record".equals(t.basis().kind()) || "chart".equals(t.basis().kind()));
         if (!observational) return null;
         if (!logOpen) return "points at records or charts, and no log is open";
+        // #179: the identical file reopened is a new generation with the SAME content. Record targets carry their own
+        // digests, so for them the file content is the run; only a chart's population depends on the served count.
+        boolean charts = w.allTargets().stream().anyMatch(t -> "chart".equals(t.basis().kind()));
+        WalkIdentity.State content = WalkIdentity.compareContent(w.runBasis(), runNow);
+        if (content == WalkIdentity.State.CURRENT && !charts) return null;
+        if (content == WalkIdentity.State.CURRENT && WalkIdentity.compareRuns(w.runBasis(), runNow) != WalkIdentity.State.CURRENT) {
+            return "saved against the same file read as " + WalkIdentity.recordsOf(w.runBasis()) + " records, served now as "
+                    + WalkIdentity.recordsOf(runNow) + ": its record targets are current, its chart targets describe the "
+                    + "records served then and are historical";
+        }
         return switch (WalkIdentity.compareRuns(w.runBasis(), runNow)) {
             case CURRENT -> null;
             case HISTORICAL -> "saved against a different run: its record and chart targets are historical or not shown";

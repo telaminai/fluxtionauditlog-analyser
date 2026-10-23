@@ -91,6 +91,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantT
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BridgeObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleFlagsRestored;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleRootsRestored;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten;
@@ -187,6 +188,10 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOut
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsBasisObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileChoice;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileKept;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenReady;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenRequested;
@@ -249,6 +254,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantModeChoice;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
 import telamin.fluxtion.audit.analyser.analyser.session.node.BundleAnchor;
+import telamin.fluxtion.audit.analyser.analyser.session.node.BundleFlagsRestore;
 import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
@@ -269,6 +275,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate;
 import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
 import telamin.fluxtion.audit.analyser.analyser.session.node.PairingQualifier;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ProjectOutputs;
+import telamin.fluxtion.audit.analyser.analyser.session.node.ProjectProfileOnDisk;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ProjectReopenOffer;
 import telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView;
 import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
@@ -352,6 +359,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BridgeObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleFlagsRestored
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleRootsRestored
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten
@@ -448,6 +456,10 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputOpenObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsBasisObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileChoice
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileKept
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenReady
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenRequested
@@ -563,6 +575,9 @@ public class SessionProcessor
   public final transient BundleAnchor bundleAnchor =
       new telamin.fluxtion.audit.analyser.analyser.session.node.BundleAnchor(
           openBundle, effectQueue);;
+  public final transient BundleFlagsRestore bundleFlags =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.BundleFlagsRestore(
+          openBundle, openLog, effectQueue);;
   public final transient DesignSession designSession =
       new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(
           operationGate, effectQueue);;
@@ -585,6 +600,8 @@ public class SessionProcessor
   public final transient LogOpening logOpening =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening(
           operationGate, effectQueue);;
+  public final transient ProjectProfileOnDisk profileOnDisk =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectProfileOnDisk(effectQueue);;
   public final transient ProjectReopenOffer projectReopenOffer =
       new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectReopenOffer(
           openBundle, effectQueue);;
@@ -857,6 +874,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "BundleDeleted",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted",
+                false),
+            new ProcessorDescriptor.Input(
+                "BundleFlagsRestored",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleFlagsRestored",
                 false),
             new ProcessorDescriptor.Input(
                 "BundleRootsRestored",
@@ -1271,6 +1292,22 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned",
                 false),
             new ProcessorDescriptor.Input(
+                "ProjectProfileChoice",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileChoice",
+                false),
+            new ProcessorDescriptor.Input(
+                "ProjectProfileKept",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileKept",
+                false),
+            new ProcessorDescriptor.Input(
+                "ProjectProfileObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "ProjectProfileReloaded",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded",
+                false),
+            new ProcessorDescriptor.Input(
                 "ProjectReopenPresented",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented",
                 false),
@@ -1512,7 +1549,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "5e4ae1d44428d2281e9d8d0920878c52de71f339662ca98241d0ffbce310a82d",
+              "12b980ab8eb22cdc84dbe1e4a562d5cea2d45dde06755958e5b9fb756dd47772",
               null));
 
   @Override
@@ -1844,6 +1881,9 @@ public class SessionProcessor
     } else if (event instanceof BundleDeleted) {
       BundleDeleted typedEvent = (BundleDeleted) event;
       handleEvent(typedEvent);
+    } else if (event instanceof BundleFlagsRestored) {
+      BundleFlagsRestored typedEvent = (BundleFlagsRestored) event;
+      handleEvent(typedEvent);
     } else if (event instanceof BundleRootsRestored) {
       BundleRootsRestored typedEvent = (BundleRootsRestored) event;
       handleEvent(typedEvent);
@@ -2131,6 +2171,18 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof ProjectOutputsScanned) {
       ProjectOutputsScanned typedEvent = (ProjectOutputsScanned) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProjectProfileChoice) {
+      ProjectProfileChoice typedEvent = (ProjectProfileChoice) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProjectProfileKept) {
+      ProjectProfileKept typedEvent = (ProjectProfileKept) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProjectProfileObserved) {
+      ProjectProfileObserved typedEvent = (ProjectProfileObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProjectProfileReloaded) {
+      ProjectProfileReloaded typedEvent = (ProjectProfileReloaded) event;
       handleEvent(typedEvent);
     } else if (event instanceof ProjectReopenPresented) {
       ProjectReopenPresented typedEvent = (ProjectReopenPresented) event;
@@ -2589,6 +2641,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(BundleDeleted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(BundleFlagsRestored event) {
     processEvent(event);
   }
 
@@ -3069,6 +3126,26 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ProjectOutputsScanned event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectProfileChoice event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectProfileKept event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectProfileObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProjectProfileReloaded event) {
     processEvent(event);
   }
 
@@ -3903,6 +3980,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(evidenceCapture, "evidenceCapture", "onBundleDeleted", typedEvent);
     evidenceCapture.onBundleDeleted(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(BundleFlagsRestored typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(bundleFlags, "bundleFlags", "onBundleFlagsRestored", typedEvent);
+    bundleFlags.onBundleFlagsRestored(typedEvent);
     afterEvent();
   }
 
@@ -5142,6 +5227,8 @@ public class SessionProcessor
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
     }
+    auditInvocation(bundleFlags, "bundleFlags", "onLogOpened", typedEvent);
+    bundleFlags.onLogOpened(typedEvent);
     afterEvent();
   }
 
@@ -5361,8 +5448,12 @@ public class SessionProcessor
     }
     auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
     bundleAnchor.onProfileApplied(typedEvent);
+    auditInvocation(bundleFlags, "bundleFlags", "onProfileApplied", typedEvent);
+    bundleFlags.onProfileApplied(typedEvent);
     auditInvocation(designSession, "designSession", "project", typedEvent);
     designSession.project(typedEvent);
+    auditInvocation(profileOnDisk, "profileOnDisk", "onProfileApplied", typedEvent);
+    profileOnDisk.onProfileApplied(typedEvent);
     auditInvocation(projectReopenOffer, "projectReopenOffer", "onProfileApplied", typedEvent);
     projectReopenOffer.onProfileApplied(typedEvent);
     afterEvent();
@@ -5455,6 +5546,38 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(projectOutputs, "projectOutputs", "onScan", typedEvent);
     projectOutputs.onScan(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectProfileChoice typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(profileOnDisk, "profileOnDisk", "onChoice", typedEvent);
+    profileOnDisk.onChoice(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectProfileKept typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(profileOnDisk, "profileOnDisk", "onKept", typedEvent);
+    profileOnDisk.onKept(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectProfileObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(profileOnDisk, "profileOnDisk", "onObserved", typedEvent);
+    profileOnDisk.onObserved(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProjectProfileReloaded typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(profileOnDisk, "profileOnDisk", "onReloaded", typedEvent);
+    profileOnDisk.onReloaded(typedEvent);
     afterEvent();
   }
 
@@ -5693,8 +5816,12 @@ public class SessionProcessor
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
     }
+    auditInvocation(bundleFlags, "bundleFlags", "onSettingsRestored", typedEvent);
+    bundleFlags.onSettingsRestored(typedEvent);
     auditInvocation(designSession, "designSession", "restored", typedEvent);
     designSession.restored(typedEvent);
+    auditInvocation(profileOnDisk, "profileOnDisk", "onSettingsRestored", typedEvent);
+    profileOnDisk.onSettingsRestored(typedEvent);
     afterEvent();
   }
 
@@ -6415,6 +6542,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(evidenceCapture, "evidenceCapture", "onBundleDeleted", typedEvent);
       evidenceCapture.onBundleDeleted(typedEvent);
+    } else if (event instanceof BundleFlagsRestored) {
+      BundleFlagsRestored typedEvent = (BundleFlagsRestored) event;
+      auditEvent(typedEvent);
+      auditInvocation(bundleFlags, "bundleFlags", "onBundleFlagsRestored", typedEvent);
+      bundleFlags.onBundleFlagsRestored(typedEvent);
     } else if (event instanceof BundleRootsRestored) {
       BundleRootsRestored typedEvent = (BundleRootsRestored) event;
       auditEvent(typedEvent);
@@ -6914,6 +7046,8 @@ public class SessionProcessor
       isDirty_assistantLoop = assistantLoop.onLogOpened(typedEvent);
       auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onLogOpened", typedEvent);
       isDirty_startPageNoLogHint = startPageNoLogHint.onLogOpened(typedEvent);
+      auditInvocation(bundleFlags, "bundleFlags", "onLogOpened", typedEvent);
+      bundleFlags.onLogOpened(typedEvent);
     } else if (event instanceof McpReadinessObserved) {
       McpReadinessObserved typedEvent = (McpReadinessObserved) event;
       auditEvent(typedEvent);
@@ -6999,8 +7133,12 @@ public class SessionProcessor
       projectOutputs.onProfileApplied(typedEvent);
       auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
       bundleAnchor.onProfileApplied(typedEvent);
+      auditInvocation(bundleFlags, "bundleFlags", "onProfileApplied", typedEvent);
+      bundleFlags.onProfileApplied(typedEvent);
       auditInvocation(designSession, "designSession", "project", typedEvent);
       designSession.project(typedEvent);
+      auditInvocation(profileOnDisk, "profileOnDisk", "onProfileApplied", typedEvent);
+      profileOnDisk.onProfileApplied(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onProfileApplied", typedEvent);
       projectReopenOffer.onProfileApplied(typedEvent);
     } else if (event instanceof ProfileLoaded) {
@@ -7043,6 +7181,26 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(projectOutputs, "projectOutputs", "onScan", typedEvent);
       projectOutputs.onScan(typedEvent);
+    } else if (event instanceof ProjectProfileChoice) {
+      ProjectProfileChoice typedEvent = (ProjectProfileChoice) event;
+      auditEvent(typedEvent);
+      auditInvocation(profileOnDisk, "profileOnDisk", "onChoice", typedEvent);
+      profileOnDisk.onChoice(typedEvent);
+    } else if (event instanceof ProjectProfileKept) {
+      ProjectProfileKept typedEvent = (ProjectProfileKept) event;
+      auditEvent(typedEvent);
+      auditInvocation(profileOnDisk, "profileOnDisk", "onKept", typedEvent);
+      profileOnDisk.onKept(typedEvent);
+    } else if (event instanceof ProjectProfileObserved) {
+      ProjectProfileObserved typedEvent = (ProjectProfileObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(profileOnDisk, "profileOnDisk", "onObserved", typedEvent);
+      profileOnDisk.onObserved(typedEvent);
+    } else if (event instanceof ProjectProfileReloaded) {
+      ProjectProfileReloaded typedEvent = (ProjectProfileReloaded) event;
+      auditEvent(typedEvent);
+      auditInvocation(profileOnDisk, "profileOnDisk", "onReloaded", typedEvent);
+      profileOnDisk.onReloaded(typedEvent);
     } else if (event instanceof ProjectReopenPresented) {
       ProjectReopenPresented typedEvent = (ProjectReopenPresented) event;
       auditEvent(typedEvent);
@@ -7165,8 +7323,12 @@ public class SessionProcessor
       isDirty_starterProject = starterProject.onSettingsRestored(typedEvent);
       auditInvocation(projectOutputs, "projectOutputs", "onClosed", typedEvent);
       projectOutputs.onClosed(typedEvent);
+      auditInvocation(bundleFlags, "bundleFlags", "onSettingsRestored", typedEvent);
+      bundleFlags.onSettingsRestored(typedEvent);
       auditInvocation(designSession, "designSession", "restored", typedEvent);
       designSession.restored(typedEvent);
+      auditInvocation(profileOnDisk, "profileOnDisk", "onSettingsRestored", typedEvent);
+      profileOnDisk.onSettingsRestored(typedEvent);
     } else if (event instanceof SkillsVendored) {
       SkillsVendored typedEvent = (SkillsVendored) event;
       auditEvent(typedEvent);
@@ -7437,6 +7599,7 @@ public class SessionProcessor
     auditor.nodeRegistered(assistantMode, "assistantMode");
     auditor.nodeRegistered(auditInstallation, "auditInstallation");
     auditor.nodeRegistered(bundleAnchor, "bundleAnchor");
+    auditor.nodeRegistered(bundleFlags, "bundleFlags");
     auditor.nodeRegistered(coverageClaim, "coverageClaim");
     auditor.nodeRegistered(designSession, "designSession");
     auditor.nodeRegistered(effectOutcomes, "effectOutcomes");
@@ -7457,6 +7620,7 @@ public class SessionProcessor
     auditor.nodeRegistered(pairingQualifier, "pairingQualifier");
     auditor.nodeRegistered(pairing, "pairing");
     auditor.nodeRegistered(projectOutputs, "projectOutputs");
+    auditor.nodeRegistered(profileOnDisk, "profileOnDisk");
     auditor.nodeRegistered(projectReopenOffer, "projectReopenOffer");
     auditor.nodeRegistered(recordsView, "recordsView");
     auditor.nodeRegistered(sessionBoundary, "sessionBoundary");
@@ -7662,6 +7826,10 @@ public class SessionProcessor
     return isDirty_openBundle;
   }
 
+  private boolean guardCheck_bundleFlags() {
+    return isDirty_openBundle | isDirty_openLog;
+  }
+
   private boolean guardCheck_coverageClaim() {
     return isDirty_auditInstallation | isDirty_openGraph | isDirty_openLog | isDirty_pairing;
   }
@@ -7812,6 +7980,8 @@ public class SessionProcessor
         return (T) auditInstallation;
       case "bundleAnchor":
         return (T) bundleAnchor;
+      case "bundleFlags":
+        return (T) bundleFlags;
       case "coverageClaim":
         return (T) coverageClaim;
       case "designSession":
@@ -7852,6 +8022,8 @@ public class SessionProcessor
         return (T) pairing;
       case "projectOutputs":
         return (T) projectOutputs;
+      case "profileOnDisk":
+        return (T) profileOnDisk;
       case "projectReopenOffer":
         return (T) projectReopenOffer;
       case "recordsView":
@@ -7920,6 +8092,9 @@ public class SessionProcessor
     if (node == bundleAnchor) {
       return "bundleAnchor";
     }
+    if (node == bundleFlags) {
+      return "bundleFlags";
+    }
     if (node == coverageClaim) {
       return "coverageClaim";
     }
@@ -7979,6 +8154,9 @@ public class SessionProcessor
     }
     if (node == projectOutputs) {
       return "projectOutputs";
+    }
+    if (node == profileOnDisk) {
+      return "profileOnDisk";
     }
     if (node == projectReopenOffer) {
       return "projectReopenOffer";

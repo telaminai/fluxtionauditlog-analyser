@@ -425,6 +425,28 @@ public final class ProjectProfile {
         }
     }
 
+    /**
+     * #177: the profile named for the session by DIGEST of its absolute path — a fact never carries the path itself.
+     * Null for no file.
+     */
+    public static String identityKey(Path file) {
+        if (file == null) return null;
+        return "sha256:" + contentDigest(file.toAbsolutePath().normalize().toString());
+    }
+
+    /**
+     * #177: the digest {@link #load} compares and reports, of the file as it is on disk now — or null when it is missing
+     * or cannot be read as text. Two digests are equal exactly when a load would read the same settings.
+     */
+    public static String contentDigestOf(Path file) {
+        if (file == null || !Files.isRegularFile(file)) return null;
+        try {
+            return contentDigest(Files.readString(file));
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
     private static String contentDigest(String text) {
         try {
             return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")

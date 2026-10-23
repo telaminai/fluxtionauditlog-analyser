@@ -85,7 +85,9 @@ class FactFieldsTest {
                 "AiSetupEffectStarted.what", "ClaudeObserved.version", "AiSetupPostureChosen.fullMode",
                 "AiSetupCancelled.origin",
                 // robot re-walk #1: the canvas tab's own title ("Topology") and the analyser's origin word
-                "CanvasLeftAssistant.shown", "AssistantTabShown.origin")) {
+                "CanvasLeftAssistant.shown", "AssistantTabShown.origin",
+                // #177: who answered a changed profile (person or socket)
+                "ProjectProfileChoice.origin", "ProjectProfileReloaded.origin")) {
             M74.put(c, Holds.VOCABULARY);
         }
         for (String c : List.of("LocalAgentConsent.postureRef", "LocalAgentConsent.folderRef", "LocalAgentStatusObserved.hostedNonceDigest",
@@ -108,7 +110,13 @@ class FactFieldsTest {
                 "HostedReportApplyRequested.expectedOutput", "HostedReportApplyRequested.actualOutput",
                 "HostedReportApplyRequested.expectedInput", "HostedReportApplyRequested.actualInput",
                 "HostedReportApplyRequested.nameDigest", "HostedReportApplyRequested.expectedRevision",
-                "HostedReportApplyRequested.actualRevision")) {
+                "HostedReportApplyRequested.actualRevision",
+                // #177: the profile named by a digest of its path (never the path), and its content digests
+                "ProjectProfileObserved.profileKey", "ProjectProfileObserved.onDiskDigest",
+                "ProjectProfileObserved.sessionDigest", "ProjectProfileChoice.profileKey",
+                "ProjectProfileReloaded.profileKey", "ProjectProfileKept.profileKey",
+                // #178: the bundle's identity (its manifest digest)
+                "BundleFlagsRestored.bundleIdentity")) {
             M74.put(c, Holds.DIGEST);
         }
         for (String c : List.of("ProposalPreviewDone.setupDirShown", "LocalAgentSetupDirectoryChosen.dirShown",
@@ -120,7 +128,9 @@ class FactFieldsTest {
                 // review P2 N-b: the walk bindings a load dropped, the analyser's words with paths removed
                 "ProfileApplied.droppedBindings",
                 // review B5: the listener's loopback address (never a token) and why it could not start (paths removed)
-                "LocalAgentBridgeServed.endpoint", "ActionListenerConfigured.endpoint", "ActionListenerConfigured.failure")) {
+                "LocalAgentBridgeServed.endpoint", "ActionListenerConfigured.endpoint", "ActionListenerConfigured.failure",
+                // #177: what the reload or the keep did, paths removed; #178: why a flag was not put back, paths removed
+                "ProjectProfileReloaded.message", "ProjectProfileKept.message", "BundleFlagsRestored.withheld")) {
             M74.put(c, Holds.ANALYSER_WORDS);
         }
         // review P3 N3: the tools the CLI reports are the person's configuration (their MCP servers' tools), not vocabulary

@@ -207,8 +207,8 @@ public final class ReportRenderer {
                     // the NAME goes in the body, exactly: callout labels print upper-cased, and a chart name is
                     // case-sensitive (set 8, P43 — "rootNode.price" would have reached the page as ROOTNODE.PRICE)
                     callout(doc, c, "NOT RENDERED",
-                            (s.kind() == ReportSpec.Kind.CHART ? "chart '" : "focus '")
-                                    + (s.ref() == null ? "" : s.ref()) + "': "
+                            (s.kind() == ReportSpec.Kind.CHART ? "chart '" + (s.ref() == null ? "" : s.ref()) + "': "
+                                    : s.ref() == null ? "the whole graph: " : "focus '" + s.ref() + "': ")
                                     + (body.monoLines() == null || body.monoLines().isEmpty()
                                             ? "the analyser produced no picture for this section"
                                             : String.join(" ", body.monoLines())),

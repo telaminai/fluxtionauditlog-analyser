@@ -47,6 +47,9 @@ without extracting it, run `analyser --verify <bundle>.fexp`.
 
 - **Targets are current.** Each step's record, chart and graph targets match what the sender saved, because the
   bytes are the same. For an excerpt, the sender's analyser re-based them onto it.
+- **Flags come back on their own records.** Each flag the bundle carries goes back on its record only when that
+  record's text has the digest it was flagged with. A record that is missing or different gets no flag, and
+  `context.project.bundle.flags` names each one that was withheld, and why. The status line gives the count.
 - **A caveat, once.** The walk says, once, that the file has not been re-checked since it was read. A bundle
   opens with Follow off, so no re-check has run.
 - **Give a chart step room.** At the default window size a chart target can report *"no room … — widen the

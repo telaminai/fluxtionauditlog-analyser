@@ -136,5 +136,7 @@ excerpt: replay records are of the whole run.
 
 - `context.capture`: the last capture, as the session decided it: `phase`, `path`, `identity`, `reason`, `lines`.
 - `context.log.generation`: the session's log generation, the one a capture is decided in.
+- `context.project.bundle.flags`: in an opened bundle, `carried` (flags the bundle holds), `restored` (put back on a
+  record whose digest matches) and `withheld` (one line per flag that was not, and why).
 - `context.project.unsavedEdits`: `true` while a project edit waits for its write to the profile file. A capture
   does not wait for it: it writes the pending edit itself.

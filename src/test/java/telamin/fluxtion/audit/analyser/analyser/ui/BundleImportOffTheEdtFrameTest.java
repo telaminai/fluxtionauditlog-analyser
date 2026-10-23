@@ -48,7 +48,7 @@ class BundleImportOffTheEdtFrameTest {
             EvidenceCaptureFrameTest.openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
             onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "borrow.fexp"))));
             assertEquals("WRITTEN", EvidenceCaptureFrameTest.awaitDecided(f).get("phase"));
-            Path fexp = dir.resolve("borrow.fexp");
+            Path fexp = EvidenceCaptureFrameTest.written(f);   // #182: the open project's analyser-exchange/
 
             AtomicReference<Boolean> readOnEdt = new AtomicReference<>();
             MainFrame.beforeBundleRead = () -> readOnEdt.set(SwingUtilities.isEventDispatchThread());

@@ -87,7 +87,7 @@ public record ReportSpec(String name, String title, String createdAt, String not
      * @param kind         which section this is
      * @param recordIndex  FINDING/RECORD anchor; -1 otherwise
      * @param file         RECORD on a rolled set: the member file, or null
-     * @param ref          CHART: the graph name · TOPOLOGY: the named focus
+     * @param ref          CHART: the graph name · TOPOLOGY: the named focus, or null for the whole authored graph (#183)
      * @param call         SERIES/TABLE: the verb parameters that produce the data (rows are DERIVED)
      * @param text         NARRATIVE only: the prose — and it renders AS narrative (D-I2)
      * @param columns      TABLE: the declared column spec (D-I7)

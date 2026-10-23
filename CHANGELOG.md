@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- `open {project, reload: true}` re-reads the open project's profile from disk, replacing the in-memory project settings (the reply says what it replaced and whether unsaved edits were discarded); the log and graph stay open (#177).
+
+### Fixed
+
+- An edit made to the open project's `.analyser/project.fluxtion-settings` outside the analyser is no longer overwritten by auto-save. The analyser notices the change, offers *Reload from disk* / *Keep my version* / *Not now*, keeps its own edits in memory until you choose, and `context.project.profileOnDisk` states it (#177).
+- Evidence bundles now carry flag text. Each flag's note, fix and kind travels anchored to its record's digest and is put back only on a record with the same text, so a report's finding sections arrive with their text. A missing or changed record gets no flag, and `context.project.bundle.flags` says which and why (#178).
+- A saved walk that points at records stays current when the identical log file is reopened, even if a different number of records is served. A followed log holds back its unterminated last record and a cold open includes it. Any content change is still historical. A chart walk on the same bytes now says why it is historical, instead of "saved against a different run" (#179).
+- With a project open that declares no exchange directory, screenshots, bundles, reels and rendered reports go to the project's own `analyser-exchange/`, created on first write. Before, they went to the machine-level directory, which could be another project's folder. The reply names the directory. Sessions with no project, the sample project and bundle working copies keep the machine directory (#182).
+- A report's `topology` section with no `focus` now renders the whole authored graph instead of being skipped. One that cannot be drawn (no graph loaded) says why in the PDF and the reply (#183).
+
 ## [1.38.0] - 2026-10-21
 
 ### Added

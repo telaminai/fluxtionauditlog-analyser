@@ -287,7 +287,7 @@ class EvidenceCaptureFrameTest {
             assertEquals(Boolean.TRUE, echo.get().get("ok"), String.valueOf(echo.get()));
             Map<String, Object> c = awaitDecided(f);
             assertEquals("WRITTEN", c.get("phase"), String.valueOf(c));
-            Path out = ex.resolve("w.fexp");
+            Path out = written(f);
             var v = EvidenceBundle.verify(out);
             assertTrue(v.ok(), v.refusal());
             assertEquals(v.identity(), c.get("identity"), "context states the bundle's own identity");
@@ -370,6 +370,14 @@ class EvidenceCaptureFrameTest {
         }
     }
 
+    /**
+     * Where the decided capture wrote its bundle, as context.capture states it. With a project open that declares no
+     * exchange directory that is the project's own analyser-exchange/ (#182), not the machine directory.
+     */
+    static Path written(AsyncOpenInterleavingFrameTest.Frame f) throws Exception {
+        return Path.of(String.valueOf(awaitDecided(f).get("path")));
+    }
+
     /** The bundle's profile member, as text. */
     static String profileMember(Path bundle) throws Exception {
         try (ZipFile z = new ZipFile(bundle.toFile())) {
@@ -400,7 +408,7 @@ class EvidenceCaptureFrameTest {
                 assertEquals(Boolean.TRUE, echo.get().get("ok"), String.valueOf(echo.get()));
                 assertEquals("WRITTEN", awaitDecided(f).get("phase"));
                 assertFalse(Files.readString(profile).contains("demo-unwritable"), "control: the FILE never got the edit");
-                assertTrue(profileMember(ex.resolve("ro.fexp")).contains("demo-unwritable"),
+                assertTrue(profileMember(written(f)).contains("demo-unwritable"),
                         "the bundle holds the session's settings, not a stale file the write could not update");
             } finally {
                 profile.toFile().setWritable(true);
@@ -457,7 +465,7 @@ class EvidenceCaptureFrameTest {
             onEdt(() -> echo.set(ask(f, bundle("b.fexp"))));
             assertEquals(Boolean.TRUE, echo.get().get("ok"), String.valueOf(echo.get()));
             assertEquals("WRITTEN", awaitDecided(f).get("phase"));
-            String member = profileMember(ex.resolve("b.fexp"));
+            String member = profileMember(written(f));
             assertTrue(member.contains("demo-in-b") && !member.contains("demo-in-a"), member);
         }
     }
@@ -479,8 +487,8 @@ class EvidenceCaptureFrameTest {
             });
             assertEquals(Boolean.TRUE, echo.get().get("ok"), String.valueOf(echo.get()));
             assertEquals("WRITTEN", awaitDecided(f).get("phase"), "no protocol violation from syncing charts inside a dispatch");
-            assertTrue(profileMember(ex.resolve("chart.fexp")).contains("DEMO\\ spread\\ just\\ drawn")
-                            || profileMember(ex.resolve("chart.fexp")).contains("DEMO spread just drawn"),
+            assertTrue(profileMember(written(f)).contains("DEMO\\ spread\\ just\\ drawn")
+                            || profileMember(written(f)).contains("DEMO spread just drawn"),
                     "the chart drawn a moment before is in the bundle");
         }
     }

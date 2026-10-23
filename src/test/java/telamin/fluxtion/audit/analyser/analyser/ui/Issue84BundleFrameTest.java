@@ -59,7 +59,7 @@ public class Issue84BundleFrameTest {
                 if(!"DEMO recipient".equals(note(((GraphTabs)field(f.frame,"graphTabs")).specs()))) throw new IllegalStateException("recipient chart precondition");
             });
             AtomicReference<Map<String,Object>> result = new AtomicReference<>();
-            result.set(render(f.ex, "import", Map.of("bundle", exchange.resolve("import.fexp").toString(), "categories", List.of("GRAPHS"))));
+            result.set(render(f.ex, "import", Map.of("bundle", EvidenceCaptureFrameTest.written(f).toString(), "categories", List.of("GRAPHS"))));
             System.out.println("import reply=" + result.get());
             onEdt(() -> {
                 var config = (AppConfig) field(f.frame, "config");
@@ -133,11 +133,12 @@ public class Issue84BundleFrameTest {
             openLog(f,DEMO_LOG);
             onEdt(() -> render(f.ex,"report",Map.of("bundle",Map.of("path","stale.fexp"))));
             if (!"WRITTEN".equals(awaitDecided(f).get("phase"))) throw new IllegalStateException("capture failed");
+            Path stale = EvidenceCaptureFrameTest.written(f);   // #182: under the open project's analyser-exchange/
             onEdt(() -> {
                 var project = (ProjectSession)field(f.frame,"project");
                 project.requestSave();
                 project.setPreSave(() -> {throw new IllegalStateException("DEMO pre-save failed");});
-                render(f.ex,"open",Map.of("bundle",exchange.resolve("stale.fexp").toString()));
+                render(f.ex,"open",Map.of("bundle",stale.toString()));
             });
             Path[] replacement = new Path[1];
             for(int i=0;i<100&&replacement[0]==null;i++) {
@@ -257,7 +258,7 @@ public class Issue84BundleFrameTest {
             Path copies=tmp.resolve("home/.fluxtion-analyser/bundles");
             Set<Path> before=children(copies);
             Map<String,Object>[] reply=new Map[1];
-            reply[0]=render(f.ex,"import",Map.of("bundle",exchange.resolve("DEMO-borrow.fexp").toString()));
+            reply[0]=render(f.ex,"import",Map.of("bundle",EvidenceCaptureFrameTest.written(f).toString()));
             System.out.println("preview reply="+reply[0]+" workingCopiesBefore="+before.size()+" after="+children(copies).size());
             assertEquals(before,children(copies),"previewMustNotCreateAWorkingCopy");
             assertTrue(Boolean.TRUE.equals(reply[0].get("ok")));

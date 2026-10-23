@@ -361,6 +361,11 @@ public final class VerbSchemas {
                                 + "from the answer you were given. This is how to ACCEPT the "
                                 + "projectOffer that context reports. Any other param in the same call "
                                 + "is ignored and named"),
+                        p("reload", bool(), "#177: with 'project' naming the project ALREADY open, read its profile "
+                                + "from disk again — an edit made to it outside the analyser (context.project.profileOnDisk "
+                                + "says when one is seen). Replaces the in-memory project settings; unsaved edits are "
+                                + "discarded and the echo says so. The log and graph stay open. Without it, opening the "
+                                + "active project changes nothing"),
                         pAny("create", "M73: CREATE a project in the absolute directory 'project' names, with discovery's "
                                 + "offer — never a hand-written profile. create: true is the PREVIEW: it writes nothing, "
                                 + "selects nothing, and returns createPreview — source roots, skills, graphs (informational), "

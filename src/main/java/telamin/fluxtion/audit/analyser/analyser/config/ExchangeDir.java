@@ -30,8 +30,36 @@ import java.nio.file.Path;
  * quiet act that should be deliberate. A missing or non-directory value falls back to the machine
  * tier and says why, so the answer to "why did my screenshot land somewhere else" is on screen rather
  * than inferred.
+ *
+ * <h2>An open project with no value: {@code <project>/analyser-exchange/} (#182)</h2>
+ *
+ * <p>With a person's own project open and nothing declared, the machine directory used to answer — and that was
+ * often ANOTHER project's folder, so this project's screenshots, bundles and reels landed in someone else's tree. The
+ * open project now answers instead: {@value #PROJECT_DEFAULT_DIR} under its root. This is not a profile asking for a
+ * location, so the "refused, not created" rule above does not apply: the directory is the analyser's own default,
+ * created only when a write actually lands there ({@link #ensureCreated}), behind the same machine-tier opt-in. The
+ * sample project and an evidence bundle's working copy are the analyser's, not the person's, so they keep the machine
+ * directory; so does a session with no project, and a machine directory that already lies inside the open project. An existing {@value #PROJECT_DEFAULT_DIR} that is a link leaving the
+ * project, or not a directory, falls back to the machine tier and says why, exactly as a declared value does.
  */
-public record ExchangeDir(String dir, String source, String refusal) {
+public record ExchangeDir(String dir, String source, String refusal, boolean projectDefault) {
+
+    /** #182: the directory an open project's exchange defaults to when it declares none. */
+    public static final String PROJECT_DEFAULT_DIR = "analyser-exchange";
+
+    public ExchangeDir(String dir, String source, String refusal) {
+        this(dir, source, refusal, false);
+    }
+
+    /**
+     * #182: make the project default directory when a write is about to land in it, and nothing else — a declared
+     * directory is never created (the profile rule above), and the machine tier is the person's own choice.
+     */
+    public void ensureCreated() throws java.io.IOException {
+        if (!projectDefault || dir == null || dir.isBlank()) return;
+        Path d = Path.of(dir);
+        if (!Files.isDirectory(d)) Files.createDirectory(d);
+    }
 
     /** The project tier supplied it. */
     public static final String PROJECT = "project";
@@ -59,8 +87,11 @@ public record ExchangeDir(String dir, String source, String refusal) {
         }
         String machine = c.assistantExportDir == null ? "" : c.assistantExportDir;
         String wanted = c.projectExchangeDir == null ? "" : c.projectExchangeDir.trim();
-        if (wanted.isEmpty() || !c.assistantExports) {
+        if (!c.assistantExports) {
             return new ExchangeDir(machine, MACHINE, null);
+        }
+        if (wanted.isEmpty()) {
+            return projectDefault(c, machine);
         }
         Path root = projectRoot(c);
         if (root == null) {
@@ -100,6 +131,65 @@ public record ExchangeDir(String dir, String source, String refusal) {
             return new ExchangeDir(machine, MACHINE, LABEL + ": '" + wanted + "' could not be resolved ("
                     + e.getMessage() + ") — using the machine setting instead");
         }
+    }
+
+    /**
+     * #182: the directory a verb's WRITE uses — {@link #of}, with the project default made first when that is where the
+     * write will land. Only for a write that is about to happen: reading the location never creates anything.
+     */
+    public static ExchangeDir forWrite(AppConfig c) {
+        ExchangeDir d = of(c);
+        try {
+            d.ensureCreated();
+        } catch (java.io.IOException | SecurityException e) {
+            return new ExchangeDir(d.dir(), d.source(), "the project's default exchange directory could not be created ("
+                    + e.getMessage() + ")", true);
+        }
+        return d;
+    }
+
+    /**
+     * #182: an open, person-owned project that declares no exchange directory gets {@value #PROJECT_DEFAULT_DIR} under
+     * its root; anything else (no project, the sample, a bundle's working copy) keeps the machine tier, unremarked.
+     */
+    private static ExchangeDir projectDefault(AppConfig c, String machine) {
+        Path root = projectRoot(c);
+        if (root == null || !Files.isDirectory(root) || analyserOwned(root)) {
+            return new ExchangeDir(machine, MACHINE, null);
+        }
+        Path resolved = root.resolve(PROJECT_DEFAULT_DIR);
+        try {
+            Path realRoot = root.toRealPath();
+            // the machine directory is already inside THIS project: it is this project's folder, so it stays
+            if (!machine.isBlank() && Files.isDirectory(Path.of(machine))
+                    && Path.of(machine).toRealPath().startsWith(realRoot)) {
+                return new ExchangeDir(machine, MACHINE, null);
+            }
+            if (!Files.exists(resolved, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                // made when a write lands (ensureCreated); named by its canonical parent so the guard sees one spelling
+                return new ExchangeDir(realRoot.resolve(PROJECT_DEFAULT_DIR).toString(), PROJECT, null, true);
+            }
+            if (!Files.isDirectory(resolved)) {
+                return new ExchangeDir(machine, MACHINE, "the project's default exchange directory '" + PROJECT_DEFAULT_DIR
+                        + "' exists and is not a directory (" + resolved + ") — using the machine setting instead");
+            }
+            Path real = resolved.toRealPath();
+            if (!real.startsWith(realRoot)) {
+                return new ExchangeDir(machine, MACHINE, "the project's default exchange directory '" + PROJECT_DEFAULT_DIR
+                        + "' is a link that leaves the project (it resolves to " + real + ") — using the machine setting instead");
+            }
+            return new ExchangeDir(real.toString(), PROJECT, null, true);
+        } catch (java.io.IOException | SecurityException e) {
+            return new ExchangeDir(machine, MACHINE, "the project's default exchange directory could not be resolved ("
+                    + e.getMessage() + ") — using the machine setting instead");
+        }
+    }
+
+    /** The sample project and a bundle's working copy are the analyser's own folders (OD-74.22's one rule). */
+    private static boolean analyserOwned(Path root) {
+        String home = System.getProperty("user.home");
+        return telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.analyserOwned(root,
+                home == null ? null : Path.of(home), telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy);
     }
 
     /**

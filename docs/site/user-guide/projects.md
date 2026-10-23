@@ -227,6 +227,22 @@ diff is what gets it reviewed.
 This includes edits made by an **assistant over the socket**. If an agent adds a source root with
 `analyser_source_root`, that lands in the active project like any other change.
 
+### Someone else edited the profile
+
+An auto-save never writes over a profile that changed on disk since the analyser read or last wrote it. The
+change can come from an editor, an agent or a `git pull`. The analyser checks the file the way it checks a loaded
+log, by size, modification time and identity, and then compares its content. When it differs, the analyser
+asks **Project settings changed on disk** and offers three answers:
+
+- **Reload from disk** replaces the project settings in the window with the file's. Edits not yet saved in the
+  window are discarded. The log and graph stay open.
+- **Keep my version** writes the window's settings over the file. This is the only way that happens.
+- **Not now** keeps both. The file stays as it is, and the window's edits wait in memory and are not saved.
+
+An agent reads the same state as `context.project.profileOnDisk`, and takes the file's version with
+`open {project: "<the open profile>", reload: true}`. Without `reload`, opening the project already in force
+changes nothing.
+
 ## Committing a profile to your repo
 
 `.analyser/project.fluxtion-settings` is designed to be committed, like `.vscode/settings.json`. Clone
