@@ -52,8 +52,21 @@ public final class CredentialStores {
         return Optional.empty();
     }
 
+    /**
+     * The shape of a store's item name. The Keychain write is a line the macOS tool tokenises, so a name with a space
+     * or a quote would split into, or inject, further arguments; nothing outside this shape is ever put on that line.
+     */
+    static final java.util.regex.Pattern ITEM_NAME = java.util.regex.Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,127}");
+
+    private static String itemName(String service) {
+        if (service == null || !ITEM_NAME.matcher(service).matches())
+            throw new IllegalArgumentException("a credential store item name is letters, digits, '.', '_' and '-' only");
+        return service;
+    }
+
     /** macOS Keychain. {@code service} is a parameter so a test can use a throwaway entry. */
     public static CredentialStore keychain(CommandRunner runner, String service) {
+        itemName(service);
         return new CredentialStore() {
             @Override public String description() {
                 return "macOS Keychain (item \"" + service + "\")";
@@ -84,6 +97,7 @@ public final class CredentialStores {
 
     /** Linux Secret Service through {@code secret-tool}. */
     public static CredentialStore secretService(CommandRunner runner, String tool, String service) {
+        itemName(service);
         return new CredentialStore() {
             @Override public String description() {
                 return "Secret Service keyring (service \"" + service + "\")";

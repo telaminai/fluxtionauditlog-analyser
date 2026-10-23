@@ -37,6 +37,9 @@ public final class StandInCompilerService implements AutoCloseable {
             + "\"reserved\":0,\"consumed\":30,\"released\":0,\"generations\":3,\"failures\":0,\"currentPeriod\":\"2026-10\","
             + "\"nextReset\":null,\"buckets\":[],\"policyVersion\":\"p1\",\"as_of_sequence\":42}";
     public volatile int revokeStatus = 204;
+    public volatile String verificationUri = "https://compiler.example.com/device";
+    /** When set, the usage read answers 302 to this path on the same stand-in, which records whether it was followed. */
+    public volatile String usageRedirect;
 
     public StandInCompilerService() throws IOException {
         server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
@@ -79,7 +82,7 @@ public final class StandInCompilerService implements AutoCloseable {
             case "/auth/device/authorize" -> {
                 status = 200;
                 out = "{\"device_code\":\"" + DEVICE_CODE + "\",\"user_code\":\"" + USER_CODE + "\","
-                        + "\"verification_uri\":\"https://compiler.example.com/device\","
+                        + "\"verification_uri\":\"" + verificationUri + "\","
                         + "\"verification_uri_complete\":\"https://compiler.example.com/device?user_code=" + USER_CODE + "\","
                         + "\"expires_in\":" + expiresIn + ",\"interval\":" + interval + "}";
             }
@@ -93,6 +96,12 @@ public final class StandInCompilerService implements AutoCloseable {
                 out = a[1];
             }
             case "/v1/usage" -> {
+                if (usageRedirect != null) {
+                    ex.getResponseHeaders().add("Location", base() + usageRedirect);
+                    ex.sendResponseHeaders(302, -1);
+                    ex.close();
+                    return;
+                }
                 boolean ok = ("Bearer " + BEARER).equals(ex.getRequestHeaders().getFirst("Authorization"));
                 status = ok ? usageStatus : 401;
                 out = status == 200 ? usageBody : "{\"error\":\"unauthorized\"}";

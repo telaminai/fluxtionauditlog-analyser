@@ -204,6 +204,9 @@ public final class CompilerAccountDialog extends JDialog {
         boolean signingIn = pending != null;
         connection.setText(connectionLine(connected, signingIn));
         storage.setText("Credential kept in: " + store.description());
+        // connected, the field names the service that ISSUED the credential (which usage and revoke go to), not the
+        // configured address: the two differ when the setting was changed after connecting
+        if (connected != null && !connected.service().equals(address.getText())) address.setText(connected.service());
         address.setEditable(connected == null && !signingIn && !busy);
         boolean grew = signingIn && !signIn.isVisible();
         signIn.setVisible(signingIn);

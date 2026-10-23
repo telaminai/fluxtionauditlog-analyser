@@ -71,7 +71,9 @@ with nothing stored. It never shows or logs the device code, or the credential i
 Once you approve, the credential is kept in your operating system's credential store: the macOS Keychain, or the
 Secret Service keyring on Linux (through `secret-tool`). Where neither is available (Windows, or Linux without
 `secret-tool`), it is kept in `~/.fluxtion-analyser/compiler-account.credential`, a file only your account can read.
-That protects it from other users of the machine, not from programs you run yourself. The credential never reaches a
+That protects it from other users of the machine, not from programs you run yourself. The same is true of the
+Keychain entry: it is written by the system's `security` tool, so other programs running as you can read it through
+that tool without a prompt. The credential never reaches a
 command line, a project, a settings export, a report, a walk, an evidence bundle or an assistant's `context`. It also
 remembers which service issued it, so changing the address later never sends it anywhere else.
 

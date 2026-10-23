@@ -44,13 +44,20 @@ public final class ServiceAddress {
         return "The service address must start with https:// (plain http is accepted only for this machine)";
     }
 
-    /** True when {@code url} is something the system browser may be asked to open: http or https with a host. */
+    /**
+     * True when {@code url} is a sign-in page the system browser may be asked to open: https with a host, or plain http
+     * only on this machine — the same rule as the service address, because the person signs in on that page and a
+     * page served in clear from another host hands their sign-in to the network. A query is allowed (the page with the
+     * code filled in carries it there); user info is not.
+     */
     public static boolean browsable(String url) {
         if (url == null || url.isBlank()) return false;
         try {
             URI uri = URI.create(url.strip());
             String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
-            return (scheme.equals("https") || scheme.equals("http")) && uri.getHost() != null;
+            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+            if (host.isEmpty() || uri.getRawUserInfo() != null) return false;
+            return scheme.equals("https") || (scheme.equals("http") && LOOPBACK.contains(host));
         } catch (IllegalArgumentException e) {
             return false;
         }

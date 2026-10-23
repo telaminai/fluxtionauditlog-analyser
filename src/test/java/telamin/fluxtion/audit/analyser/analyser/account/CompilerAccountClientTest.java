@@ -185,6 +185,35 @@ class CompilerAccountClientTest {
     }
 
     @Test
+    void theRealClientNeverFollowsARedirect_soTheBearerOnlyReachesTheIssuingService() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        service.usageRedirect = "/elsewhere";
+        AccountException e = assertThrows(AccountException.class, () -> CompilerAccountClient.standard().usage(c));
+        assertTrue(e.getMessage().contains("HTTP 302"), e.getMessage());
+        assertEquals(0, service.count("/elsewhere"), "the redirect was followed, carrying the bearer");
+    }
+
+    @Test
+    void aSignInPageServedInClearFromAnotherHostIsRefused_andNothingIsOpened() {
+        assertTrue(ServiceAddress.browsable("https://compiler.example.com/device?user_code=WDJB-MJHT"));
+        assertTrue(ServiceAddress.browsable("http://127.0.0.1:8080/device"));
+        assertFalse(ServiceAddress.browsable("http://compiler.example.com/device"), "a sign-in page in clear");
+        assertFalse(ServiceAddress.browsable("https://user@compiler.example.com/device"));
+        assertFalse(ServiceAddress.browsable("file:///etc/passwd"));
+        service.verificationUri = "http://compiler.example.com/device";
+        AccountException e = assertThrows(AccountException.class, this::start);
+        assertTrue(e.getMessage().contains("not a web address") || e.getMessage().contains("sign-in page"), e.getMessage());
+    }
+
+    @Test
+    void aCredentialIdThatIsADotSegmentIsRefused_soRevokeCannotNameAnotherPath() {
+        for (String id : List.of(".", "..", "-x", "a/b"))
+            assertThrows(IllegalArgumentException.class, () -> new CompilerCredential(service.base(), id, "acct-demo", BEARER), id);
+        assertEquals("cred.01", new CompilerCredential(service.base(), "cred.01", "acct-demo", BEARER).credentialId());
+    }
+
+    @Test
     void aFailureMessageNeverQuotesWhatTheServiceSent() throws Exception {
         DeviceStart s = start();
         // a misbehaving service echoing the device code and a credential in an unexpected error answer

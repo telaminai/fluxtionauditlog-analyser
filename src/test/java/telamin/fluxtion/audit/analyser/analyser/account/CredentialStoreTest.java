@@ -112,6 +112,16 @@ class CredentialStoreTest {
     }
 
     @Test
+    void aStoreItemNameThatTheKeychainLineWouldTokeniseIsRefused() {
+        FakeTool tool = new FakeTool();
+        for (String name : List.of("a b", "x\" -w injected", "a\nb", "", "-U"))
+            assertThrows(IllegalArgumentException.class, () -> CredentialStores.keychain(tool, name), name);
+        assertThrows(IllegalArgumentException.class, () -> CredentialStores.secretService(tool, "/usr/bin/secret-tool", "a b"));
+        assertTrue(tool.argvs.isEmpty(), "nothing ran");
+        assertTrue(CredentialStores.ITEM_NAME.matcher(CredentialStores.SERVICE).matches(), "the real item name fits");
+    }
+
+    @Test
     void aDamagedEntryIsAnError_neverAGuess_andTheErrorQuotesNothing() {
         CommandRunner damaged = (argv, stdin) -> new CommandRunner.Result(0, "not-base64-" + BEARER);
         Exception e = assertThrows(IllegalArgumentException.class, () -> CredentialStores.keychain(damaged, "s").load());

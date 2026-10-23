@@ -76,6 +76,29 @@ class EntitlementInvestigationConformanceTest {
         }
     }
 
+    /**
+     * The projection replays each committed row AT ITS OWN RECORDED TIME, and every committed row is there. A producer
+     * that stamped the replay's wall clock, or skipped a row, would still parse — so the times and sequence numbers
+     * are checked against the row each record carries, not only for order.
+     */
+    @Test
+    void eachRecordIsStampedWithItsRowsOwnTime_andNoCommittedRowIsMissing() {
+        for (int i = 0; i < LOG.size(); i++) {
+            LogRecord r = LOG.record(i);
+            String row = r.eventToString();
+            assertEquals(i + 1, Long.parseLong(field(row, "sequence")), "committed rows 1..n, none skipped: record " + i);
+            long at = Long.parseLong(field(row, "atMillis"));
+            assertEquals(at, r.logTime(), "logTime is the row's own time, record " + i);
+            assertEquals(at, r.eventTime(), "eventTime is the row's own time, record " + i);
+        }
+    }
+
+    private static String field(String row, String name) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("[\\[ ]" + name + "=([^,\\]]*)").matcher(row);
+        assertTrue(m.find(), name + " missing from " + row);
+        return m.group(1);
+    }
+
     @Test
     void theGraphItRanOnPairsWithTheLog() {
         ProcessorTopology graph = GraphMlParser.parse(resource("entitlement-investigation.graphml"));

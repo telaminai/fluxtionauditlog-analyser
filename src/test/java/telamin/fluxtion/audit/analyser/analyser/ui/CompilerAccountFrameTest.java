@@ -135,6 +135,26 @@ class CompilerAccountFrameTest {
     }
 
     @Test
+    void aChangedAddressNeverRedirectsTheStoredCredential_andTheFieldNamesTheIssuingService() throws Exception {
+        service.token("approved");
+        AppConfig config = new AppConfig();
+        config.compilerServiceUrl = service.base();
+        open(config);
+        onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
+        await(() -> text().contains("Plan: free"), "connected");
+        onEdt(dialog::dispose);
+
+        config.compilerServiceUrl = "https://other.example.com";   // the setting changed after connecting
+        long reads = service.count("/v1/usage");
+        open(config);
+        await(() -> service.count("/v1/usage") > reads && text().contains("Plan: free"), "usage is read from the issuer");
+        onEdt(() -> {
+            assertEquals(service.base(), address().getText(), "the field names the service the credential belongs to");
+            assertFalse(address().isEditable());
+        });
+    }
+
+    @Test
     void aDisconnectDeletesOnlyTheLocalCredential() throws Exception {
         service.token("approved");
         AppConfig config = new AppConfig();

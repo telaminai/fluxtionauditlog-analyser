@@ -19,8 +19,12 @@ import java.util.regex.Pattern;
  */
 public final class CompilerCredential {
 
-    /** Identifiers are path segments and display text; nothing outside this shape is accepted from the service. */
-    static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z0-9_.:-]{1,128}");
+    /**
+     * Identifiers are path segments and display text; nothing outside this shape is accepted from the service. The
+     * first character is a letter or digit, so an id can never be {@code .} or {@code ..} and turn Revoke's
+     * {@code DELETE /v1/credentials/<id>} into a request for a different path.
+     */
+    static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}");
 
     private final String service;
     private final String credentialId;
