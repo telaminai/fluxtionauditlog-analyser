@@ -82,6 +82,30 @@ The dialog then shows the account, its plan and available credits, and the next 
 **Disconnect** deletes the credential from this machine, and the service keeps accepting it until it is revoked.
 **Revoke this device** asks the service to stop accepting it, then deletes it here.
 
+## Investigate a compiler charge
+
+A compiler service that uses accounts can export an **investigation** of one account: why each generation was
+allowed, refused, charged or released. Its operator sends you two files, `investigation-<account>.yaml` and
+`investigation-<account>.graphml`. Account and attempt ids may be replaced by aliases such as `account-1`.
+
+Open the `.yaml` with **Audit log ▸ Open log…** and the `.graphml` with **Sources ▸ Open GraphML…**. Each record is
+one transition the service committed, at the time it was decided, in the order it was committed. Nothing in the file is
+the service's opinion after the fact.
+
+- **Find one request:** type its request id in the search box above the records table. Its reservation, then its
+  settlement or release, are the rows that remain.
+- **Read why:** the record detail shows the nodes that applied the transition. **requests** carries the request's
+  `status` (`RESERVED`, `SETTLED`, `RELEASED`, `EXPIRED`), the `reason` it was decided under (`within_allowance`,
+  `generation_succeeded`, `not_charged`) and the `result` reference or `failure` code. **ledger** carries the
+  `bucket` it drew from and that bucket's `available`, `bucketReserved` and `bucketConsumed` after the transition. A
+  refusal shows as `refused` on **ledger**, with the code the caller was given, such as
+  `CREDIT_ALLOWANCE_EXHAUSTED`.
+- **See the balance over time:** in the Graph tab, **Add key** `ledger.available`.
+- **See which nodes applied a row:** the Topology tab, stepping through the records.
+
+A failed generation always appears as a reservation followed by a release with `reason: not_charged`. A charge is
+always a reservation followed by a settlement against the same bucket, even when a billing period ended in between.
+
 ## Watch a log as it grows (Follow)
 
 Turn on **Follow** (the toolbar toggle, or **Audit log ▸ Follow (tail)**) to watch a local text log that another
