@@ -173,12 +173,12 @@ public record ExchangeDir(String dir, String source, String refusal, boolean pro
                 return new ExchangeDir(machine, MACHINE, "the project's default exchange directory '" + PROJECT_DEFAULT_DIR
                         + "' exists and is not a directory (" + resolved + ") — using the machine setting instead");
             }
-            Path real = resolved.toRealPath();
-            if (!real.startsWith(realRoot)) {
+            Path realDefault = resolved.toRealPath();
+            if (!realDefault.startsWith(realRoot)) {
                 return new ExchangeDir(machine, MACHINE, "the project's default exchange directory '" + PROJECT_DEFAULT_DIR
-                        + "' is a link that leaves the project (it resolves to " + real + ") — using the machine setting instead");
+                        + "' is a link that leaves the project (it resolves to " + realDefault + ") — using the machine setting instead");
             }
-            return new ExchangeDir(real.toString(), PROJECT, null, true);
+            return new ExchangeDir(realDefault.toString(), PROJECT, null, true);
         } catch (java.io.IOException | SecurityException e) {
             return new ExchangeDir(machine, MACHINE, "the project's default exchange directory could not be resolved ("
                     + e.getMessage() + ") — using the machine setting instead");

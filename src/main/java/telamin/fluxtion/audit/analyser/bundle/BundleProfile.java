@@ -247,8 +247,9 @@ public final class BundleProfile {
             }
             kept.put(key, redactProse(key, v, redacted));
         }
-        // untouched otherwise: the exporter's own bytes (#178: flags are not the exporter's, so they always re-serialise)
-        if (!redacted.isEmpty() || !flags.isEmpty()) text = serialise(text, kept);
+        // #178: flags are not the exporter's own bytes, so a member carrying them is always re-serialised
+        if (!flags.isEmpty() && redacted.isEmpty()) text = serialise(text, kept);
+        if (!redacted.isEmpty()) text = serialise(text, kept);        // untouched otherwise: the exporter's own bytes
         Files.writeString(out, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
         return new Export(List.copyOf(leftOut), List.copyOf(dangling), List.copyOf(redacted));
     }
