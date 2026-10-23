@@ -1,10 +1,6 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
-import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.config.GraphSpec;
-import telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile;
-import telamin.fluxtion.audit.analyser.analyser.config.SettingsShare;
-import telamin.fluxtion.audit.analyser.analyser.config.WalkBin;
 import telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec;
 
 import java.nio.file.Path;
@@ -28,12 +24,11 @@ final class DemoJourney {
     }
 
     static Parts load(Path profileFragment) {
-        AppConfig c = new AppConfig();
-        if (!ProjectProfile.load(profileFragment, c, new SettingsShare("")).loaded()) return null;
-        WalkSpec walk = WalkBin.find(c.walks, NAME);
-        GraphSpec chart = walk == null || walk.steps().isEmpty() ? null : c.savedGraphs.stream()
-                .filter(g -> walk.steps().stream().anyMatch(s -> s.view() != null && g.name().equals(s.view().graph())))
-                .findFirst().orElse(null);
-        return walk == null ? null : new Parts(walk, chart);
+        try {
+            var parts = telamin.fluxtion.audit.analyser.analyser.walk.BundledWalks.read(
+                    java.nio.file.Files.readString(profileFragment), NAME,
+                    telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.RECORDS);
+            return parts == null ? null : new Parts(parts.walk(), parts.chart());
+        } catch (java.io.IOException | RuntimeException failure) { return null; }
     }
 }

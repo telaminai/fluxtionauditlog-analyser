@@ -206,11 +206,15 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         aiSetup.setNoLogHint(noLogHint);
         startPagePrompt.setNoLogHint(noLogHint);
         cfg.addNode(startPagePrompt, "startPagePrompt");
-        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects), "walkPlayback");
+        var walkPlayback = new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects);
+        cfg.addNode(walkPlayback, "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(openLog, gate, effects), "evidenceCapture");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate, effects), "designSession");
-        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate), "sessionRecovery");
+        var sessionRecovery = new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate);
+        cfg.addNode(sessionRecovery, "sessionRecovery");
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.FirstMinute(openLog, walkPlayback,
+                sessionRecovery, gate, effects), "firstMinute");
 
         // WITH a level: invocation tracing is compiled in, so every node that runs appears in the record
         // whether or not it made an auditLog call of its own. That is the regime in which absence from

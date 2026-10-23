@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Issue #82 — the recorder's settle rules, driven off a scripted playback state. No display: what is asserted here
@@ -81,6 +82,10 @@ class WalkReelRecorderTest {
             ticksOnStep = 0;
             lighting = false;
             return null;
+        }
+
+        @Override public void captured(long ticket, int at) {
+            step = at + 1; ticksOnStep = 0; lighting = false;
         }
 
         @Override public void end(String reason) {
@@ -152,6 +157,7 @@ class WalkReelRecorderTest {
             }
             @Override public boolean lightingPending() { return false; }
             @Override public String play(String walk, int step) { return null; }
+            @Override public void captured(long ticket, int step) { fail("an ended walk captures nothing"); }
             @Override public void end(String reason) { }
             @Override public BufferedImage compose() { return new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB); }
         }, walk(2));
@@ -167,6 +173,7 @@ class WalkReelRecorderTest {
             @Override public WalkPlaybackState playback() { return WalkPlaybackState.IDLE; }
             @Override public boolean lightingPending() { return false; }
             @Override public String play(String walk, int step) { return "no walk called 'tour'"; }
+            @Override public void captured(long ticket, int step) { fail("a refused walk captures nothing"); }
             @Override public void end(String reason) { }
             @Override public BufferedImage compose() { return null; }
         }, walk(1));

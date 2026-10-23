@@ -127,6 +127,7 @@ public class SessionRecovery implements EventLogSource {
     }
     private boolean stale() { auditLog.info("recovery", "stale completion ignored"); return false; }
     public long generation() { return generation; }
+    public String state() { return state; }
     public SessionResumeStore.Snapshot candidate() { return candidate; }
     public Plan plan() { return plan; }
     public List<SessionResumeStore.Check> checks() { return checks; }

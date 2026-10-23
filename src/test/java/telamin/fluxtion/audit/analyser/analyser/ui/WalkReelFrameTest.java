@@ -91,6 +91,24 @@ class WalkReelFrameTest {
     }
 
     @Test
+    void anAlreadyShowingWalkCanBeRecordedAsATwoFrameReel(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            saveTwoStepWalk(f);
+            var playing = f.ex.render("walk", Map.of("name", "tour", "play", true, "step", 1));
+            assertTrue(playing.ok(), playing.toMap().toString());
+            Map<String, Object> answer = reel(f, "tour", "showing-tour.html");
+            assertEquals(Boolean.TRUE, answer.get("ok"), "recording the already showing walk must finish: " + answer);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> wrote = (Map<String, Object>) answer.get("reel");
+            assertEquals(2, wrote.get("steps"), "takeover records both steps, not just its first photograph");
+            assertEquals(2, page(dir.resolve("showing-tour.html")).split("data:image/png;base64,", -1).length - 1);
+        }
+    }
+
+    @Test
     @DisplayName("#82: a reel recorded from an opened evidence bundle names it, its identity and its limits")
     void aReelFromABundleNamesItOnTheFinishPage(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

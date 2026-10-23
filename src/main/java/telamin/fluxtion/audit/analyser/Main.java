@@ -95,6 +95,7 @@ public class Main {
                 frame.openFile(Path.of(fileArgs[0]), telamin.fluxtion.audit.analyser.analyser.ui.OpenRequest.atStartup(false));
             }
             frame.offerSessionRecovery();
+            frame.observeFirstMinuteStartup(fileArgs.length > 0 && !fileArgs[0].isBlank());
 
             // keep the splash visible briefly, then dismiss; on a first run (no config file yet)
             // open Settings so the user can configure source roots / LLM before anything else

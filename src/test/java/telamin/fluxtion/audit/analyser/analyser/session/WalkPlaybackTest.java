@@ -47,6 +47,65 @@ class WalkPlaybackTest {
     }
 
     @Test
+    void aReelTakesOverTheShowingWalkAndAdvancesOnlyAfterCapture() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        var definition = walkOf("tour", 2);
+        d.post(new SessionEvents.WalkPlayRequested(0, definition, 0, "assistant"));
+        prepared(d, List.of(target(1, true)));
+        d.post(new SessionEvents.WalkPlayRequested(0, definition, 0, "reel"));
+        prepared(d, List.of(target(1, true)));
+        var captured = walk(d);
+        d.post(new SessionEvents.WalkReelFrameCaptured(captured.ticket(), captured.step()));
+        d.post(new SessionEvents.WalkAdvanceDue(captured.ticket(), captured.step()));
+        assertEquals(1, walk(d).step(), "recording the showing walk advances after its captured frame");
+        assertEquals("reel", walk(d).origin(), "the recorder owns pacing, not the earlier caller");
+        d.post(new SessionEvents.WalkEndRequested("recorded"));
+        assertEquals(WalkPlaybackState.Stage.RECORDS, walk(d).stage(), "takeover keeps the original stage to restore");
+    }
+
+    @Test
+    void ordinaryExplicitStepContinuationDoesNotReplaceTheShowingOrigin() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        var definition = walkOf("tour", 2);
+        d.post(new SessionEvents.WalkPlayRequested(0, definition, 0, "assistant"));
+        d.post(new SessionEvents.WalkPlayRequested(0, definition, 1, "person"));
+        assertEquals(1, walk(d).step());
+        assertEquals("assistant", walk(d).origin(), "ordinary explicit stepping still continues the same showing");
+    }
+
+    @Test
+    void firstMinuteWithholdsEveryCaptionWhenItsRecordBasisIsNotCurrent() {
+        var record = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Target("records:row:4",
+                "same input", new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Basis("record", "sha256:original", "heap"));
+        var topology = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Target("topology:node:d",
+                "d did not run", new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Basis("graph", "sha256:graph", ""));
+        var step = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Step("",
+                telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.View.NONE, List.of(record, topology));
+        var definition = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec("diamond", "", "person", "", "",
+                null, List.of(), List.of(step), java.util.Map.of());
+        for (String origin : List.of("FIRST_MINUTE", "test")) {
+            FakeSessionAdapter a = new FakeSessionAdapter();
+            SessionDriver d = opened(a);
+            d.post(new SessionEvents.WalkPlayRequested(0, definition, 0, origin));
+            prepared(d, List.of(new SessionEvents.WalkTargetState(1, record.target(), record.caption(), "HISTORICAL", false,
+                            "record 4 differs from when this walk was saved"),
+                    new SessionEvents.WalkTargetState(2, topology.target(), topology.caption(), "CURRENT", true, "")));
+            if ("FIRST_MINUTE".equals(origin)) {
+                assertEquals(List.of(), a.walkLights.getFirst().targets(),
+                        "no first-minute caption may survive a substituted record, including the graph-basis caption");
+                assertEquals("NOT_SHOWN", walk(d).phase());
+                assertEquals(-1, walk(d).accepted(), "a withheld step must not advance the accepted dialogue");
+                assertTrue(walk(d).reason().contains("record 4 differs"));
+            } else {
+                assertEquals(1, a.walkLights.getFirst().targets().size(), "ordinary walks keep their existing graph behavior");
+                assertEquals("PARTLY_SHOWN", walk(d).phase());
+            }
+        }
+    }
+
+    @Test
     @DisplayName("play asks for step 1's view, and the snapshot says it is preparing that step")
     void playAsksForTheFirstStep() {
         FakeSessionAdapter a = new FakeSessionAdapter();

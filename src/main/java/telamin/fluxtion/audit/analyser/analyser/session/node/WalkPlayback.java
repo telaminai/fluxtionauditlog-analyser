@@ -59,6 +59,17 @@ public class WalkPlayback implements EventLogSource {
     private boolean caveatStated;
     /** OA-4: the last step of this showing that was accepted and prepared, or -1. */
     private int accepted = -1;
+    private String origin = "";
+    private WalkPlaybackState.Stage stage = WalkPlaybackState.Stage.RECORDS;
+    private WalkPlaybackState.Stage priorStage = WalkPlaybackState.Stage.RECORDS;
+    private boolean firstContact;
+    private long stageGeneration = -1;
+    private boolean manualPace;
+    private boolean reelAdvanceRequested;
+
+    public static final String FIRST_MINUTE = "FIRST_MINUTE";
+    public static final double TOPOLOGY_SHARE = 0.62;
+    public static final int RECORD_STRIP_ROWS = 6;
 
     public WalkPlayback(OpenLog openLog, AssistantLoop assistantLoop, EffectQueue effects) {
         this.openLog = openLog;
@@ -101,6 +112,19 @@ public class WalkPlayback implements EventLogSource {
         // step, so a play of the walk ALREADY SHOWING, on the same log, continues that showing rather than starting one.
         boolean continuing = name.equals(walk) && logOpenAtStart == openLog.isOpen()
                 && generation == (openLog.isOpen() ? openLog.generation() : -1);
+        if (!continuing) {
+            priorStage = stage;
+            origin = e.origin() == null ? "" : e.origin();
+            manualPace = false;
+        }
+        // Recording can take over the walk already on screen. Keep its original stage to restore,
+        // but let captured-frame facts, rather than the earlier caller's pacing, advance the reel.
+        if ("reel".equals(e.origin())) origin = "reel";
+        if (e.walk().stage() == WalkPlaybackState.Stage.TOPOLOGY) stage = WalkPlaybackState.Stage.TOPOLOGY;
+        if (FIRST_MINUTE.equals(origin)) {
+            firstContact = true;
+            stageGeneration = openLog.generation();
+        }
         definition = e.walk();
         walk = name;
         count = steps;
@@ -121,6 +145,7 @@ public class WalkPlayback implements EventLogSource {
             auditLog.info("noOp", "WalkNavigated").info("reason", "no walk is showing");
             return false;
         }
+        manualPace = true;
         int to = step + e.delta();
         if (to < 0 || to >= count) {
             reason = to < 0 ? "this is the first step" : "this is the last step";
@@ -131,6 +156,48 @@ public class WalkPlayback implements EventLogSource {
         auditLog.info("walkStep", step + 1);
         prepare();
         return true;
+    }
+
+    @OnEventHandler
+    public boolean onWalkAdvanceDue(SessionEvents.WalkAdvanceDue e) {
+        boolean firstMinuteAdvance = FIRST_MINUTE.equals(origin) && !manualPace && "SHOWN".equals(phase);
+        boolean reelAdvance = "reel".equals(origin) && reelAdvanceRequested && !"PREPARING".equals(phase);
+        if (walk == null || e.ticket() != ticket || e.step() != step || !(firstMinuteAdvance || reelAdvance)) return false;
+        if (step + 1 == count) end("COMPLETED");
+        else { step++; prepare(); }
+        return true;
+    }
+
+    @OnEventHandler public boolean onWalkReelFrameCaptured(SessionEvents.WalkReelFrameCaptured e) {
+        if (walk == null || !"reel".equals(origin) || e.ticket() != ticket || e.step() != step
+                || "PREPARING".equals(phase) || reelAdvanceRequested) return false;
+        reelAdvanceRequested = true;
+        effects.request(new SessionEffects.ScheduleWalkAdvanceEffect(0, ticket, step, 0));
+        return true;
+    }
+
+    @OnEventHandler
+    public boolean onStageToggleRequested(SessionEvents.StageToggleRequested e) {
+        if (e.stage() == null) return false;
+        if (walk != null) end("the stage was changed");
+        firstContact = false;
+        stage = e.stage();
+        return true;
+    }
+
+    @OnEventHandler
+    public boolean onFirstMinuteDoorChosen(SessionEvents.FirstMinuteDoorChosen e) { return leaveFirstContact(); }
+
+    @OnEventHandler
+    public boolean onFirstMinuteCardClosed(SessionEvents.FirstMinuteCardClosed e) { return leaveFirstContact(); }
+
+    private boolean leaveFirstContact() {
+        if (!firstContact && !FIRST_MINUTE.equals(origin)) return false;
+        boolean moved = firstContact || walk != null || stage != WalkPlaybackState.Stage.RECORDS;
+        if (walk != null && FIRST_MINUTE.equals(origin)) end("the first-minute card was closed");
+        firstContact = false;
+        stage = WalkPlaybackState.Stage.RECORDS;
+        return moved;
     }
 
     @OnEventHandler
@@ -199,8 +266,29 @@ public class WalkPlayback implements EventLogSource {
             return false;
         }
         targets = e.targets();
+        // M79 E5: graph-basis captions can be structurally current beside a substituted record. For the
+        // shipped first minute the whole step is one claim: do not send ANY caption to the overlay in that case.
+        String recordRefusal = null;
+        if (FIRST_MINUTE.equals(origin)) {
+            var named = definition.steps().get(step).targets();
+            for (int i = 0; i < named.size(); i++) {
+                if (!"record".equals(named.get(i).basis().kind())) continue;
+                final int number = i + 1;
+                var observed = targets.stream().filter(t -> t.n() == number
+                        && t.target().equals(named.get(number - 1).target())).findFirst().orElse(null);
+                if (observed == null || !observed.available() || !"CURRENT".equals(observed.state())) {
+                    recordRefusal = observed == null ? "the record target was not resolved" : observed.reason();
+                    if (recordRefusal == null || recordRefusal.isBlank()) recordRefusal = "the record basis is not current";
+                    break;
+                }
+            }
+        }
+        if (recordRefusal != null) {
+            String refusal = recordRefusal;
+            targets = targets.stream().map(t -> new SessionEvents.WalkTargetState(t.n(), t.target(), "", t.state(), false, refusal)).toList();
+        }
         List<SessionEvents.WalkTargetState> available = targets.stream().filter(SessionEvents.WalkTargetState::available).toList();
-        reason = withIdentityCaveat(e.note());
+        reason = withIdentityCaveat(recordRefusal == null ? e.note() : recordRefusal);
         auditLog.info("walkPrepared", available.size()).info("of", targets.size());
         // review PR57 R1: ALWAYS say what is lit, even nothing — a re-resolution that makes every target unavailable must
         // take down the light the previous preparation put up, not leave it pointing at what can no longer be certified
@@ -221,6 +309,14 @@ public class WalkPlayback implements EventLogSource {
         }
         lastShown.put(walk, step);
         auditLog.info("walkShown", phase).info("lit", lit).info("of", targets.size());
+        if ("SHOWN".equals(phase) && FIRST_MINUTE.equals(origin) && !manualPace) {
+            var showing = definition.steps().get(step);
+            String words = showing.caption() + " " + showing.targets().stream()
+                    .map(t -> t.caption()).collect(java.util.stream.Collectors.joining(" "));
+            int countWords = words.isBlank() ? 0 : words.trim().split("\\s+").length;
+            int dwell = Math.max(4_000, Math.min(8_000, 250 * countWords));
+            effects.request(new SessionEffects.ScheduleWalkAdvanceEffect(0, ticket, step, dwell));
+        }
         return true;
     }
 
@@ -253,7 +349,15 @@ public class WalkPlayback implements EventLogSource {
     /** The log moved: a close or a new generation ends the walk; a changed identity re-resolves the showing step. */
     @OnTrigger
     public boolean onLogChanged() {
-        if (walk == null) return false;
+        boolean moved = false;
+        if (firstContact && (!openLog.isOpen()
+                || openLog.generation() != stageGeneration
+                    && !(FIRST_MINUTE.equals(openLog.launch()) && openLog.firstMinuteTicket() > 0))) {
+            firstContact = false;
+            stage = WalkPlaybackState.Stage.RECORDS;
+            moved = true;
+        }
+        if (walk == null) return moved;
         if (logOpenAtStart && !openLog.isOpen()) {
             end("the log was closed");
             return true;
@@ -328,6 +432,7 @@ public class WalkPlayback implements EventLogSource {
 
     private void prepare() {
         ticket++;
+        reelAdvanceRequested = false;
         phase = "PREPARING";
         reason = "";
         targets = List.of();
@@ -346,6 +451,7 @@ public class WalkPlayback implements EventLogSource {
         reason = "ended: " + why;
         targets = List.of();
         ticket++;
+        if (!FIRST_MINUTE.equals(origin)) stage = priorStage;
         effects.request(new SessionEffects.EndWalkEffect(0L, ticket, why));
     }
 
@@ -359,6 +465,6 @@ public class WalkPlayback implements EventLogSource {
 
     /** The published state — immutable, for the snapshot. */
     public WalkPlaybackState state() {
-        return new WalkPlaybackState(walk, step, count, phase, reason, ticket, targets, lastShown, definition, answer, accepted);
+        return new WalkPlaybackState(walk, step, count, phase, reason, ticket, targets, lastShown, definition, answer, accepted, stage, origin);
     }
 }

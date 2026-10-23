@@ -32,7 +32,13 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
  */
 public record OpenRequest(boolean fromActionSocket, String provenance, Launch launch,
                           telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin assistantOrigin,
-                          OutputOrigin outputOrigin) {
+                          OutputOrigin outputOrigin, long firstMinuteTicket) {
+
+    public OpenRequest(boolean fromActionSocket, String provenance, Launch launch,
+                       telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin assistantOrigin,
+                       OutputOrigin outputOrigin) {
+        this(fromActionSocket, provenance, launch, assistantOrigin, outputOrigin, 0);
+    }
 
     /** M81 D: actual-open causality, retained through the asynchronous reader; zero offer denotes hosted origin. */
     public record OutputOrigin(long watch, long projectGeneration, long offer, long generation, long ticket,
@@ -52,7 +58,9 @@ public record OpenRequest(boolean fromActionSocket, String provenance, Launch la
         /** The previous session's log, reopened because the app remembers it. Nobody asked. */
         RESTORED,
         /** A person or agent explicitly accepted a session offer in this session. */
-        EXPLICIT_RESTORE
+        EXPLICIT_RESTORE,
+        /** The pinned, shipped first-minute evidence; never an unattended load-path dialog. */
+        FIRST_MINUTE
     }
 
     /** A person opened it — chooser, drag-drop, recent menu, S3 dialog. Dialogs are for them. */
@@ -89,11 +97,12 @@ public record OpenRequest(boolean fromActionSocket, String provenance, Launch la
             case COMMAND_LINE -> "the command line that started this analyser";
             case NONE -> "you";
             case EXPLICIT_RESTORE -> "explicit session restore";
+            case FIRST_MINUTE -> "the bundled first minute";
         };
     }
 
     /** Restoration reports failures in its shared outcome; it never waits on a load dialog. */
-    public boolean suppressDialogs() { return fromActionSocket || launch == Launch.EXPLICIT_RESTORE; }
+    public boolean suppressDialogs() { return fromActionSocket || launch == Launch.EXPLICIT_RESTORE || launch == Launch.FIRST_MINUTE; }
 
     public static OpenRequest explicitRestore(String provenance) {
         return new OpenRequest(false, provenance, Launch.EXPLICIT_RESTORE);

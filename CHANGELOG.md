@@ -8,6 +8,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- On a genuinely fresh launch, the shipped Spring diamond plays a four-step, evidence-bound introduction with its topology and XML side by side. Arrow keys take over the pace; the end card leads to the guided tour, a log or a template. An untouched first-minute demo is not offered as your saved session; anything you add remains recoverable.
 - Open, person-owned projects now offer settled GraphML and audit-log outputs with Open / Not now banners. Nothing auto-switches your log; accepting a log uses the existing graph-pairing path, even with assistant file exchange off. The starter's first-build cue uses this same ongoing watcher.
 - M80: Design discovers Spring XML and Java builder definitions under authorised source roots when a project opens or roots change, without relying on generated headers. Context adds kind/files/nodes/source while keeping released keys; a single candidate opens as a read-only glance, and absent or unavailable discovery is stated. Java anchors and the multi-file chooser follow separately.
 - M80 discovery keeps readable candidates when individual files fail and names up to ten failed files, with an
