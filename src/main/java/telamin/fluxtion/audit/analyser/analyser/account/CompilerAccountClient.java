@@ -92,6 +92,8 @@ public final class CompilerAccountClient {
 
     /** RFC 8628 §3.5: a slow_down adds at least five seconds to every later interval. */
     static final long SLOW_DOWN_SECONDS = 5;
+    /** Rate-limited or unavailable answers tolerated in a row while polling (each lengthens the interval). */
+    static final int MAX_TRANSIENT_POLLS = 5;
     static final long DEFAULT_INTERVAL_SECONDS = 5;
     private static final int MAX_BODY = 64 * 1024;
     private static final Duration TIMEOUT = Duration.ofSeconds(20);
@@ -143,6 +145,7 @@ public final class CompilerAccountClient {
         long deadline = nanoClock.getAsLong() + Duration.ofSeconds(start.expiresInSeconds).toNanos();
         long interval = start.intervalSeconds;
         String tokenBody = Json.write(Map.of("device_code", start.deviceCode));
+        int transientInARow = 0;
         while (true) {
             if (cancelled.getAsBoolean()) return new Cancelled();
             try {
@@ -173,6 +176,16 @@ public final class CompilerAccountClient {
                     return new Failed(e.getMessage());
                 }
             }
+            // the service limits /auth per client (429) and answers 5xx while its store or provider recovers: wait
+            // longer and poll again, a bounded number of times in a row, rather than ending a sign-in the person
+            // has already approved
+            if (r.status == 429 || r.status == 500 || r.status == 502 || r.status == 503 || r.status == 504) {
+                if (++transientInARow > MAX_TRANSIENT_POLLS)
+                    return new Failed("The service answered the sign-in poll with HTTP " + r.status + " repeatedly");
+                interval += SLOW_DOWN_SECONDS;
+                continue;
+            }
+            transientInARow = 0;
             String error;
             try {
                 error = r.status == 400 ? string(object(r.body), "error") : null;
@@ -208,14 +221,19 @@ public final class CompilerAccountClient {
     }
 
     /**
-     * Revoke this device's credential at the service. True when the service revoked it now; false when it already did
-     * not accept it (401/404) — either way the caller then disconnects. Any other answer leaves it connected.
+     * Revoke this device's credential at the service. True when the service revoked it now; false when the service no
+     * longer has it (404) — either way the caller then disconnects. Any other answer leaves it connected, 401 included:
+     * a 401 cannot tell a credential already revoked from one the request never delivered (an address in front of the
+     * service that drops the Authorization header), and deleting a live credential here would leave it working there.
      */
     public boolean revoke(CompilerCredential credential) throws AccountException {
         Response r = send(HttpRequest.newBuilder(URI.create(credential.service() + "/v1/credentials/" + credential.credentialId()))
                 .header("Authorization", "Bearer " + credential.bearer()).DELETE());
         if (r.status == 204 || r.status == 200) return true;
-        if (r.status == 401 || r.status == 404) return false;
+        if (r.status == 404) return false;
+        if (r.status == 401)
+            throw new AccountException("The service did not accept this device's credential (HTTP 401). If it was"
+                    + " already revoked, use Disconnect; otherwise check that the address is the compiler service itself.");
         throw new AccountException("The service did not revoke this device (HTTP " + r.status + ")");
     }
 

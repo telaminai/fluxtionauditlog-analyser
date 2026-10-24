@@ -80,7 +80,9 @@ remembers which service issued it, so changing the address later never sends it 
 The dialog then shows the account, its plan and available credits, and the next reset when the plan has one;
 **Refresh** reads them again. The analyser only reads: it never grants credits or changes the account.
 **Disconnect** deletes the credential from this machine, and the service keeps accepting it until it is revoked.
-**Revoke this device** asks the service to stop accepting it, then deletes it here.
+**Revoke this device** asks the service to stop accepting it, then deletes it here. If the service does not accept
+the credential at all (HTTP 401, for example because it was already revoked), the device stays connected: use
+**Disconnect**.
 
 ## Investigate a compiler charge
 

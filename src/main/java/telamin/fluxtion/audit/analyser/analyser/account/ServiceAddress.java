@@ -11,7 +11,12 @@ import java.util.Set;
  */
 public final class ServiceAddress {
 
-    private static final Set<String> LOOPBACK = Set.of("localhost", "127.0.0.1", "[::1]", "::1");
+    private static final Set<String> LOOPBACK_NAMES = Set.of("localhost", "[::1]", "::1");
+
+    /** This machine: {@code localhost}, {@code [::1]} or any 127/8 address (the rule the builder and Maven use too). */
+    static boolean loopback(String host) {
+        return LOOPBACK_NAMES.contains(host) || host.matches("127(\\.\\d{1,3}){3}");
+    }
 
     private ServiceAddress() {
     }
@@ -40,7 +45,7 @@ public final class ServiceAddress {
         if (uri.getRawUserInfo() != null || uri.getRawQuery() != null || uri.getRawFragment() != null)
             return "The service address must be a plain base address, without a user, query or fragment";
         if (scheme.equals("https")) return null;
-        if (scheme.equals("http") && LOOPBACK.contains(host)) return null;
+        if (scheme.equals("http") && loopback(host)) return null;
         return "The service address must start with https:// (plain http is accepted only for this machine)";
     }
 
@@ -57,7 +62,7 @@ public final class ServiceAddress {
             String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
             String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
             if (host.isEmpty() || uri.getRawUserInfo() != null) return false;
-            return scheme.equals("https") || (scheme.equals("http") && LOOPBACK.contains(host));
+            return scheme.equals("https") || (scheme.equals("http") && loopback(host));
         } catch (IllegalArgumentException e) {
             return false;
         }

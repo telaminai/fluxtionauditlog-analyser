@@ -96,6 +96,33 @@ class CompilerAccountClientTest {
     }
 
     @Test
+    void aRateLimitedOrUnavailablePollWaitsLongerAndPollsAgain_ratherThanEndingTheSignIn() throws Exception {
+        service.token("pending", "rate_limited", "unavailable", "approved");
+        Outcome o = client.await(start(), () -> false);
+        assertInstanceOf(CompilerAccountClient.Approved.class, o);
+        assertEquals(4, service.count("/auth/device/token"));
+        assertTrue(sleeps.get(2) > sleeps.get(1) && sleeps.get(3) > sleeps.get(2), "each transient answer lengthens the wait: " + sleeps);
+    }
+
+    @Test
+    void transientAnswersAreBounded() throws Exception {
+        service.expiresIn = 100_000;
+        service.token("rate_limited");
+        Outcome o = client.await(start(), () -> false);
+        assertInstanceOf(CompilerAccountClient.Failed.class, o);
+        assertEquals(CompilerAccountClient.MAX_TRANSIENT_POLLS + 1, service.count("/auth/device/token"));
+    }
+
+    @Test
+    void anyLoopbackAddressMayBePlainHttp_andNoOtherHost() {
+        assertNull(ServiceAddress.refusal("http://127.0.0.2:8080"));
+        assertNull(ServiceAddress.refusal("http://localhost:8080"));
+        assertNull(ServiceAddress.refusal("http://[::1]:8080"));
+        assertNotNull(ServiceAddress.refusal("http://127.0.0.1.example.com"));
+        assertNotNull(ServiceAddress.refusal("http://10.0.0.5:8080"));
+    }
+
+    @Test
     void cancellingStopsPolling() throws Exception {
         service.token("pending");
         AtomicBoolean cancelled = new AtomicBoolean();
@@ -147,7 +174,7 @@ class CompilerAccountClientTest {
     }
 
     @Test
-    void revokeDeletesThisDevicesCredential_andAlreadyInvalidStillCountsAsDone() throws Exception {
+    void revokeDeletesThisDevicesCredential_andOnlyA404CountsAsAlreadyDone() throws Exception {
         service.token("approved");
         CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
         assertTrue(client.revoke(c));
@@ -156,8 +183,12 @@ class CompilerAccountClientTest {
         assertEquals("/v1/credentials/cred01", r.path());
         assertEquals("Bearer " + BEARER, r.authorization());
 
+        service.revokeStatus = 404;
+        assertFalse(client.revoke(c), "the service no longer has it: the caller still disconnects");
         service.revokeStatus = 401;
-        assertFalse(client.revoke(c), "already not accepted: the caller still disconnects");
+        AccountException e = assertThrows(AccountException.class, () -> client.revoke(c),
+                "a 401 may be a credential the request never delivered: it stays connected");
+        assertTrue(e.getMessage().contains("Disconnect"), e.getMessage());
         service.revokeStatus = 500;
         assertThrows(AccountException.class, () -> client.revoke(c), "any other answer leaves it connected");
     }

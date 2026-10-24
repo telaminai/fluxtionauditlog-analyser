@@ -51,9 +51,14 @@ public final class StandInCompilerService implements AutoCloseable {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
-    /** Queue token-endpoint answers: "pending", "slow_down", "access_denied", "expired_token" or "approved". */
+    /** Queue token-endpoint answers: "pending", "slow_down", "access_denied", "expired_token", "approved", "rate_limited" (429) or "unavailable" (503). */
     public synchronized StandInCompilerService token(String... answers) {
         for (String a : answers) {
+            if (a.equals("rate_limited") || a.equals("unavailable")) {
+                tokenAnswers.add(a.equals("rate_limited") ? new String[]{"429", "{\"error\":\"RATE_LIMITED\"}"}
+                        : new String[]{"503", "{\"error\":\"ENTITLEMENT_UNAVAILABLE\"}"});
+                continue;
+            }
             tokenAnswers.add(a.equals("approved")
                     ? new String[]{"200", "{\"access_token\":\"" + BEARER + "\",\"token_type\":\"Bearer\","
                             + "\"credential_id\":\"cred01\",\"account_id\":\"acct-demo\"}"}

@@ -9,6 +9,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Added
 
 - Docs: *Getting started ▸ Investigate a compiler charge* explains how to open a compiler service's exported investigation of an account, find one request, read why it was charged, released or refused, and chart the balance.
+- **AI ▸ Compiler account…**: a rate-limited or briefly unavailable service no longer ends a device sign-in (the poll waits
+  longer and retries a bounded number of times); **Revoke this device** keeps the device connected when the service
+  answers 401, since that cannot prove the credential was revoked; any 127.x.x.x address may be plain http, like localhost.
 - **AI ▸ Compiler account…** connects the analyser to a compiler account by device sign-in: it opens your browser at the
   service's sign-in page, shows the code to enter, honours the service's polling interval, slow-down and expiry, and can
   be cancelled. The credential is kept in the macOS Keychain or the Linux Secret Service keyring (an owner-only file
