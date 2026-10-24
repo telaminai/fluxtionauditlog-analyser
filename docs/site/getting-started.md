@@ -89,14 +89,17 @@ allowed, refused, charged or released. Its operator sends you two files, `invest
 `investigation-<account>.graphml`. Account and attempt ids may be replaced by aliases such as `account-1`.
 
 Open the `.yaml` with **Audit log ▸ Open log…** and the `.graphml` with **Sources ▸ Open GraphML…**. Each record is
-one transition the service committed, at the time it was decided, in the order it was committed. Nothing in the file is
-the service's opinion after the fact.
+one transition the service committed, at the time it was decided, in the order it was committed. The values on the
+nodes are recomputed from those rows alone, by replaying them through the same graph; nothing is added after the fact.
 
 - **Find one request:** type its request id in the search box above the records table. Its reservation, then its
-  settlement or release, are the rows that remain.
+  settlement or release (and, once its result is past the retention window, its expiry) are the rows that remain. A
+  refused request has a single row.
 - **Read why:** the record detail shows the nodes that applied the transition. **requests** carries the request's
   `status` (`RESERVED`, `SETTLED`, `RELEASED`, `EXPIRED`), the `reason` it was decided under (`within_allowance`,
-  `generation_succeeded`, `not_charged`) and the `result` reference or `failure` code. **ledger** carries the
+  `generation_succeeded`, `not_charged`, `retention_elapsed`) and the `result` reference or `failure` code. For a
+  refusal it carries only the request id and the reason (`exhausted`, `account_inactive`, `no_account`,
+  `request_changed_under_same_id`). **ledger** carries the
   `bucket` it drew from and that bucket's `available`, `bucketReserved` and `bucketConsumed` after the transition. A
   refusal shows as `refused` on **ledger**, with the code the caller was given, such as
   `CREDIT_ALLOWANCE_EXHAUSTED`.

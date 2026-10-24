@@ -13,6 +13,10 @@ import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -144,5 +148,39 @@ class EntitlementInvestigationConformanceTest {
         assertFalse(yaml.contains("acct_"), "pseudonymous: internal account ids never leave the service");
         assertTrue(yaml.contains("account-1"));
         assertFalse(graphml.contains("fluxtion.entitlement"), "the producer's private package is a placeholder here");
+    }
+
+    /**
+     * Codes the producer's decider emits that this fixture does not exercise. Named here so the guide may name them;
+     * each was read from the compiler's entitlement graph (its decider and request registry), not inferred. Adding a
+     * code to the guide that is neither in the fixture nor here fails the test below.
+     */
+    private static final Set<String> PRODUCER_CODES_NOT_IN_FIXTURE = Set.of(
+            "EXPIRED", "retention_elapsed", "account_inactive", "no_account", "request_changed_under_same_id");
+
+    /** Every key, status and reason the guide's *Investigate a compiler charge* names is one the producer writes. */
+    @Test
+    void theGuideNamesOnlyKeysAndCodesTheProducerWrites() throws IOException {
+        String guide = Files.readString(Path.of("docs/site/getting-started.md"));
+        int start = guide.indexOf("## Investigate a compiler charge");
+        assertTrue(start >= 0, "the guide section exists");
+        int end = guide.indexOf("\n## ", start + 3);
+        String section = guide.substring(start, end < 0 ? guide.length() : end);
+        String yaml = resource("entitlement-investigation.yaml");
+        Matcher m = Pattern.compile("`([^`]+)`").matcher(section);
+        Set<String> unknown = new LinkedHashSet<>();
+        int checked = 0;
+        while (m.find()) {
+            String token = m.group(1);
+            if (token.startsWith("investigation-") || token.startsWith(".")) continue; // file names, not record content
+            for (String part : token.split(":\\s*|\\.")) {
+                if (part.isBlank()) continue;
+                checked++;
+                if (!Pattern.compile("\\b" + Pattern.quote(part) + "\\b").matcher(yaml).find()
+                        && !PRODUCER_CODES_NOT_IN_FIXTURE.contains(part)) unknown.add(part);
+            }
+        }
+        assertTrue(checked > 10, "the section's keys were found: " + checked);
+        assertTrue(unknown.isEmpty(), "the guide names what the producer never writes: " + unknown);
     }
 }
