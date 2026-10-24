@@ -59,6 +59,58 @@ only whether a key is present; it does not check it or show it again. A `-Dfluxt
 overrides the file, and the builder does not read `FLUXTION_API_KEY`. Existing generated processors and the bundled
 demo run without this key.
 
+## Connect a compiler account
+
+If your compiler service uses accounts, **AI ▸ Compiler account…** connects this analyser to yours. Enter the service's
+address (for example `https://compiler.example.com`; plain `http` is accepted only for this machine) and press
+**Connect compiler account**. The analyser asks the service for a sign-in code, opens your browser at the service's
+sign-in page and shows the code to enter there. While you approve it, it checks back only as often as the service
+asks, slows down when told to, and stops when the code expires; **Cancel sign-in**, or closing the dialog, stops it
+with nothing stored. It never shows or logs the device code, or the credential it receives.
+
+Once you approve, the credential is kept in your operating system's credential store: the macOS Keychain, or the
+Secret Service keyring on Linux (through `secret-tool`). Where neither is available (Windows, or Linux without
+`secret-tool`), it is kept in `~/.fluxtion-analyser/compiler-account.credential`, a file only your account can read.
+That protects it from other users of the machine, not from programs you run yourself. The same is true of the
+Keychain entry: it is written by the system's `security` tool, so other programs running as you can read it through
+that tool without a prompt. The credential never reaches a
+command line, a project, a settings export, a report, a walk, an evidence bundle or an assistant's `context`. It also
+remembers which service issued it, so changing the address later never sends it anywhere else.
+
+The dialog then shows the account, its plan and available credits, and the next reset when the plan has one;
+**Refresh** reads them again. The analyser only reads: it never grants credits or changes the account.
+**Disconnect** deletes the credential from this machine, and the service keeps accepting it until it is revoked.
+**Revoke this device** asks the service to stop accepting it, then deletes it here. If the service does not accept
+the credential at all (HTTP 401, for example because it was already revoked), the device stays connected: use
+**Disconnect**.
+
+## Investigate a compiler charge
+
+A compiler service that uses accounts can export an **investigation** of one account: why each generation was
+allowed, refused, charged or released. Its operator sends you two files, `investigation-<account>.yaml` and
+`investigation-<account>.graphml`. Account and attempt ids may be replaced by aliases such as `account-1`.
+
+Open the `.yaml` with **Audit log ▸ Open log…** and the `.graphml` with **Sources ▸ Open GraphML…**. Each record is
+one transition the service committed, at the time it was decided, in the order it was committed. The values on the
+nodes are recomputed from those rows alone, by replaying them through the same graph; nothing is added after the fact.
+
+- **Find one request:** type its request id in the search box above the records table. Its reservation, then its
+  settlement or release (and, once its result is past the retention window, its expiry) are the rows that remain. A
+  refused request has a single row.
+- **Read why:** the record detail shows the nodes that applied the transition. **requests** carries the request's
+  `status` (`RESERVED`, `SETTLED`, `RELEASED`, `EXPIRED`), the `reason` it was decided under (`within_allowance`,
+  `generation_succeeded`, `not_charged`, `retention_elapsed`) and the `result` reference or `failure` code. For a
+  refusal it carries only the request id and the reason (`exhausted`, `account_inactive`, `no_account`,
+  `request_changed_under_same_id`). **ledger** carries the
+  `bucket` it drew from and that bucket's `available`, `bucketReserved` and `bucketConsumed` after the transition. A
+  refusal shows as `refused` on **ledger**, with the code the caller was given, such as
+  `CREDIT_ALLOWANCE_EXHAUSTED`.
+- **See the balance over time:** in the Graph tab, **Add key** `ledger.available`.
+- **See which nodes applied a row:** the Topology tab, stepping through the records.
+
+A failed generation always appears as a reservation followed by a release with `reason: not_charged`. A charge is
+always a reservation followed by a settlement against the same bucket, even when a billing period ended in between.
+
 ## Watch a log as it grows (Follow)
 
 Turn on **Follow** (the toolbar toggle, or **Audit log ▸ Follow (tail)**) to watch a local text log that another

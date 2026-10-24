@@ -80,6 +80,7 @@ public final class ConfigStore {
         if (orientation != null && !orientation.isBlank()) c.topologyOrientation = orientation;
         c.awsProfile = p.getProperty("awsProfile", c.awsProfile);
         c.awsRegion = p.getProperty("awsRegion", c.awsRegion);
+        c.compilerServiceUrl = p.getProperty("compilerServiceUrl", c.compilerServiceUrl);
         c.theme = p.getProperty("theme", c.theme);
         readList(p, "recentFile", c.recentFiles);
         readList(p, "recentGraphml", c.recentGraphml);
@@ -207,6 +208,7 @@ public final class ConfigStore {
         put(p, "topologySyncSource", Boolean.toString(c.topologySyncSource));
         put(p, "awsProfile", c.awsProfile);
         put(p, "awsRegion", c.awsRegion);
+        put(p, "compilerServiceUrl", c.compilerServiceUrl);
         put(p, "theme", c.theme);
         writeList(p, "recentFile", c.recentFiles);
         writeList(p, "recentGraphml", c.recentGraphml);

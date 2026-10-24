@@ -41,6 +41,12 @@ public final class AppConfig {
 
     public String awsProfile = "";        // for s3:// loads via the aws CLI
     public String awsRegion = "";
+    /**
+     * CA-1: the compiler service's public base address for *Compiler account…* (empty until the person sets it). Machine
+     * tier only, never a profile or share family. It is an address, not a credential: the credential lives in the OS
+     * store ({@code account.CredentialStores}) and carries its own service address, so changing this never redirects it.
+     */
+    public String compilerServiceUrl = "";
     public String theme = "Light";        // FlatLaf theme: Light | Dark | IntelliJ | Darcula
     public final List<String> recentFiles = new ArrayList<>();
 
