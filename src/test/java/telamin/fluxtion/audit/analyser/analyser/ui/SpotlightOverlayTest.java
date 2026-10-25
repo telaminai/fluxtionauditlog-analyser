@@ -25,6 +25,9 @@ class SpotlightOverlayTest {
                         && String.valueOf(c.getAccessibleContext().getAccessibleDescription()).startsWith("bundled commentary")),
                 "the actual callout target is labelled bundled");
         o.setStrip(null);
+        assertTrue(java.util.Arrays.stream(o.getComponents()).anyMatch(c -> c.getAccessibleContext() != null
+                        && String.valueOf(c.getAccessibleContext().getAccessibleDescription()).startsWith("assistant commentary")),
+                "ending a shipped strip also resets existing callout accessibility labels");
         o.light("status", new Rectangle(30, 30, 80, 30), "DEMO live callout");
         assertTrue(java.util.Arrays.stream(o.getComponents()).anyMatch(c -> c.getAccessibleContext() != null
                         && String.valueOf(c.getAccessibleContext().getAccessibleDescription()).startsWith("assistant commentary")),

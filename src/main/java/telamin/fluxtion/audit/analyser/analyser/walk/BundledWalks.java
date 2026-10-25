@@ -35,8 +35,6 @@ public final class BundledWalks {
             throw new IOException("the shipped walk does not match its manifest");
         Parts parts = read(new String(bytes, StandardCharsets.UTF_8), name, stage);
         if (parts == null) throw new IOException("the shipped walk is absent from its fragment");
-        WalkSpec w = parts.walk();
-        return new Parts(new WalkSpec(w.name(), w.title(), "bundled", w.createdAt(), w.updatedAt(),
-                w.fingerprint(), w.runBasis(), w.steps(), w.extras(), w.conversation(), w.stage()), parts.chart());
+        return parts;
     }
 }

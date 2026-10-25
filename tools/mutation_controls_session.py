@@ -85,6 +85,23 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
                 : BundleProvenance.NONE;"""
 
 CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
+    # Imported declarations cannot grant the shipped qualifier; reset live accessibility too.
+    ('m79-review196-callout-accessibility-resets', UI + 'SpotlightOverlay.java',
+     'if (next == null) setBundledCommentary(false);',
+     'if (next == null) calloutAuthor = "assistant";',
+     'SpotlightOverlayTest#shippedCalloutsRenderBundledThenReturnToTheLiveLabel'),
+    ('m79-review196-imported-author-stays-declared', J + 'walk/WalkSpec.java',
+     'case AUTHOR_PERSON -> "by a person";',
+     'case AUTHOR_PERSON -> "by a person";\n            case "bundled" -> "bundled commentary";',
+     'FirstMinuteTest#anImportedAuthorWordCannotClaimBundledCommentary'),
+    ('m79-review196-bundled-snapshot-is-not-author-text', SESSION + 'WalkPlaybackState.java',
+     'return definition != null && telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.walk().equals(definition);',
+     'return definition != null && "bundled".equals(definition.author());',
+     'WalkPlaybackFrameTest#anImportedBundledAuthorCannotLabelTheStripOrCalloutsAsShipped'),
+    ('m79-review196-bundled-callout-renders-qualification', UI + 'MainFrame.java',
+     'spotlight.setBundledCommentary(state.bundledCommentary());',
+     'spotlight.setBundledCommentary(walk != null && "bundled".equals(walk.author()));',
+     'WalkPlaybackFrameTest#anImportedBundledAuthorCannotLabelTheStripOrCalloutsAsShipped'),
     # PR #196: delta review plus the posted review; independent named wrong-result witnesses.
     ('m79-review196-callout-is-bundled', UI + 'SpotlightOverlay.java',
      'calloutAuthor = next;',
@@ -134,9 +151,9 @@ CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
      'new CompletableFuture<Boolean>().completeOnTimeout(true, 2, TimeUnit.SECONDS)',
      'new CompletableFuture<Boolean>()',
      'SessionRecoveryControllerTest#missingAdmissionTimesOutPreservingPersonalRecoveryAndFinishingShutdown'),
-    ('m79-review196-shipped-author-is-bundled', J + 'walk/BundledWalks.java',
-     'w.name(), w.title(), "bundled", w.createdAt()',
-     'w.name(), w.title(), w.author(), w.createdAt()',
+    ('m79-review196-shipped-author-is-bundled', SESSION + 'WalkPlaybackState.java',
+     'return bundledCommentary() ? "bundled commentary" : definition == null ? "" : definition.authorLabel();',
+     'return definition == null ? "" : definition.authorLabel();',
      'FirstMinuteTest#shippedCommentaryIsLabelledBundledRatherThanPersonOrLiveAssistant'),
     # M79-1a-i: first contact is the session's decision, with fixed evidence bases.
     ('m79-review196-design-during-recovery', NODE + 'FirstMinute.java',

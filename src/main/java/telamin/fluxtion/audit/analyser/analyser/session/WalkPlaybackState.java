@@ -65,4 +65,13 @@ public record WalkPlaybackState(String walk, int step, int count, String phase, 
     public boolean showing() {
         return walk != null;
     }
+
+    /** Qualification of this frozen definition, never of an imported author declaration. */
+    public boolean bundledCommentary() {
+        return definition != null && telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.walk().equals(definition);
+    }
+
+    public String authorLabel() {
+        return bundledCommentary() ? "bundled commentary" : definition == null ? "" : definition.authorLabel();
+    }
 }

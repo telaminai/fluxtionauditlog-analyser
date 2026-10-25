@@ -3361,7 +3361,7 @@ public final class MainFrame extends JFrame {
             return;
         }
         var walk = state.definition();
-        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " · " + walk.authorLabel())
+        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " · " + state.authorLabel())
                 + (walk == null || walk.conversation() == null ? "" : " · " + (walk.conversation().supported()
                 ? walk.conversation().label() : "dialogue unavailable"));   // OA-4: the strip names the journey's mode
         String phase = switch (state.phase()) {
@@ -3382,7 +3382,7 @@ public final class MainFrame extends JFrame {
         String stepLabel = telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback.FIRST_MINUTE.equals(state.origin())
                 ? telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.step(state.step() + 1, state.count())
                 : "step " + (state.step() + 1) + " of " + state.count();
-        spotlight.setBundledCommentary(walk != null && "bundled".equals(walk.author()));
+        spotlight.setBundledCommentary(state.bundledCommentary());
         spotlight.setStrip(new SpotlightOverlay.Strip(title, stepLabel, phase,
                 reasons, state.step() > 0, state.step() < state.count() - 1, action));
     }

@@ -10,8 +10,23 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class FirstMinuteTest {
+    @Test void anImportedAuthorWordCannotClaimBundledCommentary() {
+        var imported = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare("").preview("""
+                share.version=1
+                walk.count=1
+                walk.0.name=DEMO imported
+                walk.0.author=bundled
+                walk.0.s.count=1
+                walk.0.s.0.t.count=1
+                walk.0.s.0.t.0.target=status
+                walk.0.s.0.t.0.caption=DEMO imported commentary
+                """, new telamin.fluxtion.audit.analyser.analyser.config.AppConfig()).walks().getFirst();
+        assertEquals("by bundled (declared)", imported.authorLabel(),
+                "an imported author is a declaration, never evidence of jar origin");
+    }
     @Test void shippedCommentaryIsLabelledBundledRatherThanPersonOrLiveAssistant() {
-        assertEquals("bundled commentary", DiamondDefinition.walk().authorLabel(), "the shipped author is disclosed as bundled");
+        assertEquals("bundled commentary", playing().driver.snapshot().walkPlayback().authorLabel(),
+                "the shipped author is disclosed as bundled");
     }
     @Test void aReelCannotWeakenTheShippedWalksWholeRecordClaim() {
         Run r = playing();

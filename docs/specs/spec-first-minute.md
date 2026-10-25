@@ -156,7 +156,8 @@ The shipped log, graph, processor selection and source roots are session-scoped;
 input fields, recents or the configured processor list. The played key remains machine-tier.
 A missing capture-admission reply times out after two seconds and preserves recovery rather than
 hanging shutdown. Reel takeover changes pacing, never the verified shipped definition's E5 guard.
-Shipped commentary is labelled bundled. Deferred review follow-ups are [#203](https://github.com/telaminai/fluxtionauditlog-analyser/issues/203)
+Shipped commentary is labelled bundled only when the frozen definition matches the verified catalogue;
+imported author text remains a declaration. Deferred review follow-ups are [#203](https://github.com/telaminai/fluxtionauditlog-analyser/issues/203)
 (structural coverage), [#204](https://github.com/telaminai/fluxtionauditlog-analyser/issues/204)
 (skipped-step wording) and [#205](https://github.com/telaminai/fluxtionauditlog-analyser/issues/205)
 (independent evidence pins).

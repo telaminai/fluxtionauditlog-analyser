@@ -195,7 +195,7 @@ public final class SpotlightOverlay extends JComponent {
     public void setStrip(Strip next) {
         boolean was = strip != null;
         strip = next;
-        if (next == null) calloutAuthor = "assistant";
+        if (next == null) setBundledCommentary(false);
         if (next != null && !was) {
             focusBeforeStrip = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
             setFocusable(true);
