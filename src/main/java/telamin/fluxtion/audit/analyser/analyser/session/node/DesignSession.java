@@ -23,6 +23,7 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     private ProducerResult result;
     private long generation;
     private boolean acceptedRead;
+    private boolean acceptedResult;
     public DesignSession(OperationGate gate, EffectQueue effects) { this.gate = gate; this.effects = effects; }
     @Override public void setLogger(EventLogger logger) { auditLog = logger; }
 
@@ -54,7 +55,9 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
         return true;
     }
     @OnEventHandler public boolean result(DesignEvents.ResultReadCompleted e) {
+        acceptedResult = false;
         if (e.generation() != generation) return false;
+        acceptedResult = true;
         result = e.result(); // refusal clears the previous result
         resultError = e.error() == null ? "" : e.error();
         auditLog.info("producerResult", result == null ? "cleared" : result.stage());
@@ -96,6 +99,8 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     public long generation() { return generation; }
     /** Verdict for the current ReadCompleted dispatch; dependent nodes never repeat the epoch decision. */
     public boolean acceptedRead() { return acceptedRead; }
+    /** Verdict for this result dispatch, including refusals that clear the previous result. */
+    public boolean acceptedResult() { return acceptedResult; }
     public String discoveryNote() {
         String note = discovery.source().startsWith("unavailable")
                 ? "Definition discovery " + discovery.source() + ". No partial list is shown."

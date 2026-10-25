@@ -146,6 +146,21 @@ for recovery. Anything the person added makes it an ordinary session (A1.9). **F
 launch that defers leaves the key unset. Once any project is recent, the first minute never qualifies again. The
 diamond stays one act away: *Learn ▸ The diamond*, once M79-1b provides that returning entry.
 
+**Review clarification, 2026-10-25 (PR #196):** source/declaration navigation and diagnostics reads are
+read-only and do not dismiss first contact; an explicit design open does. Accepted producer results,
+replacement graphs and accepted designs remain personal content after Close or a cancelled Investigate.
+A failed first-minute generation retains only its causal omission receipt, never bundled standing:
+without personal additions it is omitted from recovery, even when verification failed. A subsequent
+ordinary open cannot inherit that omission. Graph/design choices leave the failure landing.
+The shipped log, graph, processor selection and source roots are session-scoped; none enters machine
+input fields, recents or the configured processor list. The played key remains machine-tier.
+A missing capture-admission reply times out after two seconds and preserves recovery rather than
+hanging shutdown. Reel takeover changes pacing, never the verified shipped definition's E5 guard.
+Shipped commentary is labelled bundled. Deferred review follow-ups are [#203](https://github.com/telaminai/fluxtionauditlog-analyser/issues/203)
+(structural coverage), [#204](https://github.com/telaminai/fluxtionauditlog-analyser/issues/204)
+(skipped-step wording) and [#205](https://github.com/telaminai/fluxtionauditlog-analyser/issues/205)
+(independent evidence pins).
+
 **Owner decision, 2026-10-23 (OD-79.29): M79-1a-i is startup-only.** It plays only on a genuinely
 fresh, no-project startup under the admission rules above. It adds no *Help ▸ The diamond* action
 and no other manual re-entry. M79-1b owns the returning *Learn ▸ The diamond* entry and must design

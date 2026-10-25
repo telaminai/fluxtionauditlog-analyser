@@ -24,6 +24,26 @@ import static org.junit.jupiter.api.Assertions.*;
 class SessionRecoveryControllerTest {
     @TempDir Path dir;
 
+    @Test void missingAdmissionTimesOutPreservingPersonalRecoveryAndFinishingShutdown() throws Exception {
+        Path log = Files.writeString(dir.resolve("DEMO.yaml"), "DEMO");
+        var files = new SessionResumeStore(dir.resolve("sessions"));
+        var finished = new java.util.concurrent.CountDownLatch(1);
+        var controller = new SessionRecoveryController(files, new SessionRecoveryController.Host() {
+            public SessionDriver driver() { throw new AssertionError("no restore"); }
+            public SessionRecoveryController.Capture capture() {
+                return new SessionRecoveryController.Capture(null, null,
+                        List.of(new SessionResumeStore.Input("log", log.toString())), Map.of("note", "DEMO personal finding"));
+            }
+            public void admit(SessionRecoveryController.Capture capture, Consumer<Boolean> completion) { /* lost reply */ }
+            public void render() { }
+            public void apply(long generation, SessionRecovery.Plan plan, Consumer<ResumeEvents.Outcome> completion) { fail("no restore"); }
+            public void failed(String message) { fail(message); }
+        });
+        javax.swing.SwingUtilities.invokeAndWait(() -> controller.closeThen(finished::countDown));
+        assertTrue(finished.await(8, java.util.concurrent.TimeUnit.SECONDS), "a missing admission must not strand shutdown");
+        assertTrue(files.load(SessionResumeStore.NO_PROJECT).isPresent(), "timeout fails open to preserve personal recovery");
+    }
+
     @Test void closeWaitsForDelayedCaptureAdmissionBeforeFinishing() throws Exception {
         for (boolean accepted : List.of(true, false)) {
             Path folder = Files.createDirectories(dir.resolve("admission-" + accepted));

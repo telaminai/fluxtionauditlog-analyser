@@ -16,6 +16,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * one out, and re-measuring. (What it PAINTS is held by {@code SpotlightFrameTest}, on a real frame.)
  */
 class SpotlightOverlayTest {
+    @Test void shippedCalloutsRenderBundledThenReturnToTheLiveLabel() {
+        SpotlightOverlay o = new SpotlightOverlay(null);
+        o.setSize(900, 600);
+        o.light("status", new Rectangle(30, 30, 80, 30), "DEMO declaration");
+        o.setBundledCommentary(true);
+        assertTrue(java.util.Arrays.stream(o.getComponents()).anyMatch(c -> c.getAccessibleContext() != null
+                        && String.valueOf(c.getAccessibleContext().getAccessibleDescription()).startsWith("bundled commentary")),
+                "the actual callout target is labelled bundled");
+        o.setStrip(null);
+        o.light("status", new Rectangle(30, 30, 80, 30), "DEMO live callout");
+        assertTrue(java.util.Arrays.stream(o.getComponents()).anyMatch(c -> c.getAccessibleContext() != null
+                        && String.valueOf(c.getAccessibleContext().getAccessibleDescription()).startsWith("assistant commentary")),
+                "an ordinary later spotlight keeps its live label");
+    }
 
     private static final Rectangle A = new Rectangle(10, 10, 50, 20), B = new Rectangle(200, 10, 50, 20);
 

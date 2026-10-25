@@ -54,7 +54,14 @@ import java.util.List;
  */
 public final class SpotlightOverlay extends JComponent {
 
-    private static final String TAG = "assistant";
+    private String calloutAuthor = "assistant";
+    /** Render the frozen walk's declared source; ordinary live spotlights keep their existing label. */
+    void setBundledCommentary(boolean bundled) {
+        String next = bundled ? "bundled" : "assistant";
+        if (next.equals(calloutAuthor)) return;
+        calloutAuthor = next;
+        changed();
+    }
     private static final int BADGE = 22;
 
     /** One lit thing: its number, the target's name, where it is (overlay coordinates), its callout or null. */
@@ -188,6 +195,7 @@ public final class SpotlightOverlay extends JComponent {
     public void setStrip(Strip next) {
         boolean was = strip != null;
         strip = next;
+        if (next == null) calloutAuthor = "assistant";
         if (next != null && !was) {
             focusBeforeStrip = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
             setFocusable(true);
@@ -533,7 +541,7 @@ public final class SpotlightOverlay extends JComponent {
         List<String> tags = new ArrayList<>();
         List<Dimension> boxes = new ArrayList<>();
         for (Lit l : lit) {
-            String tag = numbered(l) ? TAG + " · " + l.n() : TAG;
+            String tag = numbered(l) ? calloutAuthor + " · " + l.n() : calloutAuthor;
             tags.add(tag);
             if (l.caption() == null) {
                 wrapped.add(List.of());
@@ -794,7 +802,7 @@ public final class SpotlightOverlay extends JComponent {
             t.setVisible(shown);
             if (caption == null || at == null) continue;
             t.getAccessibleContext().setAccessibleName(caption);              // always the WHOLE caption
-            t.getAccessibleContext().setAccessibleDescription("the assistant's callout"
+            t.getAccessibleContext().setAccessibleDescription(calloutAuthor + " commentary"
                     + (numbered(lit.get(i)) ? " " + lit.get(i).n() : "") + " — its words, not a verified result");
             if (!at.equals(t.getBounds())) t.setBounds(at);
         }

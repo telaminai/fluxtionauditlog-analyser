@@ -42,6 +42,13 @@ public final class FirstMinuteAppProbe {
             }, 15, "real Main creates its frame");
             switch (args[0]) {
                 case "first" -> first(Path.of(args[1]));
+                case "first-minute-config" -> {
+                    await(() -> "SHOWN".equals(snapshot().walkPlayback().phase()),
+                            20, "the first-minute source and graph have actually loaded");
+                    edt(() -> assertEquals(telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.PROCESSOR,
+                            ((telamin.fluxtion.audit.analyser.analyser.source.SourceService) field(frame, "sourceService")).selectedFqn(),
+                            "the processor is selected for this presentation even though it is not persisted"));
+                }
                 case "returning" -> returning(false);
                 case "personal" -> personal();
                 case "personal-returning" -> returning(true);
@@ -51,6 +58,23 @@ public final class FirstMinuteAppProbe {
             }
             edt(() -> frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING)));
             assertTrue(closed.await(10, TimeUnit.SECONDS), "the actual close sequence finishes");
+            if ("first-minute-config".equals(args[0])) {
+                var saved = new ConfigStore().load();
+                assertTrue(saved.selectedEventProcessor == null || saved.selectedEventProcessor.isBlank(),
+                        "the first-minute processor must stay session-scoped");
+                assertTrue(saved.eventProcessorFqns.isEmpty(), "inference must not persist the shipped processor either");
+                assertTrue(saved.logFile == null || saved.logFile.isBlank(), "the first-minute log must not become a machine input");
+                assertTrue(saved.graphmlFile == null || saved.graphmlFile.isBlank(), "the first-minute graph must not become a machine input");
+                assertTrue(saved.recentFiles.isEmpty(), "the first-minute log must not enter recents");
+                assertTrue(saved.recentGraphml.isEmpty(), "the first-minute graph must not enter recents");
+                assertTrue(saved.sourceRoots.isEmpty(), "the shipped roots stay transient");
+                assertTrue(saved.firstMinutePlayed, "machine-only played state is still saved");
+            }
+            if ("substituted".equals(args[0])) {
+                var saved = new ConfigStore().load();
+                assertFalse(saved.recentFiles.isEmpty(), "ordinary opens still persist log recents");
+                assertFalse(saved.recentGraphml.isEmpty(), "ordinary opens still persist graph recents");
+            }
             var recovery = new SessionResumeStore(new ConfigStore().path().getParent().resolve("sessions"));
             boolean recoverable = args[0].startsWith("personal") || args[0].equals("substituted");
             assertEquals(recoverable, recovery.load(SessionResumeStore.NO_PROJECT).isPresent(),
@@ -69,6 +93,8 @@ public final class FirstMinuteAppProbe {
                 20, "the first step is actually shown; " + state());
         edt(() -> {
             var w = snapshot().walkPlayback();
+            assertTrue(((SpotlightOverlay) field(frame, "spotlight")).strip().title().contains("bundled commentary"),
+                    "shipped commentary is labelled bundled on the real strip");
             assertEquals(WalkPlaybackState.Stage.TOPOLOGY, w.stage(), "the node publishes the centre stage");
             var topology = (TopologyPanel) field(frame, "topologyPanel");
             var source = (SourcePanel) field(frame, "sourcePanel");

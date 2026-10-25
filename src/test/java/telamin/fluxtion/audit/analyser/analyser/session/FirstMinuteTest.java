@@ -10,6 +10,97 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class FirstMinuteTest {
+    @Test void shippedCommentaryIsLabelledBundledRatherThanPersonOrLiveAssistant() {
+        assertEquals("bundled commentary", DiamondDefinition.walk().authorLabel(), "the shipped author is disclosed as bundled");
+    }
+    @Test void aReelCannotWeakenTheShippedWalksWholeRecordClaim() {
+        Run r = playing();
+        r.driver.post(new SessionEvents.WalkPlayRequested(0, DiamondDefinition.walk(), 2, "reel"));
+        var w = r.driver.snapshot().walkPlayback();
+        assertEquals("reel", w.origin(), "the recorder really took over pacing");
+        var targets = new java.util.ArrayList<SessionEvents.WalkTargetState>();
+        var named = w.definition().steps().get(2).targets();
+        for (int i = 0; i < named.size(); i++) targets.add(new SessionEvents.WalkTargetState(i + 1,
+                named.get(i).target(), named.get(i).caption(), i == 0 ? "UNRESOLVED" : "CURRENT",
+                i != 0, i == 0 ? "record changed" : ""));
+        r.driver.post(new SessionEvents.WalkStepPrepared(w.ticket(), r.driver.snapshot().logGeneration(), targets, ""));
+        assertTrue(r.driver.snapshot().walkPlayback().targets().stream().allMatch(t -> !t.available() && t.caption().isEmpty()),
+                "reel takeover must withhold every caption when the shipped record is not current");
+        var light = r.adapter.performed.stream().filter(SessionEffects.LightWalkTargetsEffect.class::isInstance)
+                .map(SessionEffects.LightWalkTargetsEffect.class::cast).reduce((a,b) -> b).orElseThrow();
+        assertTrue(light.targets().isEmpty(), "no current graph caption reaches the overlay beside a substituted record");
+    }
+    @Test void readOnlyDesignNavigationPreservesFirstContactAndStartupAdmission() {
+        for (String kind : List.of("source", "diagnostics")) {
+            Run r = playing(); showStep(r);
+            r.driver.post(new SessionEvents.WalkEndRequested("Esc"));
+            r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested(kind));
+            assertEquals("DOORS", r.driver.snapshot().firstMinute().phase(), "read-only " + kind + " keeps the doors");
+            assertEquals(WalkPlaybackState.Stage.TOPOLOGY, r.driver.snapshot().walkPlayback().stage(),
+                    "read-only navigation keeps the first-contact stage");
+            Run pending = opening();
+            pending.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested(kind));
+            assertTrue(pending.driver.processor().firstMinute.permitsOpen(pending.ticket),
+                    "a read-only lookup is not a competing open");
+        }
+    }
+
+    @Test void anAcceptedProducerResultAfterCloseOrCancelledInvestigateRemainsRecoverable() {
+        for (boolean investigate : List.of(false, true)) {
+            Run r = playing(); showStep(r);
+            r.driver.post(new SessionEvents.WalkEndRequested("Esc"));
+            if (investigate) r.driver.post(new SessionEvents.FirstMinuteDoorChosen("investigate"));
+            else r.driver.post(new SessionEvents.FirstMinuteCardClosed());
+            var design = r.driver.processor().designSession;
+            var result = new telamin.fluxtion.audit.analyser.analyser.design.ProducerResult(
+                    "/demo/result.json", "build", "", "", List.of(), Map.of(), Map.of());
+            r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted(result, "", design.generation() - 1));
+            observeCapture(r, 201);
+            assertFalse(capture(r).capture(), "a stale result is not personal content");
+            r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted(null, "refused", design.generation()));
+            observeCapture(r, 202);
+            assertFalse(capture(r).capture(), "a refused result is not personal content");
+            r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted(result, "", design.generation()));
+            assertSame(result, design.result(), "the session accepted the result");
+            observeCapture(r, 203);
+            assertTrue(capture(r).capture(), "an accepted producer result after Close or cancelled Investigate must survive recovery");
+        }
+    }
+
+    @Test void graphAndDesignChoicesLeaveTheFailedLanding() {
+        for (boolean design : List.of(false, true)) {
+            Run r = opening();
+            r.driver.post(new SessionEvents.FirstMinuteOpenFailed(r.ticket, "DEMO failure"));
+            assertEquals("FAILED", r.driver.snapshot().firstMinute().phase());
+            if (design) r.driver.post(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested("open"));
+            else r.driver.post(SessionFixtures.graph("/demo/chosen.graphml"));
+            assertEquals("DONE", r.driver.snapshot().firstMinute().phase(),
+                    "a " + (design ? "design" : "graph") + " choice must leave the failed landing");
+            assertFalse(r.driver.processor().firstMinute.permitsDoor(r.ticket));
+        }
+    }
+
+    @Test void anUnverifiedFirstMinuteNeverBecomesAnOrdinaryRecoveryByFailing() {
+        for (int failureAt = 0; failureAt < 3; failureAt++) {
+            Run r = opening(); land(r, "FIRST_MINUTE");
+            long g = r.driver.snapshot().logGeneration();
+            r.driver.post(new SessionEvents.FirstMinuteLogReadObserved(r.ticket, g,
+                    failureAt == 0 ? "substituted" : DiamondDefinition.LOG_SHA256, null));
+            if (failureAt > 0) r.driver.post(new SessionEvents.FirstMinutePresentationObserved(r.ticket, g,
+                    failureAt == 1 ? "substituted" : DiamondDefinition.GRAPH_SHA256, DiamondDefinition.DESIGN_SHA256, null));
+            if (failureAt == 2) r.driver.post(new SessionEvents.FirstMinuteOpenFailed(r.ticket, "walk unavailable"));
+            assertEquals("FAILED", r.driver.snapshot().firstMinute().phase());
+            r.driver.post(new SessionEvents.FirstMinuteCaptureObserved(204, g, r.ticket,
+                    failureAt == 0 ? "substituted" : DiamondDefinition.LOG_SHA256, false));
+            assertFalse(capture(r).capture(), "a failed first-minute generation cannot be saved as an ordinary personal session");
+            r.driver.post(new SessionEvents.FirstMinuteCaptureObserved(205, g, r.ticket, null, true));
+            assertTrue(capture(r).capture(), "personal additions still survive an unverified launch");
+            SessionFixtures.openLog(r.driver, r.adapter, "/demo/ordinary.yaml");
+            r.driver.post(new SessionEvents.FirstMinuteCaptureObserved(206, r.driver.snapshot().logGeneration(), 0, null, false));
+            assertTrue(capture(r).capture(), "an ordinary replacement keeps normal recovery");
+        }
+    }
+
     @Test void startupVocabularyAndFailureFactsNeverCarryPrivatePaths() {
         var observed = new SessionEvents.FirstMinuteStartupObserved(true, 0, 0, 0, false, false, false,
                 "/DEMO/private/domain", false);
@@ -348,7 +439,8 @@ class FirstMinuteTest {
         SessionFixtures.openLog(shown.driver, shown.adapter, "/demo/ordinary.yaml");
         assertEquals(WalkPlaybackState.Stage.RECORDS, shown.driver.snapshot().walkPlayback().stage());
         assertFalse(shown.driver.snapshot().firstMinute().bundled());
-        assertFalse(shown.driver.snapshot().firstMinute().omitRecovery());
+        observeCapture(shown, 207);
+        assertTrue(capture(shown).capture(), "ordinary replacement recovery is admitted by the node");
     }
 
     @Test void aFollowRotationCannotBorrowTheOwnedGenerationStage() {

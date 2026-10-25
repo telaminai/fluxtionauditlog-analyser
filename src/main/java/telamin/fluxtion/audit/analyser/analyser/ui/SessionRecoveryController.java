@@ -41,7 +41,9 @@ final class SessionRecoveryController {
         // Reserve the outgoing write's place before asking the node. The answer may arrive after this
         // call returns (the driver queues facts raised during dispatch); neither the next lookup nor
         // shutdown may overtake it. Only the serial I/O worker waits, never the EDT.
-        var admitted = new CompletableFuture<Boolean>();
+        // A lost graph reply must not strand this serial worker or shutdown. Preserve personal
+        // recovery on timeout; omitting untouched teaching evidence is only an optimisation.
+        var admitted = new CompletableFuture<Boolean>().completeOnTimeout(true, 2, TimeUnit.SECONDS);
         io.execute(() -> {
             try { if (admitted.join()) save(capture); }
             catch (CompletionException failure) { later(() -> host.failed("Session capture admission failed: " + failure.getCause())); }

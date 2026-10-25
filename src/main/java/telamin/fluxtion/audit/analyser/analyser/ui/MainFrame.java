@@ -1611,7 +1611,7 @@ public final class MainFrame extends JFrame {
         // profile — from a button whose contract is "nothing remembered, nothing personalised" (D-S3).
         // It lives in demoRoots and is appended at configure time; a restart forgets it, as it should.
         if (demoRoots.add(root.toString())) {
-            sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
+            sourceService.configure(effectiveSourceRoots(), selectedProcessor(),
                     config.mavenRepos, config.searchMavenRepos);
             refreshProjectPanel();                                    // M37: the transient root is a row, labelled demo
         }
@@ -1798,6 +1798,12 @@ public final class MainFrame extends JFrame {
 
     /** Source roots the demo added for this session only — never written to any config tier. */
     private final java.util.Set<String> demoRoots = new java.util.LinkedHashSet<>();
+    /** Selected by a shipped presentation effect; never part of machine or project configuration. */
+    private String presentationProcessor;
+    private String selectedProcessor() {
+        return presentationProcessor == null || config.selectedEventProcessor != null && !config.selectedEventProcessor.isBlank()
+                ? config.selectedEventProcessor : presentationProcessor;
+    }
 
     /** The configured roots plus the session's demo root(s), for the source service — config stays clean. */
     private List<String> effectiveSourceRoots() {
@@ -2548,7 +2554,7 @@ public final class MainFrame extends JFrame {
         var evidence = new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Evidence(
                 heading, finding,
                 (logDisplayLocation == null ? "No log" : new File(logDisplayLocation).getName()) + " — " + snapshotNote(),
-                config.selectedEventProcessor,
+                selectedProcessor(),
                 record.logTime() == null ? null : TimeFormat.utc(record.logTime()),
                 record.eventToString(), eventLines, nodeLogLines, pictures,
                 // when the analysis was made, not when the event happened — the two are months apart on
@@ -3376,6 +3382,7 @@ public final class MainFrame extends JFrame {
         String stepLabel = telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback.FIRST_MINUTE.equals(state.origin())
                 ? telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.step(state.step() + 1, state.count())
                 : "step " + (state.step() + 1) + " of " + state.count();
+        spotlight.setBundledCommentary(walk != null && "bundled".equals(walk.author()));
         spotlight.setStrip(new SpotlightOverlay.Strip(title, stepLabel, phase,
                 reasons, state.step() > 0, state.step() < state.count() - 1, action));
     }
@@ -3719,7 +3726,7 @@ public final class MainFrame extends JFrame {
                 : TimeFormat.utc(store.minLogTime()) + " → " + TimeFormat.utc(store.maxLogTime()) + " UTC";
         var provenance = session == null
                 ? telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance.NONE : sessionSnapshot().bundle();
-        String processor = config.selectedEventProcessor == null ? "" : config.selectedEventProcessor;
+        String processor = selectedProcessor() == null ? "" : selectedProcessor();
         if (!processor.isEmpty() && provenance.fromBundle() && processor.equals(provenance.processor())) {
             // the same qualification context.project.bundle makes: a bundle's processor is the SENDER's selection
             processor += " — the sender's claim at capture, not paired against this log";
@@ -7169,6 +7176,7 @@ public final class MainFrame extends JFrame {
         // time-order gate read it, so a modal the socket path "suppressed" fired on every agent open.
         final boolean loadFromSocket = request.suppressDialogs();
         currentRequest = request;      // review F1: a follow rotation reloads with the SAME audience
+        if (request.launch() != OpenRequest.Launch.FIRST_MINUTE) presentationProcessor = null;
         // review R2-B2: the effects this arrival raises (a mismatched graph closed, a warning) are
         // rendered for THIS request's audience — a socket caller cannot dismiss a dialog. The flag
         // used to be set only by project transitions, so a fresh window's first socket load inherited
@@ -7243,16 +7251,18 @@ public final class MainFrame extends JFrame {
                 .RecordsViewInstalled(sessionLogGeneration));
 
         // source navigation: configure roots, then infer the EventProcessor in the background
-        sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
+        sourceService.configure(effectiveSourceRoots(), selectedProcessor(),
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
-        sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
-        topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
+        sourcePanel.setProcessors(candidateProcessors(), selectedProcessor());
+        topologyPanel.setEmbeddedProcessors(candidateProcessors(), selectedProcessor());
         inferAndPopulateSource();
         refreshProjectPanel();                                        // M37: the log, its provenance, the pairing
 
-        config.logFile = location;
-        config.addRecent(location);
+        if (request.launch() != OpenRequest.Launch.FIRST_MINUTE) {
+            config.logFile = location;
+            config.addRecent(location);
+        }
         rebuildRecentMenu();
         saveConfigQuietly();
         setBusy(false);
@@ -7732,9 +7742,9 @@ public final class MainFrame extends JFrame {
             if (!firstMinute().permitsPreparation(e.ticket(), e.generation())) return;
             sessionInteractive = false;
             topologyPanel.load(DiamondAssets.graph(), e.ticket());
-            config.selectedEventProcessor = telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.PROCESSOR;
-            sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor, config.mavenRepos, config.searchMavenRepos);
-            sourcePanel.setProcessors(java.util.List.of(config.selectedEventProcessor), config.selectedEventProcessor);
+            presentationProcessor = telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.PROCESSOR;
+            sourceService.configure(effectiveSourceRoots(), selectedProcessor(), config.mavenRepos, config.searchMavenRepos);
+            sourcePanel.setProcessors(java.util.List.of(selectedProcessor()), selectedProcessor());
             Background.run(() -> ((AppControlAdapter) actionControl).openDesign(DiamondAssets.design().toString(),
                     new FirstMinuteDesignGuard(e.ticket(), e.generation())), result -> {
                 if (!firstMinute().permitsPreparation(e.ticket(), e.generation())) return;
@@ -8166,8 +8176,8 @@ public final class MainFrame extends JFrame {
     /** Candidate EventProcessors: configured FQNs + those discovered in the strategy package. */
     private List<String> candidateProcessors() {
         Set<String> set = new LinkedHashSet<>(config.eventProcessorFqns);
-        if (config.selectedEventProcessor != null && !config.selectedEventProcessor.isBlank()) {
-            set.add(config.selectedEventProcessor);
+        if (selectedProcessor() != null && !selectedProcessor().isBlank()) {
+            set.add(selectedProcessor());
         }
         set.addAll(SourceService.discover(sourceService.resolver(), STRATEGY_PKG));
         return new ArrayList<>(set);
@@ -8177,6 +8187,10 @@ public final class MainFrame extends JFrame {
     private void inferAndPopulateSource() {
         final LogStore s = store;
         if (s == null) return;
+        // The shipped effect selects its processor explicitly. Inference must not write it into
+        // the person's configuration, including via a late callback from an earlier log.
+        if (currentRequest != null && currentRequest.launch() == OpenRequest.Launch.FIRST_MINUTE) return;
+        final long inferredGeneration = sessionLogGeneration;
         Background.run(
                 () -> {
                     Set<String> ids = new LinkedHashSet<>();
@@ -8190,6 +8204,7 @@ public final class MainFrame extends JFrame {
                     return new String[]{inferred, String.join("\n", candidates)};
                 },
                 result -> {
+                    if (s != store || inferredGeneration != sessionLogGeneration) return;
                     String inferred = result[0];
                     List<String> candidates = result[1].isEmpty() ? List.of() : List.of(result[1].split("\n"));
                     sourceService.select(inferred);
@@ -8469,11 +8484,11 @@ public final class MainFrame extends JFrame {
             session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved(
                     telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inForce(config)));
         }
-        sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
+        sourceService.configure(effectiveSourceRoots(), selectedProcessor(),
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
-        sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
-        topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
+        sourcePanel.setProcessors(candidateProcessors(), selectedProcessor());
+        topologyPanel.setEmbeddedProcessors(candidateProcessors(), selectedProcessor());
         sourcePanel.showSelectedProcessor();
         topologyPanel.revalidateEmbeddedSource();
         searchField.setHistory(config.searchHistory);   // reflect cleared/updated history
@@ -9155,7 +9170,7 @@ public final class MainFrame extends JFrame {
                 e.readSoFar(), e.replay() == null ? null : Path.of(e.replay()), e.replayRecords(), e.serviceCalls(),
                 e.replaySha256(),
                 // a CLASS NAME, not a path: it leaks nothing and without it a recipient has no processor
-                config.selectedEventProcessor);
+                selectedProcessor());
         telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {
                     try {
                         return telamin.fluxtion.audit.analyser.bundle.BundleWriter.write(job);
@@ -9790,6 +9805,7 @@ public final class MainFrame extends JFrame {
 
     /** @param fromTransition true when a project transition is rendering, not a person editing settings. */
     private void applyProjectSettings(boolean fromTransition) {
+        presentationProcessor = null;
         beforeProjectRender.run();
         restoreGraphDefinitions(List.copyOf(config.savedGraphs));
         onConfigChanged(fromTransition);   // source service, processors, menus, and the global save
@@ -10986,6 +11002,7 @@ public final class MainFrame extends JFrame {
                         "no source for '" + fqn + "' under the configured roots");
             }
             config.selectedEventProcessor = fqn;
+            presentationProcessor = null;
             sourceService.select(fqn);
             onConfigChanged();
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
@@ -11311,7 +11328,7 @@ public final class MainFrame extends JFrame {
             // the same assembly the pasted prompt uses, rendered as JSON instead of prose
             telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts facts = !need.test("log") && !need.test("source") ? null
                     : telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.of(
-                            currentLogFileInfo(), config.selectedEventProcessor, sourceService,
+                            currentLogFileInfo(), selectedProcessor(), sourceService,
                             telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.nodeTypes(
                                     selectedRecords, sourceService));
             Map<String, Object> log = facts == null ? new java.util.LinkedHashMap<>() : facts.logAsMap();
@@ -11529,10 +11546,10 @@ public final class MainFrame extends JFrame {
                 for (String fqn : candidateProcessors()) {
                     Map<String, Object> one = new java.util.LinkedHashMap<>();
                     one.put("class", fqn);
-                    one.put("selected", fqn.equals(config.selectedEventProcessor));
+                    one.put("selected", fqn.equals(selectedProcessor()));
                     one.put("source", sourceService.resolver().find(fqn).isPresent() ? "found" : "not found");
                     one.put("from", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.processorFrom(fqn,
-                            configured, config.selectedEventProcessor, project.hasProject()));
+                            configured, selectedProcessor(), project.hasProject()));
                     procs.add(one);
                 }
                 if (!procs.isEmpty()) out.put("processors", procs);
@@ -11769,7 +11786,7 @@ public final class MainFrame extends JFrame {
                 }
                 // PR #30 review, finding 2: the EDT does not read the processor to answer. Until a source pane has
                 // read it, node types are omitted and this says why, rather than stalling or guessing.
-                if (config.selectedEventProcessor != null && !config.selectedEventProcessor.isBlank()
+                if (selectedProcessor() != null && !selectedProcessor().isBlank()
                         && !sourceService.modelRead())
                     source.put("processorModel", "not yet read — node types appear once a source pane reads the processor");
                 out.put("source", source);
@@ -11886,6 +11903,7 @@ public final class MainFrame extends JFrame {
     }
 
     private void rememberGraphml(java.nio.file.Path file) {
+        if (topologyPanel.firstMinuteTicket() > 0) return; // this load's receipt, never pathname equality
         config.graphmlFile = file.toAbsolutePath().toString();
         config.addRecentGraphml(config.graphmlFile);
         rebuildRecentMenu();

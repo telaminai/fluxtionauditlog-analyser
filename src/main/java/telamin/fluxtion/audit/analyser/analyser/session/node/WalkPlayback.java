@@ -195,7 +195,7 @@ public class WalkPlayback implements EventLogSource {
 
     @OnEventHandler public boolean onFirstContactDesignRequested(
             telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested e) {
-        if (e.firstMinuteTicket() > 0 || !firstContact) return false;
+        if (!"open".equals(e.kind()) || e.firstMinuteTicket() > 0 || !firstContact) return false;
         if (walk != null) end("another design was requested");
         firstContact = false;
         stage = WalkPlaybackState.Stage.RECORDS;
@@ -286,7 +286,7 @@ public class WalkPlayback implements EventLogSource {
         // M79 E5: graph-basis captions can be structurally current beside a substituted record. For the
         // shipped first minute the whole step is one claim: do not send ANY caption to the overlay in that case.
         String recordRefusal = null;
-        if (FIRST_MINUTE.equals(origin)) {
+        if (telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.walk().equals(definition)) {
             var named = definition.steps().get(step).targets();
             for (int i = 0; i < named.size(); i++) {
                 if (!"record".equals(named.get(i).basis().kind())) continue;

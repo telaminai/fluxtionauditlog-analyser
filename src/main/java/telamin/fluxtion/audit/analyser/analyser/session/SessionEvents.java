@@ -653,7 +653,6 @@ public final class SessionEvents {
                                                    String designSha256, String reason) {
         public FirstMinutePresentationObserved { reason = FactWords.withoutPaths(reason); }
     }
-    public record FirstMinutePersonalContentObserved(long generation, boolean present) { }
     public record FirstMinuteCaptureObserved(long request, long generation, long launchTicket, String readDigest,
                                              boolean personalContent) { }
     public record FirstMinuteEffectStarted(long opId, long ticket, String what) implements Result { }

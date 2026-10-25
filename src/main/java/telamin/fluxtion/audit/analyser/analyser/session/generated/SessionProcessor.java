@@ -117,7 +117,6 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinut
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteLaunchAssigned;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteLogReadObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteOpenFailed;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinutePersonalContentObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinutePresentationObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteStartupObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet;
@@ -304,7 +303,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  * generation time           : Not available
  * api version               : 1.1.0
  * analyser version          : 1.0.76
- * target generator version  : 1.0.79
+ * target generator version  : 1.0.80
  * </pre>
  *
  * Event classes supported:
@@ -391,7 +390,6 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteLaunchAssigned
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteLogReadObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteOpenFailed
- *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinutePersonalContentObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinutePresentationObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteStartupObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet
@@ -1014,10 +1012,6 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteOpenFailed",
                 false),
             new ProcessorDescriptor.Input(
-                "FirstMinutePersonalContentObserved",
-                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinutePersonalContentObserved",
-                false),
-            new ProcessorDescriptor.Input(
                 "FirstMinutePresentationObserved",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinutePresentationObserved",
                 false),
@@ -1591,7 +1585,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "e87daa9f0f1cf77896939a4d519fb515f06240c796f9b4a5bf5bddfc4e8cbc10",
+              "26987da60f3485c781acdc570c3d213dad190e334bc21ca8016711c7bba8f614",
               null));
 
   @Override
@@ -1665,11 +1659,17 @@ public class SessionProcessor
       throw new RuntimeException("init() must be called before start()");
     }
     processing = true;
-    auditEvent(Lifecycle.LifecycleEvent.Start);
+    try {
+      auditEvent(Lifecycle.LifecycleEvent.Start);
 
-    afterEvent();
-    callbackDispatcher.dispatchQueuedCallbacks();
-    processing = false;
+      afterEvent();
+      callbackDispatcher.dispatchQueuedCallbacks();
+    } catch (Throwable t) {
+      failedCycle(t);
+      throw t;
+    } finally {
+      processing = false;
+    }
   }
 
   @Override
@@ -1678,11 +1678,17 @@ public class SessionProcessor
       throw new RuntimeException("init() must be called before startComplete()");
     }
     processing = true;
-    auditEvent(Lifecycle.LifecycleEvent.StartComplete);
+    try {
+      auditEvent(Lifecycle.LifecycleEvent.StartComplete);
 
-    afterEvent();
-    callbackDispatcher.dispatchQueuedCallbacks();
-    processing = false;
+      afterEvent();
+      callbackDispatcher.dispatchQueuedCallbacks();
+    } catch (Throwable t) {
+      failedCycle(t);
+      throw t;
+    } finally {
+      processing = false;
+    }
   }
 
   @Override
@@ -1691,11 +1697,17 @@ public class SessionProcessor
       throw new RuntimeException("init() must be called before stop()");
     }
     processing = true;
-    auditEvent(Lifecycle.LifecycleEvent.Stop);
+    try {
+      auditEvent(Lifecycle.LifecycleEvent.Stop);
 
-    afterEvent();
-    callbackDispatcher.dispatchQueuedCallbacks();
-    processing = false;
+      afterEvent();
+      callbackDispatcher.dispatchQueuedCallbacks();
+    } catch (Throwable t) {
+      failedCycle(t);
+      throw t;
+    } finally {
+      processing = false;
+    }
   }
 
   @Override
@@ -1734,13 +1746,22 @@ public class SessionProcessor
       callbackDispatcher.queueReentrantEvent(event);
     } else {
       processing = true;
-      onEventInternal(event);
-      if (callbacksPending) {
-        final boolean sharedBefore = clock.shareReading(true);
-        callbackDispatcher.dispatchQueuedCallbacks();
-        clock.shareReading(sharedBefore);
+      try {
+        onEventInternal(event);
+        if (callbacksPending) {
+          final boolean sharedBefore = clock.shareReading(true);
+          try {
+            callbackDispatcher.dispatchQueuedCallbacks();
+          } finally {
+            clock.shareReading(sharedBefore);
+          }
+        }
+      } catch (Throwable t) {
+        failedCycle(t);
+        throw t;
+      } finally {
+        processing = false;
       }
-      processing = false;
     }
   }
 
@@ -2000,9 +2021,6 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof FirstMinuteOpenFailed) {
       FirstMinuteOpenFailed typedEvent = (FirstMinuteOpenFailed) event;
-      handleEvent(typedEvent);
-    } else if (event instanceof FirstMinutePersonalContentObserved) {
-      FirstMinutePersonalContentObserved typedEvent = (FirstMinutePersonalContentObserved) event;
       handleEvent(typedEvent);
     } else if (event instanceof FirstMinutePresentationObserved) {
       FirstMinutePresentationObserved typedEvent = (FirstMinutePresentationObserved) event;
@@ -2838,11 +2856,6 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
-  public void onEvent(FirstMinutePersonalContentObserved event) {
-    processEvent(event);
-  }
-
-  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(FirstMinutePresentationObserved event) {
     processEvent(event);
   }
@@ -3650,6 +3663,8 @@ public class SessionProcessor
       auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
       firstMinute.changed();
     }
+    auditInvocation(firstMinute, "firstMinute", "resultOpened", typedEvent);
+    firstMinute.resultOpened(typedEvent);
     afterEvent();
   }
 
@@ -4522,14 +4537,6 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(firstMinute, "firstMinute", "failed", typedEvent);
     firstMinute.failed(typedEvent);
-    afterEvent();
-  }
-
-  public void handleEvent(FirstMinutePersonalContentObserved typedEvent) {
-    auditEvent(typedEvent);
-    //Default, no filter methods
-    auditInvocation(firstMinute, "firstMinute", "personal", typedEvent);
-    firstMinute.personal(typedEvent);
     afterEvent();
   }
 
@@ -6828,9 +6835,16 @@ public class SessionProcessor
     beforeServiceCall(
         "@Override\npublic void deRegisterService(com.telamin.fluxtion.runtime.service.Service<?> arg0)");
     ExportFunctionAuditEvent typedEvent = functionAudit;
-    auditInvocation(serviceRegistry, "serviceRegistry", "deRegisterService", typedEvent);
-    serviceRegistry.deRegisterService(arg0);
-    afterServiceCall();
+    try {
+      auditInvocation(serviceRegistry, "serviceRegistry", "deRegisterService", typedEvent);
+      serviceRegistry.deRegisterService(arg0);
+      afterServiceCall();
+    } catch (Throwable t) {
+      failedCycle(t);
+      throw t;
+    } finally {
+      processing = false;
+    }
   }
 
   @Override
@@ -6838,1383 +6852,1407 @@ public class SessionProcessor
     beforeServiceCall(
         "@Override\npublic void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)");
     ExportFunctionAuditEvent typedEvent = functionAudit;
-    auditInvocation(serviceRegistry, "serviceRegistry", "registerService", typedEvent);
-    serviceRegistry.registerService(arg0);
-    afterServiceCall();
+    try {
+      auditInvocation(serviceRegistry, "serviceRegistry", "registerService", typedEvent);
+      serviceRegistry.registerService(arg0);
+      afterServiceCall();
+    } catch (Throwable t) {
+      failedCycle(t);
+      throw t;
+    } finally {
+      processing = false;
+    }
   }
   //EXPORTED SERVICE FUNCTIONS - END
 
   //EVENT BUFFERING - START
   public void bufferEvent(Object event) {
     buffering = true;
-    if (event instanceof EventLogControlEvent) {
-      EventLogControlEvent typedEvent = (EventLogControlEvent) event;
-      auditEvent(typedEvent);
-      auditInvocation(eventLogger, "eventLogger", "calculationLogConfig", typedEvent);
-      eventLogger.calculationLogConfig(typedEvent);
-    } else if (event instanceof ClockStrategyEvent) {
-      ClockStrategyEvent typedEvent = (ClockStrategyEvent) event;
-      auditEvent(typedEvent);
-      auditInvocation(clock, "clock", "setClockStrategy", typedEvent);
-      clock.setClockStrategy(typedEvent);
-    } else if (event instanceof Cleared) {
-      Cleared typedEvent = (Cleared) event;
-      auditEvent(typedEvent);
-      auditInvocation(designSession, "designSession", "cleared", typedEvent);
-      isDirty_designSession = designSession.cleared(typedEvent);
-    } else if (event instanceof DiscoveryCompleted) {
-      DiscoveryCompleted typedEvent = (DiscoveryCompleted) event;
-      auditEvent(typedEvent);
-      auditInvocation(designSession, "designSession", "discovered", typedEvent);
-      isDirty_designSession = designSession.discovered(typedEvent);
-    } else if (event instanceof DiscoveryRequested) {
-      DiscoveryRequested typedEvent = (DiscoveryRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(designSession, "designSession", "discover", typedEvent);
-      isDirty_designSession = designSession.discover(typedEvent);
-    } else if (event instanceof FollowReadCompleted) {
-      FollowReadCompleted typedEvent = (FollowReadCompleted) event;
-      auditEvent(typedEvent);
-      auditInvocation(designSession, "designSession", "followed", typedEvent);
-      isDirty_designSession = designSession.followed(typedEvent);
-    } else if (event instanceof ReadCompleted) {
-      ReadCompleted typedEvent = (ReadCompleted) event;
-      auditEvent(typedEvent);
-      auditInvocation(designSession, "designSession", "read", typedEvent);
-      isDirty_designSession = designSession.read(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "designOpened", typedEvent);
-      firstMinute.designOpened(typedEvent);
-    } else if (event instanceof ReadRequested) {
-      ReadRequested typedEvent = (ReadRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(designSession, "designSession", "requested", typedEvent);
-      isDirty_designSession = designSession.requested(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onFirstContactDesignRequested", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onFirstContactDesignRequested(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "designChosen", typedEvent);
-      firstMinute.designChosen(typedEvent);
-    } else if (event instanceof ResultReadCompleted) {
-      ResultReadCompleted typedEvent = (ResultReadCompleted) event;
-      auditEvent(typedEvent);
-      auditInvocation(designSession, "designSession", "result", typedEvent);
-      isDirty_designSession = designSession.result(typedEvent);
-    } else if (event instanceof ActionListenerConfigured) {
-      ActionListenerConfigured typedEvent = (ActionListenerConfigured) event;
-      auditEvent(typedEvent);
-      auditInvocation(actionListener, "actionListener", "onConfigured", typedEvent);
-      isDirty_actionListener = actionListener.onConfigured(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onListenerConfigured", typedEvent);
-      isDirty_aiSetup = aiSetup.onListenerConfigured(typedEvent);
-    } else if (event instanceof AiClientsObserved) {
-      AiClientsObserved typedEvent = (AiClientsObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onClientsObserved", typedEvent);
-      isDirty_aiSetup = aiSetup.onClientsObserved(typedEvent);
-    } else if (event instanceof AiSetupAlsoTurnOffChosen) {
-      AiSetupAlsoTurnOffChosen typedEvent = (AiSetupAlsoTurnOffChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onAlsoTurnOff", typedEvent);
-      isDirty_aiSetup = aiSetup.onAlsoTurnOff(typedEvent);
-    } else if (event instanceof AiSetupBack) {
-      AiSetupBack typedEvent = (AiSetupBack) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onBack", typedEvent);
-      isDirty_aiSetup = aiSetup.onBack(typedEvent);
-    } else if (event instanceof AiSetupBuildModeAnswered) {
-      AiSetupBuildModeAnswered typedEvent = (AiSetupBuildModeAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onBuildModeAnswered", typedEvent);
-      isDirty_aiSetup = aiSetup.onBuildModeAnswered(typedEvent);
-    } else if (event instanceof AiSetupCancelled) {
-      AiSetupCancelled typedEvent = (AiSetupCancelled) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onCancelled", typedEvent);
-      isDirty_aiSetup = aiSetup.onCancelled(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onSetupCancelled", typedEvent);
-      startPagePrompt.onSetupCancelled(typedEvent);
-    } else if (event instanceof AiSetupCheckAgain) {
-      AiSetupCheckAgain typedEvent = (AiSetupCheckAgain) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onCheckAgain", typedEvent);
-      isDirty_aiSetup = aiSetup.onCheckAgain(typedEvent);
-    } else if (event instanceof AiSetupChoiceMade) {
-      AiSetupChoiceMade typedEvent = (AiSetupChoiceMade) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onChoiceMade", typedEvent);
-      isDirty_aiSetup = aiSetup.onChoiceMade(typedEvent);
-    } else if (event instanceof AiSetupClientChosen) {
-      AiSetupClientChosen typedEvent = (AiSetupClientChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onClientChosen", typedEvent);
-      isDirty_aiSetup = aiSetup.onClientChosen(typedEvent);
-    } else if (event instanceof AiSetupContinue) {
-      AiSetupContinue typedEvent = (AiSetupContinue) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onContinue", typedEvent);
-      isDirty_aiSetup = aiSetup.onContinue(typedEvent);
-    } else if (event instanceof AiSetupCopyRequested) {
-      AiSetupCopyRequested typedEvent = (AiSetupCopyRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onCopyRequested", typedEvent);
-      isDirty_aiSetup = aiSetup.onCopyRequested(typedEvent);
-    } else if (event instanceof AiSetupFirstRunDismissed) {
-      AiSetupFirstRunDismissed typedEvent = (AiSetupFirstRunDismissed) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onFirstRunDismissed", typedEvent);
-      isDirty_aiSetup = aiSetup.onFirstRunDismissed(typedEvent);
-    } else if (event instanceof AiSetupMoreOptions) {
-      AiSetupMoreOptions typedEvent = (AiSetupMoreOptions) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onMoreOptions", typedEvent);
-      isDirty_aiSetup = aiSetup.onMoreOptions(typedEvent);
-    } else if (event instanceof AiSetupPostureChosen) {
-      AiSetupPostureChosen typedEvent = (AiSetupPostureChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onPostureChosen", typedEvent);
-      isDirty_aiSetup = aiSetup.onPostureChosen(typedEvent);
-    } else if (event instanceof AiSetupRegisterRequested) {
-      AiSetupRegisterRequested typedEvent = (AiSetupRegisterRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onRegisterRequested", typedEvent);
-      isDirty_aiSetup = aiSetup.onRegisterRequested(typedEvent);
-    } else if (event instanceof AiSetupRequested) {
-      AiSetupRequested typedEvent = (AiSetupRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onSetupRequested", typedEvent);
-      isDirty_aiSetup = aiSetup.onSetupRequested(typedEvent);
-    } else if (event instanceof AiSetupStartupObserved) {
-      AiSetupStartupObserved typedEvent = (AiSetupStartupObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onStartupObserved", typedEvent);
-      isDirty_aiSetup = aiSetup.onStartupObserved(typedEvent);
-    } else if (event instanceof AiSetupSuggestedTaken) {
-      AiSetupSuggestedTaken typedEvent = (AiSetupSuggestedTaken) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onSuggestedTaken", typedEvent);
-      isDirty_aiSetup = aiSetup.onSuggestedTaken(typedEvent);
-    } else if (event instanceof AiSetupTimerFired) {
-      AiSetupTimerFired typedEvent = (AiSetupTimerFired) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onTimerFired", typedEvent);
-      isDirty_aiSetup = aiSetup.onTimerFired(typedEvent);
-    } else if (event instanceof AssistantActionFinished) {
-      AssistantActionFinished typedEvent = (AssistantActionFinished) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onActionFinished", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onActionFinished(typedEvent);
-    } else if (event instanceof AssistantCancelRequested) {
-      AssistantCancelRequested typedEvent = (AssistantCancelRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onCancelRequested", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onCancelRequested(typedEvent);
-    } else if (event instanceof AssistantCompletionFailed) {
-      AssistantCompletionFailed typedEvent = (AssistantCompletionFailed) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onCompletionFailed", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onCompletionFailed(typedEvent);
-    } else if (event instanceof AssistantCompletionReceived) {
-      AssistantCompletionReceived typedEvent = (AssistantCompletionReceived) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onCompletionReceived", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onCompletionReceived(typedEvent);
-    } else if (event instanceof AssistantContextFailed) {
-      AssistantContextFailed typedEvent = (AssistantContextFailed) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onContextFailed", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onContextFailed(typedEvent);
-    } else if (event instanceof AssistantContextPrepared) {
-      AssistantContextPrepared typedEvent = (AssistantContextPrepared) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onContextPrepared", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onContextPrepared(typedEvent);
-    } else if (event instanceof AssistantDraftComposed) {
-      AssistantDraftComposed typedEvent = (AssistantDraftComposed) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onDraftComposed", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onDraftComposed(typedEvent);
-    } else if (event instanceof AssistantDraftPending) {
-      AssistantDraftPending typedEvent = (AssistantDraftPending) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onDraftPending", typedEvent);
-      isDirty_aiSetup = aiSetup.onDraftPending(typedEvent);
-    } else if (event instanceof AssistantEffectStarted) {
-      AssistantEffectStarted typedEvent = (AssistantEffectStarted) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onEffectStarted", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onEffectStarted(typedEvent);
-    } else if (event instanceof AssistantFileExchangeObserved) {
-      AssistantFileExchangeObserved typedEvent = (AssistantFileExchangeObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onFileExchange", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onFileExchange(typedEvent);
-    } else if (event instanceof AssistantFullProfileAnswered) {
-      AssistantFullProfileAnswered typedEvent = (AssistantFullProfileAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onFullProfileAnswered", typedEvent);
-      isDirty_aiSetup = aiSetup.onFullProfileAnswered(typedEvent);
-    } else if (event instanceof AssistantHandoffRequested) {
-      AssistantHandoffRequested typedEvent = (AssistantHandoffRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onHandoffRequested", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onHandoffRequested(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onAssistantHandoffRequested", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onAssistantHandoffRequested(typedEvent);
-    } else if (event instanceof AssistantHostRequested) {
-      AssistantHostRequested typedEvent = (AssistantHostRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onHostRequested", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onHostRequested(typedEvent);
-    } else if (event instanceof AssistantHostShown) {
-      AssistantHostShown typedEvent = (AssistantHostShown) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onHostShown", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onHostShown(typedEvent);
-    } else if (event instanceof AssistantModeChosen) {
-      AssistantModeChosen typedEvent = (AssistantModeChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onModeChosen", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onModeChosen(typedEvent);
-      auditInvocation(assistantMode, "assistantMode", "onModeChosen", typedEvent);
-      isDirty_assistantMode = assistantMode.onModeChosen(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onModeChosen", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onModeChosen(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onModeChosen", typedEvent);
-      startPagePrompt.onModeChosen(typedEvent);
-    } else if (event instanceof AssistantNewChatRequested) {
-      AssistantNewChatRequested typedEvent = (AssistantNewChatRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onNewChatRequested", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onNewChatRequested(typedEvent);
-    } else if (event instanceof AssistantOpenApplied) {
-      AssistantOpenApplied typedEvent = (AssistantOpenApplied) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onAssistantOpenApplied", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onAssistantOpenApplied(typedEvent);
-    } else if (event instanceof AssistantOpenApplyFailed) {
-      AssistantOpenApplyFailed typedEvent = (AssistantOpenApplyFailed) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onAssistantOpenApplyFailed", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onAssistantOpenApplyFailed(typedEvent);
-    } else if (event instanceof AssistantProfileApplied) {
-      AssistantProfileApplied typedEvent = (AssistantProfileApplied) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onProfileApplied", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onProfileApplied(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onProfileApplied", typedEvent);
-      isDirty_aiSetup = aiSetup.onProfileApplied(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onProfileApplied", typedEvent);
-      startPagePrompt.onProfileApplied(typedEvent);
-    } else if (event instanceof AssistantProfileChosen) {
-      AssistantProfileChosen typedEvent = (AssistantProfileChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onProfileChosen", typedEvent);
-      isDirty_aiSetup = aiSetup.onProfileChosen(typedEvent);
-    } else if (event instanceof AssistantProfileObserved) {
-      AssistantProfileObserved typedEvent = (AssistantProfileObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onProfileObserved", typedEvent);
-      isDirty_aiSetup = aiSetup.onProfileObserved(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onProfileObserved", typedEvent);
-      startPagePrompt.onProfileObserved(typedEvent);
-    } else if (event instanceof AssistantProfilesShown) {
-      AssistantProfilesShown typedEvent = (AssistantProfilesShown) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onProfilesShown", typedEvent);
-      isDirty_aiSetup = aiSetup.onProfilesShown(typedEvent);
-    } else if (event instanceof AssistantSendRequested) {
-      AssistantSendRequested typedEvent = (AssistantSendRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onSendRequested", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onSendRequested(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onAssistantSend", typedEvent);
-      isDirty_aiSetup = aiSetup.onAssistantSend(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onAssistantSendRequested", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onAssistantSendRequested(typedEvent);
-    } else if (event instanceof AssistantTabShown) {
-      AssistantTabShown typedEvent = (AssistantTabShown) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onAssistantTabShown", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onAssistantTabShown(typedEvent);
-    } else if (event instanceof BridgeObserved) {
-      BridgeObserved typedEvent = (BridgeObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onBridgeObserved", typedEvent);
-      isDirty_aiSetup = aiSetup.onBridgeObserved(typedEvent);
-    } else if (event instanceof BundleCaptureRequested) {
-      BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(evidenceCapture, "evidenceCapture", "onBundleCaptureRequested", typedEvent);
-      evidenceCapture.onBundleCaptureRequested(typedEvent);
-    } else if (event instanceof BundleDeleted) {
-      BundleDeleted typedEvent = (BundleDeleted) event;
-      auditEvent(typedEvent);
-      auditInvocation(evidenceCapture, "evidenceCapture", "onBundleDeleted", typedEvent);
-      evidenceCapture.onBundleDeleted(typedEvent);
-    } else if (event instanceof BundleRootsRestored) {
-      BundleRootsRestored typedEvent = (BundleRootsRestored) event;
-      auditEvent(typedEvent);
-      auditInvocation(bundleAnchor, "bundleAnchor", "onBundleRootsRestored", typedEvent);
-      bundleAnchor.onBundleRootsRestored(typedEvent);
-    } else if (event instanceof BundleWriteFailed) {
-      BundleWriteFailed typedEvent = (BundleWriteFailed) event;
-      auditEvent(typedEvent);
-      auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWriteFailed", typedEvent);
-      evidenceCapture.onBundleWriteFailed(typedEvent);
-    } else if (event instanceof BundleWritten) {
-      BundleWritten typedEvent = (BundleWritten) event;
-      auditEvent(typedEvent);
-      auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWritten", typedEvent);
-      evidenceCapture.onBundleWritten(typedEvent);
-    } else if (event instanceof CanvasLeftAssistant) {
-      CanvasLeftAssistant typedEvent = (CanvasLeftAssistant) event;
-      auditEvent(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onCanvasLeftAssistant", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onCanvasLeftAssistant(typedEvent);
-    } else if (event instanceof CaptureStarted) {
-      CaptureStarted typedEvent = (CaptureStarted) event;
-      auditEvent(typedEvent);
-      auditInvocation(evidenceCapture, "evidenceCapture", "onCaptureStarted", typedEvent);
-      evidenceCapture.onCaptureStarted(typedEvent);
-    } else if (event instanceof ClaudeAuthObserved) {
-      ClaudeAuthObserved typedEvent = (ClaudeAuthObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onClaudeAuthObserved", typedEvent);
-      isDirty_aiSetup = aiSetup.onClaudeAuthObserved(typedEvent);
-    } else if (event instanceof ClaudeObserved) {
-      ClaudeObserved typedEvent = (ClaudeObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onClaudeObserved", typedEvent);
-      isDirty_aiSetup = aiSetup.onClaudeObserved(typedEvent);
-    } else if (event instanceof CloseRequested) {
-      CloseRequested typedEvent = (CloseRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onCloseRequested", typedEvent);
-      isDirty_operationGate = operationGate.onCloseRequested(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onCloseRequested", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onCloseRequested(typedEvent);
-    } else if (event instanceof DraftPlaced) {
-      DraftPlaced typedEvent = (DraftPlaced) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onDraftPlaced", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onDraftPlaced(typedEvent);
-    } else if (event instanceof EffectFailed) {
-      EffectFailed typedEvent = (EffectFailed) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onEffectFailed", typedEvent);
-      isDirty_operationGate = operationGate.onEffectFailed(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onEffectFailed", typedEvent);
-      effectOutcomes.onEffectFailed(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onEffectFailed", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onEffectFailed(typedEvent);
-      auditInvocation(sessionBoundary, "sessionBoundary", "onEffectFailed", typedEvent);
-      isDirty_sessionBoundary = sessionBoundary.onEffectFailed(typedEvent);
-    } else if (event instanceof ExampleDeadlinePassed) {
-      ExampleDeadlinePassed typedEvent = (ExampleDeadlinePassed) event;
-      auditEvent(typedEvent);
-      auditInvocation(exampleDownload, "exampleDownload", "onDeadline", typedEvent);
-      exampleDownload.onDeadline(typedEvent);
-    } else if (event instanceof ExampleDownloadConfirmed) {
-      ExampleDownloadConfirmed typedEvent = (ExampleDownloadConfirmed) event;
-      auditEvent(typedEvent);
-      auditInvocation(exampleDownload, "exampleDownload", "onConfirmed", typedEvent);
-      exampleDownload.onConfirmed(typedEvent);
-    } else if (event instanceof ExampleDownloadRequested) {
-      ExampleDownloadRequested typedEvent = (ExampleDownloadRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(exampleDownload, "exampleDownload", "onRequested", typedEvent);
-      exampleDownload.onRequested(typedEvent);
-    } else if (event instanceof ExampleEffectStarted) {
-      ExampleEffectStarted typedEvent = (ExampleEffectStarted) event;
-      auditEvent(typedEvent);
-      auditInvocation(exampleDownload, "exampleDownload", "onEffectStarted", typedEvent);
-      exampleDownload.onEffectStarted(typedEvent);
-    } else if (event instanceof ExampleFetched) {
-      ExampleFetched typedEvent = (ExampleFetched) event;
-      auditEvent(typedEvent);
-      auditInvocation(exampleDownload, "exampleDownload", "onFetched", typedEvent);
-      exampleDownload.onFetched(typedEvent);
-    } else if (event instanceof ExampleUnpacked) {
-      ExampleUnpacked typedEvent = (ExampleUnpacked) event;
-      auditEvent(typedEvent);
-      auditInvocation(exampleDownload, "exampleDownload", "onUnpacked", typedEvent);
-      exampleDownload.onUnpacked(typedEvent);
-    } else if (event instanceof ExternalAccessAnswered) {
-      ExternalAccessAnswered typedEvent = (ExternalAccessAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(actionListener, "actionListener", "onExternalAccessAnswered", typedEvent);
-      isDirty_actionListener = actionListener.onExternalAccessAnswered(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onExternalAccessAnswered", typedEvent);
-      isDirty_aiSetup = aiSetup.onExternalAccessAnswered(typedEvent);
-    } else if (event instanceof ExternalAccessChosen) {
-      ExternalAccessChosen typedEvent = (ExternalAccessChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(actionListener, "actionListener", "onExternalChosen", typedEvent);
-      isDirty_actionListener = actionListener.onExternalChosen(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onExternalChosen", typedEvent);
-      isDirty_aiSetup = aiSetup.onExternalChosen(typedEvent);
-    } else if (event instanceof ExternalAccessRequested) {
-      ExternalAccessRequested typedEvent = (ExternalAccessRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(actionListener, "actionListener", "onExternalAccessRequested", typedEvent);
-      isDirty_actionListener = actionListener.onExternalAccessRequested(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onExternalAccessRequested", typedEvent);
-      isDirty_aiSetup = aiSetup.onExternalAccessRequested(typedEvent);
-    } else if (event instanceof ExternalClientSeen) {
-      ExternalClientSeen typedEvent = (ExternalClientSeen) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onClientSeen", typedEvent);
-      isDirty_aiSetup = aiSetup.onClientSeen(typedEvent);
-    } else if (event instanceof FirstMinuteCaptureObserved) {
-      FirstMinuteCaptureObserved typedEvent = (FirstMinuteCaptureObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "capture", typedEvent);
-      firstMinute.capture(typedEvent);
-    } else if (event instanceof FirstMinuteCardClosed) {
-      FirstMinuteCardClosed typedEvent = (FirstMinuteCardClosed) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onFirstMinuteCardClosed", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onFirstMinuteCardClosed(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "close", typedEvent);
-      firstMinute.close(typedEvent);
-    } else if (event instanceof FirstMinuteDoorChosen) {
-      FirstMinuteDoorChosen typedEvent = (FirstMinuteDoorChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onFirstMinuteDoorChosen", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onFirstMinuteDoorChosen(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "door", typedEvent);
-      firstMinute.door(typedEvent);
-    } else if (event instanceof FirstMinuteLaunchAssigned) {
-      FirstMinuteLaunchAssigned typedEvent = (FirstMinuteLaunchAssigned) event;
-      auditEvent(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "launchAssigned", typedEvent);
-      firstMinute.launchAssigned(typedEvent);
-    } else if (event instanceof FirstMinuteLogReadObserved) {
-      FirstMinuteLogReadObserved typedEvent = (FirstMinuteLogReadObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "read", typedEvent);
-      firstMinute.read(typedEvent);
-    } else if (event instanceof FirstMinuteOpenFailed) {
-      FirstMinuteOpenFailed typedEvent = (FirstMinuteOpenFailed) event;
-      auditEvent(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "failed", typedEvent);
-      firstMinute.failed(typedEvent);
-    } else if (event instanceof FirstMinutePersonalContentObserved) {
-      FirstMinutePersonalContentObserved typedEvent = (FirstMinutePersonalContentObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "personal", typedEvent);
-      firstMinute.personal(typedEvent);
-    } else if (event instanceof FirstMinutePresentationObserved) {
-      FirstMinutePresentationObserved typedEvent = (FirstMinutePresentationObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "presentation", typedEvent);
-      firstMinute.presentation(typedEvent);
-    } else if (event instanceof FirstMinuteStartupObserved) {
-      FirstMinuteStartupObserved typedEvent = (FirstMinuteStartupObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "startup", typedEvent);
-      firstMinute.startup(typedEvent);
-    } else if (event instanceof FollowSet) {
-      FollowSet typedEvent = (FollowSet) event;
-      auditEvent(typedEvent);
-      auditInvocation(evidenceCapture, "evidenceCapture", "onFollowSet", typedEvent);
-      evidenceCapture.onFollowSet(typedEvent);
-    } else if (event instanceof FollowToggled) {
-      FollowToggled typedEvent = (FollowToggled) event;
-      auditEvent(typedEvent);
-      auditInvocation(openLog, "openLog", "onFollowToggled", typedEvent);
-      isDirty_openLog = openLog.onFollowToggled(typedEvent);
-    } else if (event instanceof GraphCleared) {
-      GraphCleared typedEvent = (GraphCleared) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onGraphCleared", typedEvent);
-      isDirty_operationGate = operationGate.onGraphCleared(typedEvent);
-      auditInvocation(openGraph, "openGraph", "onGraphCleared", typedEvent);
-      isDirty_openGraph = openGraph.onGraphCleared(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onGraphCleared", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onGraphCleared(typedEvent);
-    } else if (event instanceof GraphClosed) {
-      GraphClosed typedEvent = (GraphClosed) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onGraphClosed", typedEvent);
-      isDirty_operationGate = operationGate.onGraphClosed(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onGraphClosed", typedEvent);
-      effectOutcomes.onGraphClosed(typedEvent);
-      auditInvocation(openGraph, "openGraph", "onGraphClosed", typedEvent);
-      isDirty_openGraph = openGraph.onGraphClosed(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onGraphClosed", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onGraphClosed(typedEvent);
-    } else if (event instanceof GraphOpened) {
-      GraphOpened typedEvent = (GraphOpened) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onGraphOpened", typedEvent);
-      isDirty_operationGate = operationGate.onGraphOpened(typedEvent);
-      auditInvocation(openGraph, "openGraph", "onGraphOpened", typedEvent);
-      isDirty_openGraph = openGraph.onGraphOpened(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onGraphOpened", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onGraphOpened(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onGraphOpened", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onGraphOpened(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onFirstContactGraphOpened", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onFirstContactGraphOpened(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "graphChosen", typedEvent);
-      firstMinute.graphChosen(typedEvent);
-      auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
-      projectReopenOffer.onGraphOpened(typedEvent);
-    } else if (event instanceof HostedCallAbandoned) {
-      HostedCallAbandoned typedEvent = (HostedCallAbandoned) event;
-      auditEvent(typedEvent);
-      auditInvocation(
-          localAgentPermission, "localAgentPermission", "onHostedCallAbandoned", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onHostedCallAbandoned(typedEvent);
-    } else if (event instanceof HostedCallPresented) {
-      HostedCallPresented typedEvent = (HostedCallPresented) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onHostedCall", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onHostedCall(typedEvent);
-    } else if (event instanceof HostedCallRefusedByServer) {
-      HostedCallRefusedByServer typedEvent = (HostedCallRefusedByServer) event;
-      auditEvent(typedEvent);
-      auditInvocation(
-          localAgentSession, "localAgentSession", "onHostedRefusedByServer", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onHostedRefusedByServer(typedEvent);
-    } else if (event instanceof HostedProjectOutputOpened) {
-      HostedProjectOutputOpened typedEvent = (HostedProjectOutputOpened) event;
-      auditEvent(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onHostedOpened", typedEvent);
-      projectOutputs.onHostedOpened(typedEvent);
-    } else if (event instanceof HostedReportApplyRequested) {
-      HostedReportApplyRequested typedEvent = (HostedReportApplyRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(
-          localAgentPermission, "localAgentPermission", "onHostedReportApply", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onHostedReportApply(typedEvent);
-    } else if (event instanceof HostedReportWritten) {
-      HostedReportWritten typedEvent = (HostedReportWritten) event;
-      auditEvent(typedEvent);
-      auditInvocation(
-          localAgentPermission, "localAgentPermission", "onHostedReportWritten", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onHostedReportWritten(typedEvent);
-    } else if (event instanceof LocalAgentActivityAcknowledged) {
-      LocalAgentActivityAcknowledged typedEvent = (LocalAgentActivityAcknowledged) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onActivityAcknowledged", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onActivityAcknowledged(typedEvent);
-    } else if (event instanceof LocalAgentActivityTick) {
-      LocalAgentActivityTick typedEvent = (LocalAgentActivityTick) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onActivityTick", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onActivityTick(typedEvent);
-    } else if (event instanceof LocalAgentAskAgainRequested) {
-      LocalAgentAskAgainRequested typedEvent = (LocalAgentAskAgainRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onAskAgain", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onAskAgain(typedEvent);
-    } else if (event instanceof LocalAgentBridgeServed) {
-      LocalAgentBridgeServed typedEvent = (LocalAgentBridgeServed) event;
-      auditEvent(typedEvent);
-      auditInvocation(actionListener, "actionListener", "onBridgeServed", typedEvent);
-      isDirty_actionListener = actionListener.onBridgeServed(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onBridgeServed", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onBridgeServed(typedEvent);
-    } else if (event instanceof LocalAgentCallAdmissionRequested) {
-      LocalAgentCallAdmissionRequested typedEvent = (LocalAgentCallAdmissionRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onCallAdmission", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onCallAdmission(typedEvent);
-    } else if (event instanceof LocalAgentConsentChanged) {
-      LocalAgentConsentChanged typedEvent = (LocalAgentConsentChanged) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onConsentChanged", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onConsentChanged(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onConsentChanged", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onConsentChanged(typedEvent);
-    } else if (event instanceof LocalAgentCostObserved) {
-      LocalAgentCostObserved typedEvent = (LocalAgentCostObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onCostObserved", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onCostObserved(typedEvent);
-    } else if (event instanceof LocalAgentDiagnostics) {
-      LocalAgentDiagnostics typedEvent = (LocalAgentDiagnostics) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onDiagnostics", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onDiagnostics(typedEvent);
-    } else if (event instanceof LocalAgentDraftComposed) {
-      LocalAgentDraftComposed typedEvent = (LocalAgentDraftComposed) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onDraftComposed", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onDraftComposed(typedEvent);
-    } else if (event instanceof LocalAgentEffectStarted) {
-      LocalAgentEffectStarted typedEvent = (LocalAgentEffectStarted) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onEffectStarted", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onEffectStarted(typedEvent);
-    } else if (event instanceof LocalAgentExited) {
-      LocalAgentExited typedEvent = (LocalAgentExited) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onExited", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onExited(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onExited", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onExited(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onExited", typedEvent);
-      projectOutputs.onExited(typedEvent);
-    } else if (event instanceof LocalAgentFolderAnswered) {
-      LocalAgentFolderAnswered typedEvent = (LocalAgentFolderAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onFolderAnswered", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onFolderAnswered(typedEvent);
-    } else if (event instanceof LocalAgentGrantExpired) {
-      LocalAgentGrantExpired typedEvent = (LocalAgentGrantExpired) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onGrantExpired", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onGrantExpired(typedEvent);
-    } else if (event instanceof LocalAgentHookObserved) {
-      LocalAgentHookObserved typedEvent = (LocalAgentHookObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onHookObserved", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onHookObserved(typedEvent);
-    } else if (event instanceof LocalAgentInitObserved) {
-      LocalAgentInitObserved typedEvent = (LocalAgentInitObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onInitObserved", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onInitObserved(typedEvent);
-    } else if (event instanceof LocalAgentInitialized) {
-      LocalAgentInitialized typedEvent = (LocalAgentInitialized) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onInitialized", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onInitialized(typedEvent);
-    } else if (event instanceof LocalAgentInterruptAcked) {
-      LocalAgentInterruptAcked typedEvent = (LocalAgentInterruptAcked) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onInterruptAcked", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onInterruptAcked(typedEvent);
-    } else if (event instanceof LocalAgentModeObserved) {
-      LocalAgentModeObserved typedEvent = (LocalAgentModeObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onModeObserved", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onModeObserved(typedEvent);
-    } else if (event instanceof LocalAgentNewChatRequested) {
-      LocalAgentNewChatRequested typedEvent = (LocalAgentNewChatRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onNewChat", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onNewChat(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onNewChatRequested", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onNewChatRequested(typedEvent);
-    } else if (event instanceof LocalAgentNoted) {
-      LocalAgentNoted typedEvent = (LocalAgentNoted) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onNoted", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onNoted(typedEvent);
-    } else if (event instanceof LocalAgentPermissionAnswered) {
-      LocalAgentPermissionAnswered typedEvent = (LocalAgentPermissionAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onAnswered", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onAnswered(typedEvent);
-    } else if (event instanceof LocalAgentPermissionCancelled) {
-      LocalAgentPermissionCancelled typedEvent = (LocalAgentPermissionCancelled) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onCancelled", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onCancelled(typedEvent);
-    } else if (event instanceof LocalAgentPermissionChosen) {
-      LocalAgentPermissionChosen typedEvent = (LocalAgentPermissionChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onChosen", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onChosen(typedEvent);
-    } else if (event instanceof LocalAgentPermissionDeadline) {
-      LocalAgentPermissionDeadline typedEvent = (LocalAgentPermissionDeadline) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onDeadline", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onDeadline(typedEvent);
-    } else if (event instanceof LocalAgentPermissionRequested) {
-      LocalAgentPermissionRequested typedEvent = (LocalAgentPermissionRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onRequested", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onRequested(typedEvent);
-    } else if (event instanceof LocalAgentProgressObserved) {
-      LocalAgentProgressObserved typedEvent = (LocalAgentProgressObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onProgress", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onProgress(typedEvent);
-    } else if (event instanceof LocalAgentRestartAnswered) {
-      LocalAgentRestartAnswered typedEvent = (LocalAgentRestartAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onRestartAnswered", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onRestartAnswered(typedEvent);
-    } else if (event instanceof LocalAgentRestartOfferRequested) {
-      LocalAgentRestartOfferRequested typedEvent = (LocalAgentRestartOfferRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(
-          localAgentSession, "localAgentSession", "onRestartOfferRequested", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onRestartOfferRequested(typedEvent);
-    } else if (event instanceof LocalAgentSendRequested) {
-      LocalAgentSendRequested typedEvent = (LocalAgentSendRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onSendRequested", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onSendRequested(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onLocalAgentSend", typedEvent);
-      isDirty_aiSetup = aiSetup.onLocalAgentSend(typedEvent);
-    } else if (event instanceof LocalAgentSetupDirectoryChosen) {
-      LocalAgentSetupDirectoryChosen typedEvent = (LocalAgentSetupDirectoryChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onSetupDirectoryChosen", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onSetupDirectoryChosen(typedEvent);
-    } else if (event instanceof LocalAgentSpawned) {
-      LocalAgentSpawned typedEvent = (LocalAgentSpawned) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onSpawned", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onSpawned(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onSpawned", typedEvent);
-      isDirty_starterProject = starterProject.onSpawned(typedEvent);
-    } else if (event instanceof LocalAgentStartDeadline) {
-      LocalAgentStartDeadline typedEvent = (LocalAgentStartDeadline) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onStartDeadline", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onStartDeadline(typedEvent);
-    } else if (event instanceof LocalAgentStartRequested) {
-      LocalAgentStartRequested typedEvent = (LocalAgentStartRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onStartRequested", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onStartRequested(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onStartRequested", typedEvent);
-      isDirty_aiSetup = aiSetup.onStartRequested(typedEvent);
-    } else if (event instanceof LocalAgentStatusObserved) {
-      LocalAgentStatusObserved typedEvent = (LocalAgentStatusObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onStatusObserved", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onStatusObserved(typedEvent);
-    } else if (event instanceof LocalAgentStopDeadline) {
-      LocalAgentStopDeadline typedEvent = (LocalAgentStopDeadline) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onStopDeadline", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onStopDeadline(typedEvent);
-    } else if (event instanceof LocalAgentStopRequested) {
-      LocalAgentStopRequested typedEvent = (LocalAgentStopRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onStopRequested", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onStopRequested(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onStopRequested", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onStopRequested(typedEvent);
-    } else if (event instanceof LocalAgentSwitchChosen) {
-      LocalAgentSwitchChosen typedEvent = (LocalAgentSwitchChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onSwitchChosen", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onSwitchChosen(typedEvent);
-      auditInvocation(sessionBoundary, "sessionBoundary", "onSwitchChosen", typedEvent);
-      isDirty_sessionBoundary = sessionBoundary.onSwitchChosen(typedEvent);
-    } else if (event instanceof LocalAgentTextUpdated) {
-      LocalAgentTextUpdated typedEvent = (LocalAgentTextUpdated) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onTextUpdated", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onTextUpdated(typedEvent);
-    } else if (event instanceof LocalAgentToolFinished) {
-      LocalAgentToolFinished typedEvent = (LocalAgentToolFinished) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onToolFinished", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onToolFinished(typedEvent);
-    } else if (event instanceof LocalAgentToolStarted) {
-      LocalAgentToolStarted typedEvent = (LocalAgentToolStarted) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onToolStarted", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onToolStarted(typedEvent);
-    } else if (event instanceof LocalAgentTurnEnded) {
-      LocalAgentTurnEnded typedEvent = (LocalAgentTurnEnded) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentPermission, "localAgentPermission", "onTurnEnded", typedEvent);
-      isDirty_localAgentPermission = localAgentPermission.onTurnEnded(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onTurnEnded", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onTurnEnded(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onTurnEnded", typedEvent);
-      projectOutputs.onTurnEnded(typedEvent);
-    } else if (event instanceof LocalAgentTurnStarted) {
-      LocalAgentTurnStarted typedEvent = (LocalAgentTurnStarted) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onTurnStarted", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onTurnStarted(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onTurnStarted", typedEvent);
-      projectOutputs.onTurnStarted(typedEvent);
-    } else if (event instanceof LogAppended) {
-      LogAppended typedEvent = (LogAppended) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onLogAppended", typedEvent);
-      isDirty_operationGate = operationGate.onLogAppended(typedEvent);
-      auditInvocation(openLog, "openLog", "onLogAppended", typedEvent);
-      isDirty_openLog = openLog.onLogAppended(typedEvent);
-      auditInvocation(logEvidence, "logEvidence", "onLogAppended", typedEvent);
-      isDirty_logEvidence = logEvidence.onLogAppended(typedEvent);
-      auditInvocation(recordsView, "recordsView", "onLogAppended", typedEvent);
-      isDirty_recordsView = recordsView.onLogAppended(typedEvent);
-    } else if (event instanceof LogCleared) {
-      LogCleared typedEvent = (LogCleared) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onLogCleared", typedEvent);
-      isDirty_operationGate = operationGate.onLogCleared(typedEvent);
-      auditInvocation(openLog, "openLog", "onLogCleared", typedEvent);
-      isDirty_openLog = openLog.onLogCleared(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onLogCleared", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onLogCleared(typedEvent);
-    } else if (event instanceof LogClosed) {
-      LogClosed typedEvent = (LogClosed) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onLogClosed", typedEvent);
-      isDirty_operationGate = operationGate.onLogClosed(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onLogClosed", typedEvent);
-      effectOutcomes.onLogClosed(typedEvent);
-      auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
-      isDirty_openLog = openLog.onLogClosed(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onLogClosed", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onLogClosed(typedEvent);
-    } else if (event instanceof LogContentObserved) {
-      LogContentObserved typedEvent = (LogContentObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(logEvidence, "logEvidence", "onLogContentObserved", typedEvent);
-      isDirty_logEvidence = logEvidence.onLogContentObserved(typedEvent);
-    } else if (event instanceof LogIdentityObserved) {
-      LogIdentityObserved typedEvent = (LogIdentityObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(openLog, "openLog", "onLogIdentityObserved", typedEvent);
-      isDirty_openLog = openLog.onLogIdentityObserved(typedEvent);
-    } else if (event instanceof LogOpenFailed) {
-      LogOpenFailed typedEvent = (LogOpenFailed) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onLogOpenFailed", typedEvent);
-      isDirty_operationGate = operationGate.onLogOpenFailed(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onLogOpenFailed", typedEvent);
-      effectOutcomes.onLogOpenFailed(typedEvent);
-      auditInvocation(logOpening, "logOpening", "onLogOpenFailed", typedEvent);
-      logOpening.onLogOpenFailed(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onLogOpenFailed", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onLogOpenFailed(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onLogOpenFailed", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onLogOpenFailed(typedEvent);
-    } else if (event instanceof LogOpened) {
-      LogOpened typedEvent = (LogOpened) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onLogOpened", typedEvent);
-      isDirty_operationGate = operationGate.onLogOpened(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onLogOpened", typedEvent);
-      effectOutcomes.onLogOpened(typedEvent);
-      auditInvocation(openLog, "openLog", "onLogOpened", typedEvent);
-      isDirty_openLog = openLog.onLogOpened(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onLogOpened", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onLogOpened(typedEvent);
-      auditInvocation(logArrival, "logArrival", "onLogOpened", typedEvent);
-      logArrival.onLogOpened(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onLogOpened", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onLogOpened(typedEvent);
-      auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onLogOpened", typedEvent);
-      isDirty_startPageNoLogHint = startPageNoLogHint.onLogOpened(typedEvent);
-    } else if (event instanceof McpReadinessObserved) {
-      McpReadinessObserved typedEvent = (McpReadinessObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onReadiness", typedEvent);
-      isDirty_aiSetup = aiSetup.onReadiness(typedEvent);
-    } else if (event instanceof McpRegistrationChanged) {
-      McpRegistrationChanged typedEvent = (McpRegistrationChanged) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onRegistrationChanged", typedEvent);
-      isDirty_aiSetup = aiSetup.onRegistrationChanged(typedEvent);
-    } else if (event instanceof McpRegistrationObserved) {
-      McpRegistrationObserved typedEvent = (McpRegistrationObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onRegistrationObserved", typedEvent);
-      isDirty_aiSetup = aiSetup.onRegistrationObserved(typedEvent);
-    } else if (event instanceof MembershipCompared) {
-      MembershipCompared typedEvent = (MembershipCompared) event;
-      auditEvent(typedEvent);
-      auditInvocation(pairingQualifier, "pairingQualifier", "onMembershipCompared", typedEvent);
-      pairingQualifier.onMembershipCompared(typedEvent);
-    } else if (event instanceof OpenLogRequested) {
-      OpenLogRequested typedEvent = (OpenLogRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onOpenLogRequested", typedEvent);
-      isDirty_operationGate = operationGate.onOpenLogRequested(typedEvent);
-      auditInvocation(logOpening, "logOpening", "onOpenLogRequested", typedEvent);
-      logOpening.onOpenLogRequested(typedEvent);
-      auditInvocation(logArrival, "logArrival", "onOpenLogRequested", typedEvent);
-      logArrival.onOpenLogRequested(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onOpenLogRequested", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onOpenLogRequested(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "logChosen", typedEvent);
-      firstMinute.logChosen(typedEvent);
-      auditInvocation(projectReopenOffer, "projectReopenOffer", "onOpenLogRequested", typedEvent);
-      projectReopenOffer.onOpenLogRequested(typedEvent);
-    } else if (event instanceof OpenProjectRequested) {
-      OpenProjectRequested typedEvent = (OpenProjectRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onOpenProjectRequested", typedEvent);
-      isDirty_operationGate = operationGate.onOpenProjectRequested(typedEvent);
-      auditInvocation(openBundle, "openBundle", "onOpenProjectRequested", typedEvent);
-      isDirty_openBundle = openBundle.onOpenProjectRequested(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onOpenProjectRequested", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onOpenProjectRequested(typedEvent);
-      auditInvocation(sessionBoundary, "sessionBoundary", "onOpenProjectRequested", typedEvent);
-      isDirty_sessionBoundary = sessionBoundary.onOpenProjectRequested(typedEvent);
-      auditInvocation(firstMinute, "firstMinute", "projectChosen", typedEvent);
-      firstMinute.projectChosen(typedEvent);
-      auditInvocation(
-          projectReopenOffer, "projectReopenOffer", "onOpenProjectRequested", typedEvent);
-      projectReopenOffer.onOpenProjectRequested(typedEvent);
-    } else if (event instanceof OpenRequestReceived) {
-      OpenRequestReceived typedEvent = (OpenRequestReceived) event;
-      auditEvent(typedEvent);
-      auditInvocation(ignoredParameters, "ignoredParameters", "onOpenRequestReceived", typedEvent);
-      ignoredParameters.onOpenRequestReceived(typedEvent);
-    } else if (event instanceof Pending) {
-      Pending typedEvent = (Pending) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onPending", typedEvent);
-      isDirty_operationGate = operationGate.onPending(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onPending", typedEvent);
-      effectOutcomes.onPending(typedEvent);
-    } else if (event instanceof ProducerFindingsObserved) {
-      ProducerFindingsObserved typedEvent = (ProducerFindingsObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(logEvidence, "logEvidence", "onProducerFindingsObserved", typedEvent);
-      isDirty_logEvidence = logEvidence.onProducerFindingsObserved(typedEvent);
-    } else if (event instanceof ProfileApplied) {
-      ProfileApplied typedEvent = (ProfileApplied) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onProfileApplied", typedEvent);
-      isDirty_operationGate = operationGate.onProfileApplied(typedEvent);
-      auditInvocation(activeProject, "activeProject", "onProfileApplied", typedEvent);
-      isDirty_activeProject = activeProject.onProfileApplied(typedEvent);
-      auditInvocation(designSession, "designSession", "project", typedEvent);
-      isDirty_designSession = designSession.project(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
-      effectOutcomes.onProfileApplied(typedEvent);
-      auditInvocation(openBundle, "openBundle", "onProfileApplied", typedEvent);
-      isDirty_openBundle = openBundle.onProfileApplied(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onProfileApplied", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onProfileApplied(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onProfileApplied", typedEvent);
-      isDirty_starterProject = starterProject.onProfileApplied(typedEvent);
-      auditInvocation(sessionBoundary, "sessionBoundary", "onProfileApplied", typedEvent);
-      isDirty_sessionBoundary = sessionBoundary.onProfileApplied(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onProfileApplied", typedEvent);
-      projectOutputs.onProfileApplied(typedEvent);
-      auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
-      bundleAnchor.onProfileApplied(typedEvent);
-      auditInvocation(projectReopenOffer, "projectReopenOffer", "onProfileApplied", typedEvent);
-      projectReopenOffer.onProfileApplied(typedEvent);
-    } else if (event instanceof ProfileLoaded) {
-      ProfileLoaded typedEvent = (ProfileLoaded) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onProfileLoaded", typedEvent);
-      isDirty_operationGate = operationGate.onProfileLoaded(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onProfileLoaded", typedEvent);
-      effectOutcomes.onProfileLoaded(typedEvent);
-      auditInvocation(openBundle, "openBundle", "onProfileLoaded", typedEvent);
-      isDirty_openBundle = openBundle.onProfileLoaded(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onProfileLoaded", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onProfileLoaded(typedEvent);
-      auditInvocation(sessionBoundary, "sessionBoundary", "onProfileLoaded", typedEvent);
-      isDirty_sessionBoundary = sessionBoundary.onProfileLoaded(typedEvent);
-    } else if (event instanceof ProjectOutputChanged) {
-      ProjectOutputChanged typedEvent = (ProjectOutputChanged) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onProjectOutputChanged", typedEvent);
-      isDirty_starterProject = starterProject.onProjectOutputChanged(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onChange", typedEvent);
-      projectOutputs.onChange(typedEvent);
-    } else if (event instanceof ProjectOutputOfferAnswered) {
-      ProjectOutputOfferAnswered typedEvent = (ProjectOutputOfferAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onAnswered", typedEvent);
-      projectOutputs.onAnswered(typedEvent);
-    } else if (event instanceof ProjectOutputOpenObserved) {
-      ProjectOutputOpenObserved typedEvent = (ProjectOutputOpenObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onOpened", typedEvent);
-      projectOutputs.onOpened(typedEvent);
-    } else if (event instanceof ProjectOutputsBasisObserved) {
-      ProjectOutputsBasisObserved typedEvent = (ProjectOutputsBasisObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onBasis", typedEvent);
-      projectOutputs.onBasis(typedEvent);
-    } else if (event instanceof ProjectOutputsScanned) {
-      ProjectOutputsScanned typedEvent = (ProjectOutputsScanned) event;
-      auditEvent(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onScan", typedEvent);
-      projectOutputs.onScan(typedEvent);
-    } else if (event instanceof ProjectReopenPresented) {
-      ProjectReopenPresented typedEvent = (ProjectReopenPresented) event;
-      auditEvent(typedEvent);
-      auditInvocation(
-          projectReopenOffer, "projectReopenOffer", "onProjectReopenPresented", typedEvent);
-      projectReopenOffer.onProjectReopenPresented(typedEvent);
-    } else if (event instanceof ProjectReopenReady) {
-      ProjectReopenReady typedEvent = (ProjectReopenReady) event;
-      auditEvent(typedEvent);
-      auditInvocation(projectReopenOffer, "projectReopenOffer", "onProjectReopenReady", typedEvent);
-      projectReopenOffer.onProjectReopenReady(typedEvent);
-    } else if (event instanceof ProjectReopenRequested) {
-      ProjectReopenRequested typedEvent = (ProjectReopenRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onStartup", typedEvent);
-      projectOutputs.onStartup(typedEvent);
-      auditInvocation(
-          projectReopenOffer, "projectReopenOffer", "onProjectReopenRequested", typedEvent);
-      projectReopenOffer.onProjectReopenRequested(typedEvent);
-    } else if (event instanceof ProposalApplyRequested) {
-      ProposalApplyRequested typedEvent = (ProposalApplyRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onApplyRequested", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onApplyRequested(typedEvent);
-    } else if (event instanceof ProposalChecked) {
-      ProposalChecked typedEvent = (ProposalChecked) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onChecked", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onChecked(typedEvent);
-    } else if (event instanceof ProposalDismissed) {
-      ProposalDismissed typedEvent = (ProposalDismissed) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onDismissed", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onDismissed(typedEvent);
-    } else if (event instanceof ProposalEffectStarted) {
-      ProposalEffectStarted typedEvent = (ProposalEffectStarted) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onEffectStarted", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onEffectStarted(typedEvent);
-    } else if (event instanceof ProposalItemAnswered) {
-      ProposalItemAnswered typedEvent = (ProposalItemAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onItemAnswered", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onItemAnswered(typedEvent);
-    } else if (event instanceof ProposalItemApplied) {
-      ProposalItemApplied typedEvent = (ProposalItemApplied) event;
-      auditEvent(typedEvent);
-      auditInvocation(localAgentSession, "localAgentSession", "onProposalItemApplied", typedEvent);
-      isDirty_localAgentSession = localAgentSession.onProposalItemApplied(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onApplied", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onApplied(typedEvent);
-    } else if (event instanceof ProposalItemPreviewed) {
-      ProposalItemPreviewed typedEvent = (ProposalItemPreviewed) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onPreviewed", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onPreviewed(typedEvent);
-    } else if (event instanceof ProposalPreviewDone) {
-      ProposalPreviewDone typedEvent = (ProposalPreviewDone) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onPreviewDone", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onPreviewDone(typedEvent);
-    } else if (event instanceof ProposalReceived) {
-      ProposalReceived typedEvent = (ProposalReceived) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onReceived", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onReceived(typedEvent);
-    } else if (event instanceof RecordFlagsChanged) {
-      RecordFlagsChanged typedEvent = (RecordFlagsChanged) event;
-      auditEvent(typedEvent);
-      auditInvocation(recordsView, "recordsView", "onRecordFlagsChanged", typedEvent);
-      isDirty_recordsView = recordsView.onRecordFlagsChanged(typedEvent);
-    } else if (event instanceof RecordsViewInstalled) {
-      RecordsViewInstalled typedEvent = (RecordsViewInstalled) event;
-      auditEvent(typedEvent);
-      auditInvocation(recordsView, "recordsView", "onRecordsViewInstalled", typedEvent);
-      isDirty_recordsView = recordsView.onRecordsViewInstalled(typedEvent);
-    } else if (event instanceof RecordsViewMeasured) {
-      RecordsViewMeasured typedEvent = (RecordsViewMeasured) event;
-      auditEvent(typedEvent);
-      auditInvocation(recordsView, "recordsView", "onRecordsViewMeasured", typedEvent);
-      isDirty_recordsView = recordsView.onRecordsViewMeasured(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onRecordsViewMeasured", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onRecordsViewMeasured(typedEvent);
-    } else if (event instanceof RegisterAnswered) {
-      RegisterAnswered typedEvent = (RegisterAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onRegisterAnswered", typedEvent);
-      isDirty_aiSetup = aiSetup.onRegisterAnswered(typedEvent);
-    } else if (event instanceof RestSwitchObserved) {
-      RestSwitchObserved typedEvent = (RestSwitchObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(actionListener, "actionListener", "onRestSwitch", typedEvent);
-      isDirty_actionListener = actionListener.onRestSwitch(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onRestSwitch", typedEvent);
-      isDirty_aiSetup = aiSetup.onRestSwitch(typedEvent);
-    } else if (event instanceof ReturnToMainOptions) {
-      ReturnToMainOptions typedEvent = (ReturnToMainOptions) event;
-      auditEvent(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onReturnToMainOptions", typedEvent);
-      startPagePrompt.onReturnToMainOptions(typedEvent);
-    } else if (event instanceof ScanScheduled) {
-      ScanScheduled typedEvent = (ScanScheduled) event;
-      auditEvent(typedEvent);
-      auditInvocation(logEvidence, "logEvidence", "onScanScheduled", typedEvent);
-      isDirty_logEvidence = logEvidence.onScanScheduled(typedEvent);
-    } else if (event instanceof SettingsRestored) {
-      SettingsRestored typedEvent = (SettingsRestored) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onSettingsRestored", typedEvent);
-      isDirty_operationGate = operationGate.onSettingsRestored(typedEvent);
-      auditInvocation(activeProject, "activeProject", "onSettingsRestored", typedEvent);
-      isDirty_activeProject = activeProject.onSettingsRestored(typedEvent);
-      auditInvocation(designSession, "designSession", "restored", typedEvent);
-      isDirty_designSession = designSession.restored(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
-      effectOutcomes.onSettingsRestored(typedEvent);
-      auditInvocation(openBundle, "openBundle", "onSettingsRestored", typedEvent);
-      isDirty_openBundle = openBundle.onSettingsRestored(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onSettingsRestored", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onSettingsRestored(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onSettingsRestored", typedEvent);
-      isDirty_starterProject = starterProject.onSettingsRestored(typedEvent);
-      auditInvocation(projectOutputs, "projectOutputs", "onClosed", typedEvent);
-      projectOutputs.onClosed(typedEvent);
-    } else if (event instanceof SkillsVendored) {
-      SkillsVendored typedEvent = (SkillsVendored) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onSkillsVendored", typedEvent);
-      isDirty_starterProject = starterProject.onSkillsVendored(typedEvent);
-    } else if (event instanceof SourceRootsObserved) {
-      SourceRootsObserved typedEvent = (SourceRootsObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(designSession, "designSession", "roots", typedEvent);
-      isDirty_designSession = designSession.roots(typedEvent);
-      auditInvocation(bundleAnchor, "bundleAnchor", "onSourceRootsObserved", typedEvent);
-      bundleAnchor.onSourceRootsObserved(typedEvent);
-    } else if (event instanceof StageToggleRequested) {
-      StageToggleRequested typedEvent = (StageToggleRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onStageToggleRequested", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onStageToggleRequested(typedEvent);
-    } else if (event instanceof StartPageAvailability) {
-      StartPageAvailability typedEvent = (StartPageAvailability) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onAvailability", typedEvent);
-      isDirty_aiSetup = aiSetup.onAvailability(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onAvailability", typedEvent);
-      startPagePrompt.onAvailability(typedEvent);
-    } else if (event instanceof StartPageEffectStarted) {
-      StartPageEffectStarted typedEvent = (StartPageEffectStarted) event;
-      auditEvent(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onEffectStarted", typedEvent);
-      startPagePrompt.onEffectStarted(typedEvent);
-    } else if (event instanceof StartPageFlowDone) {
-      StartPageFlowDone typedEvent = (StartPageFlowDone) event;
-      auditEvent(typedEvent);
-      auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onFlowDone", typedEvent);
-      isDirty_startPageNoLogHint = startPageNoLogHint.onFlowDone(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onFlowDone", typedEvent);
-      startPagePrompt.onFlowDone(typedEvent);
-    } else if (event instanceof StartPageNoLogAnswered) {
-      StartPageNoLogAnswered typedEvent = (StartPageNoLogAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onAnswered", typedEvent);
-      isDirty_startPageNoLogHint = startPageNoLogHint.onAnswered(typedEvent);
-    } else if (event instanceof StartPagePromptSent) {
-      StartPagePromptSent typedEvent = (StartPagePromptSent) event;
-      auditEvent(typedEvent);
-      auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onSent", typedEvent);
-      isDirty_startPageNoLogHint = startPageNoLogHint.onSent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onStartPageSent", typedEvent);
-      isDirty_aiSetup = aiSetup.onStartPageSent(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onSent", typedEvent);
-      startPagePrompt.onSent(typedEvent);
-    } else if (event instanceof StartPromptPackDropped) {
-      StartPromptPackDropped typedEvent = (StartPromptPackDropped) event;
-      auditEvent(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onPackDropped", typedEvent);
-      startPagePrompt.onPackDropped(typedEvent);
-    } else if (event instanceof StarterCancelled) {
-      StarterCancelled typedEvent = (StarterCancelled) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onStarterCancelled", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onStarterCancelled(typedEvent);
-    } else if (event instanceof StarterCatalogueObserved) {
-      StarterCatalogueObserved typedEvent = (StarterCatalogueObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onCatalogueObserved", typedEvent);
-      isDirty_starterProject = starterProject.onCatalogueObserved(typedEvent);
-    } else if (event instanceof StarterChosen) {
-      StarterChosen typedEvent = (StarterChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onChosen", typedEvent);
-      isDirty_starterProject = starterProject.onChosen(typedEvent);
-    } else if (event instanceof StarterConfigured) {
-      StarterConfigured typedEvent = (StarterConfigured) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onConfigured", typedEvent);
-      isDirty_starterProject = starterProject.onConfigured(typedEvent);
-    } else if (event instanceof StarterDefaultsObserved) {
-      StarterDefaultsObserved typedEvent = (StarterDefaultsObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(onboardingProposal, "onboardingProposal", "onStarterDefaults", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onStarterDefaults(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onDefaultsObserved", typedEvent);
-      isDirty_starterProject = starterProject.onDefaultsObserved(typedEvent);
-    } else if (event instanceof StarterDesignOpened) {
-      StarterDesignOpened typedEvent = (StarterDesignOpened) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onDesignOpened", typedEvent);
-      isDirty_starterProject = starterProject.onDesignOpened(typedEvent);
-    } else if (event instanceof StarterDestinationChosen) {
-      StarterDestinationChosen typedEvent = (StarterDestinationChosen) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onDestinationChosen", typedEvent);
-      isDirty_starterProject = starterProject.onDestinationChosen(typedEvent);
-    } else if (event instanceof StarterDirectoryObserved) {
-      StarterDirectoryObserved typedEvent = (StarterDirectoryObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onDirectoryObserved", typedEvent);
-      isDirty_starterProject = starterProject.onDirectoryObserved(typedEvent);
-    } else if (event instanceof StarterDiscoveryObserved) {
-      StarterDiscoveryObserved typedEvent = (StarterDiscoveryObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onDiscoveryObserved", typedEvent);
-      isDirty_starterProject = starterProject.onDiscoveryObserved(typedEvent);
-    } else if (event instanceof StarterEffectStarted) {
-      StarterEffectStarted typedEvent = (StarterEffectStarted) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onEffectStarted", typedEvent);
-      isDirty_starterProject = starterProject.onEffectStarted(typedEvent);
-    } else if (event instanceof StarterInstallFailed) {
-      StarterInstallFailed typedEvent = (StarterInstallFailed) event;
-      auditEvent(typedEvent);
-      auditInvocation(
-          onboardingProposal, "onboardingProposal", "onStarterInstallFailed", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onStarterInstallFailed(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onInstallFailed", typedEvent);
-      isDirty_starterProject = starterProject.onInstallFailed(typedEvent);
-    } else if (event instanceof StarterInstalled) {
-      StarterInstalled typedEvent = (StarterInstalled) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onInstalled", typedEvent);
-      isDirty_starterProject = starterProject.onInstalled(typedEvent);
-    } else if (event instanceof StarterMenuRequested) {
-      StarterMenuRequested typedEvent = (StarterMenuRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onMenuRequested", typedEvent);
-      isDirty_starterProject = starterProject.onMenuRequested(typedEvent);
-    } else if (event instanceof StarterProjectOpened) {
-      StarterProjectOpened typedEvent = (StarterProjectOpened) event;
-      auditEvent(typedEvent);
-      auditInvocation(
-          onboardingProposal, "onboardingProposal", "onStarterProjectOpened", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onStarterProjectOpened(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onProjectOpened", typedEvent);
-      isDirty_starterProject = starterProject.onProjectOpened(typedEvent);
-    } else if (event instanceof StarterReviewAnswered) {
-      StarterReviewAnswered typedEvent = (StarterReviewAnswered) event;
-      auditEvent(typedEvent);
-      auditInvocation(
-          onboardingProposal, "onboardingProposal", "onStarterReviewAnswered", typedEvent);
-      isDirty_onboardingProposal = onboardingProposal.onStarterReviewAnswered(typedEvent);
-      auditInvocation(starterProject, "starterProject", "onReviewAnswered", typedEvent);
-      isDirty_starterProject = starterProject.onReviewAnswered(typedEvent);
-    } else if (event instanceof StatusShown) {
-      StatusShown typedEvent = (StatusShown) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onStatusShown", typedEvent);
-      isDirty_operationGate = operationGate.onStatusShown(typedEvent);
-      auditInvocation(effectOutcomes, "effectOutcomes", "onStatusShown", typedEvent);
-      effectOutcomes.onStatusShown(typedEvent);
-    } else if (event instanceof TimeOrderObserved) {
-      TimeOrderObserved typedEvent = (TimeOrderObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(logEvidence, "logEvidence", "onTimeOrderObserved", typedEvent);
-      isDirty_logEvidence = logEvidence.onTimeOrderObserved(typedEvent);
-    } else if (event instanceof ViewFilterChanged) {
-      ViewFilterChanged typedEvent = (ViewFilterChanged) event;
-      auditEvent(typedEvent);
-      auditInvocation(pairingQualifier, "pairingQualifier", "onViewFilterChanged", typedEvent);
-      pairingQualifier.onViewFilterChanged(typedEvent);
-      auditInvocation(recordsView, "recordsView", "onViewFilterChanged", typedEvent);
-      isDirty_recordsView = recordsView.onViewFilterChanged(typedEvent);
-      auditInvocation(assistantLoop, "assistantLoop", "onViewFilterChanged", typedEvent);
-      isDirty_assistantLoop = assistantLoop.onViewFilterChanged(typedEvent);
-    } else if (event instanceof WalkAcknowledged) {
-      WalkAcknowledged typedEvent = (WalkAcknowledged) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkAcknowledged", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkAcknowledged(typedEvent);
-    } else if (event instanceof WalkAdvanceDue) {
-      WalkAdvanceDue typedEvent = (WalkAdvanceDue) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkAdvanceDue", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkAdvanceDue(typedEvent);
-    } else if (event instanceof WalkDefinitionChanged) {
-      WalkDefinitionChanged typedEvent = (WalkDefinitionChanged) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkDefinitionChanged", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkDefinitionChanged(typedEvent);
-    } else if (event instanceof WalkEndRequested) {
-      WalkEndRequested typedEvent = (WalkEndRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkEndRequested", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkEndRequested(typedEvent);
-    } else if (event instanceof WalkNavigated) {
-      WalkNavigated typedEvent = (WalkNavigated) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkNavigated", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkNavigated(typedEvent);
-    } else if (event instanceof WalkPlayRequested) {
-      WalkPlayRequested typedEvent = (WalkPlayRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkPlayRequested", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkPlayRequested(typedEvent);
-      auditInvocation(projectReopenOffer, "projectReopenOffer", "onWalkPlayRequested", typedEvent);
-      projectReopenOffer.onWalkPlayRequested(typedEvent);
-    } else if (event instanceof WalkReelFrameCaptured) {
-      WalkReelFrameCaptured typedEvent = (WalkReelFrameCaptured) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkReelFrameCaptured", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkReelFrameCaptured(typedEvent);
-    } else if (event instanceof WalkStepPrepared) {
-      WalkStepPrepared typedEvent = (WalkStepPrepared) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkStepPrepared", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkStepPrepared(typedEvent);
-    } else if (event instanceof WalkTargetsLit) {
-      WalkTargetsLit typedEvent = (WalkTargetsLit) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkTargetsLit", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkTargetsLit(typedEvent);
-    } else if (event instanceof WalkViewApplied) {
-      WalkViewApplied typedEvent = (WalkViewApplied) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkViewApplied", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkViewApplied(typedEvent);
-    } else if (event instanceof WalkViewChanged) {
-      WalkViewChanged typedEvent = (WalkViewChanged) event;
-      auditEvent(typedEvent);
-      auditInvocation(walkPlayback, "walkPlayback", "onWalkViewChanged", typedEvent);
-      isDirty_walkPlayback = walkPlayback.onWalkViewChanged(typedEvent);
-    } else if (event instanceof Activated) {
-      Activated typedEvent = (Activated) event;
-      auditEvent(typedEvent);
-      auditInvocation(sessionRecovery, "sessionRecovery", "activate", typedEvent);
-      isDirty_sessionRecovery = sessionRecovery.activate(typedEvent);
-    } else if (event instanceof Checked) {
-      Checked typedEvent = (Checked) event;
-      auditEvent(typedEvent);
-      auditInvocation(sessionRecovery, "sessionRecovery", "checked", typedEvent);
-      isDirty_sessionRecovery = sessionRecovery.checked(typedEvent);
-    } else if (event instanceof Finished) {
-      Finished typedEvent = (Finished) event;
-      auditEvent(typedEvent);
-      auditInvocation(sessionRecovery, "sessionRecovery", "finished", typedEvent);
-      isDirty_sessionRecovery = sessionRecovery.finished(typedEvent);
-    } else if (event instanceof OfferLoaded) {
-      OfferLoaded typedEvent = (OfferLoaded) event;
-      auditEvent(typedEvent);
-      auditInvocation(sessionRecovery, "sessionRecovery", "offer", typedEvent);
-      isDirty_sessionRecovery = sessionRecovery.offer(typedEvent);
-    } else if (event instanceof Requested) {
-      Requested typedEvent = (Requested) event;
-      auditEvent(typedEvent);
-      auditInvocation(sessionRecovery, "sessionRecovery", "request", typedEvent);
-      isDirty_sessionRecovery = sessionRecovery.request(typedEvent);
+    try {
+      if (event instanceof EventLogControlEvent) {
+        EventLogControlEvent typedEvent = (EventLogControlEvent) event;
+        auditEvent(typedEvent);
+        auditInvocation(eventLogger, "eventLogger", "calculationLogConfig", typedEvent);
+        eventLogger.calculationLogConfig(typedEvent);
+      } else if (event instanceof ClockStrategyEvent) {
+        ClockStrategyEvent typedEvent = (ClockStrategyEvent) event;
+        auditEvent(typedEvent);
+        auditInvocation(clock, "clock", "setClockStrategy", typedEvent);
+        clock.setClockStrategy(typedEvent);
+      } else if (event instanceof Cleared) {
+        Cleared typedEvent = (Cleared) event;
+        auditEvent(typedEvent);
+        auditInvocation(designSession, "designSession", "cleared", typedEvent);
+        isDirty_designSession = designSession.cleared(typedEvent);
+      } else if (event instanceof DiscoveryCompleted) {
+        DiscoveryCompleted typedEvent = (DiscoveryCompleted) event;
+        auditEvent(typedEvent);
+        auditInvocation(designSession, "designSession", "discovered", typedEvent);
+        isDirty_designSession = designSession.discovered(typedEvent);
+      } else if (event instanceof DiscoveryRequested) {
+        DiscoveryRequested typedEvent = (DiscoveryRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(designSession, "designSession", "discover", typedEvent);
+        isDirty_designSession = designSession.discover(typedEvent);
+      } else if (event instanceof FollowReadCompleted) {
+        FollowReadCompleted typedEvent = (FollowReadCompleted) event;
+        auditEvent(typedEvent);
+        auditInvocation(designSession, "designSession", "followed", typedEvent);
+        isDirty_designSession = designSession.followed(typedEvent);
+      } else if (event instanceof ReadCompleted) {
+        ReadCompleted typedEvent = (ReadCompleted) event;
+        auditEvent(typedEvent);
+        auditInvocation(designSession, "designSession", "read", typedEvent);
+        isDirty_designSession = designSession.read(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "designOpened", typedEvent);
+        firstMinute.designOpened(typedEvent);
+      } else if (event instanceof ReadRequested) {
+        ReadRequested typedEvent = (ReadRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(designSession, "designSession", "requested", typedEvent);
+        isDirty_designSession = designSession.requested(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onFirstContactDesignRequested", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onFirstContactDesignRequested(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "designChosen", typedEvent);
+        firstMinute.designChosen(typedEvent);
+      } else if (event instanceof ResultReadCompleted) {
+        ResultReadCompleted typedEvent = (ResultReadCompleted) event;
+        auditEvent(typedEvent);
+        auditInvocation(designSession, "designSession", "result", typedEvent);
+        isDirty_designSession = designSession.result(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "resultOpened", typedEvent);
+        firstMinute.resultOpened(typedEvent);
+      } else if (event instanceof ActionListenerConfigured) {
+        ActionListenerConfigured typedEvent = (ActionListenerConfigured) event;
+        auditEvent(typedEvent);
+        auditInvocation(actionListener, "actionListener", "onConfigured", typedEvent);
+        isDirty_actionListener = actionListener.onConfigured(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onListenerConfigured", typedEvent);
+        isDirty_aiSetup = aiSetup.onListenerConfigured(typedEvent);
+      } else if (event instanceof AiClientsObserved) {
+        AiClientsObserved typedEvent = (AiClientsObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onClientsObserved", typedEvent);
+        isDirty_aiSetup = aiSetup.onClientsObserved(typedEvent);
+      } else if (event instanceof AiSetupAlsoTurnOffChosen) {
+        AiSetupAlsoTurnOffChosen typedEvent = (AiSetupAlsoTurnOffChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onAlsoTurnOff", typedEvent);
+        isDirty_aiSetup = aiSetup.onAlsoTurnOff(typedEvent);
+      } else if (event instanceof AiSetupBack) {
+        AiSetupBack typedEvent = (AiSetupBack) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onBack", typedEvent);
+        isDirty_aiSetup = aiSetup.onBack(typedEvent);
+      } else if (event instanceof AiSetupBuildModeAnswered) {
+        AiSetupBuildModeAnswered typedEvent = (AiSetupBuildModeAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onBuildModeAnswered", typedEvent);
+        isDirty_aiSetup = aiSetup.onBuildModeAnswered(typedEvent);
+      } else if (event instanceof AiSetupCancelled) {
+        AiSetupCancelled typedEvent = (AiSetupCancelled) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onCancelled", typedEvent);
+        isDirty_aiSetup = aiSetup.onCancelled(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onSetupCancelled", typedEvent);
+        startPagePrompt.onSetupCancelled(typedEvent);
+      } else if (event instanceof AiSetupCheckAgain) {
+        AiSetupCheckAgain typedEvent = (AiSetupCheckAgain) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onCheckAgain", typedEvent);
+        isDirty_aiSetup = aiSetup.onCheckAgain(typedEvent);
+      } else if (event instanceof AiSetupChoiceMade) {
+        AiSetupChoiceMade typedEvent = (AiSetupChoiceMade) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onChoiceMade", typedEvent);
+        isDirty_aiSetup = aiSetup.onChoiceMade(typedEvent);
+      } else if (event instanceof AiSetupClientChosen) {
+        AiSetupClientChosen typedEvent = (AiSetupClientChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onClientChosen", typedEvent);
+        isDirty_aiSetup = aiSetup.onClientChosen(typedEvent);
+      } else if (event instanceof AiSetupContinue) {
+        AiSetupContinue typedEvent = (AiSetupContinue) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onContinue", typedEvent);
+        isDirty_aiSetup = aiSetup.onContinue(typedEvent);
+      } else if (event instanceof AiSetupCopyRequested) {
+        AiSetupCopyRequested typedEvent = (AiSetupCopyRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onCopyRequested", typedEvent);
+        isDirty_aiSetup = aiSetup.onCopyRequested(typedEvent);
+      } else if (event instanceof AiSetupFirstRunDismissed) {
+        AiSetupFirstRunDismissed typedEvent = (AiSetupFirstRunDismissed) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onFirstRunDismissed", typedEvent);
+        isDirty_aiSetup = aiSetup.onFirstRunDismissed(typedEvent);
+      } else if (event instanceof AiSetupMoreOptions) {
+        AiSetupMoreOptions typedEvent = (AiSetupMoreOptions) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onMoreOptions", typedEvent);
+        isDirty_aiSetup = aiSetup.onMoreOptions(typedEvent);
+      } else if (event instanceof AiSetupPostureChosen) {
+        AiSetupPostureChosen typedEvent = (AiSetupPostureChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onPostureChosen", typedEvent);
+        isDirty_aiSetup = aiSetup.onPostureChosen(typedEvent);
+      } else if (event instanceof AiSetupRegisterRequested) {
+        AiSetupRegisterRequested typedEvent = (AiSetupRegisterRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onRegisterRequested", typedEvent);
+        isDirty_aiSetup = aiSetup.onRegisterRequested(typedEvent);
+      } else if (event instanceof AiSetupRequested) {
+        AiSetupRequested typedEvent = (AiSetupRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onSetupRequested", typedEvent);
+        isDirty_aiSetup = aiSetup.onSetupRequested(typedEvent);
+      } else if (event instanceof AiSetupStartupObserved) {
+        AiSetupStartupObserved typedEvent = (AiSetupStartupObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onStartupObserved", typedEvent);
+        isDirty_aiSetup = aiSetup.onStartupObserved(typedEvent);
+      } else if (event instanceof AiSetupSuggestedTaken) {
+        AiSetupSuggestedTaken typedEvent = (AiSetupSuggestedTaken) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onSuggestedTaken", typedEvent);
+        isDirty_aiSetup = aiSetup.onSuggestedTaken(typedEvent);
+      } else if (event instanceof AiSetupTimerFired) {
+        AiSetupTimerFired typedEvent = (AiSetupTimerFired) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onTimerFired", typedEvent);
+        isDirty_aiSetup = aiSetup.onTimerFired(typedEvent);
+      } else if (event instanceof AssistantActionFinished) {
+        AssistantActionFinished typedEvent = (AssistantActionFinished) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onActionFinished", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onActionFinished(typedEvent);
+      } else if (event instanceof AssistantCancelRequested) {
+        AssistantCancelRequested typedEvent = (AssistantCancelRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onCancelRequested", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onCancelRequested(typedEvent);
+      } else if (event instanceof AssistantCompletionFailed) {
+        AssistantCompletionFailed typedEvent = (AssistantCompletionFailed) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onCompletionFailed", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onCompletionFailed(typedEvent);
+      } else if (event instanceof AssistantCompletionReceived) {
+        AssistantCompletionReceived typedEvent = (AssistantCompletionReceived) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onCompletionReceived", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onCompletionReceived(typedEvent);
+      } else if (event instanceof AssistantContextFailed) {
+        AssistantContextFailed typedEvent = (AssistantContextFailed) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onContextFailed", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onContextFailed(typedEvent);
+      } else if (event instanceof AssistantContextPrepared) {
+        AssistantContextPrepared typedEvent = (AssistantContextPrepared) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onContextPrepared", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onContextPrepared(typedEvent);
+      } else if (event instanceof AssistantDraftComposed) {
+        AssistantDraftComposed typedEvent = (AssistantDraftComposed) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onDraftComposed", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onDraftComposed(typedEvent);
+      } else if (event instanceof AssistantDraftPending) {
+        AssistantDraftPending typedEvent = (AssistantDraftPending) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onDraftPending", typedEvent);
+        isDirty_aiSetup = aiSetup.onDraftPending(typedEvent);
+      } else if (event instanceof AssistantEffectStarted) {
+        AssistantEffectStarted typedEvent = (AssistantEffectStarted) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onEffectStarted", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onEffectStarted(typedEvent);
+      } else if (event instanceof AssistantFileExchangeObserved) {
+        AssistantFileExchangeObserved typedEvent = (AssistantFileExchangeObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onFileExchange", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onFileExchange(typedEvent);
+      } else if (event instanceof AssistantFullProfileAnswered) {
+        AssistantFullProfileAnswered typedEvent = (AssistantFullProfileAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onFullProfileAnswered", typedEvent);
+        isDirty_aiSetup = aiSetup.onFullProfileAnswered(typedEvent);
+      } else if (event instanceof AssistantHandoffRequested) {
+        AssistantHandoffRequested typedEvent = (AssistantHandoffRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onHandoffRequested", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onHandoffRequested(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onAssistantHandoffRequested", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onAssistantHandoffRequested(typedEvent);
+      } else if (event instanceof AssistantHostRequested) {
+        AssistantHostRequested typedEvent = (AssistantHostRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onHostRequested", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onHostRequested(typedEvent);
+      } else if (event instanceof AssistantHostShown) {
+        AssistantHostShown typedEvent = (AssistantHostShown) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onHostShown", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onHostShown(typedEvent);
+      } else if (event instanceof AssistantModeChosen) {
+        AssistantModeChosen typedEvent = (AssistantModeChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onModeChosen", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onModeChosen(typedEvent);
+        auditInvocation(assistantMode, "assistantMode", "onModeChosen", typedEvent);
+        isDirty_assistantMode = assistantMode.onModeChosen(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onModeChosen", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onModeChosen(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onModeChosen", typedEvent);
+        startPagePrompt.onModeChosen(typedEvent);
+      } else if (event instanceof AssistantNewChatRequested) {
+        AssistantNewChatRequested typedEvent = (AssistantNewChatRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onNewChatRequested", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onNewChatRequested(typedEvent);
+      } else if (event instanceof AssistantOpenApplied) {
+        AssistantOpenApplied typedEvent = (AssistantOpenApplied) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onAssistantOpenApplied", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onAssistantOpenApplied(typedEvent);
+      } else if (event instanceof AssistantOpenApplyFailed) {
+        AssistantOpenApplyFailed typedEvent = (AssistantOpenApplyFailed) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onAssistantOpenApplyFailed", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onAssistantOpenApplyFailed(typedEvent);
+      } else if (event instanceof AssistantProfileApplied) {
+        AssistantProfileApplied typedEvent = (AssistantProfileApplied) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onProfileApplied", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onProfileApplied(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onProfileApplied", typedEvent);
+        isDirty_aiSetup = aiSetup.onProfileApplied(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onProfileApplied", typedEvent);
+        startPagePrompt.onProfileApplied(typedEvent);
+      } else if (event instanceof AssistantProfileChosen) {
+        AssistantProfileChosen typedEvent = (AssistantProfileChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onProfileChosen", typedEvent);
+        isDirty_aiSetup = aiSetup.onProfileChosen(typedEvent);
+      } else if (event instanceof AssistantProfileObserved) {
+        AssistantProfileObserved typedEvent = (AssistantProfileObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onProfileObserved", typedEvent);
+        isDirty_aiSetup = aiSetup.onProfileObserved(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onProfileObserved", typedEvent);
+        startPagePrompt.onProfileObserved(typedEvent);
+      } else if (event instanceof AssistantProfilesShown) {
+        AssistantProfilesShown typedEvent = (AssistantProfilesShown) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onProfilesShown", typedEvent);
+        isDirty_aiSetup = aiSetup.onProfilesShown(typedEvent);
+      } else if (event instanceof AssistantSendRequested) {
+        AssistantSendRequested typedEvent = (AssistantSendRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onSendRequested", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onSendRequested(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onAssistantSend", typedEvent);
+        isDirty_aiSetup = aiSetup.onAssistantSend(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onAssistantSendRequested", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onAssistantSendRequested(typedEvent);
+      } else if (event instanceof AssistantTabShown) {
+        AssistantTabShown typedEvent = (AssistantTabShown) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onAssistantTabShown", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onAssistantTabShown(typedEvent);
+      } else if (event instanceof BridgeObserved) {
+        BridgeObserved typedEvent = (BridgeObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onBridgeObserved", typedEvent);
+        isDirty_aiSetup = aiSetup.onBridgeObserved(typedEvent);
+      } else if (event instanceof BundleCaptureRequested) {
+        BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(evidenceCapture, "evidenceCapture", "onBundleCaptureRequested", typedEvent);
+        evidenceCapture.onBundleCaptureRequested(typedEvent);
+      } else if (event instanceof BundleDeleted) {
+        BundleDeleted typedEvent = (BundleDeleted) event;
+        auditEvent(typedEvent);
+        auditInvocation(evidenceCapture, "evidenceCapture", "onBundleDeleted", typedEvent);
+        evidenceCapture.onBundleDeleted(typedEvent);
+      } else if (event instanceof BundleRootsRestored) {
+        BundleRootsRestored typedEvent = (BundleRootsRestored) event;
+        auditEvent(typedEvent);
+        auditInvocation(bundleAnchor, "bundleAnchor", "onBundleRootsRestored", typedEvent);
+        bundleAnchor.onBundleRootsRestored(typedEvent);
+      } else if (event instanceof BundleWriteFailed) {
+        BundleWriteFailed typedEvent = (BundleWriteFailed) event;
+        auditEvent(typedEvent);
+        auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWriteFailed", typedEvent);
+        evidenceCapture.onBundleWriteFailed(typedEvent);
+      } else if (event instanceof BundleWritten) {
+        BundleWritten typedEvent = (BundleWritten) event;
+        auditEvent(typedEvent);
+        auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWritten", typedEvent);
+        evidenceCapture.onBundleWritten(typedEvent);
+      } else if (event instanceof CanvasLeftAssistant) {
+        CanvasLeftAssistant typedEvent = (CanvasLeftAssistant) event;
+        auditEvent(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onCanvasLeftAssistant", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onCanvasLeftAssistant(typedEvent);
+      } else if (event instanceof CaptureStarted) {
+        CaptureStarted typedEvent = (CaptureStarted) event;
+        auditEvent(typedEvent);
+        auditInvocation(evidenceCapture, "evidenceCapture", "onCaptureStarted", typedEvent);
+        evidenceCapture.onCaptureStarted(typedEvent);
+      } else if (event instanceof ClaudeAuthObserved) {
+        ClaudeAuthObserved typedEvent = (ClaudeAuthObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onClaudeAuthObserved", typedEvent);
+        isDirty_aiSetup = aiSetup.onClaudeAuthObserved(typedEvent);
+      } else if (event instanceof ClaudeObserved) {
+        ClaudeObserved typedEvent = (ClaudeObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onClaudeObserved", typedEvent);
+        isDirty_aiSetup = aiSetup.onClaudeObserved(typedEvent);
+      } else if (event instanceof CloseRequested) {
+        CloseRequested typedEvent = (CloseRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onCloseRequested", typedEvent);
+        isDirty_operationGate = operationGate.onCloseRequested(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onCloseRequested", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onCloseRequested(typedEvent);
+      } else if (event instanceof DraftPlaced) {
+        DraftPlaced typedEvent = (DraftPlaced) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onDraftPlaced", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onDraftPlaced(typedEvent);
+      } else if (event instanceof EffectFailed) {
+        EffectFailed typedEvent = (EffectFailed) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onEffectFailed", typedEvent);
+        isDirty_operationGate = operationGate.onEffectFailed(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onEffectFailed", typedEvent);
+        effectOutcomes.onEffectFailed(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onEffectFailed", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onEffectFailed(typedEvent);
+        auditInvocation(sessionBoundary, "sessionBoundary", "onEffectFailed", typedEvent);
+        isDirty_sessionBoundary = sessionBoundary.onEffectFailed(typedEvent);
+      } else if (event instanceof ExampleDeadlinePassed) {
+        ExampleDeadlinePassed typedEvent = (ExampleDeadlinePassed) event;
+        auditEvent(typedEvent);
+        auditInvocation(exampleDownload, "exampleDownload", "onDeadline", typedEvent);
+        exampleDownload.onDeadline(typedEvent);
+      } else if (event instanceof ExampleDownloadConfirmed) {
+        ExampleDownloadConfirmed typedEvent = (ExampleDownloadConfirmed) event;
+        auditEvent(typedEvent);
+        auditInvocation(exampleDownload, "exampleDownload", "onConfirmed", typedEvent);
+        exampleDownload.onConfirmed(typedEvent);
+      } else if (event instanceof ExampleDownloadRequested) {
+        ExampleDownloadRequested typedEvent = (ExampleDownloadRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(exampleDownload, "exampleDownload", "onRequested", typedEvent);
+        exampleDownload.onRequested(typedEvent);
+      } else if (event instanceof ExampleEffectStarted) {
+        ExampleEffectStarted typedEvent = (ExampleEffectStarted) event;
+        auditEvent(typedEvent);
+        auditInvocation(exampleDownload, "exampleDownload", "onEffectStarted", typedEvent);
+        exampleDownload.onEffectStarted(typedEvent);
+      } else if (event instanceof ExampleFetched) {
+        ExampleFetched typedEvent = (ExampleFetched) event;
+        auditEvent(typedEvent);
+        auditInvocation(exampleDownload, "exampleDownload", "onFetched", typedEvent);
+        exampleDownload.onFetched(typedEvent);
+      } else if (event instanceof ExampleUnpacked) {
+        ExampleUnpacked typedEvent = (ExampleUnpacked) event;
+        auditEvent(typedEvent);
+        auditInvocation(exampleDownload, "exampleDownload", "onUnpacked", typedEvent);
+        exampleDownload.onUnpacked(typedEvent);
+      } else if (event instanceof ExternalAccessAnswered) {
+        ExternalAccessAnswered typedEvent = (ExternalAccessAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(actionListener, "actionListener", "onExternalAccessAnswered", typedEvent);
+        isDirty_actionListener = actionListener.onExternalAccessAnswered(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onExternalAccessAnswered", typedEvent);
+        isDirty_aiSetup = aiSetup.onExternalAccessAnswered(typedEvent);
+      } else if (event instanceof ExternalAccessChosen) {
+        ExternalAccessChosen typedEvent = (ExternalAccessChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(actionListener, "actionListener", "onExternalChosen", typedEvent);
+        isDirty_actionListener = actionListener.onExternalChosen(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onExternalChosen", typedEvent);
+        isDirty_aiSetup = aiSetup.onExternalChosen(typedEvent);
+      } else if (event instanceof ExternalAccessRequested) {
+        ExternalAccessRequested typedEvent = (ExternalAccessRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(actionListener, "actionListener", "onExternalAccessRequested", typedEvent);
+        isDirty_actionListener = actionListener.onExternalAccessRequested(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onExternalAccessRequested", typedEvent);
+        isDirty_aiSetup = aiSetup.onExternalAccessRequested(typedEvent);
+      } else if (event instanceof ExternalClientSeen) {
+        ExternalClientSeen typedEvent = (ExternalClientSeen) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onClientSeen", typedEvent);
+        isDirty_aiSetup = aiSetup.onClientSeen(typedEvent);
+      } else if (event instanceof FirstMinuteCaptureObserved) {
+        FirstMinuteCaptureObserved typedEvent = (FirstMinuteCaptureObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "capture", typedEvent);
+        firstMinute.capture(typedEvent);
+      } else if (event instanceof FirstMinuteCardClosed) {
+        FirstMinuteCardClosed typedEvent = (FirstMinuteCardClosed) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onFirstMinuteCardClosed", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onFirstMinuteCardClosed(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "close", typedEvent);
+        firstMinute.close(typedEvent);
+      } else if (event instanceof FirstMinuteDoorChosen) {
+        FirstMinuteDoorChosen typedEvent = (FirstMinuteDoorChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onFirstMinuteDoorChosen", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onFirstMinuteDoorChosen(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "door", typedEvent);
+        firstMinute.door(typedEvent);
+      } else if (event instanceof FirstMinuteLaunchAssigned) {
+        FirstMinuteLaunchAssigned typedEvent = (FirstMinuteLaunchAssigned) event;
+        auditEvent(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "launchAssigned", typedEvent);
+        firstMinute.launchAssigned(typedEvent);
+      } else if (event instanceof FirstMinuteLogReadObserved) {
+        FirstMinuteLogReadObserved typedEvent = (FirstMinuteLogReadObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "read", typedEvent);
+        firstMinute.read(typedEvent);
+      } else if (event instanceof FirstMinuteOpenFailed) {
+        FirstMinuteOpenFailed typedEvent = (FirstMinuteOpenFailed) event;
+        auditEvent(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "failed", typedEvent);
+        firstMinute.failed(typedEvent);
+      } else if (event instanceof FirstMinutePresentationObserved) {
+        FirstMinutePresentationObserved typedEvent = (FirstMinutePresentationObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "presentation", typedEvent);
+        firstMinute.presentation(typedEvent);
+      } else if (event instanceof FirstMinuteStartupObserved) {
+        FirstMinuteStartupObserved typedEvent = (FirstMinuteStartupObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "startup", typedEvent);
+        firstMinute.startup(typedEvent);
+      } else if (event instanceof FollowSet) {
+        FollowSet typedEvent = (FollowSet) event;
+        auditEvent(typedEvent);
+        auditInvocation(evidenceCapture, "evidenceCapture", "onFollowSet", typedEvent);
+        evidenceCapture.onFollowSet(typedEvent);
+      } else if (event instanceof FollowToggled) {
+        FollowToggled typedEvent = (FollowToggled) event;
+        auditEvent(typedEvent);
+        auditInvocation(openLog, "openLog", "onFollowToggled", typedEvent);
+        isDirty_openLog = openLog.onFollowToggled(typedEvent);
+      } else if (event instanceof GraphCleared) {
+        GraphCleared typedEvent = (GraphCleared) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onGraphCleared", typedEvent);
+        isDirty_operationGate = operationGate.onGraphCleared(typedEvent);
+        auditInvocation(openGraph, "openGraph", "onGraphCleared", typedEvent);
+        isDirty_openGraph = openGraph.onGraphCleared(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onGraphCleared", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onGraphCleared(typedEvent);
+      } else if (event instanceof GraphClosed) {
+        GraphClosed typedEvent = (GraphClosed) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onGraphClosed", typedEvent);
+        isDirty_operationGate = operationGate.onGraphClosed(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onGraphClosed", typedEvent);
+        effectOutcomes.onGraphClosed(typedEvent);
+        auditInvocation(openGraph, "openGraph", "onGraphClosed", typedEvent);
+        isDirty_openGraph = openGraph.onGraphClosed(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onGraphClosed", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onGraphClosed(typedEvent);
+      } else if (event instanceof GraphOpened) {
+        GraphOpened typedEvent = (GraphOpened) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onGraphOpened", typedEvent);
+        isDirty_operationGate = operationGate.onGraphOpened(typedEvent);
+        auditInvocation(openGraph, "openGraph", "onGraphOpened", typedEvent);
+        isDirty_openGraph = openGraph.onGraphOpened(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onGraphOpened", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onGraphOpened(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onGraphOpened", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onGraphOpened(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onFirstContactGraphOpened", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onFirstContactGraphOpened(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "graphChosen", typedEvent);
+        firstMinute.graphChosen(typedEvent);
+        auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
+        projectReopenOffer.onGraphOpened(typedEvent);
+      } else if (event instanceof HostedCallAbandoned) {
+        HostedCallAbandoned typedEvent = (HostedCallAbandoned) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentPermission, "localAgentPermission", "onHostedCallAbandoned", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onHostedCallAbandoned(typedEvent);
+      } else if (event instanceof HostedCallPresented) {
+        HostedCallPresented typedEvent = (HostedCallPresented) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onHostedCall", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onHostedCall(typedEvent);
+      } else if (event instanceof HostedCallRefusedByServer) {
+        HostedCallRefusedByServer typedEvent = (HostedCallRefusedByServer) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentSession, "localAgentSession", "onHostedRefusedByServer", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onHostedRefusedByServer(typedEvent);
+      } else if (event instanceof HostedProjectOutputOpened) {
+        HostedProjectOutputOpened typedEvent = (HostedProjectOutputOpened) event;
+        auditEvent(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onHostedOpened", typedEvent);
+        projectOutputs.onHostedOpened(typedEvent);
+      } else if (event instanceof HostedReportApplyRequested) {
+        HostedReportApplyRequested typedEvent = (HostedReportApplyRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentPermission, "localAgentPermission", "onHostedReportApply", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onHostedReportApply(typedEvent);
+      } else if (event instanceof HostedReportWritten) {
+        HostedReportWritten typedEvent = (HostedReportWritten) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentPermission, "localAgentPermission", "onHostedReportWritten", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onHostedReportWritten(typedEvent);
+      } else if (event instanceof LocalAgentActivityAcknowledged) {
+        LocalAgentActivityAcknowledged typedEvent = (LocalAgentActivityAcknowledged) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentSession, "localAgentSession", "onActivityAcknowledged", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onActivityAcknowledged(typedEvent);
+      } else if (event instanceof LocalAgentActivityTick) {
+        LocalAgentActivityTick typedEvent = (LocalAgentActivityTick) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onActivityTick", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onActivityTick(typedEvent);
+      } else if (event instanceof LocalAgentAskAgainRequested) {
+        LocalAgentAskAgainRequested typedEvent = (LocalAgentAskAgainRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onAskAgain", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onAskAgain(typedEvent);
+      } else if (event instanceof LocalAgentBridgeServed) {
+        LocalAgentBridgeServed typedEvent = (LocalAgentBridgeServed) event;
+        auditEvent(typedEvent);
+        auditInvocation(actionListener, "actionListener", "onBridgeServed", typedEvent);
+        isDirty_actionListener = actionListener.onBridgeServed(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onBridgeServed", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onBridgeServed(typedEvent);
+      } else if (event instanceof LocalAgentCallAdmissionRequested) {
+        LocalAgentCallAdmissionRequested typedEvent = (LocalAgentCallAdmissionRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onCallAdmission", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onCallAdmission(typedEvent);
+      } else if (event instanceof LocalAgentConsentChanged) {
+        LocalAgentConsentChanged typedEvent = (LocalAgentConsentChanged) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentPermission, "localAgentPermission", "onConsentChanged", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onConsentChanged(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onConsentChanged", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onConsentChanged(typedEvent);
+      } else if (event instanceof LocalAgentCostObserved) {
+        LocalAgentCostObserved typedEvent = (LocalAgentCostObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onCostObserved", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onCostObserved(typedEvent);
+      } else if (event instanceof LocalAgentDiagnostics) {
+        LocalAgentDiagnostics typedEvent = (LocalAgentDiagnostics) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onDiagnostics", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onDiagnostics(typedEvent);
+      } else if (event instanceof LocalAgentDraftComposed) {
+        LocalAgentDraftComposed typedEvent = (LocalAgentDraftComposed) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onDraftComposed", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onDraftComposed(typedEvent);
+      } else if (event instanceof LocalAgentEffectStarted) {
+        LocalAgentEffectStarted typedEvent = (LocalAgentEffectStarted) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onEffectStarted", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onEffectStarted(typedEvent);
+      } else if (event instanceof LocalAgentExited) {
+        LocalAgentExited typedEvent = (LocalAgentExited) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onExited", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onExited(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onExited", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onExited(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onExited", typedEvent);
+        projectOutputs.onExited(typedEvent);
+      } else if (event instanceof LocalAgentFolderAnswered) {
+        LocalAgentFolderAnswered typedEvent = (LocalAgentFolderAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onFolderAnswered", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onFolderAnswered(typedEvent);
+      } else if (event instanceof LocalAgentGrantExpired) {
+        LocalAgentGrantExpired typedEvent = (LocalAgentGrantExpired) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onGrantExpired", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onGrantExpired(typedEvent);
+      } else if (event instanceof LocalAgentHookObserved) {
+        LocalAgentHookObserved typedEvent = (LocalAgentHookObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onHookObserved", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onHookObserved(typedEvent);
+      } else if (event instanceof LocalAgentInitObserved) {
+        LocalAgentInitObserved typedEvent = (LocalAgentInitObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onInitObserved", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onInitObserved(typedEvent);
+      } else if (event instanceof LocalAgentInitialized) {
+        LocalAgentInitialized typedEvent = (LocalAgentInitialized) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onInitialized", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onInitialized(typedEvent);
+      } else if (event instanceof LocalAgentInterruptAcked) {
+        LocalAgentInterruptAcked typedEvent = (LocalAgentInterruptAcked) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onInterruptAcked", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onInterruptAcked(typedEvent);
+      } else if (event instanceof LocalAgentModeObserved) {
+        LocalAgentModeObserved typedEvent = (LocalAgentModeObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onModeObserved", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onModeObserved(typedEvent);
+      } else if (event instanceof LocalAgentNewChatRequested) {
+        LocalAgentNewChatRequested typedEvent = (LocalAgentNewChatRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onNewChat", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onNewChat(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onNewChatRequested", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onNewChatRequested(typedEvent);
+      } else if (event instanceof LocalAgentNoted) {
+        LocalAgentNoted typedEvent = (LocalAgentNoted) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onNoted", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onNoted(typedEvent);
+      } else if (event instanceof LocalAgentPermissionAnswered) {
+        LocalAgentPermissionAnswered typedEvent = (LocalAgentPermissionAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onAnswered", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onAnswered(typedEvent);
+      } else if (event instanceof LocalAgentPermissionCancelled) {
+        LocalAgentPermissionCancelled typedEvent = (LocalAgentPermissionCancelled) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onCancelled", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onCancelled(typedEvent);
+      } else if (event instanceof LocalAgentPermissionChosen) {
+        LocalAgentPermissionChosen typedEvent = (LocalAgentPermissionChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onChosen", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onChosen(typedEvent);
+      } else if (event instanceof LocalAgentPermissionDeadline) {
+        LocalAgentPermissionDeadline typedEvent = (LocalAgentPermissionDeadline) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onDeadline", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onDeadline(typedEvent);
+      } else if (event instanceof LocalAgentPermissionRequested) {
+        LocalAgentPermissionRequested typedEvent = (LocalAgentPermissionRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onRequested", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onRequested(typedEvent);
+      } else if (event instanceof LocalAgentProgressObserved) {
+        LocalAgentProgressObserved typedEvent = (LocalAgentProgressObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onProgress", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onProgress(typedEvent);
+      } else if (event instanceof LocalAgentRestartAnswered) {
+        LocalAgentRestartAnswered typedEvent = (LocalAgentRestartAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onRestartAnswered", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onRestartAnswered(typedEvent);
+      } else if (event instanceof LocalAgentRestartOfferRequested) {
+        LocalAgentRestartOfferRequested typedEvent = (LocalAgentRestartOfferRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentSession, "localAgentSession", "onRestartOfferRequested", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onRestartOfferRequested(typedEvent);
+      } else if (event instanceof LocalAgentSendRequested) {
+        LocalAgentSendRequested typedEvent = (LocalAgentSendRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onSendRequested", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onSendRequested(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onLocalAgentSend", typedEvent);
+        isDirty_aiSetup = aiSetup.onLocalAgentSend(typedEvent);
+      } else if (event instanceof LocalAgentSetupDirectoryChosen) {
+        LocalAgentSetupDirectoryChosen typedEvent = (LocalAgentSetupDirectoryChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentSession, "localAgentSession", "onSetupDirectoryChosen", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onSetupDirectoryChosen(typedEvent);
+      } else if (event instanceof LocalAgentSpawned) {
+        LocalAgentSpawned typedEvent = (LocalAgentSpawned) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onSpawned", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onSpawned(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onSpawned", typedEvent);
+        isDirty_starterProject = starterProject.onSpawned(typedEvent);
+      } else if (event instanceof LocalAgentStartDeadline) {
+        LocalAgentStartDeadline typedEvent = (LocalAgentStartDeadline) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onStartDeadline", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onStartDeadline(typedEvent);
+      } else if (event instanceof LocalAgentStartRequested) {
+        LocalAgentStartRequested typedEvent = (LocalAgentStartRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onStartRequested", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onStartRequested(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onStartRequested", typedEvent);
+        isDirty_aiSetup = aiSetup.onStartRequested(typedEvent);
+      } else if (event instanceof LocalAgentStatusObserved) {
+        LocalAgentStatusObserved typedEvent = (LocalAgentStatusObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onStatusObserved", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onStatusObserved(typedEvent);
+      } else if (event instanceof LocalAgentStopDeadline) {
+        LocalAgentStopDeadline typedEvent = (LocalAgentStopDeadline) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onStopDeadline", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onStopDeadline(typedEvent);
+      } else if (event instanceof LocalAgentStopRequested) {
+        LocalAgentStopRequested typedEvent = (LocalAgentStopRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentPermission, "localAgentPermission", "onStopRequested", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onStopRequested(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onStopRequested", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onStopRequested(typedEvent);
+      } else if (event instanceof LocalAgentSwitchChosen) {
+        LocalAgentSwitchChosen typedEvent = (LocalAgentSwitchChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onSwitchChosen", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onSwitchChosen(typedEvent);
+        auditInvocation(sessionBoundary, "sessionBoundary", "onSwitchChosen", typedEvent);
+        isDirty_sessionBoundary = sessionBoundary.onSwitchChosen(typedEvent);
+      } else if (event instanceof LocalAgentTextUpdated) {
+        LocalAgentTextUpdated typedEvent = (LocalAgentTextUpdated) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onTextUpdated", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onTextUpdated(typedEvent);
+      } else if (event instanceof LocalAgentToolFinished) {
+        LocalAgentToolFinished typedEvent = (LocalAgentToolFinished) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onToolFinished", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onToolFinished(typedEvent);
+      } else if (event instanceof LocalAgentToolStarted) {
+        LocalAgentToolStarted typedEvent = (LocalAgentToolStarted) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onToolStarted", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onToolStarted(typedEvent);
+      } else if (event instanceof LocalAgentTurnEnded) {
+        LocalAgentTurnEnded typedEvent = (LocalAgentTurnEnded) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentPermission, "localAgentPermission", "onTurnEnded", typedEvent);
+        isDirty_localAgentPermission = localAgentPermission.onTurnEnded(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onTurnEnded", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onTurnEnded(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onTurnEnded", typedEvent);
+        projectOutputs.onTurnEnded(typedEvent);
+      } else if (event instanceof LocalAgentTurnStarted) {
+        LocalAgentTurnStarted typedEvent = (LocalAgentTurnStarted) event;
+        auditEvent(typedEvent);
+        auditInvocation(localAgentSession, "localAgentSession", "onTurnStarted", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onTurnStarted(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onTurnStarted", typedEvent);
+        projectOutputs.onTurnStarted(typedEvent);
+      } else if (event instanceof LogAppended) {
+        LogAppended typedEvent = (LogAppended) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onLogAppended", typedEvent);
+        isDirty_operationGate = operationGate.onLogAppended(typedEvent);
+        auditInvocation(openLog, "openLog", "onLogAppended", typedEvent);
+        isDirty_openLog = openLog.onLogAppended(typedEvent);
+        auditInvocation(logEvidence, "logEvidence", "onLogAppended", typedEvent);
+        isDirty_logEvidence = logEvidence.onLogAppended(typedEvent);
+        auditInvocation(recordsView, "recordsView", "onLogAppended", typedEvent);
+        isDirty_recordsView = recordsView.onLogAppended(typedEvent);
+      } else if (event instanceof LogCleared) {
+        LogCleared typedEvent = (LogCleared) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onLogCleared", typedEvent);
+        isDirty_operationGate = operationGate.onLogCleared(typedEvent);
+        auditInvocation(openLog, "openLog", "onLogCleared", typedEvent);
+        isDirty_openLog = openLog.onLogCleared(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onLogCleared", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onLogCleared(typedEvent);
+      } else if (event instanceof LogClosed) {
+        LogClosed typedEvent = (LogClosed) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onLogClosed", typedEvent);
+        isDirty_operationGate = operationGate.onLogClosed(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onLogClosed", typedEvent);
+        effectOutcomes.onLogClosed(typedEvent);
+        auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
+        isDirty_openLog = openLog.onLogClosed(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onLogClosed", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onLogClosed(typedEvent);
+      } else if (event instanceof LogContentObserved) {
+        LogContentObserved typedEvent = (LogContentObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(logEvidence, "logEvidence", "onLogContentObserved", typedEvent);
+        isDirty_logEvidence = logEvidence.onLogContentObserved(typedEvent);
+      } else if (event instanceof LogIdentityObserved) {
+        LogIdentityObserved typedEvent = (LogIdentityObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(openLog, "openLog", "onLogIdentityObserved", typedEvent);
+        isDirty_openLog = openLog.onLogIdentityObserved(typedEvent);
+      } else if (event instanceof LogOpenFailed) {
+        LogOpenFailed typedEvent = (LogOpenFailed) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onLogOpenFailed", typedEvent);
+        isDirty_operationGate = operationGate.onLogOpenFailed(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onLogOpenFailed", typedEvent);
+        effectOutcomes.onLogOpenFailed(typedEvent);
+        auditInvocation(logOpening, "logOpening", "onLogOpenFailed", typedEvent);
+        logOpening.onLogOpenFailed(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onLogOpenFailed", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onLogOpenFailed(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onLogOpenFailed", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onLogOpenFailed(typedEvent);
+      } else if (event instanceof LogOpened) {
+        LogOpened typedEvent = (LogOpened) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onLogOpened", typedEvent);
+        isDirty_operationGate = operationGate.onLogOpened(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onLogOpened", typedEvent);
+        effectOutcomes.onLogOpened(typedEvent);
+        auditInvocation(openLog, "openLog", "onLogOpened", typedEvent);
+        isDirty_openLog = openLog.onLogOpened(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onLogOpened", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onLogOpened(typedEvent);
+        auditInvocation(logArrival, "logArrival", "onLogOpened", typedEvent);
+        logArrival.onLogOpened(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onLogOpened", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onLogOpened(typedEvent);
+        auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onLogOpened", typedEvent);
+        isDirty_startPageNoLogHint = startPageNoLogHint.onLogOpened(typedEvent);
+      } else if (event instanceof McpReadinessObserved) {
+        McpReadinessObserved typedEvent = (McpReadinessObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onReadiness", typedEvent);
+        isDirty_aiSetup = aiSetup.onReadiness(typedEvent);
+      } else if (event instanceof McpRegistrationChanged) {
+        McpRegistrationChanged typedEvent = (McpRegistrationChanged) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onRegistrationChanged", typedEvent);
+        isDirty_aiSetup = aiSetup.onRegistrationChanged(typedEvent);
+      } else if (event instanceof McpRegistrationObserved) {
+        McpRegistrationObserved typedEvent = (McpRegistrationObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onRegistrationObserved", typedEvent);
+        isDirty_aiSetup = aiSetup.onRegistrationObserved(typedEvent);
+      } else if (event instanceof MembershipCompared) {
+        MembershipCompared typedEvent = (MembershipCompared) event;
+        auditEvent(typedEvent);
+        auditInvocation(pairingQualifier, "pairingQualifier", "onMembershipCompared", typedEvent);
+        pairingQualifier.onMembershipCompared(typedEvent);
+      } else if (event instanceof OpenLogRequested) {
+        OpenLogRequested typedEvent = (OpenLogRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onOpenLogRequested", typedEvent);
+        isDirty_operationGate = operationGate.onOpenLogRequested(typedEvent);
+        auditInvocation(logOpening, "logOpening", "onOpenLogRequested", typedEvent);
+        logOpening.onOpenLogRequested(typedEvent);
+        auditInvocation(logArrival, "logArrival", "onOpenLogRequested", typedEvent);
+        logArrival.onOpenLogRequested(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onOpenLogRequested", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onOpenLogRequested(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "logChosen", typedEvent);
+        firstMinute.logChosen(typedEvent);
+        auditInvocation(projectReopenOffer, "projectReopenOffer", "onOpenLogRequested", typedEvent);
+        projectReopenOffer.onOpenLogRequested(typedEvent);
+      } else if (event instanceof OpenProjectRequested) {
+        OpenProjectRequested typedEvent = (OpenProjectRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onOpenProjectRequested", typedEvent);
+        isDirty_operationGate = operationGate.onOpenProjectRequested(typedEvent);
+        auditInvocation(openBundle, "openBundle", "onOpenProjectRequested", typedEvent);
+        isDirty_openBundle = openBundle.onOpenProjectRequested(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onOpenProjectRequested", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onOpenProjectRequested(typedEvent);
+        auditInvocation(sessionBoundary, "sessionBoundary", "onOpenProjectRequested", typedEvent);
+        isDirty_sessionBoundary = sessionBoundary.onOpenProjectRequested(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "projectChosen", typedEvent);
+        firstMinute.projectChosen(typedEvent);
+        auditInvocation(
+            projectReopenOffer, "projectReopenOffer", "onOpenProjectRequested", typedEvent);
+        projectReopenOffer.onOpenProjectRequested(typedEvent);
+      } else if (event instanceof OpenRequestReceived) {
+        OpenRequestReceived typedEvent = (OpenRequestReceived) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            ignoredParameters, "ignoredParameters", "onOpenRequestReceived", typedEvent);
+        ignoredParameters.onOpenRequestReceived(typedEvent);
+      } else if (event instanceof Pending) {
+        Pending typedEvent = (Pending) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onPending", typedEvent);
+        isDirty_operationGate = operationGate.onPending(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onPending", typedEvent);
+        effectOutcomes.onPending(typedEvent);
+      } else if (event instanceof ProducerFindingsObserved) {
+        ProducerFindingsObserved typedEvent = (ProducerFindingsObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(logEvidence, "logEvidence", "onProducerFindingsObserved", typedEvent);
+        isDirty_logEvidence = logEvidence.onProducerFindingsObserved(typedEvent);
+      } else if (event instanceof ProfileApplied) {
+        ProfileApplied typedEvent = (ProfileApplied) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onProfileApplied", typedEvent);
+        isDirty_operationGate = operationGate.onProfileApplied(typedEvent);
+        auditInvocation(activeProject, "activeProject", "onProfileApplied", typedEvent);
+        isDirty_activeProject = activeProject.onProfileApplied(typedEvent);
+        auditInvocation(designSession, "designSession", "project", typedEvent);
+        isDirty_designSession = designSession.project(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
+        effectOutcomes.onProfileApplied(typedEvent);
+        auditInvocation(openBundle, "openBundle", "onProfileApplied", typedEvent);
+        isDirty_openBundle = openBundle.onProfileApplied(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onProfileApplied", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onProfileApplied(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onProfileApplied", typedEvent);
+        isDirty_starterProject = starterProject.onProfileApplied(typedEvent);
+        auditInvocation(sessionBoundary, "sessionBoundary", "onProfileApplied", typedEvent);
+        isDirty_sessionBoundary = sessionBoundary.onProfileApplied(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onProfileApplied", typedEvent);
+        projectOutputs.onProfileApplied(typedEvent);
+        auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
+        bundleAnchor.onProfileApplied(typedEvent);
+        auditInvocation(projectReopenOffer, "projectReopenOffer", "onProfileApplied", typedEvent);
+        projectReopenOffer.onProfileApplied(typedEvent);
+      } else if (event instanceof ProfileLoaded) {
+        ProfileLoaded typedEvent = (ProfileLoaded) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onProfileLoaded", typedEvent);
+        isDirty_operationGate = operationGate.onProfileLoaded(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onProfileLoaded", typedEvent);
+        effectOutcomes.onProfileLoaded(typedEvent);
+        auditInvocation(openBundle, "openBundle", "onProfileLoaded", typedEvent);
+        isDirty_openBundle = openBundle.onProfileLoaded(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onProfileLoaded", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onProfileLoaded(typedEvent);
+        auditInvocation(sessionBoundary, "sessionBoundary", "onProfileLoaded", typedEvent);
+        isDirty_sessionBoundary = sessionBoundary.onProfileLoaded(typedEvent);
+      } else if (event instanceof ProjectOutputChanged) {
+        ProjectOutputChanged typedEvent = (ProjectOutputChanged) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onProjectOutputChanged", typedEvent);
+        isDirty_starterProject = starterProject.onProjectOutputChanged(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onChange", typedEvent);
+        projectOutputs.onChange(typedEvent);
+      } else if (event instanceof ProjectOutputOfferAnswered) {
+        ProjectOutputOfferAnswered typedEvent = (ProjectOutputOfferAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onAnswered", typedEvent);
+        projectOutputs.onAnswered(typedEvent);
+      } else if (event instanceof ProjectOutputOpenObserved) {
+        ProjectOutputOpenObserved typedEvent = (ProjectOutputOpenObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onOpened", typedEvent);
+        projectOutputs.onOpened(typedEvent);
+      } else if (event instanceof ProjectOutputsBasisObserved) {
+        ProjectOutputsBasisObserved typedEvent = (ProjectOutputsBasisObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onBasis", typedEvent);
+        projectOutputs.onBasis(typedEvent);
+      } else if (event instanceof ProjectOutputsScanned) {
+        ProjectOutputsScanned typedEvent = (ProjectOutputsScanned) event;
+        auditEvent(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onScan", typedEvent);
+        projectOutputs.onScan(typedEvent);
+      } else if (event instanceof ProjectReopenPresented) {
+        ProjectReopenPresented typedEvent = (ProjectReopenPresented) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            projectReopenOffer, "projectReopenOffer", "onProjectReopenPresented", typedEvent);
+        projectReopenOffer.onProjectReopenPresented(typedEvent);
+      } else if (event instanceof ProjectReopenReady) {
+        ProjectReopenReady typedEvent = (ProjectReopenReady) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            projectReopenOffer, "projectReopenOffer", "onProjectReopenReady", typedEvent);
+        projectReopenOffer.onProjectReopenReady(typedEvent);
+      } else if (event instanceof ProjectReopenRequested) {
+        ProjectReopenRequested typedEvent = (ProjectReopenRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onStartup", typedEvent);
+        projectOutputs.onStartup(typedEvent);
+        auditInvocation(
+            projectReopenOffer, "projectReopenOffer", "onProjectReopenRequested", typedEvent);
+        projectReopenOffer.onProjectReopenRequested(typedEvent);
+      } else if (event instanceof ProposalApplyRequested) {
+        ProposalApplyRequested typedEvent = (ProposalApplyRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onApplyRequested", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onApplyRequested(typedEvent);
+      } else if (event instanceof ProposalChecked) {
+        ProposalChecked typedEvent = (ProposalChecked) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onChecked", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onChecked(typedEvent);
+      } else if (event instanceof ProposalDismissed) {
+        ProposalDismissed typedEvent = (ProposalDismissed) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onDismissed", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onDismissed(typedEvent);
+      } else if (event instanceof ProposalEffectStarted) {
+        ProposalEffectStarted typedEvent = (ProposalEffectStarted) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onEffectStarted", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onEffectStarted(typedEvent);
+      } else if (event instanceof ProposalItemAnswered) {
+        ProposalItemAnswered typedEvent = (ProposalItemAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onItemAnswered", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onItemAnswered(typedEvent);
+      } else if (event instanceof ProposalItemApplied) {
+        ProposalItemApplied typedEvent = (ProposalItemApplied) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            localAgentSession, "localAgentSession", "onProposalItemApplied", typedEvent);
+        isDirty_localAgentSession = localAgentSession.onProposalItemApplied(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onApplied", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onApplied(typedEvent);
+      } else if (event instanceof ProposalItemPreviewed) {
+        ProposalItemPreviewed typedEvent = (ProposalItemPreviewed) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onPreviewed", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onPreviewed(typedEvent);
+      } else if (event instanceof ProposalPreviewDone) {
+        ProposalPreviewDone typedEvent = (ProposalPreviewDone) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onPreviewDone", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onPreviewDone(typedEvent);
+      } else if (event instanceof ProposalReceived) {
+        ProposalReceived typedEvent = (ProposalReceived) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onReceived", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onReceived(typedEvent);
+      } else if (event instanceof RecordFlagsChanged) {
+        RecordFlagsChanged typedEvent = (RecordFlagsChanged) event;
+        auditEvent(typedEvent);
+        auditInvocation(recordsView, "recordsView", "onRecordFlagsChanged", typedEvent);
+        isDirty_recordsView = recordsView.onRecordFlagsChanged(typedEvent);
+      } else if (event instanceof RecordsViewInstalled) {
+        RecordsViewInstalled typedEvent = (RecordsViewInstalled) event;
+        auditEvent(typedEvent);
+        auditInvocation(recordsView, "recordsView", "onRecordsViewInstalled", typedEvent);
+        isDirty_recordsView = recordsView.onRecordsViewInstalled(typedEvent);
+      } else if (event instanceof RecordsViewMeasured) {
+        RecordsViewMeasured typedEvent = (RecordsViewMeasured) event;
+        auditEvent(typedEvent);
+        auditInvocation(recordsView, "recordsView", "onRecordsViewMeasured", typedEvent);
+        isDirty_recordsView = recordsView.onRecordsViewMeasured(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onRecordsViewMeasured", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onRecordsViewMeasured(typedEvent);
+      } else if (event instanceof RegisterAnswered) {
+        RegisterAnswered typedEvent = (RegisterAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onRegisterAnswered", typedEvent);
+        isDirty_aiSetup = aiSetup.onRegisterAnswered(typedEvent);
+      } else if (event instanceof RestSwitchObserved) {
+        RestSwitchObserved typedEvent = (RestSwitchObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(actionListener, "actionListener", "onRestSwitch", typedEvent);
+        isDirty_actionListener = actionListener.onRestSwitch(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onRestSwitch", typedEvent);
+        isDirty_aiSetup = aiSetup.onRestSwitch(typedEvent);
+      } else if (event instanceof ReturnToMainOptions) {
+        ReturnToMainOptions typedEvent = (ReturnToMainOptions) event;
+        auditEvent(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onReturnToMainOptions", typedEvent);
+        startPagePrompt.onReturnToMainOptions(typedEvent);
+      } else if (event instanceof ScanScheduled) {
+        ScanScheduled typedEvent = (ScanScheduled) event;
+        auditEvent(typedEvent);
+        auditInvocation(logEvidence, "logEvidence", "onScanScheduled", typedEvent);
+        isDirty_logEvidence = logEvidence.onScanScheduled(typedEvent);
+      } else if (event instanceof SettingsRestored) {
+        SettingsRestored typedEvent = (SettingsRestored) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onSettingsRestored", typedEvent);
+        isDirty_operationGate = operationGate.onSettingsRestored(typedEvent);
+        auditInvocation(activeProject, "activeProject", "onSettingsRestored", typedEvent);
+        isDirty_activeProject = activeProject.onSettingsRestored(typedEvent);
+        auditInvocation(designSession, "designSession", "restored", typedEvent);
+        isDirty_designSession = designSession.restored(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
+        effectOutcomes.onSettingsRestored(typedEvent);
+        auditInvocation(openBundle, "openBundle", "onSettingsRestored", typedEvent);
+        isDirty_openBundle = openBundle.onSettingsRestored(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onSettingsRestored", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onSettingsRestored(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onSettingsRestored", typedEvent);
+        isDirty_starterProject = starterProject.onSettingsRestored(typedEvent);
+        auditInvocation(projectOutputs, "projectOutputs", "onClosed", typedEvent);
+        projectOutputs.onClosed(typedEvent);
+      } else if (event instanceof SkillsVendored) {
+        SkillsVendored typedEvent = (SkillsVendored) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onSkillsVendored", typedEvent);
+        isDirty_starterProject = starterProject.onSkillsVendored(typedEvent);
+      } else if (event instanceof SourceRootsObserved) {
+        SourceRootsObserved typedEvent = (SourceRootsObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(designSession, "designSession", "roots", typedEvent);
+        isDirty_designSession = designSession.roots(typedEvent);
+        auditInvocation(bundleAnchor, "bundleAnchor", "onSourceRootsObserved", typedEvent);
+        bundleAnchor.onSourceRootsObserved(typedEvent);
+      } else if (event instanceof StageToggleRequested) {
+        StageToggleRequested typedEvent = (StageToggleRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onStageToggleRequested", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onStageToggleRequested(typedEvent);
+      } else if (event instanceof StartPageAvailability) {
+        StartPageAvailability typedEvent = (StartPageAvailability) event;
+        auditEvent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onAvailability", typedEvent);
+        isDirty_aiSetup = aiSetup.onAvailability(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onAvailability", typedEvent);
+        startPagePrompt.onAvailability(typedEvent);
+      } else if (event instanceof StartPageEffectStarted) {
+        StartPageEffectStarted typedEvent = (StartPageEffectStarted) event;
+        auditEvent(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onEffectStarted", typedEvent);
+        startPagePrompt.onEffectStarted(typedEvent);
+      } else if (event instanceof StartPageFlowDone) {
+        StartPageFlowDone typedEvent = (StartPageFlowDone) event;
+        auditEvent(typedEvent);
+        auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onFlowDone", typedEvent);
+        isDirty_startPageNoLogHint = startPageNoLogHint.onFlowDone(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onFlowDone", typedEvent);
+        startPagePrompt.onFlowDone(typedEvent);
+      } else if (event instanceof StartPageNoLogAnswered) {
+        StartPageNoLogAnswered typedEvent = (StartPageNoLogAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onAnswered", typedEvent);
+        isDirty_startPageNoLogHint = startPageNoLogHint.onAnswered(typedEvent);
+      } else if (event instanceof StartPagePromptSent) {
+        StartPagePromptSent typedEvent = (StartPagePromptSent) event;
+        auditEvent(typedEvent);
+        auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onSent", typedEvent);
+        isDirty_startPageNoLogHint = startPageNoLogHint.onSent(typedEvent);
+        auditInvocation(aiSetup, "aiSetup", "onStartPageSent", typedEvent);
+        isDirty_aiSetup = aiSetup.onStartPageSent(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onSent", typedEvent);
+        startPagePrompt.onSent(typedEvent);
+      } else if (event instanceof StartPromptPackDropped) {
+        StartPromptPackDropped typedEvent = (StartPromptPackDropped) event;
+        auditEvent(typedEvent);
+        auditInvocation(startPagePrompt, "startPagePrompt", "onPackDropped", typedEvent);
+        startPagePrompt.onPackDropped(typedEvent);
+      } else if (event instanceof StarterCancelled) {
+        StarterCancelled typedEvent = (StarterCancelled) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onStarterCancelled", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onStarterCancelled(typedEvent);
+      } else if (event instanceof StarterCatalogueObserved) {
+        StarterCatalogueObserved typedEvent = (StarterCatalogueObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onCatalogueObserved", typedEvent);
+        isDirty_starterProject = starterProject.onCatalogueObserved(typedEvent);
+      } else if (event instanceof StarterChosen) {
+        StarterChosen typedEvent = (StarterChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onChosen", typedEvent);
+        isDirty_starterProject = starterProject.onChosen(typedEvent);
+      } else if (event instanceof StarterConfigured) {
+        StarterConfigured typedEvent = (StarterConfigured) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onConfigured", typedEvent);
+        isDirty_starterProject = starterProject.onConfigured(typedEvent);
+      } else if (event instanceof StarterDefaultsObserved) {
+        StarterDefaultsObserved typedEvent = (StarterDefaultsObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(onboardingProposal, "onboardingProposal", "onStarterDefaults", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onStarterDefaults(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onDefaultsObserved", typedEvent);
+        isDirty_starterProject = starterProject.onDefaultsObserved(typedEvent);
+      } else if (event instanceof StarterDesignOpened) {
+        StarterDesignOpened typedEvent = (StarterDesignOpened) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onDesignOpened", typedEvent);
+        isDirty_starterProject = starterProject.onDesignOpened(typedEvent);
+      } else if (event instanceof StarterDestinationChosen) {
+        StarterDestinationChosen typedEvent = (StarterDestinationChosen) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onDestinationChosen", typedEvent);
+        isDirty_starterProject = starterProject.onDestinationChosen(typedEvent);
+      } else if (event instanceof StarterDirectoryObserved) {
+        StarterDirectoryObserved typedEvent = (StarterDirectoryObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onDirectoryObserved", typedEvent);
+        isDirty_starterProject = starterProject.onDirectoryObserved(typedEvent);
+      } else if (event instanceof StarterDiscoveryObserved) {
+        StarterDiscoveryObserved typedEvent = (StarterDiscoveryObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onDiscoveryObserved", typedEvent);
+        isDirty_starterProject = starterProject.onDiscoveryObserved(typedEvent);
+      } else if (event instanceof StarterEffectStarted) {
+        StarterEffectStarted typedEvent = (StarterEffectStarted) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onEffectStarted", typedEvent);
+        isDirty_starterProject = starterProject.onEffectStarted(typedEvent);
+      } else if (event instanceof StarterInstallFailed) {
+        StarterInstallFailed typedEvent = (StarterInstallFailed) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            onboardingProposal, "onboardingProposal", "onStarterInstallFailed", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onStarterInstallFailed(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onInstallFailed", typedEvent);
+        isDirty_starterProject = starterProject.onInstallFailed(typedEvent);
+      } else if (event instanceof StarterInstalled) {
+        StarterInstalled typedEvent = (StarterInstalled) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onInstalled", typedEvent);
+        isDirty_starterProject = starterProject.onInstalled(typedEvent);
+      } else if (event instanceof StarterMenuRequested) {
+        StarterMenuRequested typedEvent = (StarterMenuRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onMenuRequested", typedEvent);
+        isDirty_starterProject = starterProject.onMenuRequested(typedEvent);
+      } else if (event instanceof StarterProjectOpened) {
+        StarterProjectOpened typedEvent = (StarterProjectOpened) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            onboardingProposal, "onboardingProposal", "onStarterProjectOpened", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onStarterProjectOpened(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onProjectOpened", typedEvent);
+        isDirty_starterProject = starterProject.onProjectOpened(typedEvent);
+      } else if (event instanceof StarterReviewAnswered) {
+        StarterReviewAnswered typedEvent = (StarterReviewAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(
+            onboardingProposal, "onboardingProposal", "onStarterReviewAnswered", typedEvent);
+        isDirty_onboardingProposal = onboardingProposal.onStarterReviewAnswered(typedEvent);
+        auditInvocation(starterProject, "starterProject", "onReviewAnswered", typedEvent);
+        isDirty_starterProject = starterProject.onReviewAnswered(typedEvent);
+      } else if (event instanceof StatusShown) {
+        StatusShown typedEvent = (StatusShown) event;
+        auditEvent(typedEvent);
+        auditInvocation(operationGate, "operationGate", "onStatusShown", typedEvent);
+        isDirty_operationGate = operationGate.onStatusShown(typedEvent);
+        auditInvocation(effectOutcomes, "effectOutcomes", "onStatusShown", typedEvent);
+        effectOutcomes.onStatusShown(typedEvent);
+      } else if (event instanceof TimeOrderObserved) {
+        TimeOrderObserved typedEvent = (TimeOrderObserved) event;
+        auditEvent(typedEvent);
+        auditInvocation(logEvidence, "logEvidence", "onTimeOrderObserved", typedEvent);
+        isDirty_logEvidence = logEvidence.onTimeOrderObserved(typedEvent);
+      } else if (event instanceof ViewFilterChanged) {
+        ViewFilterChanged typedEvent = (ViewFilterChanged) event;
+        auditEvent(typedEvent);
+        auditInvocation(pairingQualifier, "pairingQualifier", "onViewFilterChanged", typedEvent);
+        pairingQualifier.onViewFilterChanged(typedEvent);
+        auditInvocation(recordsView, "recordsView", "onViewFilterChanged", typedEvent);
+        isDirty_recordsView = recordsView.onViewFilterChanged(typedEvent);
+        auditInvocation(assistantLoop, "assistantLoop", "onViewFilterChanged", typedEvent);
+        isDirty_assistantLoop = assistantLoop.onViewFilterChanged(typedEvent);
+      } else if (event instanceof WalkAcknowledged) {
+        WalkAcknowledged typedEvent = (WalkAcknowledged) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkAcknowledged", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkAcknowledged(typedEvent);
+      } else if (event instanceof WalkAdvanceDue) {
+        WalkAdvanceDue typedEvent = (WalkAdvanceDue) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkAdvanceDue", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkAdvanceDue(typedEvent);
+      } else if (event instanceof WalkDefinitionChanged) {
+        WalkDefinitionChanged typedEvent = (WalkDefinitionChanged) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkDefinitionChanged", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkDefinitionChanged(typedEvent);
+      } else if (event instanceof WalkEndRequested) {
+        WalkEndRequested typedEvent = (WalkEndRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkEndRequested", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkEndRequested(typedEvent);
+      } else if (event instanceof WalkNavigated) {
+        WalkNavigated typedEvent = (WalkNavigated) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkNavigated", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkNavigated(typedEvent);
+      } else if (event instanceof WalkPlayRequested) {
+        WalkPlayRequested typedEvent = (WalkPlayRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkPlayRequested", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkPlayRequested(typedEvent);
+        auditInvocation(
+            projectReopenOffer, "projectReopenOffer", "onWalkPlayRequested", typedEvent);
+        projectReopenOffer.onWalkPlayRequested(typedEvent);
+      } else if (event instanceof WalkReelFrameCaptured) {
+        WalkReelFrameCaptured typedEvent = (WalkReelFrameCaptured) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkReelFrameCaptured", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkReelFrameCaptured(typedEvent);
+      } else if (event instanceof WalkStepPrepared) {
+        WalkStepPrepared typedEvent = (WalkStepPrepared) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkStepPrepared", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkStepPrepared(typedEvent);
+      } else if (event instanceof WalkTargetsLit) {
+        WalkTargetsLit typedEvent = (WalkTargetsLit) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkTargetsLit", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkTargetsLit(typedEvent);
+      } else if (event instanceof WalkViewApplied) {
+        WalkViewApplied typedEvent = (WalkViewApplied) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkViewApplied", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkViewApplied(typedEvent);
+      } else if (event instanceof WalkViewChanged) {
+        WalkViewChanged typedEvent = (WalkViewChanged) event;
+        auditEvent(typedEvent);
+        auditInvocation(walkPlayback, "walkPlayback", "onWalkViewChanged", typedEvent);
+        isDirty_walkPlayback = walkPlayback.onWalkViewChanged(typedEvent);
+      } else if (event instanceof Activated) {
+        Activated typedEvent = (Activated) event;
+        auditEvent(typedEvent);
+        auditInvocation(sessionRecovery, "sessionRecovery", "activate", typedEvent);
+        isDirty_sessionRecovery = sessionRecovery.activate(typedEvent);
+      } else if (event instanceof Checked) {
+        Checked typedEvent = (Checked) event;
+        auditEvent(typedEvent);
+        auditInvocation(sessionRecovery, "sessionRecovery", "checked", typedEvent);
+        isDirty_sessionRecovery = sessionRecovery.checked(typedEvent);
+      } else if (event instanceof Finished) {
+        Finished typedEvent = (Finished) event;
+        auditEvent(typedEvent);
+        auditInvocation(sessionRecovery, "sessionRecovery", "finished", typedEvent);
+        isDirty_sessionRecovery = sessionRecovery.finished(typedEvent);
+      } else if (event instanceof OfferLoaded) {
+        OfferLoaded typedEvent = (OfferLoaded) event;
+        auditEvent(typedEvent);
+        auditInvocation(sessionRecovery, "sessionRecovery", "offer", typedEvent);
+        isDirty_sessionRecovery = sessionRecovery.offer(typedEvent);
+      } else if (event instanceof Requested) {
+        Requested typedEvent = (Requested) event;
+        auditEvent(typedEvent);
+        auditInvocation(sessionRecovery, "sessionRecovery", "request", typedEvent);
+        isDirty_sessionRecovery = sessionRecovery.request(typedEvent);
+      }
+    } catch (Throwable t) {
+      buffering = false;
+      failedCycle(t);
+      throw t;
     }
   }
 
   public void triggerCalculation() {
     buffering = false;
-    String typedEvent = "No event information - buffered dispatch";
-    if (guardCheck_auditInstallation()) {
-      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
-      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    try {
+      String typedEvent = "No event information - buffered dispatch";
+      if (guardCheck_auditInstallation()) {
+        auditInvocation(
+            auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+        isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+      }
+      commonDispatchTail_1(typedEvent);
+      afterEvent();
+    } catch (Throwable t) {
+      failedCycle(t);
+      throw t;
     }
-    commonDispatchTail_1(typedEvent);
-    afterEvent();
   }
   //EVENT BUFFERING - END
 
@@ -8294,11 +8332,13 @@ public class SessionProcessor
   /**
    * DataFlow.runInEventCycle: run a host's action as an event cycle, with auditEvent as its audit
    * context. A buffered calculation runs first (it closes its own record), then the cycle opens
-   * with the caller's event and the action runs; a finally closes the cycle and dispatches what the
-   * action queued, and an inner finally clears processing, so a throw cannot wedge the processor.
-   * auditEvent is dispatched to no node and marks nothing dirty. An auditEvent that is an Event
-   * supplies its own event time, as on the event path; any other object takes the process time. Not
-   * re-entrant. To disable the path in a generated processor, make this throw.
+   * with the caller's event and the action runs; then the cycle is closed and what the action
+   * queued is dispatched. A failed action's cycle is still closed and its queued work is not
+   * dispatched; a throw while closing or draining fails the cycle (failedCycle). The action's own
+   * exception is the one the caller sees, and a finally clears processing. auditEvent is dispatched
+   * to no node and marks nothing dirty. An auditEvent that is an Event supplies its own event time,
+   * as on the event path; any other object takes the process time. Not re-entrant. To disable the
+   * path in a generated processor, make this throw.
    *
    * <p>No @Override, deliberately: generated source must also compile against a runtime that
    * predates DataFlow.runInEventCycle (1.0.16), where this is an ordinary public method a host
@@ -8316,23 +8356,39 @@ public class SessionProcessor
     }
     processing = true;
     try {
-      // an Event supplies its own event time, as on the event path: the static type selects the auditors'
-      // overload, eventReceived(Event) or eventReceived(Object)
-      if (auditEvent instanceof com.telamin.fluxtion.runtime.event.Event) {
-        auditEvent((com.telamin.fluxtion.runtime.event.Event) auditEvent);
-      } else {
-        auditEvent(auditEvent);
+      try {
+        // an Event supplies its own event time, as on the event path: the static type selects the auditors'
+        // overload, eventReceived(Event) or eventReceived(Object)
+        if (auditEvent instanceof com.telamin.fluxtion.runtime.event.Event) {
+          auditEvent((com.telamin.fluxtion.runtime.event.Event) auditEvent);
+        } else {
+          auditEvent(auditEvent);
+        }
+        action.run();
+      } catch (Throwable t) {
+        // the action failed: the cycle is still closed, as a host's own audit bracket closes its record, and
+        // what it queued is not dispatched. A throw from the close is kept as suppressed evidence.
+        try {
+          afterEvent();
+        } catch (Throwable closeFailure) {
+          if (closeFailure != t) {
+            t.addSuppressed(closeFailure);
+          }
+          failedCycle(t);
+        }
+        throw t;
       }
-      action.run();
-    } finally {
-      // closed even when the action throws, as a host's own audit bracket closes its record; processing is
-      // cleared innermost, so a throw from the close cannot wedge the processor either
+      // #105: closing the cycle and draining what the action queued are part of the cycle, so a throw there
+      // fails it and the failing queued item is not left at the head of the queue for the next event
       try {
         afterEvent();
         callbackDispatcher.dispatchQueuedCallbacks();
-      } finally {
-        processing = false;
+      } catch (Throwable t) {
+        failedCycle(t);
+        throw t;
       }
+    } finally {
+      processing = false;
     }
   }
 
@@ -8363,24 +8419,77 @@ public class SessionProcessor
     isDirty_walkPlayback = false;
   }
 
+  /**
+   * The close of a cycle that failed (telaminai/fluxtion-compiler#105): framework state only, no
+   * user code. Dirty flags and fork tasks are reset so nothing of the failed cycle triggers a later
+   * one, the auditors close its record so the next cycle's record is its own, and, on a runtime
+   * that declares discardQueuedCallbacks (1.1.3+), what the cycle queued is discarded. An auditor's
+   * throw is added to the cycle's exception as suppressed.
+   */
+  private void failedCycle(Throwable cause) {
+    isDirty_actionListener = false;
+    isDirty_activeProject = false;
+    isDirty_aiSetup = false;
+    isDirty_assistantLoop = false;
+    isDirty_assistantMode = false;
+    isDirty_auditInstallation = false;
+    isDirty_designSession = false;
+    isDirty_localAgentPermission = false;
+    isDirty_localAgentSession = false;
+    isDirty_logEvidence = false;
+    isDirty_onboardingProposal = false;
+    isDirty_openBundle = false;
+    isDirty_openGraph = false;
+    isDirty_openLog = false;
+    isDirty_operationGate = false;
+    isDirty_pairing = false;
+    isDirty_recordsView = false;
+    isDirty_sessionBoundary = false;
+    isDirty_sessionRecovery = false;
+    isDirty_startPageNoLogHint = false;
+    isDirty_starterProject = false;
+    isDirty_walkPlayback = false;
+
+    try {
+      clock.processingComplete();
+      eventLogger.processingComplete();
+    } catch (Throwable t) {
+      if (t != cause) {
+        cause.addSuppressed(t);
+      }
+    }
+  }
+
   @Override
   public void batchPause() {
-    auditEvent(Lifecycle.LifecycleEvent.BatchPause);
     processing = true;
+    try {
+      auditEvent(Lifecycle.LifecycleEvent.BatchPause);
 
-    afterEvent();
-    callbackDispatcher.dispatchQueuedCallbacks();
-    processing = false;
+      afterEvent();
+      callbackDispatcher.dispatchQueuedCallbacks();
+    } catch (Throwable t) {
+      failedCycle(t);
+      throw t;
+    } finally {
+      processing = false;
+    }
   }
 
   @Override
   public void batchEnd() {
-    auditEvent(Lifecycle.LifecycleEvent.BatchEnd);
     processing = true;
-    effectQueue.performRequestedEffects();
-    afterEvent();
-    callbackDispatcher.dispatchQueuedCallbacks();
-    processing = false;
+    try {
+      auditEvent(Lifecycle.LifecycleEvent.BatchEnd);
+      effectQueue.performRequestedEffects();
+      afterEvent();
+      callbackDispatcher.dispatchQueuedCallbacks();
+    } catch (Throwable t) {
+      failedCycle(t);
+      throw t;
+    } finally {
+      processing = false;
+    }
   }
 
   @Override

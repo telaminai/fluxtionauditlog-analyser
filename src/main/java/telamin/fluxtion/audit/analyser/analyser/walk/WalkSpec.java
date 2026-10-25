@@ -77,6 +77,7 @@ public record WalkSpec(String name, String title, String author, String createdA
         return switch (author) {
             case AUTHOR_ASSISTANT -> "by the assistant";
             case AUTHOR_PERSON -> "by a person";
+            case "bundled" -> "bundled commentary";
             default -> "by " + author + " (declared)";
         };
     }

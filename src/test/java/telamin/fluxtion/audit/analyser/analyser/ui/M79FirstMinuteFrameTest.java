@@ -11,6 +11,11 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /** A1.9: the real Main twice, not a frame fixture that bypasses startup. No model or real CLI configuration. */
 class M79FirstMinuteFrameTest {
+    @Test void firstMinuteInputsAndProcessorNeverBecomeMachineSettings(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        probe(tmp, Files.createDirectories(tmp.resolve("home")), stub(tmp),
+                Files.createTempDirectory(Path.of("target"), "m79-config-").toAbsolutePath(), "first-minute-config");
+    }
     @Test void firstLaunchPlaysThePinnedDiamondAndRelaunchOffersNeitherPlaybackNorRecovery(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         Path home = Files.createDirectories(tmp.resolve("home"));

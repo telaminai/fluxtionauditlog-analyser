@@ -30,6 +30,7 @@ public class FirstMinute implements EventLogSource {
     private long walkTicketAtStart;
     private boolean readRequested, presentationRequested, bundled, marked, personalContent;
     private long verifiedGeneration = -1, verifiedTicket = -1;
+    private long failedGeneration = -1, failedTicket = -1;
     private long ownedDesignReadGeneration = -1;
 
     public FirstMinute(OpenLog openLog, WalkPlayback walkPlayback, SessionRecovery sessionRecovery,
@@ -54,6 +55,7 @@ public class FirstMinute implements EventLogSource {
     }
 
     @OnEventHandler public boolean designChosen(DesignEvents.ReadRequested e) {
+        if (!"open".equals(e.kind())) return false;
         if (presentationRequested && e.firstMinuteTicket() > 0
                 && permitsPreparation(e.firstMinuteTicket(), generation)) {
             ownedDesignReadGeneration = designSession.generation();
@@ -71,6 +73,11 @@ public class FirstMinute implements EventLogSource {
         return personalPresentation();
     }
 
+    @OnEventHandler public boolean resultOpened(DesignEvents.ResultReadCompleted e) {
+        if (e.result() == null || !designSession.acceptedResult()) return false;
+        return personalPresentation();
+    }
+
     private boolean personalPresentation() {
         boolean moved = supersedeStartup();
         if (!personalContent) { personalContent = true; moved = true; }
@@ -81,8 +88,8 @@ public class FirstMinute implements EventLogSource {
 
     private boolean cancelPresentation() {
         // DONE can still own a queued door callback; another choice retires that receipt too.
-        if (List.of("OPENING", "PLAYING", "DOORS", "DONE").contains(phase)) {
-            phase = "DONE"; bundled = false; ticket++;
+        if (List.of("OPENING", "PLAYING", "DOORS", "DONE", "FAILED").contains(phase)) {
+            phase = "DONE"; reason = ""; bundled = false; ticket++;
             return true;
         }
         return false;
@@ -138,6 +145,10 @@ public class FirstMinute implements EventLogSource {
     @OnEventHandler public boolean failed(SessionEvents.FirstMinuteOpenFailed e) {
         if (e.ticket() != ticket || !("OPENING".equals(phase) || "PLAYING".equals(phase) && !marked)) return false;
         phase = "FAILED"; reason = e.reason() == null ? "the evidence could not be opened" : e.reason();
+        if (openLog.isOpen() && WalkPlayback.FIRST_MINUTE.equals(openLog.launch()) && openLog.firstMinuteTicket() == ticket) {
+            failedGeneration = openLog.generation();
+            failedTicket = ticket;
+        }
         auditLog.warn("firstMinute", "failed").warn("reason", reason);
         return true;
     }
@@ -183,17 +194,13 @@ public class FirstMinute implements EventLogSource {
         return true;
     }
 
-    @OnEventHandler public boolean personal(SessionEvents.FirstMinutePersonalContentObserved e) {
-        if (e.generation() != generation || generation != openLog.generation() || !bundled) return false;
-        boolean moved = !personalContent && e.present();
-        personalContent |= e.present();
-        return moved;
-    }
-
     /** A queued outgoing capture retains its own generation/read/launch facts across a subsequent open. */
     @OnEventHandler public boolean capture(SessionEvents.FirstMinuteCaptureObserved e) {
         boolean owned = e.generation() == verifiedGeneration && e.launchTicket() == verifiedTicket
                 && DiamondDefinition.LOG_SHA256.equals(e.readDigest());
+        // A failed launch never grants bundled standing, but its exact receipt still prevents an
+        // unverified teaching load being mistaken for the person's ordinary recovery evidence.
+        owned |= e.generation() == failedGeneration && e.launchTicket() == failedTicket && failedTicket > 0;
         if (owned) personalContent |= e.personalContent();
         effects.request(new SessionEffects.AdmitSessionCaptureEffect(0, e.request(), !owned || personalContent));
         auditLog.info("sessionCapture", owned && !personalContent ? "omitted first minute" : "ordinary session");
@@ -257,8 +264,6 @@ public class FirstMinute implements EventLogSource {
 
     public FirstMinuteState state() {
         return new FirstMinuteState(phase, "generic", "DOORS".equals(phase) ? List.of("learn", "investigate", "build") : List.of(),
-                "DOORS".equals(phase) ? FirstMinuteLines.CALLOUT : "", reason, bundled,
-                bundled && !personalContent && openLog.isOpen() && openLog.generation() == generation
-                        && WalkPlayback.FIRST_MINUTE.equals(openLog.launch()));
+                "DOORS".equals(phase) ? FirstMinuteLines.CALLOUT : "", reason, bundled);
     }
 }

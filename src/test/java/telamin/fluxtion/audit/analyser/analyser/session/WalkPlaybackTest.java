@@ -83,16 +83,23 @@ class WalkPlaybackTest {
                 "d did not run", new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Basis("graph", "sha256:graph", ""));
         var step = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Step("",
                 telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.View.NONE, List.of(record, topology));
-        var definition = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec("diamond", "", "person", "", "",
+        var ordinary = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec("diamond", "", "person", "", "",
                 null, List.of(), List.of(step), java.util.Map.of());
-        for (String origin : List.of("FIRST_MINUTE", "test")) {
+        for (boolean shipped : List.of(true, false)) for (String origin : List.of("FIRST_MINUTE", "test", "reel")) {
             FakeSessionAdapter a = new FakeSessionAdapter();
             SessionDriver d = opened(a);
-            d.post(new SessionEvents.WalkPlayRequested(0, definition, 0, origin));
-            prepared(d, List.of(new SessionEvents.WalkTargetState(1, record.target(), record.caption(), "HISTORICAL", false,
-                            "record 4 differs from when this walk was saved"),
-                    new SessionEvents.WalkTargetState(2, topology.target(), topology.caption(), "CURRENT", true, "")));
-            if ("FIRST_MINUTE".equals(origin)) {
+            var definition = shipped ? telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.walk() : ordinary;
+            int index = shipped ? 2 : 0;
+            d.post(new SessionEvents.WalkPlayRequested(0, definition, index, origin));
+            var states = new java.util.ArrayList<SessionEvents.WalkTargetState>();
+            for (var target : definition.steps().get(index).targets()) {
+                boolean isRecord = "record".equals(target.basis().kind());
+                states.add(new SessionEvents.WalkTargetState(states.size() + 1, target.target(), target.caption(),
+                        isRecord ? "HISTORICAL" : "CURRENT", !isRecord,
+                        isRecord ? "record 4 differs from when this walk was saved" : ""));
+            }
+            prepared(d, states);
+            if (shipped) {
                 assertEquals(List.of(), a.walkLights.getFirst().targets(),
                         "no first-minute caption may survive a substituted record, including the graph-basis caption");
                 assertEquals("NOT_SHOWN", walk(d).phase());

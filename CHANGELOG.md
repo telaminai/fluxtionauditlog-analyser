@@ -10,9 +10,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 - On a genuinely fresh launch, the shipped Spring diamond plays a four-step, evidence-bound introduction with its topology and XML side by side. Arrow keys take over the pace; the end card leads to the guided tour, a log or a template. An untouched first-minute demo is not offered as your saved session; anything you add remains recoverable.
 
-### Fixed
-
 - First-minute recovery keeps a replacement graph or design after Close or a cancelled Investigate choice. A design chosen while startup recovery is being checked prevents autoplay, and later choices retire deferred first-minute callbacks without treating the diamond's own design read as personal content.
+
+- First-minute read-only navigation preserves the introduction; producer results and replacement evidence stay recoverable after closing it. Failed teaching loads can be left safely, and shipped inputs and processor selection stay out of machine settings. Reel recording keeps the same evidence checks, shipped commentary is labelled bundled, and recovery admission has a bounded wait.
+- Topology | Records switches the centre stage in ordinary open-log sessions as well as the first minute.
 
 ## [1.38.0] - 2026-10-21
 
