@@ -1037,6 +1037,10 @@ out what to do, and an act that leads nowhere.
 | **SC-T11** *(new)* | **The teacher:** with the person's own Claude and the `teach-fluxtion` skill, solve the broken diamond | — | measured, not yet targeted: **minutes** to *Solved*; **solved by the person's own flag** (yes/no); **the client's claims graded against §11.7's teaching rules and §11.6(a)'s confirmed callback rules** from the transcript, captured by the `capture-conversations` harness under an isolated home. **Witness:** a run in which only the client flags the answer record must score *not solved* | M79-6 (skill), M79-4 (quest) |
 | **SC-T12** *(new)* | **The onboard teaching conversation, then live:** follow the teaching pack in the docked assistant panel to its end, press *Continue with Claude*, and ask one question live | — | measured, not yet targeted: **acts** from the pack entry to the first live answer; **the hand-off works** (a live turn completes, and its opening context carries the fixed basis sentence); **the recorded turns are never resent**: none of their text appears in any request the session sends (the in-app request, or the stream written to Claude Code). **Witness:** a build that appends the passive log to the request must score *resent* | M79-2 |
 
+**The Build door's tasks are not here.** Authoring from zero (the person's own processor generated, compiled, run,
+explained and changed: SC-B1–SC-B6) is scored by [`spec-authoring-scorecard.md`](spec-authoring-scorecard.md) (M82,
+DRAFT r1), under this section's rules.
+
 **Who scores what** (lead's decision, creative round 2). The comprehension tasks, **SC-C1 and SC-C2, are scored
 only by human or stranger runs**: a model predicting a dispatch it can read from the shipped source measures the
 model, not the product. **The robot walk counts acts only** (SC-T1, SC-T9, SC-T10, SC-S1, and SC-T11's minutes and
