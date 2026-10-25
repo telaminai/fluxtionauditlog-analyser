@@ -210,8 +210,15 @@ public final class ActionExecutor implements RenderExecutor {
                 // M64: needs no log — a tab, the toolbar, the status line and the Project panel are all
                 // there on a fresh start, which is when a tutor first says "look here"
                 if (app == null) return ActionResult.error("'spotlight' is not enabled here");
-                if (SpotlightTarget.hasJava(params)) return doJavaSpotlight(params);
-                return onEdt(() -> doSpotlight(params));
+                // trial h1 (2026-10-25): a record target sent while a log open is in flight is refused, never lit on
+                // the log being replaced or swapped for another target; a target that did light says it is not the record
+                boolean loading = logOpenInFlight();
+                if (!Boolean.TRUE.equals(params.get("clear"))) {
+                    String notReady = SpotlightTarget.loadingRefusal(SpotlightTarget.requests(params), loading);
+                    if (notReady != null) return ActionResult.error(notReady);
+                }
+                ActionResult lit = SpotlightTarget.hasJava(params) ? doJavaSpotlight(params) : onEdt(() -> doSpotlight(params));
+                return loading ? withLoadingNote(lit) : lit;
             }
             case "walk" -> {
                 // #82: recording a reel plays the walk step by step and waits for each to settle, so it runs on the
@@ -1163,6 +1170,20 @@ public final class ActionExecutor implements RenderExecutor {
         } catch (java.util.concurrent.ExecutionException ex) {
             return ActionResult.error("Java source spotlight failed: " + ex.getCause().getMessage());
         }
+    }
+
+    /** Whether the session has a log open in flight — its published decision, read, never re-judged (rule 9). */
+    private boolean logOpenInFlight() {
+        var snapshot = sessionSnapshot == null ? null : sessionSnapshot.get();
+        return snapshot != null && snapshot.pending();
+    }
+
+    /** A lit spotlight's reply, plus {@code logLoading}: what was lit is not a record while the log loads. */
+    static ActionResult withLoadingNote(ActionResult lit) {
+        if (!lit.ok() || lit.payload() == null) return lit;
+        Map<String, Object> payload = new java.util.LinkedHashMap<>(lit.payload());
+        payload.put("logLoading", SpotlightTarget.LOADING_NOTE);
+        return new ActionResult(true, lit.action(), lit.payloadKey(), payload, null, lit.reportReceipt());
     }
 
     private ActionResult doSpotlight(Map<String, Object> params) {

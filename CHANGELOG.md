@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- The MCP server instructions (and `/manifest`'s `instructions`) now say what to do FIRST when a project is open and its run has a fresh export: for "show me evidence", "what happened to this event" or "what did Fluxtion do with X", open the export with its GraphML, wait until `context` no longer reports `inFlight`, spotlight the record that answers, then explain. In a stranger authoring trial, five of five connected runs answered from the YAML and never called the analyser.
+- Bundle skills: `load-audit-log` is now chosen for explaining a run or showing evidence, not only for loading a log, and says to point at the record in a connected analyser rather than quote the YAML; `point-at-the-fault` covers "which record proves a claim" and points a working-run explanation to `load-audit-log`; `add-a-node` restates that `eventHandlers` states a design-time expectation and does not route events. The `m19-skills/2` index is re-pinned.
+
+### Fixed
+
+- A spotlight on a record target (`records`, `records:row:<n>`, `detail`, `detail:node:<id>`) sent while a log is still loading is refused with "log still loading; record targets not ready", touching nothing, instead of landing on the log being replaced. Any other target still lights, and its reply carries `logLoading` saying what was lit is not a record.
+
 ## [1.38.0] - 2026-10-21
 
 ### Added

@@ -63,11 +63,26 @@ public final class McpBridge {
 
     static final String SERVER_NAME = "fluxtion-audit-log-analyser";
 
+    /**
+     * What to do FIRST when a project is open and its run has a fresh export (stranger authoring trial, 2026-10-25):
+     * five of five connected Sonnet runs answered "show me evidence" and "explain what Fluxtion did with this event"
+     * from greppable YAML and told the person to open the analyser themselves. The one run that opened the export
+     * spotlighted a node while the log was still loading, so the record was never lit.
+     */
+    public static final String FIRST_MOVE =
+            "FIRST, WHEN A PROJECT IS OPEN AND ITS RUN HAS A FRESH EXPORT: if the person asks for evidence, what "
+            + "happened to an event, or what Fluxtion did with X, open that export with analyser_open {log, graphml} "
+            + "(the project's CLAUDE.md or load-audit-log skill names both paths), wait until analyser_context no "
+            + "longer reports inFlight, then analyser_spotlight the record that answers (records:row:<recordIndex>, "
+            + "then detail:node:<id>) and only then explain. Grepping the YAML finds the record; it does not show it "
+            + "to the person. A record target sent while the log is still loading is refused, never lit elsewhere. ";
+
     public static final String INSTRUCTIONS =   // public: /manifest serves it too (review 2026-09-18 F2)
             "Drives a running Fluxtion Audit Log Analyser over its localhost action socket. "
             + "Query verbs (analyser_aggregate, analyser_read) read the loaded audit log; the render verbs "
             + "change what the desktop app shows (filter, graph, goto, flag) and are all reversible. "
             + "The analyser must be running with External MCP/REST access on (Settings > Assistant). "
+            + FIRST_MOVE
             // M64.6: server instructions are the one text EVERY MCP client is handed before it picks a tool,
             // so this is where "when to point" has to be for it to be general rather than a skill's habit
             + telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.GUIDANCE

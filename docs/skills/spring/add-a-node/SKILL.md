@@ -44,6 +44,12 @@ All three edits are in the designer XML that `fluxtion-authoring.json` names:
    </list></property>
    ```
 
+**`eventHandlers` does not route events.** An `EventHandlerBinding` states a design-time expectation —
+this event type should be handled by these beans (enforced only with `strictEventHandlerBindings`); it
+delivers nothing.
+Fluxtion dispatches an event to every node whose `@OnEventHandler` method takes that event type. When you
+explain what happened to an event, cite that method and the audit record, never "the XML routes it".
+
 Then **regenerate** — a graph change needs it, a change inside a method body does not:
 
 ```

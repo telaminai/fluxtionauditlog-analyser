@@ -1,6 +1,6 @@
 ---
 name: point-at-the-fault
-description: Use when asked what is wrong with this application, to find and fix a fault, or to show which record proves it. Keep the broken run's evidence, fix, then report the symptom from a cited record and the cause from the diff. Also checks an audit log for one fault class and points at the evidence.
+description: Use when asked what is wrong with this application, to find and fix a fault, or which record proves a claim (to explain a working run, use load-audit-log). Keep the broken run's evidence, fix, then report the symptom from a cited record and the cause from the diff. Checks one fault class.
 x-analyser-min-version: 1.12.0
 ---
 
