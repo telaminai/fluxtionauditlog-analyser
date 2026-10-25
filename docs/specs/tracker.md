@@ -177,7 +177,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   measured live at 14 before FIX-4/M77's fixes).
 
 ### M82 · The authoring scorecard ([spec](spec-authoring-scorecard.md), r1)
-- [M82] ☐ **Drafted** (r1, 2026-10-25): SC-B1–B6 from the Build door or the playground to the person's own processor generated, compiled, run, explained and changed; the funnel, claims by speaker, key friction, an optional field run. Baseline 2026-10-25 pending; OD-82.1–.10 open. Answers M76's *scorecard starter-flow task* above.
+- [M82] ☐ **Drafted** (r1, 2026-10-25): SC-B1–B6 from the Build door or the playground to the person's own processor generated, compiled, run, explained and changed; the funnel, claims by speaker, key friction, an optional field run. Baseline 2026-10-25 recorded (robot, E2, Sonnet ×5 F3 1/5; distribution is a prerequisite); OD-82.1–.10 open. Answers M76's *scorecard starter-flow task* above.
 
 ## Session and dispatch
 

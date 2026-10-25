@@ -1,6 +1,6 @@
 # M82 — The authoring scorecard: a stranger's own processor, from zero
 
-**Status:** DRAFT r1, 2026-10-25. No implementation, no scored run. Owner decisions OD-82.1–.10 are open (§9).
+**Status:** DRAFT r2, 2026-10-25. No implementation. One baseline trial was run (a robot stranger, free arm, E2) and graded by hand, not by this spec's tooling (§7). Owner decisions OD-82.1–.10 are open (§9).
 **Milestone:** M82 (verified free: M81 is the highest in use, `grep -rn 'M82\b' docs src tools` returns nothing).
 **Tracker:** [tracker.md](tracker.md) ▸ M82. **Extends:** M79's scorecard ([`spec-first-minute.md`](spec-first-minute.md)
 §12) with the Build door's tasks. **Measures:** M76 ([`spec-authoring-journey.md`](spec-authoring-journey.md)), M80
@@ -165,19 +165,60 @@ Added to M74's types (SCORECARD §4), each detected from facts:
 
 As in M79 §12, five runs are a smoke gate, not a measurement, and are always reported with their counts.
 
-**Baseline 2026-10-25 (pending).** To be filled from the baseline trial now running, from its `score.json` files,
-never typed. Empty cells stay empty; a target without a baseline is a target, not an improvement claim.
+**Baseline 2026-10-25 (observed, robot stranger, free arm).** One trial, run before this spec's tooling exists, so
+nothing here comes from a `score.json`. The experimenter graded every endpoint by hand.
 
-| Task | Entry | Who | n | Reached F1 / F2 / F3 / F4 / F5 | Median acts to F3 | Median minutes to F3 | Dead ends by type | Source |
-|---|---|---|---|---|---|---|---|---|
-| SC-B1 | E1 | robot | | | | | | pending |
-| SC-B1 | E2 | robot | | | | | | pending |
-| SC-B1 | E1 | human | | | | | | pending |
-| SC-B2 | E1 | robot / human | | pointer held: | | | | pending |
-| SC-B3 | E1 | robot / human | | only intended: | | | | pending |
-| SC-B4 | E1 | human | | person correct / wrong / unsupported: | | | | pending |
-| SC-B5 | E1 | human | | | acts at key: | minutes at key: | | pending |
+- **Arm.** Free arm with the trial's own task, not §5's fixed text: a running average price per symbol, an alert when
+  a trade is more than 2% from it, run on samples, show evidence, explain one event. **Entry: E2**, starting from the
+  playground's public URL. No analyser and no MCP were present, so E1 (the Build door) was not measured. Cold Maven
+  repository per run, isolated sandbox, strict MCP config, 40-minute cap. The CLI login used the real home, with
+  skills, projects, plugins, history and settings denied, so this is **not** §4's isolation.
+- **Rows.** Sonnet 5.5 ×5 with a key is the primary row. Haiku 5.5 ×1 with a key and Sonnet ×1 with no key are
+  observation rows (n = 1 each).
+- **What counts as scored** (§3.4). The trial's stranger was a model, so only acts, minutes and F1–F3 are scored
+  here. Everything else is observation. With n = 5, 1/5 at F3 means only that the path usually fails today.
 
+How the trial's endpoints map onto the funnel, mismatches stated:
+
+| Trial endpoint | Spec | Mismatch |
+|---|---|---|
+| E1 a buildable project exists | ≈ F1 | no template-digest check, no generator-stamp check |
+| E2 it compiles | ≈ F2 | the run's own build, not the scorer's offline rebuild |
+| E3 runs correctly | ≈ F3 | graded by the experimenter, not a sealed oracle or a sealed expectation |
+| E4 explains one record | ≈ F4 / SC-B2, partial | no analyser, so no pointer predicate; an output line counted as partial |
+| E5 dispatch claims correct | ≈ SC-B4 | graded from the model's own claims; robots do not score SC-B4 (§3.4), so observation only |
+
+| Row | n | F1 / F2 / F3 | F4 (obs.) | SC-B4 (obs.) | Median acts (per run) | Median minutes (per run) | Trial dead ends (median) | Stack reached | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| **Sonnet 5.5, key, E2** | 5 | **5 / 5 / 1** | 0, 1 partial | correct wherever claims were made (4 of 5 made them) | 29 | 3.0 | 3 | current release in 1 of 5; an outdated builder from Maven Central in 4 of 5 | trial report |
+| Haiku 5.5, key, E2 *(obs.)* | 1 | 1 / 1 / 1, on an obsolete stack | partial | correct | 38 | 3.8 | 3 | an obsolete version | trial report |
+| Sonnet 5.5, no key, E2 *(obs.)* | 1 | 1 / 1 / 1, on a legacy stack | yes, a real audit record | correct | 48 | 5.9 | 4 | a legacy artifact | trial report |
+
+The acts and minutes are **whole-run** figures, not "to F3": only one primary run reached F3. Four of the five
+primary runs **ended at about three minutes by stopping to ask consent** (finding 3), not by finishing or by the
+cap. The trial's dead ends are its own count, not §6's types, and exclude 1–3 acts per run lost to the rig's own
+sandbox. **SC-B5 (observation):** the keyless run hit *"Fluxtion API key is not configured"* with a link to the
+RapidAPI hub at 3.3 minutes. It did not register and fell back to a legacy artifact, so no key-step time to the first
+keyed generation exists. Robot runs cannot score SC-B5 in any case (§3.4).
+
+**Evidence stays out of the repo for now.** The per-run archives hold machine paths and transcripts captured under
+the real home. That is outside rule 1's recorded transcript exception, which covers sanitised Claude Code captures
+made with this repo's harness. The counts that matter are in the tables above, so a separate digest would add no
+information. A future cycle run under §4's isolation records under `docs/specs/evidence/m82-<cycle>/` as specified.
+
+**Baseline findings: where each run stopped, and who owns it.** Observed in the trial. Finding 3's cause, and how
+often human strangers would hit findings 1 and 2, are inferred.
+
+| # | Finding | Owner |
+|---|---|---|
+| 1 | Maven Central serves an outdated `fluxtion-builder` (1.0.9) and no BOM. Against today's hosted generator it fails with `ClassNotFoundException …EventProcessorModelDto`, which reads as a classpath bug. 6 of 7 runs went to Central | **Outside M76/M79**: distribution (the builder's publishing, and a versioned *client too old* reply from the generator). A **prerequisite** for SC-B1 |
+| 2 | Conflicting version numbers across the README, the quickstart header and the examples, two of which do not exist. The one primary success found the README's repository line | **Outside M76/M79**: release version stamping across docs and examples. A **prerequisite** |
+| 3 | The remote build is undisclosed. 4 of 5 primary runs stopped to ask consent on finding that building posts the graph to a hosted service | the builder and its README (outside this repo); M76 §3.1's key line (A7) and SC-B5 here |
+| 4 | The playground offers no route an agent can follow into a project: no coordinates or download link in the served HTML, and `llms.txt` exists but nothing links to it. 0 of 7 runs found it, the starter download, the Spring XML contract, the analyser or the MCP | the project starter journey (M47, M19.23); M79-5's front door; the playground (cross-repo, `upstream-asks.md`) |
+| 5 | The audit hint is dismissed. FLX-1008 (*no event audit configured*) does not say how to turn audit on, so only the keyless run produced a real audit record | the compiler's diagnostic (upstream); M76 A6 and SC-B2 depend on it |
+
+**What this means for the targets** (no target is changed; OD-82.2 stays the owner's): a human F3 of 4 of 5 is
+unreachable from E2 until findings 1 and 2 are fixed, because 4 of 5 primary runs never reached the current release.
 **Targets** are proposed in OD-82.2, to be set only after the baseline is read.
 
 **Recording.** Each cycle under `docs/specs/evidence/m82-<cycle>/` (the baseline: `m82-baseline-2026-10-25/`):
@@ -232,3 +273,4 @@ Headless, over recorded fixture runs under `tools/fixtures/m82-authoring/`, in t
 ## Revision history
 
 - **r1, 2026-10-25.** First draft, from the owner's focus on authoring from zero.
+- **r2, 2026-10-25.** §7's baseline filled in from the 2026-10-25 trial: the endpoint mapping with its mismatches, a primary row and two observation rows, the SC-B5 observation, and five findings with their owners. The evidence stays out of the repo. No target changed.

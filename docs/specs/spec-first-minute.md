@@ -1039,7 +1039,7 @@ out what to do, and an act that leads nowhere.
 
 **The Build door's tasks are not here.** Authoring from zero (the person's own processor generated, compiled, run,
 explained and changed: SC-B1–SC-B6) is scored by [`spec-authoring-scorecard.md`](spec-authoring-scorecard.md) (M82,
-DRAFT r1), under this section's rules.
+DRAFT r2), under this section's rules.
 
 **Who scores what** (lead's decision, creative round 2). The comprehension tasks, **SC-C1 and SC-C2, are scored
 only by human or stranger runs**: a model predicting a dispatch it can read from the shipped source measures the
