@@ -2923,3 +2923,42 @@ CONTROLS += [
      '} else if (shrank && !signingIn) {', '} else if (false) {',
      'CompilerAccountFrameTest#connectApproveReadUsageThenRevoke'),
 ]
+
+# Plans and the interpret allowance (compiler design 03 §5): the panel and Copy details show compile and interpret
+# credit separately; the plan and its limits come from the service's capability profile and are never guessed when an
+# older service sends none; an override is marked only when it is the limit in force; Copy details never carries the
+# credential; the guide names only codes the producer writes.
+WORDS = 'CompilerAccountWordsTest#thePlansLimitsAreSaidFromTheProfile_andAnOverrideIsMarkedOnlyWhenItIsInForce'
+PLANS_FRAME = 'CompilerAccountFrameTest#bothBalancesAndThePlansLimitsShow_andAnOlderServiceStillShowsCompile'
+CONTROLS += [
+    ('plans-interpret-shown-separately', UI + 'CompilerAccountDialog.java',
+     'Balance b = usage == null ? null : k == 0 ? usage.compile() : usage.interpret();',
+     'Balance b = usage == null ? null : usage.compile();',
+     PLANS_FRAME),
+    ('plans-interpret-copied-separately', ACCOUNT + 'AccountDetails.java',
+     'balance(b, "Interpret", usage.interpret());', 'balance(b, "Interpret", usage.compile());',
+     'CompilerAccountSafetyTest#copyDetailsCarriesTheFiguresForSupport_butNeverTheCredential'),
+    ('plans-interpret-read-from-kinds', ACCOUNT + 'CompilerAccountClient.java',
+     '!(kinds.get("interpret") instanceof Map<?, ?> k)', '!(kinds.get("compile") instanceof Map<?, ?> k)',
+     'CompilerAccountClientTest#aServiceWithPlansReportsBothBalancesAndThePlansProfile'),
+    ('plans-limits-from-capabilities', ACCOUNT + 'CompilerAccountClient.java',
+     'if (!(body.get("capabilities") instanceof Map<?, ?> caps)) return null;',
+     'if (!(body instanceof Map<?, ?> caps)) return null;',
+     'CompilerAccountClientTest#aServiceWithPlansReportsBothBalancesAndThePlansProfile'),
+    ('plans-name-from-capabilities', ACCOUNT + 'CompilerAccountClient.java',
+     'return capabilities != null && capabilities.plan() != null ? capabilities.plan() : plan;', 'return plan;',
+     WORDS),
+    ('plans-unavailable-said-not-guessed', UI + 'CompilerAccountDialog.java',
+     'planUnavailable.setVisible(usage != null && !limits);', 'planUnavailable.setVisible(false);',
+     PLANS_FRAME),
+    ('plans-override-marked-only-in-force', ACCOUNT + 'AccountDetails.java',
+     'return o != null && o.replace(" ", "").equalsIgnoreCase(wire) ? value + " (set for this account)" : value;',
+     'return o != null ? value + " (set for this account)" : value;',
+     WORDS),
+    ('plans-copy-details-never-the-bearer', ACCOUNT + 'AccountDetails.java',
+     'line(b, "Plan", usage.planName());', 'line(b, "Plan", usage.planName() + " " + credential.bearer());',
+     'CompilerAccountSafetyTest#copyDetailsCarriesTheFiguresForSupport_butNeverTheCredential'),
+    ('plans-guide-names-only-producer-codes', 'docs/site/getting-started.md',
+     '`INTERPRET_ALLOWANCE_EXHAUSTED` (HTTP 429 to the caller)', '`INTERPRET_CREDIT_EXHAUSTED` (HTTP 429 to the caller)',
+     'EntitlementInvestigationConformanceTest#theGuideNamesOnlyKeysAndCodesTheProducerWrites'),
+]

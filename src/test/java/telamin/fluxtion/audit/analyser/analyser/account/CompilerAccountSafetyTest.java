@@ -51,21 +51,45 @@ class CompilerAccountSafetyTest {
     void copyDetailsCarriesTheFiguresForSupport_butNeverTheCredential() {
         CompilerCredential c = new CompilerCredential("https://compiler.example.com", "cred01", "acct-demo",
                 StandInCompilerService.BEARER);
-        CompilerAccountClient.Usage u = new CompilerAccountClient.Usage("acct-demo", "free", true, 120, 30, 2, 3, 1, null);
+        CompilerAccountClient.Usage u = new CompilerAccountClient.Usage("acct-demo", "free", true, 120, 30, 2, 3, 1, null,
+                new CompilerAccountClient.Balance(481, 18, 1, 17, 2),
+                new CompilerAccountClient.Capabilities("enterprise", 5000L, 50L, List.of("java", "cpp"), true,
+                        "verification", 30L, 300L, java.util.Map.of("maxNodes", "5000")));
         CompilerAccountClient.Me me = new CompilerAccountClient.Me("acct-demo", true, "administrator");
         String text = AccountDetails.text(c, me, u, "Fluxtion analyser on demo-host", "1.38.0",
                 java.time.Instant.parse("2026-10-26T09:30:00Z"));
         for (String expected : List.of("Service: https://compiler.example.com", "Account: acct-demo", "Type: Personal",
-                "Role: administrator", "Plan: free", "Active: yes", "Remaining: 120", "Used: 30", "In progress: 2",
-                "Generations: 3", "Failures: 1", "Reset: one-time allowance (no reset)", "This device: cred01",
+                "Role: administrator", "Plan: enterprise", "Active: yes",
+                "Compile remaining: 120", "Compile used: 30", "Compile in progress: 2", "Compile completed: 3",
+                "Compile failures: 1",
+                "Interpret remaining: 481", "Interpret used: 18", "Interpret in progress: 1", "Interpret completed: 17",
+                "Interpret failures: 2",
+                "Max nodes: 5000 (set for this account)", "Max event types: 50", "Languages: Java, C++", "WASM: Yes",
+                "Assurance: Provenance + verification report", "Rate per minute: compile 30, interpret 300",
+                "Account overrides: maxNodes=5000",
+                "Reset: one-time allowance (no reset)", "This device: cred01",
                 "Device name: Fluxtion analyser on demo-host", "Analyser version: 1.38.0", "Time: 2026-10-26 09:30:00 UTC"))
             assertTrue(text.contains(expected), expected + " missing from:\n" + text);
+        assertNoCredential(text);
+
+        // a service before plans: compile still, and the summary says what the service did not report
+        CompilerAccountClient.Usage old = new CompilerAccountClient.Usage("acct-demo", "free", true, 120, 30, 2, 3, 1, null);
+        String older = AccountDetails.text(c, me, old, null, "1.38.0", java.time.Instant.EPOCH);
+        for (String expected : List.of("Plan: free", "Compile remaining: 120", "Interpret: not reported by this service",
+                "Plan details: unavailable from this service"))
+            assertTrue(older.contains(expected), expected + " missing from:\n" + older);
+        assertFalse(older.contains("Interpret remaining") || older.contains("Max nodes"), "nothing invented:\n" + older);
+        assertNoCredential(older);
+
+        String unread = AccountDetails.text(c, null, null, null, "1.38.0", java.time.Instant.EPOCH);
+        assertNoCredential(unread);
+        assertTrue(unread.contains("Usage: not read") && unread.contains("Device name: not listed"), unread);
+    }
+
+    private static void assertNoCredential(String text) {
         String secret = StandInCompilerService.BEARER.substring(StandInCompilerService.BEARER.indexOf('.') + 1);
         for (String partial : List.of(StandInCompilerService.BEARER, secret, "Bearer "))
             assertFalse(text.contains(partial), "Copy details carries the credential: " + partial);
-        String unread = AccountDetails.text(c, null, null, null, "1.38.0", java.time.Instant.EPOCH);
-        assertFalse(unread.contains(StandInCompilerService.BEARER));
-        assertTrue(unread.contains("Usage: not read") && unread.contains("Device name: not listed"), unread);
     }
 
     @Test

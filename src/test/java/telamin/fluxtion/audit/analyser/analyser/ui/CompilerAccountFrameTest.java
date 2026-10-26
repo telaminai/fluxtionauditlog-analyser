@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import telamin.fluxtion.audit.analyser.analyser.account.AccountDetails;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerCredential;
 import telamin.fluxtion.audit.analyser.analyser.account.CredentialStore;
@@ -92,7 +93,7 @@ class CompilerAccountFrameTest {
         for (String b : List.of(CompilerAccountDialog.CANCEL_SIGN_IN, "Close")) assertInsideTheDialog(button(b));
         // deliberately changed (owner, 2026-10-26): the status line names the host only; the account id is the Account row
         await(() -> text().contains("Connected to 127.0.0.1") && !text().contains("as account"), "approval connects");
-        await(() -> "free".equals(after("Plan")) && "Active".equals(after("Status")) && "120".equals(figure("Remaining")),
+        await(() -> "free".equals(after("Plan")) && "Active".equals(after("Status")) && "120".equals(figure("Compile", "Remaining")),
                 "plan and credits are read");
         assertFalse(text().contains("Next reset"), "a plan with no reset shows no reset line");
         assertTrue(text().contains("One-time allowance (no reset)"), "it says the allowance is one-time");
@@ -108,7 +109,7 @@ class CompilerAccountFrameTest {
         service.usageBody = service.usageBody.replace("\"nextReset\":null", "\"nextReset\":\"2026-11-01T00:00:00Z\"")
                 .replace("\"available\":120", "\"available\":119");
         onEdt(() -> button(CompilerAccountDialog.REFRESH).doClick());
-        await(() -> "119".equals(figure("Remaining")) && text().contains("Next reset: 2026-11-01T00:00:00Z"),
+        await(() -> "119".equals(figure("Compile", "Remaining")) && text().contains("Next reset: 2026-11-01T00:00:00Z"),
                 "refresh reads again, and a reset is shown when there is one");
 
         onEdt(() -> button(CompilerAccountDialog.REVOKE).doClick());
@@ -213,7 +214,7 @@ class CompilerAccountFrameTest {
 
         onEdt(() -> button(CompilerAccountDialog.COPY_DETAILS).doClick());
         assertEquals(1, copied.size());
-        assertTrue(copied.get(0).contains("Remaining: 120") && copied.get(0).contains("This device: cred01"), copied.get(0));
+        assertTrue(copied.get(0).contains("Compile remaining: 120") && copied.get(0).contains("This device: cred01"), copied.get(0));
         assertFalse(copied.get(0).contains(StandInCompilerService.BEARER), "Copy details carries the credential");
 
         List<String> asked = new CopyOnWriteArrayList<>();
@@ -235,6 +236,61 @@ class CompilerAccountFrameTest {
         await(() -> text().contains("Revoked. The service no longer accepts this device") && text().contains("Not connected."),
                 "revoking this machine's row disconnects");
         assertNull(store.kept);
+        assertNoSecretOnScreen();
+    }
+
+    /**
+     * Design 03 §5 on the real dialog: compile and interpret credits in separate rows, the plan and its key limits
+     * under the Account rows, and Copy details carrying both balances and the plan but never the credential. Then the
+     * same dialog against a service before plans: compile still shows, interpret and the plan's details say they were
+     * not reported, and nothing is invented in their place.
+     */
+    @Test
+    void bothBalancesAndThePlansLimitsShow_andAnOlderServiceStillShowsCompile() throws Exception {
+        service.token("approved");
+        AppConfig config = new AppConfig();
+        config.compilerServiceUrl = service.base();
+        open(config);
+        List<String> copied = new CopyOnWriteArrayList<>();
+        onEdt(() -> dialog.clipboard = copied::add);
+        onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
+        await(() -> "120".equals(figure("Compile", "Remaining")), "the compile balance is read");
+        for (String caption : CompilerAccountDialog.CREDIT_CAPTIONS)
+            assertNotEquals(figure("Compile", caption), figure("Interpret", caption), caption + ": one kind shown for the other");
+        assertEquals("481", figure("Interpret", "Remaining"));
+        assertEquals("18", figure("Interpret", "Used"));
+        assertEquals("1", figure("Interpret", "In progress"));
+        assertEquals("30", figure("Compile", "Used"));
+        assertEquals("free", after("Plan"));
+        assertEquals("20", after("Max nodes"));
+        assertEquals("5", after("Max event types"));
+        assertEquals("Java", after("Languages"));
+        assertEquals("No", after("WASM"));
+        assertEquals("None", after("Assurance"));
+        assertFalse(text().contains(AccountDetails.PLAN_DETAILS_UNAVAILABLE), "the plan's details were read");
+        for (String b : List.of(CompilerAccountDialog.COPY_DETAILS, CompilerAccountDialog.REVOKE_SELECTED, "Close"))
+            assertInsideTheDialog(button(b));
+        onEdt(() -> button(CompilerAccountDialog.COPY_DETAILS).doClick());
+        assertEquals(1, copied.size());
+        for (String expected : List.of("Plan: free", "Compile remaining: 120", "Interpret remaining: 481", "Max nodes: 20",
+                "Languages: Java", "Assurance: None"))
+            assertTrue(copied.get(0).contains(expected), expected + " missing from:\n" + copied.get(0));
+        assertFalse(copied.get(0).contains(StandInCompilerService.BEARER), "Copy details carries the credential");
+        assertNoSecretOnScreen();
+
+        service.usageBody = StandInCompilerService.OLD_USAGE_BODY.replace("\"available\":120", "\"available\":117");
+        onEdt(() -> button(CompilerAccountDialog.REFRESH).doClick());
+        await(() -> "117".equals(figure("Compile", "Remaining")), "an older service's compile balance still shows");
+        assertTrue(text().contains(AccountDetails.INTERPRET_NOT_REPORTED + "."), "interpret: said, not zero");
+        assertTrue(text().contains(AccountDetails.PLAN_DETAILS_UNAVAILABLE + "."), "the plan's details: said, not guessed");
+        assertEquals("free", after("Plan"), "the plan itself is still named");
+        for (String row : CompilerAccountDialog.PLAN_ROWS) assertFalse(List.of(text().split("\n")).contains(row), row + " shown");
+        assertEquals(AccountDetails.INTERPRET_NOT_REPORTED + ".", figure("Interpret", "Remaining"),
+                "the Interpret row says it was not reported, with no figures");
+        onEdt(() -> button(CompilerAccountDialog.COPY_DETAILS).doClick());
+        assertTrue(copied.get(1).contains("Compile remaining: 117") && copied.get(1).contains("Plan details: unavailable"),
+                copied.get(1));
+        assertFalse(copied.get(1).contains(StandInCompilerService.BEARER));
         assertNoSecretOnScreen();
     }
 
@@ -314,11 +370,12 @@ class CompilerAccountFrameTest {
         return i < 0 || i + 1 >= lines.size() ? null : lines.get(i + 1);
     }
 
-    /** A credit figure, shown above its caption (the line before it). */
-    private String figure(String caption) throws Exception {
+    /** A credit figure: the captions are said once, then each kind's name leads its figures in caption order. */
+    private String figure(String kind, String caption) throws Exception {
         List<String> lines = List.of(text().split("\n", -1));
-        int i = lines.lastIndexOf(caption);
-        return i < 1 ? null : lines.get(i - 1);
+        int i = lines.lastIndexOf(kind);
+        int at = i + 1 + CompilerAccountDialog.CREDIT_CAPTIONS.indexOf(caption);
+        return i < 0 || at >= lines.size() ? null : lines.get(at);
     }
 
     private AbstractButton button(String label) {

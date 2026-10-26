@@ -40,9 +40,27 @@ public final class StandInCompilerService implements AutoCloseable {
     public volatile int expiresIn = 600;
     public volatile int interval = 2;
     public volatile int usageStatus = 200;
-    public volatile String usageBody = "{\"accountId\":\"acct-demo\",\"plan\":\"free\",\"active\":true,\"available\":120,"
+    /** A service before plans: compile credit only, at the top level, and no capability profile. */
+    public static final String OLD_USAGE_BODY = "{\"accountId\":\"acct-demo\",\"plan\":\"free\",\"active\":true,\"available\":120,"
             + "\"reserved\":0,\"consumed\":30,\"released\":0,\"generations\":3,\"failures\":0,\"currentPeriod\":\"2026-10\","
             + "\"nextReset\":null,\"buckets\":[],\"policyVersion\":\"p1\",\"as_of_sequence\":42}";
+    /**
+     * A service with plans (design 03 §5), in the field order its {@code /v1/usage} route writes: the top level is the
+     * compile balance, {@code kinds} holds both kinds, each bucket names its kind, and {@code capabilities} is the
+     * Free plan's profile. The interpret figures differ from compile's everywhere, so a panel that showed one for the
+     * other is caught.
+     */
+    public static final String PLANS_USAGE_BODY = "{\"accountId\":\"acct-demo\",\"plan\":\"free\",\"active\":true,\"available\":120,"
+            + "\"reserved\":0,\"consumed\":30,\"released\":0,\"generations\":3,\"failures\":0,"
+            + "\"kinds\":{\"compile\":{\"available\":120,\"reserved\":0,\"consumed\":30,\"released\":0,\"settled\":3,\"failures\":0},"
+            + "\"interpret\":{\"available\":481,\"reserved\":1,\"consumed\":18,\"released\":2,\"settled\":17,\"failures\":2}},"
+            + "\"currentPeriod\":\"2026-10\",\"nextReset\":null,\"buckets\":["
+            + "{\"name\":\"free\",\"kind\":\"compile\",\"period\":null,\"granted\":150,\"available\":120,\"usable\":true},"
+            + "{\"name\":\"free\",\"kind\":\"interpret\",\"period\":null,\"granted\":500,\"available\":481,\"usable\":true}],"
+            + "\"capabilities\":{\"plan\":\"free\",\"maxNodes\":20,\"maxEventTypes\":5,\"targets\":[\"java\"],\"wasm\":false,"
+            + "\"assurance\":\"none\",\"compilePerMinute\":10,\"interpretPerMinute\":60},"
+            + "\"policyVersion\":\"p1\",\"as_of_sequence\":42}";
+    public volatile String usageBody = PLANS_USAGE_BODY;
     public volatile int revokeStatus = 204;
     public volatile String meBody = "{\"userId\":\"user-demo\",\"selectedAccount\":\"acct-demo\",\"accounts\":["
             + "{\"accountId\":\"acct-other\",\"personal\":false,\"role\":\"member\"},"

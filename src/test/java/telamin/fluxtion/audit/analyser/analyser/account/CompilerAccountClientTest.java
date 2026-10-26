@@ -164,6 +164,67 @@ class CompilerAccountClientTest {
         assertEquals("Bearer " + BEARER, read.authorization());
     }
 
+    /** Design 03 §5: compile and interpret are separate balances, and the plan's profile comes from {@code capabilities}. */
+    @Test
+    void aServiceWithPlansReportsBothBalancesAndThePlansProfile() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        CompilerAccountClient.Usage u = client.usage(c);
+        assertEquals(new CompilerAccountClient.Balance(120, 30, 0, 3, 0), u.compile(), "the top level is compile's");
+        assertEquals(new CompilerAccountClient.Balance(481, 18, 1, 17, 2), u.interpret(), "kinds.interpret, its own figures");
+        CompilerAccountClient.Capabilities caps = u.capabilities();
+        assertNotNull(caps);
+        assertEquals("free", caps.plan());
+        assertEquals(20L, caps.maxNodes());
+        assertEquals(5L, caps.maxEventTypes());
+        assertEquals(List.of("java"), caps.targets());
+        assertEquals(Boolean.FALSE, caps.wasm());
+        assertEquals("none", caps.assurance());
+        assertEquals(10L, caps.compilePerMinute());
+        assertEquals(60L, caps.interpretPerMinute());
+        assertEquals(java.util.Map.of(), caps.overrides());
+
+        // an Enterprise account with an operator's override: the profile's values are read, not a table keyed on the
+        // plan's name, and the plan's name is the profile's own
+        service.usageBody = StandInCompilerService.PLANS_USAGE_BODY
+                .replace("\"capabilities\":{\"plan\":\"free\",\"maxNodes\":20,\"maxEventTypes\":5,\"targets\":[\"java\"],\"wasm\":false,"
+                                + "\"assurance\":\"none\"",
+                        "\"capabilities\":{\"plan\":\"enterprise\",\"maxNodes\":5000,\"maxEventTypes\":50,\"targets\":[\"java\",\"cpp\"],"
+                                + "\"wasm\":true,\"assurance\":\"verification\"")
+                .replace("\"interpretPerMinute\":60}", "\"interpretPerMinute\":300,\"overrides\":{\"maxNodes\":\"5000\"}}");
+        caps = client.usage(c).capabilities();
+        assertEquals("enterprise", caps.plan());
+        assertEquals(5000L, caps.maxNodes());
+        assertEquals(List.of("java", "cpp"), caps.targets());
+        assertEquals(Boolean.TRUE, caps.wasm());
+        assertEquals("verification", caps.assurance());
+        assertEquals(java.util.Map.of("maxNodes", "5000"), caps.overrides());
+        assertEquals("enterprise", client.usage(c).planName(), "the plan named is the profile's");
+    }
+
+    /** A service older than plans: compile is still shown, and nothing is invented for what it did not report. */
+    @Test
+    void aServiceBeforePlansStillReportsCompile_andLeavesInterpretAndThePlanProfileUnread() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        service.usageBody = StandInCompilerService.OLD_USAGE_BODY;
+        CompilerAccountClient.Usage u = client.usage(c);
+        assertEquals(new CompilerAccountClient.Balance(120, 30, 0, 3, 0), u.compile());
+        assertNull(u.interpret(), "no kinds: no interpret balance, never zero");
+        assertNull(u.capabilities(), "no capabilities: no profile, never Free's defaults");
+        assertEquals("free", u.planName(), "the plan is still the account's plan field");
+
+        // half-formed answers are read as far as they go and never fail the read
+        service.usageBody = StandInCompilerService.OLD_USAGE_BODY.replace("\"currentPeriod\"",
+                "\"kinds\":{\"interpret\":{\"consumed\":3}},\"capabilities\":{\"maxNodes\":\"many\",\"targets\":[1,\"java\"]},\"currentPeriod\"");
+        u = client.usage(c);
+        assertNull(u.interpret(), "an interpret balance without what remains is not a balance");
+        assertNull(u.capabilities().maxNodes(), "a limit that is not a number is not stated");
+        assertEquals(List.of("java"), u.capabilities().targets());
+        assertNull(u.capabilities().plan());
+        assertEquals("free", u.planName());
+    }
+
     @Test
     void theSignInNamesThisDevice_withTheHostReducedToWhatTheServiceKeeps() throws Exception {
         service.token("approved");

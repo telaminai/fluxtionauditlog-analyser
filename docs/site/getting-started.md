@@ -84,10 +84,16 @@ The sign-in names this device "Fluxtion analyser on" followed by your machine's 
 Once connected, the dialog shows:
 
 - **Account**: the account id, whether it is a *Personal* or an *Organisation* account, your role in it, the plan,
-  and whether the account is *Active*.
-- **Credits**: what remains, what was used, what generations in progress hold, and how many generations and failures
-  there have been. It also says whether the allowance is one-time (*One-time allowance (no reset)*) or when it next
-  resets.
+  and whether the account is *Active*. Below them are the plan's key limits, as the service states them: the most
+  nodes and event types a graph may have, the languages it may generate, whether the WebAssembly (WASM) host bundle
+  is included, and the software assurance it carries (*None*, *Provenance*, or *Provenance + verification report*).
+  A limit an operator set for your account says *(set for this account)*. A service that does not report plans
+  shows the plan's name only, and says *Plan details unavailable from this service*.
+- **Credits**: one row for **Compile** (generating source) and one for **Interpret** (running a graph without
+  compiling it). Each kind has its own allowance, and one never spends the other. Each row shows what remains, what
+  was used, what requests in progress hold, and how many requests completed or failed. A service without a separate
+  interpret allowance shows compile only, and says *Not reported by this service* on the Interpret row. The section
+  also says whether the allowance is one-time (*One-time allowance (no reset)*) or when it next resets.
 - **This device**: the name and credential id this analyser signed in with.
 - **Your devices**: every device credential the service still accepts, with a short credential id (point at it for
   the whole id), its kind, and when it was created, to the minute in UTC. This machine is marked *(this machine)*. Select one and press **Revoke selected** to stop the service accepting it,
@@ -95,8 +101,8 @@ Once connected, the dialog shows:
   as **Revoke this device**.
 
 **Refresh** reads everything again. **Copy details** puts a plain-text summary on the clipboard for a support request:
-the service, account, type, role, plan, the credit figures, this device's credential id and name, the analyser
-version and the time in UTC. It never includes the credential itself. Deleting the account is not available in the
+the service, account, type, role, plan, the compile and interpret figures, the plan's limits and rates, this device's
+credential id and name, the analyser version and the time in UTC. It never includes the credential itself. Deleting the account is not available in the
 app yet; ask the service's support.
 
 The analyser reads the account and never grants credits or changes it; the only change it makes is revoking a
@@ -107,8 +113,9 @@ use **Disconnect**.
 
 ## Investigate a compiler charge
 
-A compiler service that uses accounts can export an **investigation** of one account: why each generation was
-allowed, refused, charged or released, and every credit an operator granted or removed. Account and attempt ids may
+A compiler service that uses accounts can export an **investigation** of one account: why each generation or
+interpretation was allowed, refused, charged or released, every credit an operator granted or removed, and every
+limit an operator set for the account. Account and attempt ids may
 be replaced by aliases such as `account-1`.
 
 **Getting the file.** An operator downloads it from the service's admin page: the account's **Download audit log**
@@ -138,8 +145,24 @@ are recomputed from those rows alone, by replaying them through the same graph; 
   asked (`requested:5` here; requested:all for everything left), which can be more than was left. An operator's grant or removal carries
   who and why in its reason, such as `operator:ops:goodwill`. A removal the service declined (`UNKNOWN_BUCKET`, or
   `ALREADY_REMOVED` and `NOTHING_TO_REMOVE` when nothing changed) was answered to the operator and is not in the log.
+- **Compile or interpret:** every row since credit kinds says which credit it moved, `creditKind=compile` or
+  `creditKind=interpret`, and **ledger** shows the same as `kind`. An interpretation is recorded like a generation,
+  a reservation then a settlement or release, under a request id that starts `interpret:` (such as
+  `interpret:model-0001`), and it only ever draws on interpret credit. A grant or removal names its kind too.
+- **Refused for the plan:** a request beyond the plan's limits is refused before any work and charges nothing. It is
+  a single `GENERATION_REFUSED` row with failure `CAPABILITY_EXCEEDED` and reason `capability_exceeded`, and its
+  detail names the limit, such as `capability=maxNodes;limit=20;requested=120;plan=free`. The caller was answered
+  HTTP 403 with the same limit. An interpretation with no interpret credit left is refused
+  `INTERPRET_ALLOWANCE_EXHAUSTED` (HTTP 429 to the caller), with reason `exhausted`, just as a compile without
+  credit is refused `CREDIT_ALLOWANCE_EXHAUSTED`.
+- **A limit an operator set:** a `CAPABILITY_SET` row records one per-account limit. Its detail is the capability
+  name, an equals sign and the value (`maxEventTypes=10` here), and its reason says who and why
+  (`operator:ops:contract`). **capabilities** shows the `capability` and its `value`. The service keeps such a limit
+  on any plan but applies it only on a plan that allows per-account limits, so a refusal's detail is the authority
+  on the limit that was in force.
 - **See the balance over time:** in the Graph tab, **Add key** `ledger.available`. It is the balance of the bucket
-  the row names, so with more than one bucket each step belongs to the bucket in that row.
+  the row names, so with more than one bucket each step belongs to the bucket in that row. With both kinds of credit,
+  type `creditKind=interpret` (or `creditKind=compile`) in the search box first.
 - **See which nodes applied a row:** the Topology tab, stepping through the records.
 
 A failed generation always appears as a reservation followed by a release with `reason: not_charged`. A charge is

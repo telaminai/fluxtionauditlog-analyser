@@ -4,10 +4,11 @@ eventLogRecord:
     logTime: 1792000001000
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=1, accountId=account-1, requestId=null, requestDigest=null, type=ACCOUNT_PROVISIONED, units=0, bucket=null, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000001000, reasonCode=first_login, sourceEventId=null, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=1, accountId=account-1, requestId=null, requestDigest=null, type=ACCOUNT_PROVISIONED, units=0, bucket=null, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000001000, reasonCode=first_login, sourceEventId=null, detail=null, creditKind=null]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, status: provisioned}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
         - ledger: { thread: main, method: onEvent, annotation: OnEventHandler}
         - requests: { thread: main, method: onEvent, annotation: OnEventHandler}
@@ -18,12 +19,13 @@ eventLogRecord:
     logTime: 1792000001010
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=2, accountId=account-1, requestId=null, requestDigest=null, type=ALLOWANCE_GRANTED, units=2, bucket=free, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000001010, reasonCode=free_allowance, sourceEventId=grant:free-allowance-v1:account-1, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=2, accountId=account-1, requestId=null, requestDigest=null, type=ALLOWANCE_GRANTED, units=2, bucket=free, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000001010, reasonCode=free_allowance, sourceEventId=grant:free-allowance-v1:account-1, detail=null, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: free, granted: 2, available: 2, bucketReserved: 0, bucketConsumed: 0}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, bucket: free, granted: 2, available: 2, bucketReserved: 0, bucketConsumed: 0}
         - requests: { thread: main, method: onEvent, annotation: OnEventHandler}
     endTime: 1792000001010
 ---
@@ -32,13 +34,14 @@ eventLogRecord:
     logTime: 1792000001260
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=3, accountId=account-1, requestId=req-0001-ok, requestDigest=a8cbb190f730d2ab51928aec97e109e97da6e7dda5f3f56fd82505ce558e4451, type=GENERATION_RESERVED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-1, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000001260, reasonCode=within_allowance, sourceEventId=null, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=3, accountId=account-1, requestId=req-0001-ok, requestDigest=a8cbb190f730d2ab51928aec97e109e97da6e7dda5f3f56fd82505ce558e4451, type=GENERATION_RESERVED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-1, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000001260, reasonCode=within_allowance, sourceEventId=null, detail=null, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: free, reserved: 1, available: 1, bucketReserved: 1, bucketConsumed: 0}
-        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0001-ok, status: RESERVED, attempt: attempt-1, reason: within_allowance}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, bucket: free, reserved: 1, available: 1, bucketReserved: 1, bucketConsumed: 0}
+        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0001-ok, kind: compile, status: RESERVED, attempt: attempt-1, reason: within_allowance}
     endTime: 1792000001260
 ---
 eventLogRecord: 
@@ -46,13 +49,14 @@ eventLogRecord:
     logTime: 1792000001760
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=4, accountId=account-1, requestId=req-0001-ok, requestDigest=a8cbb190f730d2ab51928aec97e109e97da6e7dda5f3f56fd82505ce558e4451, type=GENERATION_SETTLED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-1, resultRef=sha256:ffa6a744d78d28386438b4a8e8ee32f56718633735057b1b5ddfb5d224d45d98, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000001760, reasonCode=generation_succeeded, sourceEventId=null, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=4, accountId=account-1, requestId=req-0001-ok, requestDigest=a8cbb190f730d2ab51928aec97e109e97da6e7dda5f3f56fd82505ce558e4451, type=GENERATION_SETTLED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-1, resultRef=sha256:ffa6a744d78d28386438b4a8e8ee32f56718633735057b1b5ddfb5d224d45d98, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000001760, reasonCode=generation_succeeded, sourceEventId=null, detail=null, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: free, consumed: 1, available: 1, bucketReserved: 0, bucketConsumed: 1}
-        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0001-ok, status: SETTLED, attempt: attempt-1, reason: generation_succeeded, result: sha256:ffa6a744d78d28386438b4a8e8ee32f56718633735057b1b5ddfb5d224d45d98}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, bucket: free, consumed: 1, available: 1, bucketReserved: 0, bucketConsumed: 1}
+        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0001-ok, kind: compile, status: SETTLED, attempt: attempt-1, reason: generation_succeeded, result: sha256:ffa6a744d78d28386438b4a8e8ee32f56718633735057b1b5ddfb5d224d45d98}
     endTime: 1792000001760
 ---
 eventLogRecord: 
@@ -60,13 +64,14 @@ eventLogRecord:
     logTime: 1792000002010
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=5, accountId=account-1, requestId=req-0002-fails, requestDigest=0f4895e7b65a9779fb5f25b6cd1795f93bf1f6fce59aab3be6d866f8a37d3a49, type=GENERATION_RESERVED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-2, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000002010, reasonCode=within_allowance, sourceEventId=null, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=5, accountId=account-1, requestId=req-0002-fails, requestDigest=0f4895e7b65a9779fb5f25b6cd1795f93bf1f6fce59aab3be6d866f8a37d3a49, type=GENERATION_RESERVED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-2, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000002010, reasonCode=within_allowance, sourceEventId=null, detail=null, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: free, reserved: 1, available: 0, bucketReserved: 1, bucketConsumed: 1}
-        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0002-fails, status: RESERVED, attempt: attempt-2, reason: within_allowance}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, bucket: free, reserved: 1, available: 0, bucketReserved: 1, bucketConsumed: 1}
+        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0002-fails, kind: compile, status: RESERVED, attempt: attempt-2, reason: within_allowance}
     endTime: 1792000002010
 ---
 eventLogRecord: 
@@ -74,13 +79,14 @@ eventLogRecord:
     logTime: 1792000002260
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=6, accountId=account-1, requestId=req-0002-fails, requestDigest=0f4895e7b65a9779fb5f25b6cd1795f93bf1f6fce59aab3be6d866f8a37d3a49, type=GENERATION_RELEASED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-2, resultRef=null, failureCode=GENERATION_ERROR, policyVersion=policy-2026-10, atMillis=1792000002260, reasonCode=not_charged, sourceEventId=null, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=6, accountId=account-1, requestId=req-0002-fails, requestDigest=0f4895e7b65a9779fb5f25b6cd1795f93bf1f6fce59aab3be6d866f8a37d3a49, type=GENERATION_RELEASED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-2, resultRef=null, failureCode=GENERATION_ERROR, policyVersion=policy-2026-10, atMillis=1792000002260, reasonCode=not_charged, sourceEventId=null, detail=null, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: free, released: 1, available: 1, bucketReserved: 0, bucketConsumed: 1}
-        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0002-fails, status: RELEASED, attempt: attempt-2, reason: not_charged, failure: GENERATION_ERROR}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, bucket: free, released: 1, available: 1, bucketReserved: 0, bucketConsumed: 1}
+        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0002-fails, kind: compile, status: RELEASED, attempt: attempt-2, reason: not_charged, failure: GENERATION_ERROR}
     endTime: 1792000002260
 ---
 eventLogRecord: 
@@ -88,13 +94,14 @@ eventLogRecord:
     logTime: 1792000002510
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=7, accountId=account-1, requestId=req-0003-ok, requestDigest=f4c5a60a931accbcff43e32c381783c2c714a0b1347b5e47150a4af9615c9236, type=GENERATION_RESERVED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-3, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000002510, reasonCode=within_allowance, sourceEventId=null, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=7, accountId=account-1, requestId=req-0003-ok, requestDigest=f4c5a60a931accbcff43e32c381783c2c714a0b1347b5e47150a4af9615c9236, type=GENERATION_RESERVED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-3, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000002510, reasonCode=within_allowance, sourceEventId=null, detail=null, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: free, reserved: 1, available: 0, bucketReserved: 1, bucketConsumed: 1}
-        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0003-ok, status: RESERVED, attempt: attempt-3, reason: within_allowance}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, bucket: free, reserved: 1, available: 0, bucketReserved: 1, bucketConsumed: 1}
+        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0003-ok, kind: compile, status: RESERVED, attempt: attempt-3, reason: within_allowance}
     endTime: 1792000002510
 ---
 eventLogRecord: 
@@ -102,13 +109,14 @@ eventLogRecord:
     logTime: 1792000003010
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=8, accountId=account-1, requestId=req-0003-ok, requestDigest=f4c5a60a931accbcff43e32c381783c2c714a0b1347b5e47150a4af9615c9236, type=GENERATION_SETTLED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-3, resultRef=sha256:afd7b38a6bd8d468c6a16c11a8d23bb837ee6e02c6658739323970451ba7e2c2, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000003010, reasonCode=generation_succeeded, sourceEventId=null, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=8, accountId=account-1, requestId=req-0003-ok, requestDigest=f4c5a60a931accbcff43e32c381783c2c714a0b1347b5e47150a4af9615c9236, type=GENERATION_SETTLED, units=1, bucket=free, bucketPeriod=null, attemptId=attempt-3, resultRef=sha256:afd7b38a6bd8d468c6a16c11a8d23bb837ee6e02c6658739323970451ba7e2c2, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000003010, reasonCode=generation_succeeded, sourceEventId=null, detail=null, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: free, consumed: 1, available: 0, bucketReserved: 0, bucketConsumed: 2}
-        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0003-ok, status: SETTLED, attempt: attempt-3, reason: generation_succeeded, result: sha256:afd7b38a6bd8d468c6a16c11a8d23bb837ee6e02c6658739323970451ba7e2c2}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, bucket: free, consumed: 1, available: 0, bucketReserved: 0, bucketConsumed: 2}
+        - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0003-ok, kind: compile, status: SETTLED, attempt: attempt-3, reason: generation_succeeded, result: sha256:afd7b38a6bd8d468c6a16c11a8d23bb837ee6e02c6658739323970451ba7e2c2}
     endTime: 1792000003010
 ---
 eventLogRecord: 
@@ -116,12 +124,13 @@ eventLogRecord:
     logTime: 1792000003260
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=9, accountId=account-1, requestId=req-0004-over, requestDigest=30547919e0fc70e1b92877a172dabf3ad178f2614e30bd82aa29a8148fb05cba, type=GENERATION_REFUSED, units=0, bucket=null, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=CREDIT_ALLOWANCE_EXHAUSTED, policyVersion=policy-2026-10, atMillis=1792000003260, reasonCode=exhausted, sourceEventId=null, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=9, accountId=account-1, requestId=req-0004-over, requestDigest=30547919e0fc70e1b92877a172dabf3ad178f2614e30bd82aa29a8148fb05cba, type=GENERATION_REFUSED, units=0, bucket=null, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=CREDIT_ALLOWANCE_EXHAUSTED, policyVersion=policy-2026-10, atMillis=1792000003260, reasonCode=exhausted, sourceEventId=null, detail=null, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, refused: CREDIT_ALLOWANCE_EXHAUSTED}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, refused: CREDIT_ALLOWANCE_EXHAUSTED}
         - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0004-over, reason: exhausted}
     endTime: 1792000003260
 ---
@@ -130,12 +139,13 @@ eventLogRecord:
     logTime: 1792000004260
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=10, accountId=account-1, requestId=null, requestDigest=null, type=ALLOWANCE_GRANTED, units=3, bucket=support, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000004260, reasonCode=operator:ops:goodwill, sourceEventId=op:ops:ticket-7-grant-01, detail=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=10, accountId=account-1, requestId=null, requestDigest=null, type=ALLOWANCE_GRANTED, units=3, bucket=support, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000004260, reasonCode=operator:ops:goodwill, sourceEventId=op:ops:ticket-7-grant-01, detail=null, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: support, granted: 3, available: 3, bucketReserved: 0, bucketConsumed: 0}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, bucket: support, granted: 3, available: 3, bucketReserved: 0, bucketConsumed: 0}
         - requests: { thread: main, method: onEvent, annotation: OnEventHandler}
     endTime: 1792000004260
 ---
@@ -144,11 +154,12 @@ eventLogRecord:
     logTime: 1792000005260
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=11, accountId=account-1, requestId=null, requestDigest=null, type=ALLOWANCE_REMOVED, units=3, bucket=support, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000005260, reasonCode=operator:ops:mistaken_grant, sourceEventId=op:ops:ticket-7-remove-01, detail=requested:5]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=11, accountId=account-1, requestId=null, requestDigest=null, type=ALLOWANCE_REMOVED, units=3, bucket=support, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000005260, reasonCode=operator:ops:mistaken_grant, sourceEventId=op:ops:ticket-7-remove-01, detail=requested:5, creditKind=compile]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: support, removed: 3, available: 0, bucketReserved: 0, bucketConsumed: 0}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, kind: compile, bucket: support, removed: 3, available: 0, bucketReserved: 0, bucketConsumed: 0}
         - requests: { thread: main, method: onEvent, annotation: OnEventHandler}
     endTime: 1792000005260

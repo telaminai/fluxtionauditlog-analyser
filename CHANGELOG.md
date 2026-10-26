@@ -8,6 +8,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- **AI ▸ Compiler account…** shows compile and interpret credits separately, one row each with what remains, what was
+  used, what is in progress, and how many requests completed or failed. Below the account rows are the plan's key
+  limits, as the service reports them: most nodes, most event types, languages, WASM and software assurance; a limit
+  set for your account is marked. **Copy details** includes both balances, the plan, its limits and rates, and still
+  never the credential. A service without plans still shows compile credit and says the plan's details and interpret
+  credit were not reported, rather than guessing.
+- *Getting started ▸ Investigate a compiler charge* covers interpretations (`creditKind`, `interpret:` request ids),
+  an operator's per-account limit (`CAPABILITY_SET`), and the two new refusals, `CAPABILITY_EXCEEDED` (with the limit
+  in the row's detail) and `INTERPRET_ALLOWANCE_EXHAUSTED`.
 - *Getting started ▸ Investigate a compiler charge* covers getting the file (the service admin page's **Download audit
   log** zip, with the log and `EntitlementProcessor.graphml`, or the export tool), opening that graph explicitly, and
   reading an operator's credit removal (`ALLOWANCE_REMOVED`) and the removal answers that leave no row.
