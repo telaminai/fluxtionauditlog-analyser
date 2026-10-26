@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -66,6 +67,9 @@ class FirstMoveApiDeltaTest {
                 "open, wait, point, flag, explain — in that order (trial r2: 0 of 10 runs kept a flag)");
         assertTrue(f.contains("records:row:<recordIndex>"), "a record target in the vocabulary's own grammar");
         assertTrue(SpotlightTarget.parse("records:row:0").ok());
+        assertTrue(f.contains("WHEN THE PERSON ASKS") && f.contains("ask first") && f.contains("never replace it silently"),
+                "applies on request, and never silently replaces a log the person has open");
+        assertFalse(f.contains("CLAUDE.md"), "no project file is assumed: only starters have one");
         assertTrue(f.contains("refused"), "and it says what a too-early record target does");
     }
 }

@@ -85,7 +85,7 @@ class WorkModeKeepsTheApiTest {
             Map.entry("McpTools.hostedList", "54c1cd7bbd4304dc0277584f7e1eaef1ec0c2ed2fdab209f2b32e2ecdf5be6cd"),
             // stranger authoring trial (2026-10-25): the instructions gained McpBridge.FIRST_MOVE (r2: plus its flag step), and only that;
             // FirstMoveApiDeltaTest proves removing it gives the earlier pin (fdcf8b03…) back
-            Map.entry("McpBridge.INSTRUCTIONS", "f25a64a9c4254cbe2f73e265136f962a6a139c940474300b42234e9e22687023"),
+            Map.entry("McpBridge.INSTRUCTIONS", "6a241aab08422f281cd37c5d487238d96ef97c9ac09bfda0d59653eb0c527bb3"),
             Map.entry("PromptBuilder.inProcessActionManifest", "8dae33cf340c384a1bd16508e8b4fe05c3e9a45130003c08459a675d9f782979"),
             Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
             Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),

@@ -64,19 +64,21 @@ public final class McpBridge {
     static final String SERVER_NAME = "fluxtion-audit-log-analyser";
 
     /**
-     * What to do FIRST when a project is open and its run has a fresh export (stranger authoring trial, 2026-10-25):
+     * What to do FIRST when the person asks for evidence or an explanation and the run has a fresh export (stranger authoring trial, 2026-10-25):
      * five of five connected Sonnet runs answered "show me evidence" and "explain what Fluxtion did with this event"
      * from greppable YAML and told the person to open the analyser themselves. The one run that opened the export
      * spotlighted a node while the log was still loading, so the record was never lit.
      */
     public static final String FIRST_MOVE =
-            "FIRST, WHEN A PROJECT IS OPEN AND ITS RUN HAS A FRESH EXPORT: if the person asks for evidence, what "
-            + "happened to an event, or what Fluxtion did with X, open that export with analyser_open {log, graphml} "
-            + "(the project's CLAUDE.md or load-audit-log skill names both paths), wait until analyser_context no "
-            + "longer reports inFlight, then analyser_spotlight the record that answers (records:row:<recordIndex>, "
-            + "then detail:node:<id>), flag the proving record with analyser_flag {recordIndexes:[<n>], note} (a finding "
-            + "worth keeping; a spotlight is gone at the next click), and only then explain. Grepping the YAML finds the record; it does not show it "
-            + "to the person. A record target sent while the log is still loading is refused, never lit elsewhere. ";
+            "FIRST, WHEN THE PERSON ASKS for evidence, what happened to an event, or what Fluxtion did with X, and the "
+            + "run you are talking about has a fresh export: open that export with analyser_open {log, graphml} "
+            + "(the project's docs or a load-audit-log skill name both paths) — but opening replaces the loaded log, so "
+            + "if the person already has a different log open, ask first and never replace it silently. Then wait until "
+            + "analyser_context no longer reports inFlight, analyser_spotlight the record that answers "
+            + "(records:row:<recordIndex>, then detail:node:<id>), flag the proving record with analyser_flag "
+            + "{recordIndexes:[<n>], note} (a finding worth keeping; a spotlight is gone at the next click), and only "
+            + "then explain. Grepping the YAML finds the record; it does not show it to the person. A record target "
+            + "sent while the log is still loading is refused, never lit elsewhere. ";
 
     public static final String INSTRUCTIONS =   // public: /manifest serves it too (review 2026-09-18 F2)
             "Drives a running Fluxtion Audit Log Analyser over its localhost action socket. "
