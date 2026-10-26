@@ -124,3 +124,31 @@ eventLogRecord:
         - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, refused: CREDIT_ALLOWANCE_EXHAUSTED}
         - requests: { thread: main, method: onEvent, annotation: OnEventHandler, requestId: req-0004-over, reason: exhausted}
     endTime: 1792000003260
+---
+eventLogRecord: 
+    eventTime: 1792000004260
+    logTime: 1792000004260
+    groupingId: null
+    event: EntitlementEvent
+    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=10, accountId=account-1, requestId=null, requestDigest=null, type=ALLOWANCE_GRANTED, units=3, bucket=support, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000004260, reasonCode=operator:ops:goodwill, sourceEventId=op:ops:ticket-7-grant-01, detail=null]
+    thread: main
+    nodeLogs: 
+        - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - period: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: support, granted: 3, available: 3, bucketReserved: 0, bucketConsumed: 0}
+        - requests: { thread: main, method: onEvent, annotation: OnEventHandler}
+    endTime: 1792000004260
+---
+eventLogRecord: 
+    eventTime: 1792000005260
+    logTime: 1792000005260
+    groupingId: null
+    event: EntitlementEvent
+    eventToString: EntitlementEvent[schemaVersion=1, ownerEpoch=1, sequence=11, accountId=account-1, requestId=null, requestDigest=null, type=ALLOWANCE_REMOVED, units=3, bucket=support, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000005260, reasonCode=operator:ops:mistaken_grant, sourceEventId=op:ops:ticket-7-remove-01, detail=requested:5]
+    thread: main
+    nodeLogs: 
+        - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - period: { thread: main, method: onEvent, annotation: OnEventHandler}
+        - ledger: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, bucket: support, removed: 3, available: 0, bucketReserved: 0, bucketConsumed: 0}
+        - requests: { thread: main, method: onEvent, annotation: OnEventHandler}
+    endTime: 1792000005260

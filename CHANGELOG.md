@@ -8,6 +8,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- *Getting started ▸ Investigate a compiler charge* covers getting the file (the service admin page's **Download audit
+  log** zip, with the log and `EntitlementProcessor.graphml`, or the export tool), opening that graph explicitly, and
+  reading an operator's credit removal (`ALLOWANCE_REMOVED`) and the removal answers that leave no row.
 - **AI ▸ Compiler account…** is laid out in sections (Account, Credits, This device, Your devices) with aligned rows,
   the credits as a row of figures, Refresh and Copy details on the left, and Close the default; connected, the top
   line names just the service's host. The service address is

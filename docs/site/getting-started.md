@@ -108,12 +108,19 @@ use **Disconnect**.
 ## Investigate a compiler charge
 
 A compiler service that uses accounts can export an **investigation** of one account: why each generation was
-allowed, refused, charged or released. Its operator sends you two files, `investigation-<account>.yaml` and
-`investigation-<account>.graphml`. Account and attempt ids may be replaced by aliases such as `account-1`.
+allowed, refused, charged or released, and every credit an operator granted or removed. Account and attempt ids may
+be replaced by aliases such as `account-1`.
 
-Open the `.yaml` with **Audit log ▸ Open log…** and the `.graphml` with **Sources ▸ Open GraphML…**. Each record is
-one transition the service committed, at the time it was decided, in the order it was committed. The values on the
-nodes are recomputed from those rows alone, by replaying them through the same graph; nothing is added after the fact.
+**Getting the file.** An operator downloads it from the service's admin page: the account's **Download audit log**
+button gives a zip holding `investigation-<account>.yaml` (the log) and `EntitlementProcessor.graphml` (the graph it
+ran on), with a *pseudonymous* option for anything shared outside the operator team. For work the admin page cannot
+reach, such as a restored copy, the service's export tool writes the same two files. Unzip into a working folder, not
+into a repository: the log may hold personal data.
+
+Open the `.yaml` with **Audit log ▸ Open log…** and the graph with **Sources ▸ Open GraphML…**. Open the graph
+explicitly: its name does not match the log's, so the analyser will not pick it up by name. Each record is one
+transition the service committed, at the time it was decided, in the order it was committed. The values on the nodes
+are recomputed from those rows alone, by replaying them through the same graph; nothing is added after the fact.
 
 - **Find one request:** type its request id in the search box above the records table. Its reservation, then its
   settlement or release (and, once its result is past the retention window, its expiry) are the rows that remain. A
@@ -126,7 +133,13 @@ nodes are recomputed from those rows alone, by replaying them through the same g
   `bucket` it drew from and that bucket's `available`, `bucketReserved` and `bucketConsumed` after the transition. A
   refusal shows as `refused` on **ledger**, with the code the caller was given, such as
   `CREDIT_ALLOWANCE_EXHAUSTED`.
-- **See the balance over time:** in the Graph tab, **Add key** `ledger.available`.
+- **Credits an operator removed:** an `ALLOWANCE_REMOVED` row takes back unspent, unreserved credit from one bucket.
+  **ledger** shows the units actually `removed` and the bucket's `available` after it; the row's detail says what was
+  asked (`requested:5` here; requested:all for everything left), which can be more than was left. An operator's grant or removal carries
+  who and why in its reason, such as `operator:ops:goodwill`. A removal the service declined (`UNKNOWN_BUCKET`, or
+  `ALREADY_REMOVED` and `NOTHING_TO_REMOVE` when nothing changed) was answered to the operator and is not in the log.
+- **See the balance over time:** in the Graph tab, **Add key** `ledger.available`. It is the balance of the bucket
+  the row names, so with more than one bucket each step belongs to the bucket in that row.
 - **See which nodes applied a row:** the Topology tab, stepping through the records.
 
 A failed generation always appears as a reservation followed by a release with `reason: not_charged`. A charge is

@@ -69,7 +69,7 @@ class EntitlementInvestigationConformanceTest {
 
     @Test
     void everyCommittedRowIsOneRecord_inTimeOrder_andTraced() {
-        assertEquals(9, LOG.size(), "the export holds nine committed rows");
+        assertEquals(11, LOG.size(), "the export holds eleven committed rows");
         long previous = Long.MIN_VALUE;
         for (int i = 0; i < LOG.size(); i++) {
             LogRecord r = LOG.record(i);
@@ -141,6 +141,18 @@ class EntitlementInvestigationConformanceTest {
         assertEquals("CREDIT_ALLOWANCE_EXHAUSTED", value(node(refused, "ledger"), "refused"));
     }
 
+    /** An operator's removal is its own row: what was removed, what was asked, who and why, and the bucket after it. */
+    @Test
+    void aRemovalShowsWhatWasRemoved_WhatWasAsked_AndTheBucketAfterIt() {
+        LogRecord removal = first("ALLOWANCE_REMOVED").orElseThrow();
+        NodeLog ledger = node(removal, "ledger");
+        assertEquals("support", value(ledger, "bucket"));
+        assertEquals("3", value(ledger, "removed"), "more than was left removes what was left");
+        assertEquals("0", value(ledger, "available"), "nothing left in the bucket after it");
+        assertEquals("requested:5", field(removal.eventToString(), "detail"), "what the operator asked for");
+        assertEquals("operator:ops:mistaken_grant", field(removal.eventToString(), "reasonCode"), "who and why");
+    }
+
     @Test
     void theExportCarriesNoInternalAccountIdsOrPrivatePackageNames() {
         String yaml = resource("entitlement-investigation.yaml");
@@ -156,7 +168,10 @@ class EntitlementInvestigationConformanceTest {
      * code to the guide that is neither in the fixture nor here fails the test below.
      */
     private static final Set<String> PRODUCER_CODES_NOT_IN_FIXTURE = Set.of(
-            "EXPIRED", "retention_elapsed", "account_inactive", "no_account", "request_changed_under_same_id");
+            "EXPIRED", "retention_elapsed", "account_inactive", "no_account", "request_changed_under_same_id",
+            // an operator's removal, refused (UNKNOWN_BUCKET) or a no-op: answered to the operator, never written as a
+            // row, so no export can contain them
+            "UNKNOWN_BUCKET", "ALREADY_REMOVED", "NOTHING_TO_REMOVE");
 
     /** Every key, status and reason the guide's *Investigate a compiler charge* names is one the producer writes. */
     @Test
@@ -172,7 +187,8 @@ class EntitlementInvestigationConformanceTest {
         int checked = 0;
         while (m.find()) {
             String token = m.group(1);
-            if (token.startsWith("investigation-") || token.startsWith(".")) continue; // file names, not record content
+            if (token.startsWith("investigation-") || token.startsWith(".")
+                    || token.matches("[A-Za-z0-9_-]+\\.(graphml|yaml|zip)")) continue; // file names, not record content
             for (String part : token.split(":\\s*|\\.")) {
                 if (part.isBlank()) continue;
                 checked++;
