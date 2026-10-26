@@ -12,7 +12,8 @@ Use this before answering any question about what the running system did.
 "show me evidence", "explain what happened to this event" or "what did Fluxtion do with X": export, open
 the export (steps 1-3), wait until `analyser_context` no longer reports `inFlight`, then
 `analyser_spotlight` the record that answers (`records:row:<recordIndex>`, then `detail:node:<id>` for the
-node that decided), and explain after it is lit. Grepping the export finds the record; it does not show
+node that decided), then **flag the proving record** (`analyser_flag {"recordIndexes": [<n>], "note":
+"<what it proves>"}`, a finding worth keeping), and explain after it is lit. Grepping the export finds the record; it does not show
 the person. If no analyser is connected, cite the record by file and line instead.
 
 ## Steps

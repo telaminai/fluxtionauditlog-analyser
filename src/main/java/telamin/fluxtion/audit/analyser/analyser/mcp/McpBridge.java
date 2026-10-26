@@ -74,7 +74,8 @@ public final class McpBridge {
             + "happened to an event, or what Fluxtion did with X, open that export with analyser_open {log, graphml} "
             + "(the project's CLAUDE.md or load-audit-log skill names both paths), wait until analyser_context no "
             + "longer reports inFlight, then analyser_spotlight the record that answers (records:row:<recordIndex>, "
-            + "then detail:node:<id>) and only then explain. Grepping the YAML finds the record; it does not show it "
+            + "then detail:node:<id>), flag the proving record with analyser_flag {recordIndexes:[<n>], note} (a finding "
+            + "worth keeping; a spotlight is gone at the next click), and only then explain. Grepping the YAML finds the record; it does not show it "
             + "to the person. A record target sent while the log is still loading is refused, never lit elsewhere. ";
 
     public static final String INSTRUCTIONS =   // public: /manifest serves it too (review 2026-09-18 F2)

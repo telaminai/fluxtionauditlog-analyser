@@ -61,8 +61,9 @@ class FirstMoveApiDeltaTest {
         assertTrue(f.toLowerCase(java.util.Locale.ROOT).contains("fresh export"), "when it applies");
         assertTrue(f.contains("evidence") && f.contains("what Fluxtion did with"), "the trial's own words for the ask");
         int open = f.indexOf("analyser_open"), wait = f.indexOf("inFlight"), point = f.indexOf("analyser_spotlight"),
-                explain = f.indexOf("only then explain");
-        assertTrue(open >= 0 && open < wait && wait < point && point < explain, "open, wait, point, explain — in that order");
+                flag = f.indexOf("analyser_flag"), explain = f.indexOf("only then explain");
+        assertTrue(open >= 0 && open < wait && wait < point && point < flag && flag < explain,
+                "open, wait, point, flag, explain — in that order (trial r2: 0 of 10 runs kept a flag)");
         assertTrue(f.contains("records:row:<recordIndex>"), "a record target in the vocabulary's own grammar");
         assertTrue(SpotlightTarget.parse("records:row:0").ok());
         assertTrue(f.contains("refused"), "and it says what a too-early record target does");

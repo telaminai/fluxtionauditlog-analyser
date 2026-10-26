@@ -13,6 +13,12 @@ tool learns where that kind of fault shows up at the same moment they learn they
 
 This skill is the **shape**. Copy it for your own fault class; the worked example at the end is one.
 
+## Showing which record proves a claim (the short version)
+
+Find the record (the table in step 2 below), `analyser_spotlight` it (`records:row:<n>`), then
+**`analyser_flag {"recordIndexes": [<n>], "note": "<what it proves>"}`** so the finding is kept, then explain.
+To explain a working run, use load-audit-log.
+
 ## If you are fixing a fault — read this first
 
 **You do not need the analyser running.** The exported audit file is the evidence: read it, cite its
