@@ -2893,7 +2893,7 @@ CONTROLS += [
     # found on staging: three device rows read "device | DEVICE | <same day>". Each row now carries a short id (whole in
     # its tooltip) and its creation time to the minute; a cut id always says it is cut
     ('ca1-device-created-to-the-minute', UI + 'CompilerAccountDialog.java',
-     'DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm \'UTC\'")', 'DateTimeFormatter.ofPattern("yyyy-MM-dd")',
+     'DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")', 'DateTimeFormatter.ofPattern("yyyy-MM-dd")',
      'CompilerAccountWordsTest#theAccountLineNamesTheTypeAndRole_andTheDeviceRowMarksThisMachine'),
     ('ca1-short-id-says-it-is-cut', UI + 'CompilerAccountDialog.java',
      'return id.length() > SHORT_ID ? id.substring(0, SHORT_ID) + "…" : id;',
@@ -2904,6 +2904,21 @@ CONTROLS += [
      'return null;',
      'CompilerAccountFrameTest#thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential'),
     # owner, 2026-10-26: after a disconnect the dialog fits its content again, never while a sign-in shows
+    # owner, 2026-10-26: the status line names the host, not the account id again; this machine's whole name fits
+    ('ca1-status-line-names-the-host', UI + 'CompilerAccountDialog.java',
+     'if (connected != null) return "Connected to " + host(connected.service());',
+     'if (connected != null) return "Connected to " + connected.service() + " as account " + connected.accountId() + ".";',
+     'CompilerAccountFrameTest#connectApproveReadUsageThenRevoke'),
+    ('ca1-side-columns-fixed-so-the-name-fits', UI + 'CompilerAccountDialog.java',
+     '        fixColumn(1, fm.stringWidth("cr741a19…") + 12);\n'
+     '        fixColumn(2, fm.stringWidth("Automation") + 12);\n'
+     '        fixColumn(3, Math.max(fm.stringWidth("2026-10-26 11:10"), fm.stringWidth("Created (UTC)")) + 12);\n'
+     '        deviceTable.getColumnModel().getColumn(0).setPreferredWidth(360);\n',
+     '        deviceTable.getColumnModel().getColumn(0).setPreferredWidth(260);\n'
+     '        deviceTable.getColumnModel().getColumn(1).setPreferredWidth(90);\n'
+     '        deviceTable.getColumnModel().getColumn(2).setPreferredWidth(80);\n'
+     '        deviceTable.getColumnModel().getColumn(3).setPreferredWidth(140);\n',
+     'CompilerAccountFrameTest#thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential'),
     ('ca1-disconnected-dialog-shrinks', UI + 'CompilerAccountDialog.java',
      '} else if (shrank && !signingIn) {', '} else if (false) {',
      'CompilerAccountFrameTest#connectApproveReadUsageThenRevoke'),

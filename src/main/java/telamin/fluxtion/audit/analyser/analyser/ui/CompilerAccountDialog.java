@@ -89,8 +89,11 @@ public final class CompilerAccountDialog extends JDialog {
     static final List<String> ACCOUNT_ROWS = List.of("Account", "Type", "Your role", "Plan", "Status");
     static final List<String> CREDIT_CAPTIONS = List.of("Remaining", "Used", "In progress", "Generations", "Failures");
     static final List<String> DEVICE_ROWS = List.of("Name", "Credential");
-    /** A device's creation time, to the minute, so devices made the same day can be told apart. */
-    private static final DateTimeFormatter CREATED = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC);
+    /**
+     * A device's creation time, to the minute, so devices made the same day can be told apart. The zone is UTC and the
+     * column header says so, which leaves the width to the Name column (owner, 2026-10-26).
+     */
+    private static final DateTimeFormatter CREATED = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneOffset.UTC);
     /** A credential id longer than this is shown cut, with "…", and whole in the cell's tooltip. */
     static final int SHORT_ID = 8;
     static final int ID_COLUMN = 1;
@@ -118,7 +121,7 @@ public final class CompilerAccountDialog extends JDialog {
     private final JLabel resetLine = UiText.label(" ");
     /** Value labels of the This device rows, in {@link #DEVICE_ROWS} order. */
     private final JLabel[] deviceValues = values(DEVICE_ROWS.size());
-    private final DefaultTableModel deviceModel = new DefaultTableModel(new Object[]{"Name", "ID", "Kind", "Created"}, 0) {
+    private final DefaultTableModel deviceModel = new DefaultTableModel(new Object[]{"Name", "ID", "Kind", "Created (UTC)"}, 0) {
         @Override public boolean isCellEditable(int row, int column) { return false; }
     };
     private final JTable deviceTable = UiText.plainCells(new JTable(deviceModel) {
@@ -270,10 +273,13 @@ public final class CompilerAccountDialog extends JDialog {
         deviceTable.getTableHeader().setReorderingAllowed(false);
         deviceTable.getTableHeader().setForeground(UiTheme.mutedForeground());
         deviceTable.getColumnModel().getColumn(0).setCellRenderer(new NameRenderer());
-        deviceTable.getColumnModel().getColumn(0).setPreferredWidth(260);
-        deviceTable.getColumnModel().getColumn(1).setPreferredWidth(90);
-        deviceTable.getColumnModel().getColumn(2).setPreferredWidth(80);
-        deviceTable.getColumnModel().getColumn(3).setPreferredWidth(140);
+        // ID, Kind and Created are fixed at what their content needs; Name takes all the rest, so a machine's whole
+        // name and its "(this machine)" tag fit at the default width (owner, 2026-10-26)
+        java.awt.FontMetrics fm = deviceTable.getFontMetrics(deviceTable.getFont());
+        fixColumn(1, fm.stringWidth("cr741a19…") + 12);
+        fixColumn(2, fm.stringWidth("Automation") + 12);
+        fixColumn(3, Math.max(fm.stringWidth("2026-10-26 11:10"), fm.stringWidth("Created (UTC)")) + 12);
+        deviceTable.getColumnModel().getColumn(0).setPreferredWidth(360);
         deviceTable.getSelectionModel().addListSelectionListener(e -> render());
         JScrollPane devicesScroll = new JScrollPane(deviceTable);
         devicesScroll.setPreferredSize(new Dimension(520, deviceTable.getRowHeight() * 3 + deviceTable.getTableHeader().getPreferredSize().height + 4));
@@ -314,6 +320,13 @@ public final class CompilerAccountDialog extends JDialog {
         root.add(south, BorderLayout.SOUTH);
         getRootPane().setDefaultButton(close);
         return root;
+    }
+
+    private void fixColumn(int index, int width) {
+        javax.swing.table.TableColumn c = deviceTable.getColumnModel().getColumn(index);
+        c.setMinWidth(width);
+        c.setMaxWidth(width);
+        c.setPreferredWidth(width);
     }
 
     private static void spaced(JPanel group, JButton b, boolean gap) {
@@ -806,8 +819,19 @@ public final class CompilerAccountDialog extends JDialog {
         return List.copyOf(out);
     }
 
+    /** The host of a service address ("compiler.example.com"); the address itself if it has none. */
+    static String host(String service) {
+        try {
+            String h = URI.create(service).getHost();
+            return h == null || h.isBlank() ? service : h;
+        } catch (IllegalArgumentException e) {
+            return service;
+        }
+    }
+
     static String connectionLine(CompilerCredential connected, boolean signingIn) {
-        if (connected != null) return "Connected to " + connected.service() + " as account " + connected.accountId() + ".";
+        // the host only: the account id is the Account section's first row, and the full address is in the field
+        if (connected != null) return "Connected to " + host(connected.service());
         if (signingIn) return "Signing in…";
         return "Not connected.";
     }

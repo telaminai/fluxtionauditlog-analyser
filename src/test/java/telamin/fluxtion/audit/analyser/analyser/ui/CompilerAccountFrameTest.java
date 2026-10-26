@@ -90,7 +90,8 @@ class CompilerAccountFrameTest {
         assertNoSecretOnScreen();
         // found by looking (2026-10-23): the sign-in rows appeared after pack() and pushed Close and the message off
         for (String b : List.of(CompilerAccountDialog.CANCEL_SIGN_IN, "Close")) assertInsideTheDialog(button(b));
-        await(() -> text().contains("Connected to " + service.base() + " as account acct-demo."), "approval connects");
+        // deliberately changed (owner, 2026-10-26): the status line names the host only; the account id is the Account row
+        await(() -> text().contains("Connected to 127.0.0.1") && !text().contains("as account"), "approval connects");
         await(() -> "free".equals(after("Plan")) && "Active".equals(after("Status")) && "120".equals(figure("Remaining")),
                 "plan and credits are read");
         assertFalse(text().contains("Next reset"), "a plan with no reset shows no reset line");
@@ -166,6 +167,7 @@ class CompilerAccountFrameTest {
     @Test
     void thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential() throws Exception {
         service.token("approved");
+        service.credentials.get("cred01")[1] = "Fluxtion analyser on Mac-1454.Home";   // a real machine's length of name
         AppConfig config = new AppConfig();
         config.compilerServiceUrl = service.base();
         open(config);
@@ -176,13 +178,18 @@ class CompilerAccountFrameTest {
                 && "administrator".equals(after("Your role")), "the account is read");
         await(() -> table().getRowCount() == 2, "the two devices the service still accepts are listed");
         onEdt(() -> {
-            assertEquals("Fluxtion analyser on demo-host (this machine)", table().getValueAt(0, 0));
+            assertEquals("Fluxtion analyser on Mac-1454.Home (this machine)", table().getValueAt(0, 0));
+            // owner, 2026-10-26: at the default size this machine's whole name and its tag fit, nothing elided
+            Component own = table().prepareRenderer(table().getCellRenderer(0, 0), 0, 0);
+            int column = table().getColumnModel().getColumn(0).getWidth();
+            assertTrue(own.getPreferredSize().width <= column,
+                    "the name is cut: needs " + own.getPreferredSize().width + "px, the column has " + column);
             assertEquals("Fluxtion analyser on other-host", table().getValueAt(1, 0));
-            assertEquals(List.of("Name", "ID", "Kind", "Created"), java.util.stream.IntStream.range(0, table().getColumnCount())
+            assertEquals(List.of("Name", "ID", "Kind", "Created (UTC)"), java.util.stream.IntStream.range(0, table().getColumnCount())
                     .mapToObj(table()::getColumnName).toList());
             assertEquals("cred02", table().getValueAt(1, 1));
             assertEquals("Device", table().getValueAt(1, 2));
-            assertTrue(String.valueOf(table().getValueAt(1, 3)).matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} UTC"));
+            assertTrue(String.valueOf(table().getValueAt(1, 3)).matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}"));
             java.awt.Rectangle cell = table().getCellRect(1, 1, true);
             java.awt.event.MouseEvent at = new java.awt.event.MouseEvent(table(), java.awt.event.MouseEvent.MOUSE_MOVED, 0, 0,
                     cell.x + 2, cell.y + 2, 0, false);
@@ -191,7 +198,7 @@ class CompilerAccountFrameTest {
             assertNull(table().getToolTipText(new java.awt.event.MouseEvent(table(), java.awt.event.MouseEvent.MOUSE_MOVED, 0, 0,
                     name.x + 2, name.y + 2, 0, false)));
         });
-        assertEquals("Fluxtion analyser on demo-host", after("Name"), "this device is named");
+        assertEquals("Fluxtion analyser on Mac-1454.Home", after("Name"), "this device is named");
         assertEquals("cred01", after("Credential"));
         // the layout's promises (owner polish, 2026-10-26): Close is the default, never a destructive action; Connect
         // is offered only when not connected; every action fits inside the dialog at its opening size
@@ -221,7 +228,7 @@ class CompilerAccountFrameTest {
         assertTrue(service.requests().stream().anyMatch(r -> r.method().equals("DELETE") && r.path().equals("/v1/credentials/cred02")));
         assertTrue(service.requests().stream().noneMatch(r -> r.path().equals("/v1/credentials/cred01")), "this device untouched");
         assertNotNull(store.kept, "this machine stays connected");
-        assertTrue(text().contains("Connected to " + service.base()));
+        assertTrue(text().contains("Connected to 127.0.0.1"));
 
         onEdt(() -> table().setRowSelectionInterval(0, 0));   // this machine's own row: exactly Revoke this device
         onEdt(() -> button(CompilerAccountDialog.REVOKE_SELECTED).doClick());

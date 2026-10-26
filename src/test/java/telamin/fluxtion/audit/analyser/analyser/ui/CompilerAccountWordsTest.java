@@ -47,7 +47,7 @@ class CompilerAccountWordsTest {
         assertEquals(List.of("acct-demo", "Not read", "Unknown", "free", "Active"),
                 CompilerAccountDialog.accountRows(null, u, null), "not read: no guess");
         CompilerAccountClient.Device d = new CompilerAccountClient.Device("cred01", "DEVICE", "Fluxtion analyser on demo-host", 1_790_000_000_000L);
-        assertArrayEquals(new Object[]{"Fluxtion analyser on demo-host (this machine)", "cred01", "Device", "2026-09-21 14:13 UTC"},
+        assertArrayEquals(new Object[]{"Fluxtion analyser on demo-host (this machine)", "cred01", "Device", "2026-09-21 14:13"},
                 CompilerAccountDialog.deviceRow(d, true), "found on staging: three rows read 'device | DEVICE | <same day>'");
         assertEquals("cred_012…", CompilerAccountDialog.shortId("cred_0123456789abcdef"), "a cut id says it is cut");
         assertEquals("cred0123", CompilerAccountDialog.shortId("cred0123"));
@@ -80,6 +80,8 @@ class CompilerAccountWordsTest {
         assertTrue(CompilerAccountDialog.revokeText(true).startsWith("Revoked."));
         assertTrue(CompilerAccountDialog.revokeText(false).contains("already did not accept"));
         assertEquals("Not connected.", CompilerAccountDialog.connectionLine(null, false));
+        assertEquals("compiler.example.com", CompilerAccountDialog.host("https://compiler.example.com"));
+        assertEquals("127.0.0.1", CompilerAccountDialog.host("http://127.0.0.1:8080"));
         assertEquals("Signing in…", CompilerAccountDialog.connectionLine(null, true));
     }
 }

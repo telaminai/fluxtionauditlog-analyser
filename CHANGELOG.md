@@ -9,7 +9,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Added
 
 - **AI ▸ Compiler account…** is laid out in sections (Account, Credits, This device, Your devices) with aligned rows,
-  the credits as a row of figures, Refresh and Copy details on the left, and Close the default. The service address is
+  the credits as a row of figures, Refresh and Copy details on the left, and Close the default; connected, the top
+  line names just the service's host. The service address is
   an editable drop-down that offers the addresses this machine has connected with. Each device row shows a short
   credential id (the whole id in its tooltip), its kind, and when it was created to the minute in UTC, so devices
   with the same name can be told apart. After a disconnect the dialog shrinks back to fit, rather than keeping an empty
