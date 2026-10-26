@@ -62,7 +62,8 @@ demo run without this key.
 ## Connect a compiler account
 
 If your compiler service uses accounts, **AI ▸ Compiler account…** connects this analyser to yours. Enter the service's
-address (for example `https://compiler.example.com`; plain `http` is accepted only for this machine) and press
+address (for example `https://compiler.example.com`; plain `http` is accepted only for this machine), or pick one
+this machine has connected with before from the drop-down, and press
 **Connect compiler account**. The analyser asks the service for a sign-in code, opens your browser at the service's
 sign-in page and shows the code to enter there. While you approve it, it checks back only as often as the service
 asks, slows down when told to, and stops when the code expires; **Cancel sign-in**, or closing the dialog, stops it
@@ -88,8 +89,8 @@ Once connected, the dialog shows:
   there have been. It also says whether the allowance is one-time (*One-time allowance (no reset)*) or when it next
   resets.
 - **This device**: the name and credential id this analyser signed in with.
-- **Your devices**: every device credential the service still accepts, with its kind and creation date (UTC), and
-  this machine marked *(this machine)*. Select one and press **Revoke selected** to stop the service accepting it,
+- **Your devices**: every device credential the service still accepts, with a short credential id (point at it for
+  the whole id), its kind, and when it was created, to the minute in UTC. This machine is marked *(this machine)*. Select one and press **Revoke selected** to stop the service accepting it,
   for example a laptop you no longer use; you are asked to confirm first. Choosing this machine's own row is the same
   as **Revoke this device**.
 

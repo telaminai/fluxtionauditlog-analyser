@@ -2872,4 +2872,39 @@ CONTROLS += [
      'if (a instanceof Map<?, ?> m && selected.equals(m.get("accountId")))',
      'if (a instanceof Map<?, ?> m)',
      'CompilerAccountClientTest#theAccountItsUsageAndItsDevicesAreRead'),
+    # the dialog's polish (2026-10-26): Close is the default and never a destructive action; Connect is offered only
+    # when not connected; the address drop-down offers only usable addresses this machine connected with, remembered
+    # on approval and kept machine-tier
+    ('ca1-close-is-default', UI + 'CompilerAccountDialog.java',
+     'getRootPane().setDefaultButton(close);', 'getRootPane().setDefaultButton(revoke);',
+     'CompilerAccountFrameTest#thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential'),
+    ('ca1-connect-only-when-disconnected', UI + 'CompilerAccountDialog.java',
+     'connect.setVisible(connected == null);', 'connect.setVisible(true);',
+     'CompilerAccountFrameTest#thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential'),
+    ('ca1-address-remembered-on-approval', UI + 'CompilerAccountDialog.java',
+     'config.rememberCompilerService(saved.service());', '// not remembered',
+     'CompilerAccountFrameTest#connectApproveReadUsageThenRevoke'),
+    ('ca1-suggestions-only-usable', UI + 'CompilerAccountDialog.java',
+     'out.removeIf(a -> a == null || ServiceAddress.refusal(a) != null);', 'out.removeIf(a -> a == null);',
+     'CompilerAccountWordsTest#theAddressSuggestionsAreTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes'),
+    ('ca1-recent-services-machine-tier', J + 'config/KnownKeys.java',
+     '"compilerServiceUrl", "recentCompilerService", "eventFilterCollapsed"', '"compilerServiceUrl", "eventFilterCollapsed"',
+     'CompilerAccountSafetyTest#theCredentialCannotReachAProfileOrAShareExport_andTheAddressIsMachineTier'),
+    # found on staging: three device rows read "device | DEVICE | <same day>". Each row now carries a short id (whole in
+    # its tooltip) and its creation time to the minute; a cut id always says it is cut
+    ('ca1-device-created-to-the-minute', UI + 'CompilerAccountDialog.java',
+     'DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm \'UTC\'")', 'DateTimeFormatter.ofPattern("yyyy-MM-dd")',
+     'CompilerAccountWordsTest#theAccountLineNamesTheTypeAndRole_andTheDeviceRowMarksThisMachine'),
+    ('ca1-short-id-says-it-is-cut', UI + 'CompilerAccountDialog.java',
+     'return id.length() > SHORT_ID ? id.substring(0, SHORT_ID) + "…" : id;',
+     'return id.length() > SHORT_ID ? id.substring(0, SHORT_ID) : id;',
+     'CompilerAccountWordsTest#theAccountLineNamesTheTypeAndRole_andTheDeviceRowMarksThisMachine'),
+    ('ca1-id-tooltip-is-the-whole-id', UI + 'CompilerAccountDialog.java',
+     'return UiText.inert(shown.get(convertRowIndexToModel(row)).credentialId());',
+     'return null;',
+     'CompilerAccountFrameTest#thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential'),
+    # owner, 2026-10-26: after a disconnect the dialog fits its content again, never while a sign-in shows
+    ('ca1-disconnected-dialog-shrinks', UI + 'CompilerAccountDialog.java',
+     '} else if (shrank && !signingIn) {', '} else if (false) {',
+     'CompilerAccountFrameTest#connectApproveReadUsageThenRevoke'),
 ]

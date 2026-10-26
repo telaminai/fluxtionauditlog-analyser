@@ -81,6 +81,7 @@ public final class ConfigStore {
         c.awsProfile = p.getProperty("awsProfile", c.awsProfile);
         c.awsRegion = p.getProperty("awsRegion", c.awsRegion);
         c.compilerServiceUrl = p.getProperty("compilerServiceUrl", c.compilerServiceUrl);
+        readList(p, "recentCompilerService", c.recentCompilerServices);
         c.theme = p.getProperty("theme", c.theme);
         readList(p, "recentFile", c.recentFiles);
         readList(p, "recentGraphml", c.recentGraphml);
@@ -209,6 +210,7 @@ public final class ConfigStore {
         put(p, "awsProfile", c.awsProfile);
         put(p, "awsRegion", c.awsRegion);
         put(p, "compilerServiceUrl", c.compilerServiceUrl);
+        writeList(p, "recentCompilerService", c.recentCompilerServices);
         put(p, "theme", c.theme);
         writeList(p, "recentFile", c.recentFiles);
         writeList(p, "recentGraphml", c.recentGraphml);

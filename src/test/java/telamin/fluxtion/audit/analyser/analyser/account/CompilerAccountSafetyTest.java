@@ -108,6 +108,7 @@ class CompilerAccountSafetyTest {
         store.save(CredentialStoreTest.credential());
         AppConfig config = new AppConfig();
         config.compilerServiceUrl = "https://compiler.example.com";
+        config.rememberCompilerService("https://compiler.example.com");
         SettingsShare share = new SettingsShare(temp.toString());
         Path profile = ProjectProfile.pathFor(temp.resolve("project"));
         ProjectProfile.save(profile, config, share);
@@ -116,9 +117,20 @@ class CompilerAccountSafetyTest {
         for (String text : List.of(profileText, exported)) {
             assertFalse(text.contains(CredentialStoreTest.BEARER));
             assertFalse(text.contains("compilerServiceUrl"), "the service address is this machine's, never a project's");
+            assertFalse(text.contains("recentCompilerService"), "nor are the addresses it connected with");
         }
         assertFalse(KnownKeys.PROFILE_FAMILIES.contains("compilerServiceUrl"));
         assertTrue(KnownKeys.CONFIG_FAMILIES.contains("compilerServiceUrl"));
+        assertFalse(KnownKeys.PROFILE_FAMILIES.contains("recentCompilerService"));
+        assertTrue(KnownKeys.CONFIG_FAMILIES.contains("recentCompilerService"));
+        telamin.fluxtion.audit.analyser.analyser.config.ConfigStore machine =
+                new telamin.fluxtion.audit.analyser.analyser.config.ConfigStore(temp.resolve("config"));
+        for (int i = 0; i < 7; i++) config.rememberCompilerService("https://c" + i + ".example.com");
+        config.rememberCompilerService("https://c3.example.com");
+        machine.save(config);
+        assertEquals(List.of("https://c3.example.com", "https://c6.example.com", "https://c5.example.com",
+                "https://c4.example.com", "https://c2.example.com"), machine.load().recentCompilerServices,
+                "most recent first, each once, at most five, and kept on this machine");
         assertTrue(java.util.Arrays.stream(AppConfig.class.getFields()).map(f -> f.getName().toLowerCase())
                 .noneMatch(n -> n.contains("compiler") && (n.contains("token") || n.contains("credential") || n.contains("bearer"))),
                 "AppConfig is cleartext: it must hold no compiler credential");

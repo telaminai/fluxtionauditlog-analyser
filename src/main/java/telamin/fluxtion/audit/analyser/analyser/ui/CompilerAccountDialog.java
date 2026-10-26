@@ -19,21 +19,27 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.plaf.basic.BasicComboBoxEditor;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -80,7 +86,14 @@ public final class CompilerAccountDialog extends JDialog {
     static final String REVOKE_SELECTED = "Revoke selected";
     static final String THIS_MACHINE = " (this machine)";
     static final String DELETION_NOTE = "Deleting the account is not available in the app yet; ask the service's support.";
-    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC);
+    static final List<String> ACCOUNT_ROWS = List.of("Account", "Type", "Your role", "Plan", "Status");
+    static final List<String> CREDIT_CAPTIONS = List.of("Remaining", "Used", "In progress", "Generations", "Failures");
+    static final List<String> DEVICE_ROWS = List.of("Name", "Credential");
+    /** A device's creation time, to the minute, so devices made the same day can be told apart. */
+    private static final DateTimeFormatter CREATED = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC);
+    /** A credential id longer than this is shown cut, with "…", and whole in the cell's tooltip. */
+    static final int SHORT_ID = 8;
+    static final int ID_COLUMN = 1;
 
     private final AppConfig config;
     private final Runnable saveConfig;
@@ -91,20 +104,31 @@ public final class CompilerAccountDialog extends JDialog {
     private final JLabel connection = UiText.label(" ");
     private final JLabel storage = UiText.label(" ");
     private final JTextField address = new JTextField(30);
+    /** The address as an editable drop-down: {@link #address} is its editor, the suggestions its items. */
+    private final JComboBox<String> addressBox = new JComboBox<>();
     private final JLabel codeLabel = UiText.label(" ");
     private final JLabel codeHint = UiText.label(" ");
     private final JLabel codeExpiry = UiText.label(" ");
     private final JPanel signIn = new JPanel();
     private final JPanel accountPanel = new JPanel();
-    private final JLabel accountLine = UiText.label(" ");
-    private final JLabel planLine = UiText.label(" ");
-    private final JLabel creditsLine = UiText.label(" ");
+    /** Value labels of the Account rows, in {@link #ACCOUNT_ROWS} order. */
+    private final JLabel[] accountValues = values(ACCOUNT_ROWS.size());
+    /** Figures of the Credits row, in {@link #CREDIT_CAPTIONS} order; the first, Remaining, is set larger. */
+    private final JLabel[] creditValues = values(CREDIT_CAPTIONS.size());
     private final JLabel resetLine = UiText.label(" ");
-    private final JLabel deviceLine = UiText.label(" ");
-    private final DefaultTableModel deviceModel = new DefaultTableModel(new Object[]{"Name", "Kind", "Created (UTC)"}, 0) {
+    /** Value labels of the This device rows, in {@link #DEVICE_ROWS} order. */
+    private final JLabel[] deviceValues = values(DEVICE_ROWS.size());
+    private final DefaultTableModel deviceModel = new DefaultTableModel(new Object[]{"Name", "ID", "Kind", "Created"}, 0) {
         @Override public boolean isCellEditable(int row, int column) { return false; }
     };
-    private final JTable deviceTable = UiText.plainCells(new JTable(deviceModel));
+    private final JTable deviceTable = UiText.plainCells(new JTable(deviceModel) {
+        @Override public String getToolTipText(java.awt.event.MouseEvent e) {
+            int row = rowAtPoint(e.getPoint());
+            int column = columnAtPoint(e.getPoint());
+            if (row < 0 || row >= shown.size() || convertColumnIndexToModel(column) != ID_COLUMN) return null;
+            return UiText.inert(shown.get(convertRowIndexToModel(row)).credentialId());   // the whole id, to tell rows apart
+        }
+    });
     private final JButton revokeSelected = UiText.button(REVOKE_SELECTED);
     private final JButton copyDetails = UiText.button(COPY_DETAILS);
     private final JLabel message = UiText.label(" ");
@@ -114,6 +138,7 @@ public final class CompilerAccountDialog extends JDialog {
     private final JButton revoke = UiText.button(REVOKE);
     private final JButton cancelSignIn = UiText.button(CANCEL_SIGN_IN);
     private final JButton openAgain = UiText.button(OPEN_AGAIN);
+    private final JButton close = UiText.button("Close");
 
     private CompilerCredential connected;           // public identifiers only reach this class; never the bearer
     private DeviceStart pending;
@@ -146,7 +171,7 @@ public final class CompilerAccountDialog extends JDialog {
         });
         render();
         pack();
-        setMinimumSize(new Dimension(600, getPreferredSize().height));
+        setMinimumSize(new Dimension(640, getPreferredSize().height));
         setLocationRelativeTo(owner);
         loadStored();
     }
@@ -166,30 +191,48 @@ public final class CompilerAccountDialog extends JDialog {
     }
 
     private JPanel content() {
-        JPanel root = new JPanel();
-        root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
-        root.setBorder(BorderFactory.createEmptyBorder(16, 18, 14, 18));
-        add(root, connection);
-        add(root, storage);
-        root.add(Box.createVerticalStrut(10));
+        int inset = 16;
+        JPanel root = new JPanel(new BorderLayout(0, UiTheme.SPACE_MD));
+        root.setBorder(BorderFactory.createEmptyBorder(inset, inset, inset, inset));
 
-        JPanel addressRow = new JPanel(new BorderLayout(8, 0));
+        // north: where the connection stands, the address, and the sign-in while one is in progress
+        JPanel north = new JPanel();
+        north.setLayout(new BoxLayout(north, BoxLayout.Y_AXIS));
+        connection.setFont(connection.getFont().deriveFont(Font.BOLD));
+        add(north, connection);
+        north.add(Box.createVerticalStrut(UiTheme.SPACE_XS));
+        UiTheme.status(storage);
+        add(north, storage);
+        north.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+        JPanel addressRow = new JPanel(new BorderLayout(UiTheme.SPACE_SM, 0));
         addressRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addressRow.add(UiText.label("Service address:"), BorderLayout.WEST);
+        addressRow.add(muted(UiText.label("Service address")), BorderLayout.WEST);
+        addressBox.setEditable(true);
+        addressBox.setEditor(new BasicComboBoxEditor() {
+            @Override protected JTextField createEditorComponent() {
+                address.setBorder(null);
+                return address;
+            }
+        });
+        UiText.plainCells(addressBox);
+        offer(suggestions(config, null));
         address.setText(config.compilerServiceUrl == null ? "" : config.compilerServiceUrl);
-        address.setToolTipText("The compiler service's base address, for example https://compiler.example.com");
-        addressRow.add(address, BorderLayout.CENTER);
-        addressRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, address.getPreferredSize().height));
-        root.add(addressRow);
-        root.add(Box.createVerticalStrut(10));
+        address.putClientProperty("JTextField.placeholderText", "https://compiler.example.com");
+        address.setToolTipText("The compiler service's base address; the list offers the addresses this machine connected with");
+        addressRow.add(addressBox, BorderLayout.CENTER);
+        addressRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, addressBox.getPreferredSize().height));
+        north.add(addressRow);
 
         signIn.setLayout(new BoxLayout(signIn, BoxLayout.Y_AXIS));
         signIn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        signIn.setBorder(BorderFactory.createEmptyBorder(UiTheme.SPACE_MD, 0, 0, 0));
         codeLabel.setFont(codeLabel.getFont().deriveFont(Font.BOLD, codeLabel.getFont().getSize2D() * 1.6f));
         add(signIn, codeLabel);
         add(signIn, codeHint);
+        UiTheme.status(codeExpiry);
         add(signIn, codeExpiry);
-        JPanel signInButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        signIn.add(Box.createVerticalStrut(UiTheme.SPACE_SM));
+        JPanel signInButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         signInButtons.setAlignmentX(Component.LEFT_ALIGNMENT);
         openAgain.addActionListener(e -> {
             if (pending != null) openBrowser(pending);
@@ -200,45 +243,56 @@ public final class CompilerAccountDialog extends JDialog {
             render();
         });
         signInButtons.add(openAgain);
+        signInButtons.add(Box.createHorizontalStrut(UiTheme.SPACE_SM));
         signInButtons.add(cancelSignIn);
         signIn.add(signInButtons);
-        root.add(signIn);
+        north.add(signIn);
+        root.add(north, BorderLayout.NORTH);
 
-        accountPanel.setLayout(new BoxLayout(accountPanel, BoxLayout.Y_AXIS));
-        accountPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        add(accountPanel, heading("Account"));
-        add(accountPanel, accountLine);
-        add(accountPanel, planLine);
-        accountPanel.add(Box.createVerticalStrut(6));
-        add(accountPanel, heading("Credits"));
-        add(accountPanel, creditsLine);
-        add(accountPanel, resetLine);
-        accountPanel.add(Box.createVerticalStrut(6));
-        add(accountPanel, heading("This device"));
-        add(accountPanel, deviceLine);
-        accountPanel.add(Box.createVerticalStrut(6));
-        add(accountPanel, heading("Your devices"));
+        // centre: the account, in sections of aligned label/value rows; the device table takes any extra height
+        accountPanel.setLayout(new GridBagLayout());
+        Rows rows = new Rows(accountPanel);
+        rows.heading("Account", false);
+        for (int i = 0; i < ACCOUNT_ROWS.size(); i++) rows.pair(ACCOUNT_ROWS.get(i), accountValues[i]);
+        rows.heading("Credits", true);
+        rows.full(creditFigures(), 0);
+        UiTheme.status(resetLine);
+        rows.full(resetLine, 0);
+        rows.heading("This device", true);
+        for (int i = 0; i < DEVICE_ROWS.size(); i++) rows.pair(DEVICE_ROWS.get(i), deviceValues[i]);
+        rows.heading("Your devices", true);
         deviceTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         deviceTable.setFillsViewportHeight(true);
+        deviceTable.setShowVerticalLines(false);
+        deviceTable.setShowHorizontalLines(true);
+        deviceTable.setIntercellSpacing(new Dimension(0, 1));
+        deviceTable.setRowHeight(deviceTable.getFontMetrics(deviceTable.getFont()).getHeight() + 10);
+        deviceTable.getTableHeader().setReorderingAllowed(false);
+        deviceTable.getTableHeader().setForeground(UiTheme.mutedForeground());
+        deviceTable.getColumnModel().getColumn(0).setCellRenderer(new NameRenderer());
+        deviceTable.getColumnModel().getColumn(0).setPreferredWidth(260);
+        deviceTable.getColumnModel().getColumn(1).setPreferredWidth(90);
+        deviceTable.getColumnModel().getColumn(2).setPreferredWidth(80);
+        deviceTable.getColumnModel().getColumn(3).setPreferredWidth(140);
         deviceTable.getSelectionModel().addListSelectionListener(e -> render());
         JScrollPane devicesScroll = new JScrollPane(deviceTable);
-        devicesScroll.setPreferredSize(new Dimension(520, deviceTable.getRowHeight() * 4 + 28));
-        devicesScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, devicesScroll.getPreferredSize().height));
-        add(accountPanel, devicesScroll);
-        JPanel deviceButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 4));
-        deviceButtons.setAlignmentX(Component.LEFT_ALIGNMENT);
+        devicesScroll.setPreferredSize(new Dimension(520, deviceTable.getRowHeight() * 3 + deviceTable.getTableHeader().getPreferredSize().height + 4));
+        devicesScroll.setMinimumSize(new Dimension(200, deviceTable.getRowHeight() * 2 + deviceTable.getTableHeader().getPreferredSize().height + 4));
+        rows.full(devicesScroll, 1);
+        JPanel deviceButtons = new JPanel(new BorderLayout(UiTheme.SPACE_MD, 0));
         revokeSelected.setToolTipText("Ask the service to stop accepting the selected device's credential");
         revokeSelected.addActionListener(e -> revokeSelected());
-        deviceButtons.add(revokeSelected);
-        accountPanel.add(deviceButtons);
-        add(accountPanel, UiText.label(DELETION_NOTE));
-        root.add(accountPanel);
-        root.add(Box.createVerticalStrut(6));
-        add(root, message);
-        root.add(Box.createVerticalStrut(12));
+        deviceButtons.add(revokeSelected, BorderLayout.WEST);
+        JLabel deletion = UiText.label(DELETION_NOTE);
+        UiTheme.status(deletion);
+        deviceButtons.add(deletion, BorderLayout.CENTER);
+        rows.full(deviceButtons, 0);
+        root.add(accountPanel, BorderLayout.CENTER);
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        buttons.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // south: the message line, then the actions — reads on the left, endings on the right, Close the default
+        JPanel south = new JPanel(new BorderLayout(0, UiTheme.SPACE_SM));
+        UiTheme.status(message);
+        south.add(message, BorderLayout.NORTH);
         connect.addActionListener(e -> startSignIn());
         refresh.setToolTipText("Read the plan and credits again; nothing is changed at the service");
         refresh.addActionListener(e -> refreshUsage());
@@ -248,21 +302,146 @@ public final class CompilerAccountDialog extends JDialog {
         disconnect.addActionListener(e -> disconnect());
         revoke.setToolTipText("Ask the service to stop accepting this device's credential, then delete it here");
         revoke.addActionListener(e -> revoke());
-        JButton close = UiText.button("Close");
         close.addActionListener(e -> dispose());
-        buttons.add(connect);
-        buttons.add(refresh);
-        buttons.add(copyDetails);
-        buttons.add(disconnect);
-        buttons.add(revoke);
-        buttons.add(close);
-        root.add(buttons);
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        for (JButton b : List.of(connect, refresh, copyDetails)) spaced(left, b, left.getComponentCount() > 0);
+        for (JButton b : List.of(disconnect, revoke, close)) spaced(right, b, right.getComponentCount() > 0);
+        JPanel buttons = new JPanel(new BorderLayout(UiTheme.SPACE_MD, 0));
+        buttons.add(left, BorderLayout.WEST);
+        buttons.add(right, BorderLayout.EAST);
+        south.add(buttons, BorderLayout.SOUTH);
+        root.add(south, BorderLayout.SOUTH);
+        getRootPane().setDefaultButton(close);
         return root;
     }
 
-    private static JLabel heading(String text) {
-        JLabel l = UiText.label(text);
-        l.setFont(l.getFont().deriveFont(Font.BOLD));
+    private static void spaced(JPanel group, JButton b, boolean gap) {
+        if (gap) group.add(Box.createHorizontalStrut(UiTheme.SPACE_SM));
+        group.add(b);
+    }
+
+    /** The Credits row: each figure over its muted caption, Remaining first and set larger. */
+    private JPanel creditFigures() {
+        JPanel row = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.anchor = GridBagConstraints.WEST;
+        for (int i = 0; i < CREDIT_CAPTIONS.size(); i++) {
+            JLabel v = creditValues[i];
+            Font f = v.getFont();
+            v.setFont(i == 0 ? f.deriveFont(Font.BOLD, f.getSize2D() * 1.5f) : f.deriveFont(Font.BOLD));
+            c.gridx = i;
+            c.gridy = 0;
+            c.anchor = GridBagConstraints.SOUTHWEST;
+            c.insets = new Insets(0, 0, 0, UiTheme.SPACE_LG + (i == 0 ? UiTheme.SPACE_SM : 0));
+            row.add(v, c);
+            c.gridy = 1;
+            c.anchor = GridBagConstraints.NORTHWEST;
+            row.add(UiText.plain(muted(UiText.label(CREDIT_CAPTIONS.get(i)))), c);
+        }
+        c.gridx = CREDIT_CAPTIONS.size();
+        c.weightx = 1;
+        row.add(Box.createHorizontalGlue(), c);
+        return row;
+    }
+
+    /** Sections of aligned rows: a small heading, then muted labels in one column and values in the next. */
+    private static final class Rows {
+        private final JPanel panel;
+        private int y;
+
+        Rows(JPanel panel) {
+            this.panel = panel;
+        }
+
+        void heading(String text, boolean gapAbove) {
+            JLabel l = UiText.label(text);
+            l.setFont(l.getFont().deriveFont(Font.BOLD));
+            JPanel h = new JPanel(new BorderLayout(UiTheme.SPACE_SM, 0));
+            h.add(l, BorderLayout.WEST);
+            JSeparator rule = new JSeparator();
+            JPanel ruleBox = new JPanel(new GridBagLayout());   // centres the rule on the heading's text
+            GridBagConstraints rc = new GridBagConstraints();
+            rc.weightx = 1;
+            rc.fill = GridBagConstraints.HORIZONTAL;
+            ruleBox.add(rule, rc);
+            h.add(ruleBox, BorderLayout.CENTER);
+            GridBagConstraints c = constraints(0, 2);
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.insets = new Insets(gapAbove ? UiTheme.SPACE_MD + UiTheme.SPACE_XS : 0, 0, UiTheme.SPACE_SM, 0);
+            panel.add(h, c);
+        }
+
+        void pair(String label, JLabel value) {
+            GridBagConstraints c = constraints(0, 1);
+            c.insets = new Insets(0, 0, UiTheme.SPACE_XS + 2, UiTheme.SPACE_LG);
+            panel.add(muted(UiText.label(label)), c);
+            c = constraints(1, 1);
+            c.weightx = 1;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.insets = new Insets(0, 0, UiTheme.SPACE_XS + 2, 0);
+            panel.add(value, c);
+            y++;
+        }
+
+        void full(JComponent component, double weighty) {
+            GridBagConstraints c = constraints(0, 2);
+            c.weightx = 1;
+            c.weighty = weighty;
+            c.fill = weighty > 0 ? GridBagConstraints.BOTH : GridBagConstraints.HORIZONTAL;
+            c.insets = new Insets(0, 0, UiTheme.SPACE_SM - 2, 0);
+            panel.add(component, c);
+        }
+
+        private GridBagConstraints constraints(int x, int width) {
+            GridBagConstraints c = new GridBagConstraints();
+            c.gridx = x;
+            c.gridy = width == 2 ? y++ : y;
+            c.gridwidth = width;
+            c.anchor = GridBagConstraints.WEST;
+            return c;
+        }
+    }
+
+    /** The Name column: this machine's row shows its name in bold and "(this machine)" as a muted tag. */
+    private final class NameRenderer extends javax.swing.table.DefaultTableCellRenderer {
+        // one line always: the name takes what is left and shortens with "…"; the tag keeps its width
+        private final JPanel cell = new JPanel(new BorderLayout());
+        private final JLabel name = UiText.label(" ");
+        private final JLabel tag = UiText.label(" ");
+
+        NameRenderer() {
+            cell.add(name, BorderLayout.CENTER);
+            cell.add(tag, BorderLayout.EAST);
+            UiText.plain(this);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean selected, boolean focus, int row, int column) {
+            Component base = super.getTableCellRendererComponent(table, value, selected, focus, row, column);
+            String text = String.valueOf(value);
+            if (!text.endsWith(THIS_MACHINE)) return base;
+            name.setText(UiText.inert(text.substring(0, text.length() - THIS_MACHINE.length())));
+            name.setFont(table.getFont().deriveFont(Font.BOLD));
+            name.setForeground(base.getForeground());
+            tag.setText(UiText.inert(THIS_MACHINE));
+            tag.setFont(table.getFont());
+            tag.setForeground(selected ? base.getForeground() : UiTheme.mutedForeground());
+            cell.setBackground(base.getBackground());
+            cell.setOpaque(true);
+            if (base instanceof JComponent j) cell.setBorder(j.getBorder());
+            return cell;
+        }
+    }
+
+    private static JLabel[] values(int n) {
+        JLabel[] out = new JLabel[n];
+        for (int i = 0; i < n; i++) out[i] = UiText.label(" ");
+        return out;
+    }
+
+    private static JLabel muted(JLabel l) {
+        l.setForeground(UiTheme.mutedForeground());
         return l;
     }
 
@@ -281,6 +460,10 @@ public final class CompilerAccountDialog extends JDialog {
         // configured address: the two differ when the setting was changed after connecting
         if (connected != null && !connected.service().equals(address.getText())) address.setText(connected.service());
         address.setEditable(connected == null && !signingIn && !busy);
+        addressBox.setEnabled(address.isEditable());   // connected or signing in: the address is fixed, the list shut
+        offer(suggestions(config, connected));
+        // a read-only address holding the focus shows as a selected field; the focus belongs with the actions then
+        if (!address.isEditable() && address.isFocusOwner()) close.requestFocusInWindow();
         boolean grew = signingIn && !signIn.isVisible();
         signIn.setVisible(signingIn);
         if (signingIn) {
@@ -289,6 +472,8 @@ public final class CompilerAccountDialog extends JDialog {
             codeExpiry.setText(expiryHint(pending));
         }
         connect.setEnabled(connected == null && !signingIn && !busy);
+        connect.setVisible(connected == null);
+        for (JButton b : List.of(refresh, copyDetails, disconnect, revoke)) b.setVisible(connected != null);
         refresh.setEnabled(connected != null && !busy);
         disconnect.setEnabled(connected != null && !busy);
         revoke.setEnabled(connected != null && !busy);
@@ -301,22 +486,39 @@ public final class CompilerAccountDialog extends JDialog {
         }
         boolean shows = connected != null;
         grew |= shows && !accountPanel.isVisible();
+        boolean shrank = !shows && accountPanel.isVisible();
         accountPanel.setVisible(shows);
         if (shows) {
-            accountLine.setText(UiText.inert(accountText(me, usage, connected)));
-            planLine.setText(usage == null ? " " : UiText.inert(planText(usage)));
-            creditsLine.setText(usage == null ? " " : UiText.inert(creditsText(usage)));
+            setAll(accountValues, accountRows(me, usage, connected));
+            setAll(creditValues, usage == null ? List.of() : creditFigures(usage));
             resetLine.setText(usage == null ? " " : UiText.inert(resetText(usage)));
-            deviceLine.setText(UiText.inert(deviceText(connected.credentialId(), thisDeviceName())));
+            setAll(deviceValues, deviceRows(connected.credentialId(), thisDeviceName()));
         }
         if (isDisplayable()) {
             revalidate();
             if (grew || getPreferredSize().height > getHeight()) {   // the sign-in rows must not push the buttons off
                 Dimension pref = getPreferredSize();
                 setSize(Math.max(getWidth(), pref.width), Math.max(getHeight(), pref.height));
+            } else if (shrank && !signingIn) {   // disconnected: no empty two-thirds; never while a sign-in is showing
+                setSize(getWidth(), Math.max(getMinimumSize().height, getPreferredSize().height));
             }
             repaint();
         }
+    }
+
+    /** Make the drop-down offer {@code items}, leaving what the field shows as it was. */
+    private void offer(List<String> items) {
+        List<String> now = new ArrayList<>();
+        for (int i = 0; i < addressBox.getItemCount(); i++) now.add(addressBox.getItemAt(i));
+        if (now.equals(items)) return;
+        String text = address.getText();
+        addressBox.removeAllItems();
+        for (String item : items) addressBox.addItem(item);
+        address.setText(text);
+    }
+
+    private static void setAll(JLabel[] labels, List<String> values) {
+        for (int i = 0; i < labels.length; i++) labels[i].setText(i < values.size() ? UiText.inert(values.get(i)) : " ");
     }
 
     private void loadStored() {
@@ -411,6 +613,10 @@ public final class CompilerAccountDialog extends JDialog {
         }, saved -> {
             busy = false;
             connected = saved;
+            // an address that worked is offered next time (machine tier; an address, never the credential)
+            List<String> before = List.copyOf(config.recentCompilerServices);
+            config.rememberCompilerService(saved.service());
+            if (!before.equals(config.recentCompilerServices)) saveConfig.run();
             message.setText("Connected.");
             render();
             refreshUsage();
@@ -587,6 +793,19 @@ public final class CompilerAccountDialog extends JDialog {
 
     // ---- words: pure, so they are tested without a screen ----------------------------------------------------------
 
+    /**
+     * The address field's suggestions, most useful first and each once: the connected credential's issuer, the
+     * addresses this machine connected with, then the configured one. Only usable addresses are offered.
+     */
+    static List<String> suggestions(AppConfig config, CompilerCredential connected) {
+        java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+        if (connected != null) out.add(connected.service());
+        out.addAll(config.recentCompilerServices);
+        if (config.compilerServiceUrl != null) out.add(config.compilerServiceUrl);
+        out.removeIf(a -> a == null || ServiceAddress.refusal(a) != null);
+        return List.copyOf(out);
+    }
+
     static String connectionLine(CompilerCredential connected, boolean signingIn) {
         if (connected != null) return "Connected to " + connected.service() + " as account " + connected.accountId() + ".";
         if (signingIn) return "Signing in…";
@@ -612,19 +831,22 @@ public final class CompilerAccountDialog extends JDialog {
         return "";
     }
 
-    static String accountText(Me me, Usage u, CompilerCredential c) {
+    /** The Account rows' values, in {@link #ACCOUNT_ROWS} order; the plan rows are left out until usage is read. */
+    static List<String> accountRows(Me me, Usage u, CompilerCredential c) {
         String account = u != null ? u.accountId() : me != null ? me.selectedAccount() : c.accountId();
-        if (me == null) return "Account " + account;
-        return "Account " + account + " · " + me.type() + " · Your role: " + (me.role() == null ? "unknown" : me.role());
+        List<String> out = new ArrayList<>(List.of(account, me == null ? "Not read" : me.type(),
+                me == null || me.role() == null ? "Unknown" : me.role()));
+        if (u != null) {
+            out.add(u.plan());
+            out.add(u.active() ? "Active" : "Inactive");
+        }
+        return out;
     }
 
-    static String planText(Usage u) {
-        return "Plan: " + u.plan() + " · " + (u.active() ? "Active" : "Inactive");
-    }
-
-    static String creditsText(Usage u) {
-        return "Remaining: " + u.available() + " · Used: " + u.consumed() + " · In progress: " + u.reserved()
-                + " · Generations: " + u.generations() + " · Failures: " + u.failures();
+    /** The Credits figures, in {@link #CREDIT_CAPTIONS} order. */
+    static List<String> creditFigures(Usage u) {
+        return List.of(String.valueOf(u.available()), String.valueOf(u.consumed()), String.valueOf(u.reserved()),
+                String.valueOf(u.generations()), String.valueOf(u.failures()));
     }
 
     /** A plan without a next reset is a one-time allowance: said as such, never a guessed date. */
@@ -632,13 +854,27 @@ public final class CompilerAccountDialog extends JDialog {
         return u.nextReset() == null ? "One-time allowance (no reset)" : "Next reset: " + u.nextReset();
     }
 
-    static String deviceText(String credentialId, String name) {
-        return (name == null || name.isEmpty() ? "Not in the device list" : name) + " · credential " + credentialId;
+    /** The This device rows' values, in {@link #DEVICE_ROWS} order. */
+    static List<String> deviceRows(String credentialId, String name) {
+        return List.of(name == null || name.isEmpty() ? "Not in the device list" : name, credentialId);
     }
 
     static Object[] deviceRow(Device d, boolean thisMachine) {
         String name = (d.name().isEmpty() ? d.credentialId() : d.name()) + (thisMachine ? THIS_MACHINE : "");
-        return new Object[]{name, d.kind(), d.createdAt() > 0 ? DAY.format(Instant.ofEpochMilli(d.createdAt())) : ""};
+        return new Object[]{name, shortId(d.credentialId()), titleCase(d.kind()),
+                d.createdAt() > 0 ? CREATED.format(Instant.ofEpochMilli(d.createdAt())) : ""};
+    }
+
+    /** The id as the table shows it: whole when short, otherwise its first {@link #SHORT_ID} characters and "…". */
+    static String shortId(String id) {
+        return id.length() > SHORT_ID ? id.substring(0, SHORT_ID) + "…" : id;
+    }
+
+    /** "DEVICE" reads as "Device", "AUTOMATION_KEY" as "Automation key": the service's kind, without shouting. */
+    static String titleCase(String kind) {
+        if (kind == null || kind.isBlank()) return "";
+        String words = kind.strip().replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+        return Character.toUpperCase(words.charAt(0)) + words.substring(1);
     }
 
     static String revokeText(boolean revokedNow) {

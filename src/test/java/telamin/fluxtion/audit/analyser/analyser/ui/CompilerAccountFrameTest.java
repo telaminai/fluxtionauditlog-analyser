@@ -91,23 +91,29 @@ class CompilerAccountFrameTest {
         // found by looking (2026-10-23): the sign-in rows appeared after pack() and pushed Close and the message off
         for (String b : List.of(CompilerAccountDialog.CANCEL_SIGN_IN, "Close")) assertInsideTheDialog(button(b));
         await(() -> text().contains("Connected to " + service.base() + " as account acct-demo."), "approval connects");
-        await(() -> text().contains("Plan: free · Active") && text().contains("Remaining: 120"), "plan and credits are read");
+        await(() -> "free".equals(after("Plan")) && "Active".equals(after("Status")) && "120".equals(figure("Remaining")),
+                "plan and credits are read");
         assertFalse(text().contains("Next reset"), "a plan with no reset shows no reset line");
         assertTrue(text().contains("One-time allowance (no reset)"), "it says the allowance is one-time");
         assertEquals(List.of(URI.create("https://compiler.example.com/device?user_code=" + StandInCompilerService.USER_CODE)), opened,
                 "the system browser was asked to open the sign-in page once");
         assertNotNull(store.kept, "the credential was stored");
-        assertEquals(0, saves.get(), "an unchanged address is not re-saved");
+        // deliberately changed (2026-10-26): approval now remembers the address for the drop-down, which is one save;
+        // the address itself was unchanged and is not re-saved
+        assertEquals(1, saves.get(), "the approved address is remembered once");
+        assertEquals(List.of(service.base()), config.recentCompilerServices);
         assertNoSecretOnScreen();
 
         service.usageBody = service.usageBody.replace("\"nextReset\":null", "\"nextReset\":\"2026-11-01T00:00:00Z\"")
                 .replace("\"available\":120", "\"available\":119");
         onEdt(() -> button(CompilerAccountDialog.REFRESH).doClick());
-        await(() -> text().contains("Remaining: 119") && text().contains("Next reset: 2026-11-01T00:00:00Z"),
+        await(() -> "119".equals(figure("Remaining")) && text().contains("Next reset: 2026-11-01T00:00:00Z"),
                 "refresh reads again, and a reset is shown when there is one");
 
         onEdt(() -> button(CompilerAccountDialog.REVOKE).doClick());
         await(() -> text().contains("Revoked.") && text().contains("Not connected."), "revoke disconnects");
+        // owner, 2026-10-26: disconnected, the dialog keeps no empty connected-size space below its content
+        onEdt(() -> assertEquals(dialog.getPreferredSize().height, dialog.getHeight(), "the dialog fits its disconnected content"));
         assertNull(store.kept, "and deletes the local credential");
         assertTrue(service.requests().stream().anyMatch(r -> r.method().equals("DELETE")
                 && r.path().equals("/v1/credentials/cred01")), "the service was asked to revoke this device");
@@ -132,7 +138,9 @@ class CompilerAccountFrameTest {
         assertTrue(service.count("/auth/device/token") <= polls + 1, "polling stopped (one already in flight at most)");
         assertNull(store.kept);
         assertTrue(text().contains("Not connected."));
-        assertTrue(button(CompilerAccountDialog.CONNECT).isEnabled(), "connect is offered again");
+        assertTrue(button(CompilerAccountDialog.CONNECT).isEnabled() && button(CompilerAccountDialog.CONNECT).isShowing(),
+                "connect is offered again");
+        assertFalse(button(CompilerAccountDialog.DISCONNECT).isVisible(), "nothing to disconnect");
     }
 
     @Test
@@ -142,13 +150,13 @@ class CompilerAccountFrameTest {
         config.compilerServiceUrl = service.base();
         open(config);
         onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
-        await(() -> text().contains("Plan: free"), "connected");
+        await(() -> "free".equals(after("Plan")), "connected");
         onEdt(dialog::dispose);
 
         config.compilerServiceUrl = "https://other.example.com";   // the setting changed after connecting
         long reads = service.count("/v1/usage");
         open(config);
-        await(() -> service.count("/v1/usage") > reads && text().contains("Plan: free"), "usage is read from the issuer");
+        await(() -> service.count("/v1/usage") > reads && "free".equals(after("Plan")), "usage is read from the issuer");
         onEdt(() -> {
             assertEquals(service.base(), address().getText(), "the field names the service the credential belongs to");
             assertFalse(address().isEditable());
@@ -164,13 +172,33 @@ class CompilerAccountFrameTest {
         List<String> copied = new CopyOnWriteArrayList<>();
         onEdt(() -> dialog.clipboard = copied::add);
         onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
-        await(() -> text().contains("Account acct-demo · Personal · Your role: administrator"), "the account is read");
+        await(() -> "acct-demo".equals(after("Account")) && "Personal".equals(after("Type"))
+                && "administrator".equals(after("Your role")), "the account is read");
         await(() -> table().getRowCount() == 2, "the two devices the service still accepts are listed");
         onEdt(() -> {
             assertEquals("Fluxtion analyser on demo-host (this machine)", table().getValueAt(0, 0));
             assertEquals("Fluxtion analyser on other-host", table().getValueAt(1, 0));
+            assertEquals(List.of("Name", "ID", "Kind", "Created"), java.util.stream.IntStream.range(0, table().getColumnCount())
+                    .mapToObj(table()::getColumnName).toList());
+            assertEquals("cred02", table().getValueAt(1, 1));
+            assertEquals("Device", table().getValueAt(1, 2));
+            assertTrue(String.valueOf(table().getValueAt(1, 3)).matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} UTC"));
+            java.awt.Rectangle cell = table().getCellRect(1, 1, true);
+            java.awt.event.MouseEvent at = new java.awt.event.MouseEvent(table(), java.awt.event.MouseEvent.MOUSE_MOVED, 0, 0,
+                    cell.x + 2, cell.y + 2, 0, false);
+            assertEquals("cred02", table().getToolTipText(at), "the ID cell's tooltip is the whole id");
+            java.awt.Rectangle name = table().getCellRect(1, 0, true);
+            assertNull(table().getToolTipText(new java.awt.event.MouseEvent(table(), java.awt.event.MouseEvent.MOUSE_MOVED, 0, 0,
+                    name.x + 2, name.y + 2, 0, false)));
         });
-        assertTrue(text().contains("Fluxtion analyser on demo-host · credential cred01"), "this device is named");
+        assertEquals("Fluxtion analyser on demo-host", after("Name"), "this device is named");
+        assertEquals("cred01", after("Credential"));
+        // the layout's promises (owner polish, 2026-10-26): Close is the default, never a destructive action; Connect
+        // is offered only when not connected; every action fits inside the dialog at its opening size
+        onEdt(() -> assertEquals("Close", dialog.getRootPane().getDefaultButton().getText()));
+        assertFalse(button(CompilerAccountDialog.CONNECT).isVisible(), "connected: Connect is not offered");
+        for (String b : List.of(CompilerAccountDialog.REFRESH, CompilerAccountDialog.DISCONNECT, CompilerAccountDialog.REVOKE))
+            assertInsideTheDialog(button(b));
         assertTrue(text().contains(CompilerAccountDialog.DELETION_NOTE));
         assertFalse(button(CompilerAccountDialog.REVOKE_SELECTED).isEnabled(), "nothing selected, nothing to revoke");
         for (String b : List.of(CompilerAccountDialog.REVOKE_SELECTED, CompilerAccountDialog.COPY_DETAILS, "Close"))
@@ -204,13 +232,32 @@ class CompilerAccountFrameTest {
     }
 
     @Test
+    void theAddressIsAnEditableDropDownOfAddressesThisMachineConnectedWith() throws Exception {
+        AppConfig config = new AppConfig();
+        config.recentCompilerServices.addAll(List.of(service.base(), "https://other.example.com", "http://plain.example.com"));
+        open(config);
+        await(() -> text().contains("Not connected."), "starts disconnected");
+        onEdt(() -> {
+            javax.swing.JComboBox<?> box = combo();
+            assertTrue(box.isEditable() && box.isEnabled());
+            assertEquals(List.of(service.base(), "https://other.example.com"),
+                    java.util.stream.IntStream.range(0, box.getItemCount()).mapToObj(box::getItemAt).toList());
+            assertEquals("", address().getText(), "nothing is chosen for the person");
+            box.setSelectedIndex(1);
+            assertEquals("https://other.example.com", address().getText(), "a suggestion fills the field");
+            address().setText("https://typed.example.com");
+            assertEquals("https://typed.example.com", address().getText(), "and any address can be typed");
+        });
+    }
+
+    @Test
     void aDisconnectDeletesOnlyTheLocalCredential() throws Exception {
         service.token("approved");
         AppConfig config = new AppConfig();
         config.compilerServiceUrl = service.base();
         open(config);
         onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
-        await(() -> text().contains("Plan: free"), "connected");
+        await(() -> "free".equals(after("Plan")), "connected");
         onEdt(() -> button(CompilerAccountDialog.DISCONNECT).doClick());
         await(() -> text().contains("Disconnected."), "disconnected");
         assertNull(store.kept);
@@ -253,6 +300,20 @@ class CompilerAccountFrameTest {
         if (c instanceof Container k) for (Component child : k.getComponents()) collect(child, out);
     }
 
+    /** The value shown beside a row's label (the line after its last occurrence). */
+    private String after(String label) throws Exception {
+        List<String> lines = List.of(text().split("\n", -1));
+        int i = lines.lastIndexOf(label);
+        return i < 0 || i + 1 >= lines.size() ? null : lines.get(i + 1);
+    }
+
+    /** A credit figure, shown above its caption (the line before it). */
+    private String figure(String caption) throws Exception {
+        List<String> lines = List.of(text().split("\n", -1));
+        int i = lines.lastIndexOf(caption);
+        return i < 1 ? null : lines.get(i - 1);
+    }
+
     private AbstractButton button(String label) {
         List<AbstractButton> found = new ArrayList<>();
         find(dialog.getContentPane(), label, found);
@@ -275,6 +336,18 @@ class CompilerAccountFrameTest {
     private static void collectTables(Component c, List<javax.swing.JTable> out) {
         if (c instanceof javax.swing.JTable t) out.add(t);
         if (c instanceof Container k) for (Component child : k.getComponents()) collectTables(child, out);
+    }
+
+    private javax.swing.JComboBox<?> combo() {
+        List<javax.swing.JComboBox<?>> found = new ArrayList<>();
+        collectCombos(dialog.getContentPane(), found);
+        assertEquals(1, found.size());
+        return found.get(0);
+    }
+
+    private static void collectCombos(Component c, List<javax.swing.JComboBox<?>> out) {
+        if (c instanceof javax.swing.JComboBox<?> b) out.add(b);
+        if (c instanceof Container k) for (Component child : k.getComponents()) collectCombos(child, out);
     }
 
     private JTextComponent address() {

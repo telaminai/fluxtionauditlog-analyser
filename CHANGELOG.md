@@ -8,6 +8,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- **AI ▸ Compiler account…** is laid out in sections (Account, Credits, This device, Your devices) with aligned rows,
+  the credits as a row of figures, Refresh and Copy details on the left, and Close the default. The service address is
+  an editable drop-down that offers the addresses this machine has connected with. Each device row shows a short
+  credential id (the whole id in its tooltip), its kind, and when it was created to the minute in UTC, so devices
+  with the same name can be told apart. After a disconnect the dialog shrinks back to fit, rather than keeping an empty
+  connected-size window.
 - **AI ▸ Compiler account…** now shows the account: its type (Personal or Organisation), your role, the plan and
   whether it is active; the credits remaining, used and in progress, generations and failures, and whether the
   allowance is one-time or when it next resets; this device's name and credential id; and your devices, with this
