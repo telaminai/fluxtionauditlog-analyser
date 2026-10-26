@@ -1,0 +1,6 @@
+I'm a Java developer. I've heard of Fluxtion but never used it. Starting from https://fluxtion-playground.dev, do the following in the current directory.
+
+Build an event processor of your own. Orders arrive, each with a symbol and a quantity. Keep a running total of quantity per symbol. When a symbol's total first reaches 1,000, publish one alert line naming the symbol; never alert twice for the same symbol. Orders with quantity 0 change nothing. Run it on the sample orders below, then show me, in the analyser, the record that proves the alert was not published twice.
+Sample: A,600 · B,200 · A,500 · A,0 · A,300 · B,900 · A,700
+
+Then make this change: "Also alert a second time when a symbol's total reaches 2,000." Run it again on the same sample orders and show me that only the intended behaviour changed. Then show me which record proves that alert fired.

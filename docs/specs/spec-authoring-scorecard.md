@@ -1,6 +1,6 @@
 # M82 — The authoring scorecard: a stranger's own processor, from zero
 
-**Status:** DRAFT r2, 2026-10-25. No implementation. One baseline trial was run (a robot stranger, free arm, E2) and graded by hand, not by this spec's tooling (§7). Owner decisions OD-82.1–.10 are open (§9).
+**Status:** DRAFT r3, 2026-10-26. No implementation. Three robot-stranger trials were run (baseline, r1, r2) and graded by hand, not by this spec's tooling (§7). Owner decisions OD-82.1–.10 are open (§9). **Handover for another LLM:** [`evidence/m82-HANDOVER.md`](evidence/m82-HANDOVER.md).
 **Milestone:** M82 (verified free: M81 is the highest in use, `grep -rn 'M82\b' docs src tools` returns nothing).
 **Tracker:** [tracker.md](tracker.md) ▸ M82. **Extends:** M79's scorecard ([`spec-first-minute.md`](spec-first-minute.md)
 §12) with the Build door's tasks. **Measures:** M76 ([`spec-authoring-journey.md`](spec-authoring-journey.md)), M80
@@ -50,15 +50,18 @@ types (SCORECARD §4) plus §6's where the runner scores.
 | **SC-B5** | **First-key friction.** Acts and minutes from the first point the run needs a key to the first successful generation with it | acts, minutes, dead ends at the key step | human/stranger runs that start with no key only |
 | **SC-B6** | **Field run** (optional, consent-based). The paying customer's next new hire does SC-B1–B3 on the fixed task, timed against the *"couple of hours"* claim | minutes to F3 and F5, acts, dead ends; only counts leave the customer | the customer's lead engineer (OD-82.7) |
 
-**The SC-B1 funnel.** Each stage requires every earlier one; a run is reported at the last stage it reached.
+**The SC-B1 funnel.** Each stage requires every earlier one; a run is reported at the last stage it reached. F4a and F5a
+are also reported as their own columns, so a run is never hidden behind a later stage it failed.
 
 | Stage | Holds when (facts, never a claim) |
 |---|---|
-| **F1 Generated** | a generated processor and its GraphML exist in the person's project, **were absent from the template's tree digest**, and carry the generator's stamp |
+| **F1 Generated (strict)** | a generated processor and its GraphML exist in the person's project, **were absent from the template's tree digest**, carry the generator's stamp, and **the generated processor's sha256 differs from the template's shipped one** (B/C) or exists at all (A). A project that only fills in the template's method bodies and keeps its shipped generated processor is **not** F1 (r1 scored 0/5 on this; r2 scored 5/5 in each B and C cell) |
 | **F2 Compiles** | an offline rebuild of the final project by the scorer exits 0 (the ladder's VALID route) |
 | **F3 Runs correctly** | the sealed behavioural oracle passes on output from a fresh process over the sample input (the ladder's ORACLE route); in the free arm, the output matches the person's expectation, written and sealed before the run (§5) |
+| **F4a MCP reached** *(arms with an analyser)* | the run's MCP call log (never the answer text) shows at least one analyser tool call that succeeded. Required for F4 where the arm has an analyser; reported on its own, because *the person was never routed to the analyser* and *the person was routed and failed* have different owners |
 | **F4 First record explained** | SC-B2 holds |
-| **F5 Second change re-verified** | SC-B3 holds |
+| **F5 Second change re-verified** | SC-B3 holds, **scored against a before-state the scorer builds** (§3.2) |
+| **F5a Flag persisted** *(arms with an analyser)* | at the end of the run the analyser's state holds a flag on the record that proves the second alert (read from the analyser, not from the transcript). A pointer by spotlight or goto alone leaves no evidence behind, so it does not hold F5a |
 
 ## 3. Proposed: the scoring rules
 
@@ -81,7 +84,11 @@ human.
 ### 3.2 Before and after
 
 SC-B3 runs the **same** sample input on the before and after builds. It holds when the sealed *intended* check flips
-**and** every other sealed check is unchanged; otherwise *changed more than intended*. Until M76 A4b ships, the scorer
+**and** every other sealed check is unchanged; otherwise *changed more than intended*. **The before-state is built by
+the scorer** from the sealed reference solution on the same input (r3 rule), never taken from the run's own earlier
+output: a run whose own before-state was already wrong (an alert twice) would otherwise compare an after-state with
+itself and pass. The run's own before-output is still scored, as F3, and a mismatch between it and the scorer's
+before-state is reported as `BEFORE_DIVERGED`. Until M76 A4b ships, the scorer
 compares the two oracle outputs; after it, the scorer reads the acceptance view's verdicts.
 
 ### 3.3 Claims and their speaker
@@ -138,6 +145,34 @@ alert, for `A` at the seventh order; every other check unchanged.
 the first run, what the output should be for their own sample input; the observer seals it. F3 is that expectation;
 SC-B2 and SC-B4 are graded by people.
 
+**No-cue variant (r3, routing).** The fixed task says *"in the analyser"* and, for B and C, that the analyser is
+connected; both name the tool, so a pass measures prompt-following. To measure **routing**, i.e. whether a stranger
+reaches the analyser unprompted from the starter's own instructions, the variant (`N`) is given to arms B and C
+(analyser running and registered, exactly as before; the person simply does not say so). Exact text, to be sealed
+(sha256 of the file recorded in `predictions.md` before the first run):
+
+> *I've downloaded the Fluxtion starter from fluxtion-playground.dev into the current directory. I'm a Java
+> developer. I've heard of Fluxtion but never used it. Starting from https://fluxtion-playground.dev, do the
+> following in the current directory.*
+>
+> *Build an event processor of your own. Orders arrive, each with a symbol and a quantity. Keep a running total of
+> quantity per symbol. When a symbol's total first reaches 1,000, publish one alert line naming the symbol; never
+> alert twice for the same symbol. Orders with quantity 0 change nothing. Run it on the sample orders below, then
+> show me the record from your run that proves the alert was not published twice.*
+> Sample: `A,600` · `B,200` · `A,500` · `A,0` · `A,300` · `B,900` · `A,700`
+>
+> *Then make this change: "Also alert a second time when a symbol's total reaches 2,000." Run it again on the same
+> sample orders and show me that only the intended behaviour changed. Then show me which record proves that alert
+> fired.*
+
+**Sealed-oracle approach for N.** The sample and the change are unchanged, so r2's oracle (checks K1–K5, pointers P1
+and P2, the strict F1 rule and the dispatch rubric) is reused **unchanged**; the variant seals only its own task
+text digest and a **routing rubric**, before the first run: *routed* = F4a holds (an analyser tool call succeeded)
+with no instruction to use it in the task; *routed away* = the proving record is quoted from the run's output or
+YAML in the answer with no analyser call (SC-B2 does **not** hold: the pointer must be lit in the analyser on the
+run's own export, §3.1). Report N's F4a and F4 rates **next to** the cued arms' and never pool them. A variant run
+whose task text shows the words *analyser* or *MCP* is invalid (`CUE_LEAK`, treated as VOID).
+
 **SC-B2 probe:** asked after F3, verbatim: *"Show me the record that proves {behaviour}."* For the fixed task,
 {behaviour} is *the alert was not published twice*.
 
@@ -164,6 +199,16 @@ Added to M74's types (SCORECARD §4), each detected from facts:
 | Field (SC-B6) | 1 per new hire, as they occur | whether the claim is wildly wrong | anything general: n ≈ 1, one customer |
 
 As in M79 §12, five runs are a smoke gate, not a measurement, and are always reported with their counts.
+
+**VOID runs (r3 rule).** A run stopped by something that is neither the subject nor the product is **VOID**, not a
+failure at F0: an account rate limit (a 429 with no subject act after it), a rig fault (the rig's own port collision
+between concurrent runs, a sandbox error before the first subject act), or a lost capture. VOID is decided from facts
+**before** the run is scored and never from its outcome. A VOID run is excluded from every denominator and listed
+separately with its cost. **Redo rule:** each VOID run is redone once, in the same arm, model and task text, after the
+cause is removed (quota reset; runs serialised or ports separated), and the redo takes the slot's place; the report
+states that redone runs ran later than the rest. A slot voided twice is reported as *unfilled*, not retried
+indefinitely. A run that failed for a reason inside the product (an exception from the library, a refusal) is a
+failure and may never be voided.
 
 **Baseline 2026-10-25 (observed, robot stranger, free arm).** One trial, run before this spec's tooling exists, so
 nothing here comes from a `score.json`. The experimenter graded every endpoint by hand.
@@ -201,10 +246,11 @@ sandbox. **SC-B5 (observation):** the keyless run hit *"Fluxtion API key is not 
 RapidAPI hub at 3.3 minutes. It did not register and fell back to a legacy artifact, so no key-step time to the first
 keyed generation exists. Robot runs cannot score SC-B5 in any case (§3.4).
 
-**Evidence stays out of the repo for now.** The per-run archives hold machine paths and transcripts captured under
-the real home. That is outside rule 1's recorded transcript exception, which covers sanitised Claude Code captures
-made with this repo's harness. The counts that matter are in the tables above, so a separate digest would add no
-information. A future cycle run under §4's isolation records under `docs/specs/evidence/m82-<cycle>/` as specified.
+**Evidence.** The raw per-run archives hold machine paths and transcripts captured under the real home. That is
+outside rule 1's recorded transcript exception, so they stay out of the repo. What is committed is a sanitised
+digest per cycle: [`evidence/m82-baseline/`](evidence/m82-baseline/README.md),
+[`evidence/m82-r1/`](evidence/m82-r1/README.md) and [`evidence/m82-r2/`](evidence/m82-r2/README.md), counts and
+findings only, no transcripts, paths or key material.
 
 **Baseline findings: where each run stopped, and who owns it.** Observed in the trial. Finding 3's cause, and how
 often human strangers would hit findings 1 and 2, are inferred.
@@ -217,11 +263,63 @@ often human strangers would hit findings 1 and 2, are inferred.
 | 4 | The playground offers no route an agent can follow into a project: no coordinates or download link in the served HTML, and `llms.txt` exists but nothing links to it. 0 of 7 runs found it, the starter download, the Spring XML contract, the analyser or the MCP | the project starter journey (M47, M19.23); M79-5's front door; the playground (cross-repo, `upstream-asks.md`) |
 | 5 | The audit hint is dismissed. FLX-1008 (*no event audit configured*) does not say how to turn audit on, so only the keyless run produced a real audit record | the compiler's diagnostic (upstream); M76 A6 and SC-B2 depend on it |
 
+**Bootstrapped r1 (2026-10-25, observed).** The baseline task plus a starter already in the directory and an analyser
+connected. Sonnet 5.5 ×5 (+ Haiku 5.5 ×1): E1 5/5, E2 5/5, E3 5/5, E4 5/5 but read from the YAML, **analyser pointer
+0/5**, **strict F1 0/5**, no consent stops. Confounded: the template already had the task's shape, so the runs only
+filled in method bodies. Sonnet made 0 MCP calls; the Haiku run was the only one to author a graph and use the MCP
+(2 calls). Digest: `evidence/m82-r1/`.
+
+**Re-run r2 (2026-10-25/26, observed): the fixed task, three arms, a sealed oracle.**
+
+- **Method.** The §5 fixed task and change (task texts under `evidence/m82-r2/`), the oracle and both task digests
+  sealed before the first run, the baseline's rig with the analyser added for B and C (sandbox isolation, a cold Maven
+  repository per run, project-scope MCP registration, the key used implicitly and never read, a key scan and
+  redaction of every archive). 5 Sonnet 5.5 and 5 Haiku 5.5 per arm.
+- **Arms.** **A**: unguided, from the playground's public URL, no analyser. **B**: the live starter bundle (template
+  digest `6d331b04…`) with analyser 1.38.0 and its MCP. **C**: the fixed starter bundle (digest `d9535a45…`; the
+  starter-routing branch `fix/starter-analyser-routing` of the web repo, head `3fb07c7`) with an analyser built from
+  the branch of the same name, head `f92ac394`. B and C had a task preamble naming the downloaded starter and the
+  connected analyser (`TASK-BC.txt`); A did not (`TASK-A.txt`).
+- **Voided and redone (the VOID rule above):** three runs stopped by an account 429 and one (c-s5) by a port collision
+  between concurrent runs. The redone runs ran about an hour after the rest.
+
+| Cell (n = 5) | F1 strict | F2 compiles | F3 runs correctly | Pointer (F4) | F5 | Median min / acts / $ | Consent stops |
+|---|---|---|---|---|---|---|---|
+| A Sonnet | **0** | 5 | 4 | **0** | 4 | 3.2 / 25 / 0.33 | 1 |
+| A Haiku | **0** | 4 | 4 | **0** | 4 | 4.5 / 51 / 0.08 | 1 |
+| B Sonnet | 5 | 5 | 5 | 5 | 5 | 4.2 / 39 / 0.64 | 0 |
+| B Haiku | 5 | 5 | 5 | 5 | 5 | 4.8 / 51 / 0.12 | 0 |
+| C Sonnet | 5 | 5 | 5 | 5 | 5 | 3.3 / 33 / 0.47 | 0 |
+| C Haiku | 5 | 5 | 5 | 5 | 5 | 5.3 / 45 / 0.09 | 0 |
+
+The columns are counts per stage as the experimenter graded them, not a nested funnel; under the rule that each stage
+requires the earlier ones, A's strict funnel stops before F1 for 10 of 10. Summary: **A: strict F1 0/10 and pointer
+0/10; B and C: every stage 20/20, MCP reached 20/20.** Scored-run cost $8.94, voided runs $0.55. In A, none of 10 runs
+found the real analyser (each took it to be the playground's browser Audit tab), and the blockers were the
+baseline's (the outdated release on Maven Central, consent stops on the undisclosed remote build, no discoverable
+analyser or starter).
+
+- **C versus B.** C was faster and cheaper for Sonnet (3.3 against 4.2 minutes, $0.47 against $0.64). The stale-jar
+  rebuild and per-run export of the fixed starter worked: no extra package step (B needed one in 10 of 10) and no
+  accumulated exports. Routing misreads of `eventHandlers`: 0/10 in C, 1/10 in B.
+- **Regressions in C.** C saved **0/10 flags and 0/10 gotos** (B: 9/10), so no evidence was left behind (the origin
+  of F5a); the Skill tool was used 0/10 (skills were read as files) and `load-audit-log` was read in 7/10.
+- **Starter bug in B:** a stop-then-restart port race in the starter's `run-and-export` (one run, a bind exception on
+  the analyser's port).
+- **Key scan:** 0 secrets in any archive; two runs checked the existence of the key file (existence only).
+- **Limits.** n = 5 per cell (5/5 is consistent with up to a 45% failure rate). One grader for F4 and the dispatch
+  claims. The operator pre-opened the project in the analyser. **The task text says "in the analyser"**: that cue
+  likely explains the jump from r1's 0/5 pointer to 20/20, so B and C measure *following an instruction to use the
+  analyser*, not *finding it* (hence the no-cue variant, §5). Redone runs were an hour later than the rest.
+- **Observed vs inferred.** Observed: every funnel count, the medians and costs, the stops, the 0 flags in C.
+  Inferred: that the cue explains the jump; that A's models took the analyser for the Audit tab (from their final
+  answers); that human strangers would behave like these models.
+
 **What this means for the targets** (no target is changed; OD-82.2 stays the owner's): a human F3 of 4 of 5 is
 unreachable from E2 until findings 1 and 2 are fixed, because 4 of 5 primary runs never reached the current release.
 **Targets** are proposed in OD-82.2, to be set only after the baseline is read.
 
-**Recording.** Each cycle under `docs/specs/evidence/m82-<cycle>/` (the baseline: `m82-baseline-2026-10-25/`):
+**Recording.** Each cycle under `docs/specs/evidence/m82-<cycle>/` (the digests so far: `m82-baseline/`, `m82-r1/`, `m82-r2/`):
 `predictions.md` with the sealed oracle and rubric digests first; one folder per run in the M74 layout (`config.json`,
 `operator.jsonl`, `snapshots.jsonl`, `meta.json`, `score.json`) plus `funnel.json` and, for human runs, the graders'
 sheets; a generated `RESULTS.md`. Transcripts and session records are never committed raw (SCORECARD §1, R6); what is
@@ -243,7 +341,7 @@ kept is sanitised, read and swept (rule 1). SC-B6 commits counts and minutes onl
 | # | Question | Recommendation |
 |---|---|---|
 | **OD-82.1** | A separate spec (M82), or rows in M79 §12? | Separate, linked from M79 §12 and M76 (the reasons in the header) |
-| **OD-82.2** | Targets, after the baseline | Proposed for discussion only: SC-B1 human E1 F3 in ≥ 4 of 5 runs, median ≤ 120 minutes (the field claim's *couple of hours*); robot F3 3/3; SC-B2 pointer in ≥ 4 of 5; SC-B3 *only intended* in ≥ 4 of 5; SC-B4 zero wrong person claims on rules 1 and 3. SC-B5 measured, not targeted, until the teaching key exists |
+| **OD-82.2** | Targets, after the baseline. **OWNER DECISION: not set by this spec or by any run** | Proposed for discussion only: SC-B1 human E1 F3 in ≥ 4 of 5 runs, median ≤ 120 minutes (the field claim's *couple of hours*); robot F3 3/3; SC-B2 pointer in ≥ 4 of 5; SC-B3 *only intended* in ≥ 4 of 5; SC-B4 zero wrong person claims on rules 1 and 3. SC-B5 measured, not targeted, until the teaching key exists |
 | **OD-82.3** | Fixed arm, free arm, or both? | Both; only the fixed arm is oracle-scored and compared across cycles |
 | **OD-82.4** | Stranger runs with a virgin client, or the person's own? | Both arms, never pooled: virgin is reproducible, own is the field condition |
 | **OD-82.5** | Which key route SC-B5 measures while no teaching key exists | The route a stranger has today, recorded per run; never an operator-supplied key in an SC-B5-scored run |
@@ -269,8 +367,17 @@ Headless, over recorded fixture runs under `tools/fixtures/m82-authoring/`, in t
 | ★ S82.8 | a run that starts with a key readable reports SC-B5 *not measured*, not 0 acts | a prestaged key read as no friction | report the act count regardless |
 | ★ S82.9 | a missing capture or a changed oracle or rubric digest is VOID or a refusal, never PASS or FAIL | a run with no evidence scored | default absent files to empty |
 | S82.10 | every committed `m82-*` folder passes the rule 1 sweep and contains no raw transcript | a leaked name or transcript | — |
+| ★ S82.11 | strict F1: a project whose generated processor is byte-identical to the template's (only method bodies filled in) does not hold F1, even when every other file differs | a filled-in template counted as authored (r1's 0/5) | compare the tree digest only, or test for existence of the generated file |
+| ★ S82.12 | F4a: a run with a successful analyser tool call in its MCP log holds F4a; a run that only mentions the analyser in its answer, or whose only call failed, does not | an answer's wording read as the tool being reached | derive F4a from the final answer text |
+| ★ S82.13 | F5a: a run that spotlighted or went to the proving record but left no flag in the analyser's end state does not hold F5a; a flag on the template's sample record does not either | C's 0/10 flags passing as evidence kept | count any pointer verb as a flag, or ignore which record the flag is on |
+| ★ S82.14 | F5 before-state: a run whose own before-output alerts `A` twice, and whose after-output equals the reference after, scores `BEFORE_DIVERGED` and not SC-B3 held | an after-state compared with the run's own wrong before-state | diff the run's after-output against the run's own before-output |
+| ★ S82.15 | VOID: a run whose stream ends in a rate-limit error with no subject act after it, or whose rig log shows a port-bind collision, is VOID, absent from the denominator and listed with its cost | an account or rig fault scored as a product failure | score it as F0 |
+| ★ S82.16 | a run that failed with a product-side exception (a library error, a refusal) is never VOID | failures hidden by voiding | void on any non-zero exit |
+| ★ S82.17 | the redo rule: a redone slot replaces the VOID run once; a slot voided twice reports *unfilled*; the report lists redo runs as later | silent retry until green | retry without a limit, or drop the VOID list |
+| ★ S82.18 | no-cue variant: a run labelled `N` whose task text digest differs from the sealed `N` digest is refused; one whose task text contains *analyser* or *MCP* is `CUE_LEAK`; N's rates are never pooled with the cued arms' | prompt-following reported as routing | trust the run's own label |
 
 ## Revision history
 
 - **r1, 2026-10-25.** First draft, from the owner's focus on authoring from zero.
 - **r2, 2026-10-25.** §7's baseline filled in from the 2026-10-25 trial: the endpoint mapping with its mismatches, a primary row and two observation rows, the SC-B5 observation, and five findings with their owners. The evidence stays out of the repo. No target changed.
+- **r3, 2026-10-26.** r2's re-run results added to §7 (three arms × two models, sealed oracle) with the r1 summary and sanitised digests under `evidence/`. Rules adopted: strict F1; funnel steps F4a *MCP reached* and F5a *flag persisted*; F5 scored against a scorer-built before-state; the VOID rule with its redo rule; the no-cue variant `N` (task text and sealed-oracle approach, §5); acceptance tests S82.11–.18. No target changed (OD-82.2 remains the owner's). Handover: `evidence/m82-HANDOVER.md`.
