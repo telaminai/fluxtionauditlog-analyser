@@ -147,6 +147,16 @@ class ReadServiceTest {
         assertTrue(((String) out.get("note")).contains("after 'at'"), "the clamp is declared, not silent");
     }
 
+    @Test
+    void aReadWithNoAnchorReadsFromTheFirstRecordAndSaysSoWithAnExample() throws IOException {
+        HeapLogStore s = store(10);
+        Map<String, Object> out = ReadService.read(s.index().snapshot(), Map.of("count", 2), s::rawText);
+        assertEquals(0, out.get("anchor"));
+        assertEquals(2, records(out).size());
+        String note = (String) out.get("note");
+        assertTrue(note.contains("no anchor given") && note.contains("recordIndex\": 40"), "a copyable example: " + note);
+    }
+
     // ---- field projection (M26.3) ------------------------------------------------------------
 
     /** Two records; nodeA logs twice in the first (last occurrence must win, as in graphing). */
@@ -222,13 +232,6 @@ class ReadServiceTest {
         Map<String, Object> r0 = records(out).get(0);
         assertNotNull(r0.get("text"));
         assertNull(r0.get("values"));
-    }
-
-    @Test
-    void missingAnchorThrows() throws IOException {
-        HeapLogStore s = store(5);
-        assertThrows(IllegalArgumentException.class,
-                () -> ReadService.read(s.index().snapshot(), Map.of("count", 3), s::rawText));
     }
 
     @Test

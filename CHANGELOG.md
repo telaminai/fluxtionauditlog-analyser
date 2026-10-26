@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- The MCP server instructions (and `/manifest`'s `instructions`) now say what to do FIRST when the person asks for evidence and the run has a fresh export, and never to silently replace a log the person has open (ask first): for "show me evidence", "what happened to this event" or "what did Fluxtion do with X", open the export with its GraphML, wait until `context` no longer reports `inFlight`, spotlight the record that answers, then explain. In a stranger authoring trial, five of five connected runs answered from the YAML and never called the analyser.
+- Bundle skills: `load-audit-log` is now chosen for explaining a run or showing evidence, not only for loading a log, and says to point at the record in a connected analyser rather than quote the YAML; `point-at-the-fault` covers "which record proves a claim" and points a working-run explanation to `load-audit-log`; `add-a-node` restates that `eventHandlers` states a design-time expectation and does not route events. The `m19-skills/2` index is re-pinned.
+
+### Fixed
+
+- Record spotlights recheck the session loading state on the UI thread and after Java-source preparation, so a queued request cannot reveal records after a log starts loading.
+
+- `read` with no anchor (`recordIndex`, `byteOffset` or `at`) no longer fails: it reads from the first record and its `note` says so, with a copyable example. The first-move instructions and the `load-audit-log` and `point-at-the-fault` skills now say to flag the proving record after spotlighting it, so the finding is kept (a trial run saved no flags).
+- A spotlight on a record target (`records`, `records:row:<n>`, `detail`, `detail:node:<id>`) sent while a log is still loading is refused with "log still loading; record targets not ready", touching nothing, instead of landing on the log being replaced. Any other target still lights, and its reply carries `logLoading` saying what was lit is not a record.
+
 ## [1.38.0] - 2026-10-21
 
 ### Added

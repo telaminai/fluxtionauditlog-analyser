@@ -40,6 +40,20 @@ class CanonicalSkillsTest {
         }
     }
 
+    /**
+     * Stranger trial r2: runs read these skills with cat and never loaded them, and 0 of 10 flagged the proving record.
+     * So the evidence procedure must stand in the first lines of the file, flag included.
+     */
+    @Test
+    void theEvidenceProcedureIsInTheFirstLinesAndEndsInAFlag() throws Exception {
+        for (String skill : List.of("common/load-audit-log/SKILL.md", "common/point-at-the-fault/SKILL.md")) {
+            List<String> lines = Files.readAllLines(ROOT.resolve(skill));
+            String head = String.join("\n", lines.subList(0, Math.min(25, lines.size())));
+            int spot = head.indexOf("analyser_spotlight"), flag = head.indexOf("analyser_flag");
+            assertTrue(spot >= 0 && flag > spot, skill + ": spotlight then flag within the first 25 lines");
+        }
+    }
+
     @Test
     void mongooseTierUsesRegistryAndYamlExport_notTheRejectedFileSinkStory() throws Exception {
         String text = Files.readString(ROOT.resolve("mongoose/run-mongoose-server/SKILL.md"));
