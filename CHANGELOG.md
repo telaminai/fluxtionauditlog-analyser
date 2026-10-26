@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.39.0] - 2026-10-26
+
 ### Changed
 
 - The MCP server instructions (and `/manifest`'s `instructions`) now say what to do FIRST when the person asks for evidence and the run has a fresh export, and never to silently replace a log the person has open (ask first): for "show me evidence", "what happened to this event" or "what did Fluxtion do with X", open the export with its GraphML, wait until `context` no longer reports `inFlight`, spotlight the record that answers, then explain. In a stranger authoring trial, five of five connected runs answered from the YAML and never called the analyser.
