@@ -1152,8 +1152,12 @@ public final class ActionExecutor implements RenderExecutor {
             if (answer.isDone()) return;
             try {
                 checkGuard(guard);
+                String notReady = SpotlightTarget.loadingRefusal(SpotlightTarget.requests(params), logOpenInFlight());
+                if (notReady != null) { answer.complete(ActionResult.error(notReady)); return; }
                 var pending = app.prepareJavaSpotlight(params, () -> {
                     checkGuard(guard); // asynchronous preparation has finished: check again before ANY reveal/apply
+                    String loadingRefusal = SpotlightTarget.loadingRefusal(SpotlightTarget.requests(params), logOpenInFlight());
+                    if (loadingRefusal != null) throw new IllegalStateException(loadingRefusal);
                     revealSpotlightRows(params);
                 });
                 answer.whenComplete((value, failure) -> { if (answer.isCancelled()) pending.cancel(false); });
@@ -1190,6 +1194,11 @@ public final class ActionExecutor implements RenderExecutor {
         LogStore s = store.get();
         if (Boolean.TRUE.equals(params.get("clear"))) return app.spotlight(params);
         SpotlightTarget.Requests asked = SpotlightTarget.requests(params);
+        // The caller may have waited for the EDT while a log open began. Read the session's published state
+        // again at the reveal boundary; no record selection or overlay may precede this check.
+        boolean loading = logOpenInFlight();
+        String notReady = SpotlightTarget.loadingRefusal(asked, loading);
+        if (notReady != null) return ActionResult.error(notReady);
         // Judge the WHOLE call before the first reveal (review of M64.6, F2). goto's reveal relaxes the filter and
         // changes the selection, so a call refused for a misspelt member — or for being a seventh — must be
         // refused HERE, not after a row in the same call has already erased the person's investigation scope.
@@ -1198,7 +1207,8 @@ public final class ActionExecutor implements RenderExecutor {
         String wrong = SpotlightTarget.precheck(asked, app.spotlightLit(), s == null ? -1 : s.index().size());
         if (wrong != null) return ActionResult.error(wrong);
         revealSpotlightRows(params);
-        return app.spotlight(params);
+        ActionResult lit = app.spotlight(params);
+        return loading ? withLoadingNote(lit) : lit;
     }
 
     private void revealSpotlightRows(Map<String, Object> params) {

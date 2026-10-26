@@ -13,6 +13,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- Record spotlights recheck the session loading state on the UI thread and after Java-source preparation, so a queued request cannot reveal records after a log starts loading.
+
 - `read` with no anchor (`recordIndex`, `byteOffset` or `at`) no longer fails: it reads from the first record and its `note` says so, with a copyable example. The first-move instructions and the `load-audit-log` and `point-at-the-fault` skills now say to flag the proving record after spotlighting it, so the finding is kept (a trial run saved no flags).
 - A spotlight on a record target (`records`, `records:row:<n>`, `detail`, `detail:node:<id>`) sent while a log is still loading is refused with "log still loading; record targets not ready", touching nothing, instead of landing on the log being replaced. Any other target still lights, and its reply carries `logLoading` saying what was lit is not a record.
 
