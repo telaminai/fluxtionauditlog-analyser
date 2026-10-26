@@ -8,16 +8,23 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import telamin.fluxtion.audit.analyser.analyser.llm.Json;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * A loopback stand-in for the compiler service's four endpoints (CA-1 tests). Token answers are scripted as a queue
+ * A loopback stand-in for the compiler service's endpoints the analyser calls (CA-1 tests): device authorize and token,
+ * {@code /v1/usage}, {@code /v1/me}, the credential list and credential revoke. Token answers are scripted as a queue
  * of {@code status|body} pairs; the last one repeats. Every request is recorded with its method, path, Authorization
- * header and body, so a test can assert what was — and was not — sent. The values are placeholders, not real codes.
+ * header and body, so a test can assert what was — and was not — sent; the last {@code device_name} a token poll sent is
+ * kept in {@link #deviceName}. A revoke the stand-in answers 200/204 marks that credential revoked in the list. The
+ * values are placeholders, not real codes.
  */
 public final class StandInCompilerService implements AutoCloseable {
 
@@ -37,6 +44,19 @@ public final class StandInCompilerService implements AutoCloseable {
             + "\"reserved\":0,\"consumed\":30,\"released\":0,\"generations\":3,\"failures\":0,\"currentPeriod\":\"2026-10\","
             + "\"nextReset\":null,\"buckets\":[],\"policyVersion\":\"p1\",\"as_of_sequence\":42}";
     public volatile int revokeStatus = 204;
+    public volatile String meBody = "{\"userId\":\"user-demo\",\"selectedAccount\":\"acct-demo\",\"accounts\":["
+            + "{\"accountId\":\"acct-other\",\"personal\":false,\"role\":\"member\"},"
+            + "{\"accountId\":\"acct-demo\",\"personal\":true,\"role\":\"administrator\"}]}";
+    /** The device_name the last token poll carried; null when none did. */
+    public volatile String deviceName;
+    /** The account's credentials by id: {kind, name, createdAt, revokedAt}; cred01 is the one sign-in issues. */
+    public final Map<String, Object[]> credentials = Collections.synchronizedMap(new LinkedHashMap<>());
+
+    {
+        credentials.put("cred01", new Object[]{"DEVICE", "Fluxtion analyser on demo-host", 1_790_000_000_000L, null});
+        credentials.put("cred02", new Object[]{"DEVICE", "Fluxtion analyser on other-host", 1_780_000_000_000L, null});
+        credentials.put("cred03", new Object[]{"DEVICE", "device", 1_770_000_000_000L, 1_775_000_000_000L});
+    }
     public volatile String verificationUri = "https://compiler.example.com/device";
     /** When set, the usage read answers 302 to this path on the same stand-in, which records whether it was followed. */
     public volatile String usageRedirect;
@@ -92,6 +112,7 @@ public final class StandInCompilerService implements AutoCloseable {
                         + "\"expires_in\":" + expiresIn + ",\"interval\":" + interval + "}";
             }
             case "/auth/device/token" -> {
+                if (Json.parse(body) instanceof Map<?, ?> m && m.get("device_name") instanceof String n) deviceName = n;
                 String[] a;
                 synchronized (this) {
                     a = tokenAnswers.size() > 1 ? tokenAnswers.poll() : tokenAnswers.peek();
@@ -111,10 +132,17 @@ public final class StandInCompilerService implements AutoCloseable {
                 status = ok ? usageStatus : 401;
                 out = status == 200 ? usageBody : "{\"error\":\"unauthorized\"}";
             }
+            case "/v1/me", "/v1/credentials" -> {
+                boolean ok = ("Bearer " + BEARER).equals(ex.getRequestHeaders().getFirst("Authorization"));
+                status = ok ? 200 : 401;
+                out = !ok ? "{\"error\":\"unauthorized\"}" : path.equals("/v1/me") ? meBody : credentialList();
+            }
             default -> {
                 if (path.startsWith("/v1/credentials/") && ex.getRequestMethod().equals("DELETE")) {
                     status = revokeStatus;
                     out = "";
+                    Object[] c = credentials.get(path.substring("/v1/credentials/".length()));
+                    if (c != null && (status == 200 || status == 204)) c[3] = System.currentTimeMillis();
                 } else {
                     status = 404;
                     out = "{}";
@@ -127,6 +155,23 @@ public final class StandInCompilerService implements AutoCloseable {
         try (OutputStream o = ex.getResponseBody()) {
             o.write(bytes);
         }
+    }
+
+    private String credentialList() {
+        List<Object> list = new ArrayList<>();
+        synchronized (credentials) {
+            credentials.forEach((id, c) -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("credentialId", id);
+                m.put("kind", c[0]);
+                m.put("name", c[1]);
+                m.put("scopes", List.of("compile"));
+                m.put("createdAt", c[2]);
+                m.put("revokedAt", c[3]);
+                list.add(m);
+            });
+        }
+        return Json.write(Map.of("credentials", list));
     }
 
     @Override

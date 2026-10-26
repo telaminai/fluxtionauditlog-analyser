@@ -165,6 +165,70 @@ class CompilerAccountClientTest {
     }
 
     @Test
+    void theSignInNamesThisDevice_withTheHostReducedToWhatTheServiceKeeps() throws Exception {
+        service.token("approved");
+        CompilerAccountClient named = new CompilerAccountClient(HttpClient.newHttpClient(), d -> { }, clock::get,
+                () -> "build/box ü<b>.lan");
+        named.await(named.start(service.base()), () -> false);
+        assertEquals("Fluxtion analyser on buildbox b.lan", service.deviceName, "the host keeps only [A-Za-z0-9 ._:-]");
+
+        String longest = CompilerAccountClient.deviceName("h".repeat(200));
+        assertEquals(CompilerAccountClient.DEVICE_NAME_MAX, longest.length());
+        assertTrue(longest.startsWith("Fluxtion analyser on hhh"));
+        assertEquals("Fluxtion analyser", CompilerAccountClient.deviceName("éé"), "nothing usable left: no dangling 'on'");
+        assertEquals("Fluxtion analyser", CompilerAccountClient.deviceName(null));
+        for (String host : List.of("a\nb", "x;rm -rf", "名前", " pad ", "q\"uote"))
+            assertTrue(CompilerAccountClient.deviceName(host).matches("[A-Za-z0-9 ._:-]{1,64}"), host);
+    }
+
+    @Test
+    void theAccountItsUsageAndItsDevicesAreRead() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+
+        CompilerAccountClient.Me me = client.me(c);
+        assertEquals("acct-demo", me.selectedAccount());
+        assertEquals("Personal", me.type(), "the type is the selected account's personal flag");
+        assertEquals("administrator", me.role(), "the role is the selected account's entry, not the first one");
+        service.meBody = service.meBody.replace("\"selectedAccount\":\"acct-demo\"", "\"selectedAccount\":\"acct-other\"");
+        assertEquals("Organisation", client.me(c).type());
+        assertEquals("member", client.me(c).role());
+        service.meBody = "{\"selectedAccount\":\"acct-gone\",\"accounts\":[]}";
+        assertEquals("Unknown", client.me(c).type(), "not listed: unknown, never a guess");
+
+        CompilerAccountClient.Usage u = client.usage(c);
+        assertEquals(List.of(120L, 30L, 0L, 3L, 0L), List.of(u.available(), u.consumed(), u.reserved(), u.generations(), u.failures()));
+
+        List<CompilerAccountClient.Device> devices = client.devices(c);
+        assertEquals(List.of("cred01", "cred02"), devices.stream().map(CompilerAccountClient.Device::credentialId).toList(),
+                "a revoked credential is left out");
+        assertEquals("Fluxtion analyser on demo-host", devices.get(0).name());
+        assertEquals("DEVICE", devices.get(0).kind());
+        assertEquals(1_790_000_000_000L, devices.get(0).createdAt());
+        for (StandInCompilerService.Request r : service.requests())
+            if (r.path().startsWith("/v1/")) assertEquals("Bearer " + BEARER, r.authorization(), r.toString());
+
+        service.credentials.put("../usage", new Object[]{"DEVICE", "odd", 1L, null});
+        assertEquals(2, client.devices(c).size(), "an id that is not an identifier is never listed, so never revoked");
+    }
+
+    @Test
+    void anotherDeviceCanBeRevoked_andOnlyByAnIdentifier() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        assertTrue(client.revoke(c, "cred02"));
+        StandInCompilerService.Request r = service.requests().get(service.requests().size() - 1);
+        assertEquals("DELETE /v1/credentials/cred02", r.method() + " " + r.path());
+        assertEquals("Bearer " + BEARER, r.authorization());
+        assertEquals(List.of("cred01"), client.devices(c).stream().map(CompilerAccountClient.Device::credentialId).toList());
+
+        int sent = service.requests().size();
+        for (String id : List.of("..", ".", "a/b", ""))
+            assertThrows(AccountException.class, () -> client.revoke(c, id), id);
+        assertEquals(sent, service.requests().size(), "nothing is sent for an id that could name another path");
+    }
+
+    @Test
     void aRevokedCredentialReadsAsUnauthorized() throws Exception {
         service.token("approved");
         CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
@@ -194,14 +258,18 @@ class CompilerAccountClientTest {
     }
 
     @Test
-    void theAnalyserOnlyEverCallsTheFourDocumentedEndpoints() throws Exception {
+    void theAnalyserOnlyEverCallsTheDocumentedEndpoints() throws Exception {
         service.token("pending", "approved");
         CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
         client.usage(c);
+        client.me(c);
+        client.devices(c);
+        client.revoke(c, "cred02");
         client.revoke(c);
         for (StandInCompilerService.Request r : service.requests()) {
-            assertTrue(List.of("POST /auth/device/authorize", "POST /auth/device/token", "GET /v1/usage",
-                    "DELETE /v1/credentials/cred01").contains(r.method() + " " + r.path()), "reads, never operates: " + r);
+            assertTrue(List.of("POST /auth/device/authorize", "POST /auth/device/token", "GET /v1/usage", "GET /v1/me",
+                    "GET /v1/credentials", "DELETE /v1/credentials/cred02", "DELETE /v1/credentials/cred01")
+                    .contains(r.method() + " " + r.path()), "reads, and revokes only what was picked: " + r);
         }
     }
 

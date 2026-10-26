@@ -8,6 +8,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- **AI ▸ Compiler account…** now shows the account: its type (Personal or Organisation), your role, the plan and
+  whether it is active; the credits remaining, used and in progress, generations and failures, and whether the
+  allowance is one-time or when it next resets; this device's name and credential id; and your devices, with this
+  machine marked and **Revoke selected** (confirmed first) for a lost or old one. **Copy details** puts a plain-text
+  summary for a support request on the clipboard, never the credential. A new sign-in names the device
+  "Fluxtion analyser on <host>", so several machines can be told apart. Deleting the account is not in the app yet.
 - Docs: *Getting started ▸ Investigate a compiler charge* explains how to open a compiler service's exported investigation of an account, find one request, read why it was charged, released or refused, and chart the balance.
 - **AI ▸ Compiler account…**: a rate-limited or briefly unavailable service no longer ends a device sign-in (the poll waits
   longer and retries a bounded number of times); **Revoke this device** keeps the device connected when the service

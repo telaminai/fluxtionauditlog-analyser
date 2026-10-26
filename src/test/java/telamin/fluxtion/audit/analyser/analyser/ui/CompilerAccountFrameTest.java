@@ -91,8 +91,9 @@ class CompilerAccountFrameTest {
         // found by looking (2026-10-23): the sign-in rows appeared after pack() and pushed Close and the message off
         for (String b : List.of(CompilerAccountDialog.CANCEL_SIGN_IN, "Close")) assertInsideTheDialog(button(b));
         await(() -> text().contains("Connected to " + service.base() + " as account acct-demo."), "approval connects");
-        await(() -> text().contains("Plan: free · Available credits: 120"), "plan and credits are read");
+        await(() -> text().contains("Plan: free · Active") && text().contains("Remaining: 120"), "plan and credits are read");
         assertFalse(text().contains("Next reset"), "a plan with no reset shows no reset line");
+        assertTrue(text().contains("One-time allowance (no reset)"), "it says the allowance is one-time");
         assertEquals(List.of(URI.create("https://compiler.example.com/device?user_code=" + StandInCompilerService.USER_CODE)), opened,
                 "the system browser was asked to open the sign-in page once");
         assertNotNull(store.kept, "the credential was stored");
@@ -102,7 +103,7 @@ class CompilerAccountFrameTest {
         service.usageBody = service.usageBody.replace("\"nextReset\":null", "\"nextReset\":\"2026-11-01T00:00:00Z\"")
                 .replace("\"available\":120", "\"available\":119");
         onEdt(() -> button(CompilerAccountDialog.REFRESH).doClick());
-        await(() -> text().contains("Available credits: 119") && text().contains("Next reset: 2026-11-01T00:00:00Z"),
+        await(() -> text().contains("Remaining: 119") && text().contains("Next reset: 2026-11-01T00:00:00Z"),
                 "refresh reads again, and a reset is shown when there is one");
 
         onEdt(() -> button(CompilerAccountDialog.REVOKE).doClick());
@@ -152,6 +153,54 @@ class CompilerAccountFrameTest {
             assertEquals(service.base(), address().getText(), "the field names the service the credential belongs to");
             assertFalse(address().isEditable());
         });
+    }
+
+    @Test
+    void thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential() throws Exception {
+        service.token("approved");
+        AppConfig config = new AppConfig();
+        config.compilerServiceUrl = service.base();
+        open(config);
+        List<String> copied = new CopyOnWriteArrayList<>();
+        onEdt(() -> dialog.clipboard = copied::add);
+        onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
+        await(() -> text().contains("Account acct-demo · Personal · Your role: administrator"), "the account is read");
+        await(() -> table().getRowCount() == 2, "the two devices the service still accepts are listed");
+        onEdt(() -> {
+            assertEquals("Fluxtion analyser on demo-host (this machine)", table().getValueAt(0, 0));
+            assertEquals("Fluxtion analyser on other-host", table().getValueAt(1, 0));
+        });
+        assertTrue(text().contains("Fluxtion analyser on demo-host · credential cred01"), "this device is named");
+        assertTrue(text().contains(CompilerAccountDialog.DELETION_NOTE));
+        assertFalse(button(CompilerAccountDialog.REVOKE_SELECTED).isEnabled(), "nothing selected, nothing to revoke");
+        for (String b : List.of(CompilerAccountDialog.REVOKE_SELECTED, CompilerAccountDialog.COPY_DETAILS, "Close"))
+            assertInsideTheDialog(button(b));
+
+        onEdt(() -> button(CompilerAccountDialog.COPY_DETAILS).doClick());
+        assertEquals(1, copied.size());
+        assertTrue(copied.get(0).contains("Remaining: 120") && copied.get(0).contains("This device: cred01"), copied.get(0));
+        assertFalse(copied.get(0).contains(StandInCompilerService.BEARER), "Copy details carries the credential");
+
+        List<String> asked = new CopyOnWriteArrayList<>();
+        onEdt(() -> {
+            dialog.confirm = (title, question) -> asked.add(question);
+            table().setRowSelectionInterval(1, 1);
+        });
+        onEdt(() -> button(CompilerAccountDialog.REVOKE_SELECTED).doClick());
+        await(() -> text().contains("Revoked \"Fluxtion analyser on other-host\".") && table().getRowCount() == 1,
+                "the other device is revoked and the list read again");
+        assertEquals(1, asked.size(), "the person confirmed first");
+        assertTrue(service.requests().stream().anyMatch(r -> r.method().equals("DELETE") && r.path().equals("/v1/credentials/cred02")));
+        assertTrue(service.requests().stream().noneMatch(r -> r.path().equals("/v1/credentials/cred01")), "this device untouched");
+        assertNotNull(store.kept, "this machine stays connected");
+        assertTrue(text().contains("Connected to " + service.base()));
+
+        onEdt(() -> table().setRowSelectionInterval(0, 0));   // this machine's own row: exactly Revoke this device
+        onEdt(() -> button(CompilerAccountDialog.REVOKE_SELECTED).doClick());
+        await(() -> text().contains("Revoked. The service no longer accepts this device") && text().contains("Not connected."),
+                "revoking this machine's row disconnects");
+        assertNull(store.kept);
+        assertNoSecretOnScreen();
     }
 
     @Test
@@ -214,6 +263,18 @@ class CompilerAccountFrameTest {
     private static void find(Component c, String label, List<AbstractButton> out) {
         if (c instanceof AbstractButton b && label.equals(b.getText())) out.add(b);
         if (c instanceof Container k) for (Component child : k.getComponents()) find(child, label, out);
+    }
+
+    private javax.swing.JTable table() {
+        List<javax.swing.JTable> found = new ArrayList<>();
+        collectTables(dialog.getContentPane(), found);
+        assertEquals(1, found.size());
+        return found.get(0);
+    }
+
+    private static void collectTables(Component c, List<javax.swing.JTable> out) {
+        if (c instanceof javax.swing.JTable t) out.add(t);
+        if (c instanceof Container k) for (Component child : k.getComponents()) collectTables(child, out);
     }
 
     private JTextComponent address() {

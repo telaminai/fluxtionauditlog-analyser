@@ -48,6 +48,27 @@ class CompilerAccountSafetyTest {
     }
 
     @Test
+    void copyDetailsCarriesTheFiguresForSupport_butNeverTheCredential() {
+        CompilerCredential c = new CompilerCredential("https://compiler.example.com", "cred01", "acct-demo",
+                StandInCompilerService.BEARER);
+        CompilerAccountClient.Usage u = new CompilerAccountClient.Usage("acct-demo", "free", true, 120, 30, 2, 3, 1, null);
+        CompilerAccountClient.Me me = new CompilerAccountClient.Me("acct-demo", true, "administrator");
+        String text = AccountDetails.text(c, me, u, "Fluxtion analyser on demo-host", "1.38.0",
+                java.time.Instant.parse("2026-10-26T09:30:00Z"));
+        for (String expected : List.of("Service: https://compiler.example.com", "Account: acct-demo", "Type: Personal",
+                "Role: administrator", "Plan: free", "Active: yes", "Remaining: 120", "Used: 30", "In progress: 2",
+                "Generations: 3", "Failures: 1", "Reset: one-time allowance (no reset)", "This device: cred01",
+                "Device name: Fluxtion analyser on demo-host", "Analyser version: 1.38.0", "Time: 2026-10-26 09:30:00 UTC"))
+            assertTrue(text.contains(expected), expected + " missing from:\n" + text);
+        String secret = StandInCompilerService.BEARER.substring(StandInCompilerService.BEARER.indexOf('.') + 1);
+        for (String partial : List.of(StandInCompilerService.BEARER, secret, "Bearer "))
+            assertFalse(text.contains(partial), "Copy details carries the credential: " + partial);
+        String unread = AccountDetails.text(c, null, null, null, "1.38.0", java.time.Instant.EPOCH);
+        assertFalse(unread.contains(StandInCompilerService.BEARER));
+        assertTrue(unread.contains("Usage: not read") && unread.contains("Device name: not listed"), unread);
+    }
+
+    @Test
     void nothingInTheAccountPackagePrintsOrLogs() throws Exception {
         try (Stream<Path> files = Files.list(MAIN.resolve("analyser/account"))) {
             for (Path f : files.toList()) {

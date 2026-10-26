@@ -77,12 +77,32 @@ that tool without a prompt. The credential never reaches a
 command line, a project, a settings export, a report, a walk, an evidence bundle or an assistant's `context`. It also
 remembers which service issued it, so changing the address later never sends it anywhere else.
 
-The dialog then shows the account, its plan and available credits, and the next reset when the plan has one;
-**Refresh** reads them again. The analyser only reads: it never grants credits or changes the account.
-**Disconnect** deletes the credential from this machine, and the service keeps accepting it until it is revoked.
-**Revoke this device** asks the service to stop accepting it, then deletes it here. If the service does not accept
-the credential at all (HTTP 401, for example because it was already revoked), the device stays connected: use
-**Disconnect**.
+The sign-in names this device "Fluxtion analyser on" followed by your machine's name (letters, digits, spaces and
+`._:-` only, at most 64 characters), so you can tell your machines apart later.
+
+Once connected, the dialog shows:
+
+- **Account**: the account id, whether it is a *Personal* or an *Organisation* account, your role in it, the plan,
+  and whether the account is *Active*.
+- **Credits**: what remains, what was used, what generations in progress hold, and how many generations and failures
+  there have been. It also says whether the allowance is one-time (*One-time allowance (no reset)*) or when it next
+  resets.
+- **This device**: the name and credential id this analyser signed in with.
+- **Your devices**: every device credential the service still accepts, with its kind and creation date (UTC), and
+  this machine marked *(this machine)*. Select one and press **Revoke selected** to stop the service accepting it,
+  for example a laptop you no longer use; you are asked to confirm first. Choosing this machine's own row is the same
+  as **Revoke this device**.
+
+**Refresh** reads everything again. **Copy details** puts a plain-text summary on the clipboard for a support request:
+the service, account, type, role, plan, the credit figures, this device's credential id and name, the analyser
+version and the time in UTC. It never includes the credential itself. Deleting the account is not available in the
+app yet; ask the service's support.
+
+The analyser reads the account and never grants credits or changes it; the only change it makes is revoking a
+device you choose. **Disconnect** deletes the credential from this machine, and the service keeps accepting it until
+it is revoked. **Revoke this device** asks the service to stop accepting it, then deletes it here. If the service does
+not accept the credential at all (HTTP 401, for example because it was already revoked), the device stays connected:
+use **Disconnect**.
 
 ## Investigate a compiler charge
 

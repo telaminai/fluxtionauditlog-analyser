@@ -1,6 +1,9 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
+import telamin.fluxtion.audit.analyser.analyser.account.AccountDetails;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient;
+import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Device;
+import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Me;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.DeviceStart;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Outcome;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Usage;
@@ -10,6 +13,7 @@ import telamin.fluxtion.audit.analyser.analyser.account.CredentialStores;
 import telamin.fluxtion.audit.analyser.analyser.account.ServiceAddress;
 import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.core.Background;
+import telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -20,7 +24,11 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -29,18 +37,27 @@ import java.awt.Font;
 import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.net.URI;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
- * CA-1 — AI ▸ Compiler account…: connect this analyser to a compiler account by device sign-in, show the account's
- * plan and credits, disconnect, or revoke this device.
+ * CA-1 — AI ▸ Compiler account…: connect this analyser to a compiler account by device sign-in; show the account (type,
+ * role, plan), its credits, this device and the account's other devices; copy a support summary; disconnect, or revoke
+ * this device or another one the person picks.
  *
- * <p><b>Reads, never operates.</b> The only calls are the device sign-in the person approves in their browser, a
- * usage read, and the revoke of this device's own credential ({@link CompilerAccountClient}).
+ * <p><b>Reads, and revokes only on request.</b> The only calls are the device sign-in the person approves in their
+ * browser, reads of the account, usage and device list, and the revoke of a credential the person chose
+ * ({@link CompilerAccountClient}).
  *
  * <p><b>Secrets.</b> The device code and the credential are package-private to {@code account}; this dialog cannot
  * read either, so it can neither display nor log them. It shows the user code, which is meant to be read.
@@ -59,6 +76,11 @@ public final class CompilerAccountDialog extends JDialog {
     static final String REVOKE = "Revoke this device";
     static final String CANCEL_SIGN_IN = "Cancel sign-in";
     static final String OPEN_AGAIN = "Open browser again";
+    static final String COPY_DETAILS = "Copy details";
+    static final String REVOKE_SELECTED = "Revoke selected";
+    static final String THIS_MACHINE = " (this machine)";
+    static final String DELETION_NOTE = "Deleting the account is not available in the app yet; ask the service's support.";
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC);
 
     private final AppConfig config;
     private final Runnable saveConfig;
@@ -73,8 +95,18 @@ public final class CompilerAccountDialog extends JDialog {
     private final JLabel codeHint = UiText.label(" ");
     private final JLabel codeExpiry = UiText.label(" ");
     private final JPanel signIn = new JPanel();
-    private final JLabel usageLine = UiText.label(" ");
+    private final JPanel accountPanel = new JPanel();
+    private final JLabel accountLine = UiText.label(" ");
+    private final JLabel planLine = UiText.label(" ");
+    private final JLabel creditsLine = UiText.label(" ");
     private final JLabel resetLine = UiText.label(" ");
+    private final JLabel deviceLine = UiText.label(" ");
+    private final DefaultTableModel deviceModel = new DefaultTableModel(new Object[]{"Name", "Kind", "Created (UTC)"}, 0) {
+        @Override public boolean isCellEditable(int row, int column) { return false; }
+    };
+    private final JTable deviceTable = UiText.plainCells(new JTable(deviceModel));
+    private final JButton revokeSelected = UiText.button(REVOKE_SELECTED);
+    private final JButton copyDetails = UiText.button(COPY_DETAILS);
     private final JLabel message = UiText.label(" ");
     private final JButton connect = UiText.button(CONNECT);
     private final JButton refresh = UiText.button(REFRESH);
@@ -88,9 +120,14 @@ public final class CompilerAccountDialog extends JDialog {
     private AtomicBoolean cancelled = new AtomicBoolean();
     private Future<?> signInTask;
     private boolean busy;
+    private Usage usage;                            // the last reads, for Copy details; null until read
+    private Me me;
+    private final List<Device> shown = new ArrayList<>();
     /** Asks the person to confirm (title, question); a frame test answers it without a nested modal. */
     java.util.function.BiPredicate<String, String> confirm = (title, question) -> JOptionPane.showConfirmDialog(this,
             UiText.inert(question), UiText.inert(title), JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.OK_OPTION;
+    /** Where Copy details puts its text; a frame test reads it without the system clipboard. */
+    Consumer<String> clipboard = text -> Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
 
     CompilerAccountDialog(Window owner, AppConfig config, Runnable saveConfig, CredentialStore store,
                           CompilerAccountClient client, Consumer<URI> browser) {
@@ -167,8 +204,35 @@ public final class CompilerAccountDialog extends JDialog {
         signIn.add(signInButtons);
         root.add(signIn);
 
-        add(root, usageLine);
-        add(root, resetLine);
+        accountPanel.setLayout(new BoxLayout(accountPanel, BoxLayout.Y_AXIS));
+        accountPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        add(accountPanel, heading("Account"));
+        add(accountPanel, accountLine);
+        add(accountPanel, planLine);
+        accountPanel.add(Box.createVerticalStrut(6));
+        add(accountPanel, heading("Credits"));
+        add(accountPanel, creditsLine);
+        add(accountPanel, resetLine);
+        accountPanel.add(Box.createVerticalStrut(6));
+        add(accountPanel, heading("This device"));
+        add(accountPanel, deviceLine);
+        accountPanel.add(Box.createVerticalStrut(6));
+        add(accountPanel, heading("Your devices"));
+        deviceTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        deviceTable.setFillsViewportHeight(true);
+        deviceTable.getSelectionModel().addListSelectionListener(e -> render());
+        JScrollPane devicesScroll = new JScrollPane(deviceTable);
+        devicesScroll.setPreferredSize(new Dimension(520, deviceTable.getRowHeight() * 4 + 28));
+        devicesScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, devicesScroll.getPreferredSize().height));
+        add(accountPanel, devicesScroll);
+        JPanel deviceButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 4));
+        deviceButtons.setAlignmentX(Component.LEFT_ALIGNMENT);
+        revokeSelected.setToolTipText("Ask the service to stop accepting the selected device's credential");
+        revokeSelected.addActionListener(e -> revokeSelected());
+        deviceButtons.add(revokeSelected);
+        accountPanel.add(deviceButtons);
+        add(accountPanel, UiText.label(DELETION_NOTE));
+        root.add(accountPanel);
         root.add(Box.createVerticalStrut(6));
         add(root, message);
         root.add(Box.createVerticalStrut(12));
@@ -178,6 +242,8 @@ public final class CompilerAccountDialog extends JDialog {
         connect.addActionListener(e -> startSignIn());
         refresh.setToolTipText("Read the plan and credits again; nothing is changed at the service");
         refresh.addActionListener(e -> refreshUsage());
+        copyDetails.setToolTipText("Copy a plain-text summary for a support request; it never includes the credential");
+        copyDetails.addActionListener(e -> copyDetails());
         disconnect.setToolTipText("Delete the credential from this machine; the service still accepts it until revoked");
         disconnect.addActionListener(e -> disconnect());
         revoke.setToolTipText("Ask the service to stop accepting this device's credential, then delete it here");
@@ -186,11 +252,18 @@ public final class CompilerAccountDialog extends JDialog {
         close.addActionListener(e -> dispose());
         buttons.add(connect);
         buttons.add(refresh);
+        buttons.add(copyDetails);
         buttons.add(disconnect);
         buttons.add(revoke);
         buttons.add(close);
         root.add(buttons);
         return root;
+    }
+
+    private static JLabel heading(String text) {
+        JLabel l = UiText.label(text);
+        l.setFont(l.getFont().deriveFont(Font.BOLD));
+        return l;
     }
 
     private static void add(JComponent parent, JComponent child) {
@@ -219,9 +292,22 @@ public final class CompilerAccountDialog extends JDialog {
         refresh.setEnabled(connected != null && !busy);
         disconnect.setEnabled(connected != null && !busy);
         revoke.setEnabled(connected != null && !busy);
+        copyDetails.setEnabled(connected != null && !busy);
+        revokeSelected.setEnabled(connected != null && !busy && deviceTable.getSelectedRow() >= 0);
         if (connected == null) {
-            usageLine.setText(" ");
-            resetLine.setText(" ");
+            usage = null;
+            me = null;
+            if (deviceModel.getRowCount() > 0) showDevices(List.of());
+        }
+        boolean shows = connected != null;
+        grew |= shows && !accountPanel.isVisible();
+        accountPanel.setVisible(shows);
+        if (shows) {
+            accountLine.setText(UiText.inert(accountText(me, usage, connected)));
+            planLine.setText(usage == null ? " " : UiText.inert(planText(usage)));
+            creditsLine.setText(usage == null ? " " : UiText.inert(creditsText(usage)));
+            resetLine.setText(usage == null ? " " : UiText.inert(resetText(usage)));
+            deviceLine.setText(UiText.inert(deviceText(connected.credentialId(), thisDeviceName())));
         }
         if (isDisplayable()) {
             revalidate();
@@ -337,24 +423,98 @@ public final class CompilerAccountDialog extends JDialog {
     }
 
     private void refreshUsage() {
+        refreshUsage(null);
+    }
+
+    /** Read the account, credits and devices again; {@code done}, when given, is the message once they are read. */
+    private void refreshUsage(String done) {
         CompilerCredential c = connected;
         if (c == null) return;
         busy = true;
-        message.setText("Reading usage…");
+        message.setText("Reading the account…");
         render();
         Background.run(() -> {
+            Usage u;
             try {
-                return client.usage(c);
+                u = client.usage(c);
             } catch (CompilerAccountClient.AccountException e) {
                 throw new IllegalStateException(e.getMessage());
             }
-        }, (Usage u) -> {
+            // the account and device reads are extras: either failing still shows the credits, and says what is missing
+            List<String> missing = new ArrayList<>();
+            Me m = null;
+            List<Device> d = null;
+            try {
+                m = client.me(c);
+            } catch (CompilerAccountClient.AccountException e) {
+                missing.add(e.getMessage());
+            }
+            try {
+                d = client.devices(c);
+            } catch (CompilerAccountClient.AccountException e) {
+                missing.add(e.getMessage());
+            }
+            return new Read(u, m, d, String.join(". ", missing));
+        }, (Read r) -> {
             busy = false;
-            usageLine.setText(UiText.inert(usageText(u)));
-            String reset = resetText(u);
-            resetLine.setText(reset == null ? " " : UiText.inert(reset));
-            message.setText(" ");
+            if (connected != c) return;   // disconnected or revoked while reading: the answer is not news
+            usage = r.usage;
+            me = r.me;
+            if (r.devices != null) showDevices(r.devices);
+            message.setText(!r.missing.isEmpty() ? UiText.inert(r.missing) : done == null ? " " : UiText.inert(done));
             render();
+        }, err -> {
+            busy = false;
+            message.setText(UiText.inert(err.getMessage()));
+            render();
+        });
+    }
+
+    private record Read(Usage usage, Me me, List<Device> devices, String missing) { }
+
+    private void showDevices(List<Device> devices) {
+        shown.clear();
+        shown.addAll(devices);
+        deviceModel.setRowCount(0);
+        String own = connected == null ? null : connected.credentialId();
+        for (Device d : devices) deviceModel.addRow(deviceRow(d, d.credentialId().equals(own)));
+    }
+
+    private String thisDeviceName() {
+        return shown.stream().filter(d -> d.credentialId().equals(connected.credentialId())).map(Device::name).findFirst().orElse(null);
+    }
+
+    private void copyDetails() {
+        CompilerCredential c = connected;
+        if (c == null) return;
+        clipboard.accept(AccountDetails.text(c, me, usage, thisDeviceName(), ReleaseNotes.version(), Instant.now()));
+        message.setText("Details copied to the clipboard. They never include the credential.");
+    }
+
+    private void revokeSelected() {
+        CompilerCredential c = connected;
+        int row = deviceTable.getSelectedRow();
+        if (c == null || row < 0 || row >= shown.size()) return;
+        Device d = shown.get(row);
+        if (d.credentialId().equals(c.credentialId())) {   // this machine's own: exactly Revoke this device
+            revoke();
+            return;
+        }
+        String label = d.name().isEmpty() ? d.credentialId() : d.name();
+        if (!confirm.test(REVOKE_SELECTED, "Ask the service to stop accepting the device \"" + label + "\" ("
+                + d.credentialId() + ")?\nIt stops working at once; this machine stays connected.")) return;
+        busy = true;
+        message.setText("Revoking…");
+        render();
+        Background.run(() -> {
+            try {
+                return client.revoke(c, d.credentialId());
+            } catch (CompilerAccountClient.AccountException e) {
+                throw new IllegalStateException(e.getMessage());
+            }
+        }, revokedNow -> {
+            busy = false;
+            refreshUsage(revokedNow ? "Revoked \"" + label + "\"." : "The service no longer had \"" + label + "\".");
         }, err -> {
             busy = false;
             message.setText(UiText.inert(err.getMessage()));
@@ -452,13 +612,33 @@ public final class CompilerAccountDialog extends JDialog {
         return "";
     }
 
-    static String usageText(Usage u) {
-        return "Plan: " + u.plan() + (u.active() ? "" : " (inactive)") + " · Available credits: " + u.available();
+    static String accountText(Me me, Usage u, CompilerCredential c) {
+        String account = u != null ? u.accountId() : me != null ? me.selectedAccount() : c.accountId();
+        if (me == null) return "Account " + account;
+        return "Account " + account + " · " + me.type() + " · Your role: " + (me.role() == null ? "unknown" : me.role());
     }
 
-    /** Null when the plan has no next reset: then no line is shown, rather than a guess. */
+    static String planText(Usage u) {
+        return "Plan: " + u.plan() + " · " + (u.active() ? "Active" : "Inactive");
+    }
+
+    static String creditsText(Usage u) {
+        return "Remaining: " + u.available() + " · Used: " + u.consumed() + " · In progress: " + u.reserved()
+                + " · Generations: " + u.generations() + " · Failures: " + u.failures();
+    }
+
+    /** A plan without a next reset is a one-time allowance: said as such, never a guessed date. */
     static String resetText(Usage u) {
-        return u.nextReset() == null ? null : "Next reset: " + u.nextReset();
+        return u.nextReset() == null ? "One-time allowance (no reset)" : "Next reset: " + u.nextReset();
+    }
+
+    static String deviceText(String credentialId, String name) {
+        return (name == null || name.isEmpty() ? "Not in the device list" : name) + " · credential " + credentialId;
+    }
+
+    static Object[] deviceRow(Device d, boolean thisMachine) {
+        String name = (d.name().isEmpty() ? d.credentialId() : d.name()) + (thisMachine ? THIS_MACHINE : "");
+        return new Object[]{name, d.kind(), d.createdAt() > 0 ? DAY.format(Instant.ofEpochMilli(d.createdAt())) : ""};
     }
 
     static String revokeText(boolean revokedNow) {

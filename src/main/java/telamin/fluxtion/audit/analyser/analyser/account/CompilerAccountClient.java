@@ -9,16 +9,22 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.net.InetAddress;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 /**
- * CA-1: the analyser's whole conversation with the compiler service — sign in with a device code, read usage, revoke
- * its own device. Nothing else: no grants, no credential creation beyond the sign-in the person approves in their
- * browser, no account changes. The analyser reads the service; it never operates it.
+ * CA-1: the analyser's whole conversation with the compiler service — sign in with a device code, read the account,
+ * its usage and its devices, and revoke a device the person picks. Nothing else: no grants, no credential creation
+ * beyond the sign-in the person approves in their browser, no account changes. Revoking one of the person's own
+ * credentials is the only change it makes, and only when they press for it.
  *
  * <p>The device code and the bearer never leave this package: {@link DeviceStart} keeps the code package-private,
  * {@link CompilerCredential} the bearer, and no message this class produces quotes either. Nothing here logs.
@@ -87,8 +93,27 @@ public final class CompilerAccountClient {
     public record Cancelled() implements Outcome { }
     public record Failed(String reason) implements Outcome { }
 
-    /** Read-only usage, as the service reports it. {@code nextReset} is null when the plan has none. */
-    public record Usage(String accountId, String plan, boolean active, long available, String nextReset) { }
+    /**
+     * Read-only usage, as the service reports it. {@code nextReset} is null when the plan has none (a one-time
+     * allowance). {@code available} is what remains, {@code consumed} what was used, {@code reserved} what generations
+     * still in progress hold.
+     */
+    public record Usage(String accountId, String plan, boolean active, long available, long consumed, long reserved,
+                        long generations, long failures, String nextReset) { }
+
+    /**
+     * Who the credential belongs to: the selected account, whether it is a personal one, and the person's role in it.
+     * {@code personal} and {@code role} are null when the service's answer did not list the selected account.
+     */
+    public record Me(String selectedAccount, Boolean personal, String role) {
+        /** "Personal" or "Organisation", from the service's {@code personal} flag; "Unknown" when it was not given. */
+        public String type() {
+            return personal == null ? "Unknown" : personal ? "Personal" : "Organisation";
+        }
+    }
+
+    /** One of the account's credentials that the service still accepts. {@code createdAt} is epoch milliseconds. */
+    public record Device(String credentialId, String kind, String name, long createdAt) { }
 
     /** RFC 8628 §3.5: a slow_down adds at least five seconds to every later interval. */
     static final long SLOW_DOWN_SECONDS = 5;
@@ -101,11 +126,38 @@ public final class CompilerAccountClient {
     private final HttpClient http;
     private final Sleeper sleeper;
     private final LongSupplier nanoClock;
+    private final Supplier<String> hostName;
 
     public CompilerAccountClient(HttpClient http, Sleeper sleeper, LongSupplier nanoClock) {
+        this(http, sleeper, nanoClock, CompilerAccountClient::localHostName);
+    }
+
+    CompilerAccountClient(HttpClient http, Sleeper sleeper, LongSupplier nanoClock, Supplier<String> hostName) {
         this.http = http;
         this.sleeper = sleeper;
         this.nanoClock = nanoClock;
+        this.hostName = hostName;
+    }
+
+    /** Characters the service keeps in a device name ({@code [A-Za-z0-9 ._:-]{1,64}} after trimming). */
+    static final int DEVICE_NAME_MAX = 64;
+
+    /**
+     * The name this device asks to be listed under: "Fluxtion analyser on &lt;host&gt;", the host reduced to the
+     * characters the service keeps and the whole cut to 64, so a person with several machines can tell which to revoke.
+     */
+    static String deviceName(String host) {
+        String h = host == null ? "" : host.replaceAll("[^A-Za-z0-9 ._:-]", "").strip();
+        String name = h.isEmpty() ? "Fluxtion analyser" : "Fluxtion analyser on " + h;
+        return name.length() > DEVICE_NAME_MAX ? name.substring(0, DEVICE_NAME_MAX).strip() : name;
+    }
+
+    private static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     /** The real client: redirects are never followed, so a bearer is only ever presented to the issuing service. */
@@ -144,7 +196,10 @@ public final class CompilerAccountClient {
     public Outcome await(DeviceStart start, BooleanSupplier cancelled) {
         long deadline = nanoClock.getAsLong() + Duration.ofSeconds(start.expiresInSeconds).toNanos();
         long interval = start.intervalSeconds;
-        String tokenBody = Json.write(Map.of("device_code", start.deviceCode));
+        Map<String, Object> token = new LinkedHashMap<>();
+        token.put("device_code", start.deviceCode);
+        token.put("device_name", deviceName(hostName.get()));
+        String tokenBody = Json.write(token);
         int transientInARow = 0;
         while (true) {
             if (cancelled.getAsBoolean()) return new Cancelled();
@@ -217,7 +272,46 @@ public final class CompilerAccountClient {
         String account = string(body, "accountId");
         String reset = body.get("nextReset") instanceof String s && !s.isBlank() ? s : null;
         return new Usage(account == null ? credential.accountId() : account, plan,
-                !(body.get("active") instanceof Boolean b) || b, n.longValue(), reset);
+                !(body.get("active") instanceof Boolean b) || b, n.longValue(), number(body, "consumed", 0),
+                number(body, "reserved", 0), number(body, "generations", 0), number(body, "failures", 0), reset);
+    }
+
+    /** Read who the credential belongs to: the selected account, its type and the person's role. Reads only. */
+    public Me me(CompilerCredential credential) throws AccountException {
+        Map<?, ?> body = object(get(credential, "/v1/me", "account"));
+        String selected = string(body, "selectedAccount");
+        if (selected == null) selected = credential.accountId();
+        if (body.get("accounts") instanceof List<?> accounts) {
+            for (Object a : accounts) {
+                if (a instanceof Map<?, ?> m && selected.equals(m.get("accountId")))
+                    return new Me(selected, m.get("personal") instanceof Boolean p ? p : null, string(m, "role"));
+            }
+        }
+        return new Me(selected, null, null);
+    }
+
+    /** The account's credentials the service still accepts (a revoked one is left out), in the service's order. */
+    public List<Device> devices(CompilerCredential credential) throws AccountException {
+        Map<?, ?> body = object(get(credential, "/v1/credentials", "the device list"));
+        if (!(body.get("credentials") instanceof List<?> all)) throw new AccountException("The service's device list was not understood");
+        List<Device> out = new ArrayList<>();
+        for (Object o : all) {
+            if (!(o instanceof Map<?, ?> m) || m.get("revokedAt") != null) continue;
+            String id = string(m, "credentialId");
+            if (id == null || !CompilerCredential.IDENTIFIER.matcher(id).matches()) continue;   // never a path we would build
+            String kind = string(m, "kind");
+            String name = string(m, "name");
+            out.add(new Device(id, kind == null ? "" : kind, name == null ? "" : name, number(m, "createdAt", 0)));
+        }
+        return out;
+    }
+
+    private String get(CompilerCredential credential, String path, String what) throws AccountException {
+        Response r = send(HttpRequest.newBuilder(URI.create(credential.service() + path))
+                .header("Authorization", "Bearer " + credential.bearer()).GET());
+        if (r.status == 401) throw new Unauthorized();
+        if (r.status != 200) throw new AccountException("The service could not report " + what + " (HTTP " + r.status + ")");
+        return r.body;
     }
 
     /**
@@ -227,7 +321,17 @@ public final class CompilerAccountClient {
      * service that drops the Authorization header), and deleting a live credential here would leave it working there.
      */
     public boolean revoke(CompilerCredential credential) throws AccountException {
-        Response r = send(HttpRequest.newBuilder(URI.create(credential.service() + "/v1/credentials/" + credential.credentialId()))
+        return revoke(credential, credential.credentialId());
+    }
+
+    /**
+     * Revoke another of the account's devices, presenting this device's credential; the same answers as
+     * {@link #revoke(CompilerCredential)}. The id must have the identifier shape, so it can only ever name one credential.
+     */
+    public boolean revoke(CompilerCredential credential, String credentialId) throws AccountException {
+        if (credentialId == null || !CompilerCredential.IDENTIFIER.matcher(credentialId).matches())
+            throw new AccountException("That device's id cannot be revoked from here");
+        Response r = send(HttpRequest.newBuilder(URI.create(credential.service() + "/v1/credentials/" + credentialId))
                 .header("Authorization", "Bearer " + credential.bearer()).DELETE());
         if (r.status == 204 || r.status == 200) return true;
         if (r.status == 404) return false;

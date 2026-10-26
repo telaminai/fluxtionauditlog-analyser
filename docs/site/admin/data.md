@@ -39,7 +39,7 @@ Nothing the analyser does on its own sends your evidence anywhere. What does, an
 | **Full Claude Code**'s own tools and MCP servers | whatever they send | wherever your tools and servers connect | as your permission rules allow |
 | **In-app assistant** | what you ask, the selected records' context and the evidence it reads | the provider you chose (or your base URL), with your API key | each Send |
 | **Off** | nothing from the analyser | — | — |
-| **AI ▸ Compiler account…** | a sign-in request; then this device's credential, to read usage or revoke itself. No evidence | the compiler service address you entered | when you connect, open the dialog while connected, press *Refresh* or *Revoke this device* |
+| **AI ▸ Compiler account…** | a sign-in request naming this device ("Fluxtion analyser on" and your machine's name); then this device's credential, to read the account, usage and device list, or revoke a device you pick. No evidence | the compiler service address you entered | when you connect, open the dialog while connected, press *Refresh*, *Revoke selected* or *Revoke this device* |
 | An **outside client** you connected | whatever it reads through the analyser | wherever that client sends it | as you use that client; *Off* does not affect it |
 | **Open log from S3…** | your request for that object | your S3, through your local `aws` tool and its credentials | when you open it |
 | **Starter templates** | a request for the catalogue, then for one template's archive | the Fluxtion playground, over HTTPS | only when you press *Show templates*, *Start building*, or use *New project from template…* |
