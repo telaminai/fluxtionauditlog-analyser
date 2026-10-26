@@ -204,6 +204,10 @@ seven steps as keyboard-reachable chips, and three **end conditions**, which are
 
 The strip renders `AuthoringState` from the snapshot. *Close* keeps the investigation, the scenario and the tour.
 
+*Measured by* [`spec-authoring-scorecard.md`](spec-authoring-scorecard.md) (M82, DRAFT r2): SC-B1's funnel from the
+Build door to the person's own processor, SC-B2 (explain your own run) and SC-B3 (change and re-verify) gate A5–A7
+and A4a/A4b (its §8).
+
 ## 5. Acceptance criteria: the criterion form
 
 ### 5.1 Principles

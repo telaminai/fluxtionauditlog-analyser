@@ -176,6 +176,9 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - ☐ **A scorecard starter-flow task**, and re-measuring the authoring approval count (still predicted, about 3; last
   measured live at 14 before FIX-4/M77's fixes).
 
+### M82 · The authoring scorecard ([spec](spec-authoring-scorecard.md), r3)
+- [M82] ☐ **Drafted** (r1, 2026-10-25; r3, 2026-10-26): SC-B1–B6 from the Build door or the playground to the person's own processor generated, compiled, run, explained and changed; the funnel, claims by speaker, key friction, an optional field run. Baseline 2026-10-25 recorded (robot, E2, Sonnet ×5 F3 1/5; distribution is a prerequisite). **r3 (2026-10-26):** r2 re-run recorded (A strict F1 0/10, pointer 0/10; B and C 20/20, cue-confounded), strict F1, F4a/F5a, VOID rule and no-cue variant adopted as spec text; next: build the scoring tool (S82.1–.18), re-run C and the no-cue variant after the routing fixes. [Handover](evidence/m82-HANDOVER.md). OD-82.1–.10 open (OD-82.2 targets are the owner's). Answers M76's *scorecard starter-flow task* above.
+
 ## Session and dispatch
 
 ### M44 · Session transitions as a Fluxtion processor ([spec](spec-session-processor.md))
