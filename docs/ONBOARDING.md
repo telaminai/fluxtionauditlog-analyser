@@ -54,6 +54,7 @@ intentionally failing deferred full-gate check is not permission to merge. The
 | `llm` | prompt building + the two-way assistant action loop |
 | `net` | localhost REST transport for the assistant actions |
 | `config` | `AppConfig`, `ConfigStore`, `GraphSpec`, `SettingsShare` (export/import) |
+| `account` | CA-1 compiler account: device sign-in, usage read, revoke; OS credential stores. The bearer never leaves the package |
 | `export` | CSV/YAML record export |
 | `core` | `Background` (off-EDT work) |
 | `ui` | all Swing (`MainFrame`, panels, dialogs, `ChartPanel`, theming) |

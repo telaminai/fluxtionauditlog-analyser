@@ -59,6 +59,92 @@ only whether a key is present; it does not check it or show it again. A `-Dfluxt
 overrides the file, and the builder does not read `FLUXTION_API_KEY`. Existing generated processors and the bundled
 demo run without this key.
 
+## Connect a compiler account
+
+If your compiler service uses accounts, **AI ▸ Compiler account…** connects this analyser to yours. Enter the service's
+address (for example `https://compiler.example.com`; plain `http` is accepted only for this machine), or pick one
+this machine has connected with before from the drop-down, and press
+**Connect compiler account**. The analyser asks the service for a sign-in code, opens your browser at the service's
+sign-in page and shows the code to enter there. While you approve it, it checks back only as often as the service
+asks, slows down when told to, and stops when the code expires; **Cancel sign-in**, or closing the dialog, stops it
+with nothing stored. It never shows or logs the device code, or the credential it receives.
+
+Once you approve, the credential is kept in your operating system's credential store: the macOS Keychain, or the
+Secret Service keyring on Linux (through `secret-tool`). Where neither is available (Windows, or Linux without
+`secret-tool`), it is kept in `~/.fluxtion-analyser/compiler-account.credential`, a file only your account can read.
+That protects it from other users of the machine, not from programs you run yourself. The same is true of the
+Keychain entry: it is written by the system's `security` tool, so other programs running as you can read it through
+that tool without a prompt. The credential never reaches a
+command line, a project, a settings export, a report, a walk, an evidence bundle or an assistant's `context`. It also
+remembers which service issued it, so changing the address later never sends it anywhere else.
+
+The sign-in names this device "Fluxtion analyser on" followed by your machine's name (letters, digits, spaces and
+`._:-` only, at most 64 characters), so you can tell your machines apart later.
+
+Once connected, the dialog shows:
+
+- **Account**: the account id, whether it is a *Personal* or an *Organisation* account, your role in it, the plan,
+  and whether the account is *Active*.
+- **Credits**: what remains, what was used, what generations in progress hold, and how many generations and failures
+  there have been. It also says whether the allowance is one-time (*One-time allowance (no reset)*) or when it next
+  resets.
+- **This device**: the name and credential id this analyser signed in with.
+- **Your devices**: every device credential the service still accepts, with a short credential id (point at it for
+  the whole id), its kind, and when it was created, to the minute in UTC. This machine is marked *(this machine)*. Select one and press **Revoke selected** to stop the service accepting it,
+  for example a laptop you no longer use; you are asked to confirm first. Choosing this machine's own row is the same
+  as **Revoke this device**.
+
+**Refresh** reads everything again. **Copy details** puts a plain-text summary on the clipboard for a support request:
+the service, account, type, role, plan, the credit figures, this device's credential id and name, the analyser
+version and the time in UTC. It never includes the credential itself. Deleting the account is not available in the
+app yet; ask the service's support.
+
+The analyser reads the account and never grants credits or changes it; the only change it makes is revoking a
+device you choose. **Disconnect** deletes the credential from this machine, and the service keeps accepting it until
+it is revoked. **Revoke this device** asks the service to stop accepting it, then deletes it here. If the service does
+not accept the credential at all (HTTP 401, for example because it was already revoked), the device stays connected:
+use **Disconnect**.
+
+## Investigate a compiler charge
+
+A compiler service that uses accounts can export an **investigation** of one account: why each generation was
+allowed, refused, charged or released, and every credit an operator granted or removed. Account and attempt ids may
+be replaced by aliases such as `account-1`.
+
+**Getting the file.** An operator downloads it from the service's admin page: the account's **Download audit log**
+button gives a zip holding `investigation-<account>.yaml` (the log) and `EntitlementProcessor.graphml` (the graph it
+ran on), with a *pseudonymous* option for anything shared outside the operator team. For work the admin page cannot
+reach, such as a restored copy, the service's export tool writes the same two files. Unzip into a working folder, not
+into a repository: the log may hold personal data.
+
+Open the `.yaml` with **Audit log ▸ Open log…** and the graph with **Sources ▸ Open GraphML…**. Open the graph
+explicitly: its name does not match the log's, so the analyser will not pick it up by name. Each record is one
+transition the service committed, at the time it was decided, in the order it was committed. The values on the nodes
+are recomputed from those rows alone, by replaying them through the same graph; nothing is added after the fact.
+
+- **Find one request:** type its request id in the search box above the records table. Its reservation, then its
+  settlement or release (and, once its result is past the retention window, its expiry) are the rows that remain. A
+  refused request has a single row.
+- **Read why:** the record detail shows the nodes that applied the transition. **requests** carries the request's
+  `status` (`RESERVED`, `SETTLED`, `RELEASED`, `EXPIRED`), the `reason` it was decided under (`within_allowance`,
+  `generation_succeeded`, `not_charged`, `retention_elapsed`) and the `result` reference or `failure` code. For a
+  refusal it carries only the request id and the reason (`exhausted`, `account_inactive`, `no_account`,
+  `request_changed_under_same_id`). **ledger** carries the
+  `bucket` it drew from and that bucket's `available`, `bucketReserved` and `bucketConsumed` after the transition. A
+  refusal shows as `refused` on **ledger**, with the code the caller was given, such as
+  `CREDIT_ALLOWANCE_EXHAUSTED`.
+- **Credits an operator removed:** an `ALLOWANCE_REMOVED` row takes back unspent, unreserved credit from one bucket.
+  **ledger** shows the units actually `removed` and the bucket's `available` after it; the row's detail says what was
+  asked (`requested:5` here; requested:all for everything left), which can be more than was left. An operator's grant or removal carries
+  who and why in its reason, such as `operator:ops:goodwill`. A removal the service declined (`UNKNOWN_BUCKET`, or
+  `ALREADY_REMOVED` and `NOTHING_TO_REMOVE` when nothing changed) was answered to the operator and is not in the log.
+- **See the balance over time:** in the Graph tab, **Add key** `ledger.available`. It is the balance of the bucket
+  the row names, so with more than one bucket each step belongs to the bucket in that row.
+- **See which nodes applied a row:** the Topology tab, stepping through the records.
+
+A failed generation always appears as a reservation followed by a release with `reason: not_charged`. A charge is
+always a reservation followed by a settlement against the same bucket, even when a billing period ended in between.
+
 ## Watch a log as it grows (Follow)
 
 Turn on **Follow** (the toolbar toggle, or **Audit log ▸ Follow (tail)**) to watch a local text log that another

@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="UTF-8"?><graphml xmlns="http://graphml.graphdrawing.org/xmlns" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd" xmlns:jGraph="http://www.jgraph.com/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <key id="vertex_label" for="node" attr.name="nodeData" attr.type="string"/>
+    <key id="edge_label" for="edge" attr.name="edgeData" attr.type="string"/>
+    <key id="fluxtion.metaVersion" for="graph" attr.name="fluxtion.metaVersion" attr.type="string"/>
+    <key id="fluxtion.sourceFingerprint" for="graph" attr.name="fluxtion.sourceFingerprint" attr.type="string"/>
+    <key id="fluxtion.toolchainVersion" for="graph" attr.name="fluxtion.toolchainVersion" attr.type="string"/>
+    <key id="fluxtion.nodeCount" for="graph" attr.name="fluxtion.nodeCount" attr.type="int"/>
+    <key id="fluxtion.authoredNodeCount" for="graph" attr.name="fluxtion.authoredNodeCount" attr.type="int"/>
+    <key id="fluxtion.kind" for="node" attr.name="fluxtion.kind" attr.type="string"/>
+    <key id="fluxtion.class" for="node" attr.name="fluxtion.class" attr.type="string"/>
+    <key id="fluxtion.framework" for="node" attr.name="fluxtion.framework" attr.type="boolean"/>
+    <key id="fluxtion.auditCapable" for="node" attr.name="fluxtion.auditCapable" attr.type="boolean"/>
+    <key id="fluxtion.auditCapableVia" for="node" attr.name="fluxtion.auditCapableVia" attr.type="string"/>
+    <key id="fluxtion.callbackKinds" for="node" attr.name="fluxtion.callbackKinds" attr.type="string"/>
+    <key id="fluxtion.topologicalRank" for="node" attr.name="fluxtion.topologicalRank" attr.type="int"/>
+    <key id="fluxtion.filterIdDefault" for="node" attr.name="fluxtion.filterIdDefault" attr.type="string"/>
+    <key id="fluxtion.refKind" for="edge" attr.name="fluxtion.refKind" attr.type="string"/>
+    <key id="fluxtion.propagates" for="edge" attr.name="fluxtion.propagates" attr.type="boolean"/>
+    <key id="fluxtion.referenceField" for="edge" attr.name="fluxtion.referenceField" attr.type="string"/>
+    <key id="fluxtion.handlerMethod" for="edge" attr.name="fluxtion.handlerMethod" attr.type="string"/>
+    <key id="fluxtion.filterValue" for="edge" attr.name="fluxtion.filterValue" attr.type="string"/>
+    <key id="fluxtion.filterType" for="edge" attr.name="fluxtion.filterType" attr.type="string"/>
+    <key id="fluxtion.relationshipCount" for="edge" attr.name="fluxtion.relationshipCount" attr.type="int"/>
+    <graph edgedefault="directed">
+        <data key="fluxtion.metaVersion">1.0</data>
+        <data key="fluxtion.sourceFingerprint">5dcc8325ccdea4ac3708904f987cd944b0550f86cb0b3ecb799c41311558c179</data>
+        <data key="fluxtion.toolchainVersion">1.0.82-SNAPSHOT</data>
+        <data key="fluxtion.nodeCount">28</data>
+        <data key="fluxtion.authoredNodeCount">6</data>
+        <node id="AdvanceBillingPeriod">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;AdvanceBillingPeriod&#10;class:com.acme.entitlement.model.Commands$AdvanceBillingPeriod&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$AdvanceBillingPeriod</data>
+        </node>
+        <node id="ClockStrategyEvent">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;ClockStrategyEvent&#10;class:com.telamin.fluxtion.runtime.time.ClockStrategy$ClockStrategyEvent&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.time.ClockStrategy$ClockStrategyEvent</data>
+        </node>
+        <node id="CompleteGeneration">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;CompleteGeneration&#10;class:com.acme.entitlement.model.Commands$CompleteGeneration&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$CompleteGeneration</data>
+        </node>
+        <node id="Configured">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;Configured&#10;class:com.acme.entitlement.model.Policy$Configured&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Policy$Configured</data>
+        </node>
+        <node id="EntitlementEvent">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;EntitlementEvent&#10;class:com.acme.entitlement.model.EntitlementEvent&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.EntitlementEvent</data>
+        </node>
+        <node id="EventLogControlEvent">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;EventLogControlEvent&#10;class:com.telamin.fluxtion.runtime.audit.EventLogControlEvent&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.audit.EventLogControlEvent</data>
+        </node>
+        <node id="ExpireResult">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;ExpireResult&#10;class:com.acme.entitlement.model.Commands$ExpireResult&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$ExpireResult</data>
+        </node>
+        <node id="FailGeneration">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;FailGeneration&#10;class:com.acme.entitlement.model.Commands$FailGeneration&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$FailGeneration</data>
+        </node>
+        <node id="GrantAllowance">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;GrantAllowance&#10;class:com.acme.entitlement.model.Commands$GrantAllowance&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$GrantAllowance</data>
+        </node>
+        <node id="IssueHandshake">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;IssueHandshake&#10;class:com.acme.entitlement.model.Commands$IssueHandshake&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$IssueHandshake</data>
+        </node>
+        <node id="ProvisionAccount">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;ProvisionAccount&#10;class:com.acme.entitlement.model.Commands$ProvisionAccount&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$ProvisionAccount</data>
+        </node>
+        <node id="RemoveAllowance">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;RemoveAllowance&#10;class:com.acme.entitlement.model.Commands$RemoveAllowance&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$RemoveAllowance</data>
+        </node>
+        <node id="ReserveGeneration">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;ReserveGeneration&#10;class:com.acme.entitlement.model.Commands$ReserveGeneration&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$ReserveGeneration</data>
+        </node>
+        <node id="ServiceListener">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;ExportService&gt;&gt;&#10;class:com.telamin.fluxtion.runtime.service.ServiceListener&#10;"/>
+                    <jGraph:Style properties="EXPORTSERVICE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EXPORT_SERVICE</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.service.ServiceListener</data>
+        </node>
+        <node id="SetEntitlement">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;SetEntitlement&#10;class:com.acme.entitlement.model.Commands$SetEntitlement&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.entitlement.model.Commands$SetEntitlement</data>
+        </node>
+        <node id="accounts">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:accounts&#10;class:com.acme.entitlement.graph.AccountBook"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.acme.entitlement.graph.AccountBook</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">0</data>
+        </node>
+        <node id="callbackDispatcher">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:callbackDispatcher&#10;class:com.telamin.fluxtion.runtime.callback.CallbackDispatcherImpl"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.callback.CallbackDispatcherImpl</data>
+            <data key="fluxtion.framework">true</data>
+            <data key="fluxtion.auditCapable">false</data>
+            <data key="fluxtion.auditCapableVia">none</data>
+            <data key="fluxtion.topologicalRank">1</data>
+        </node>
+        <node id="clock">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:clock&#10;class:com.telamin.fluxtion.runtime.time.Clock"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.time.Clock</data>
+            <data key="fluxtion.framework">true</data>
+            <data key="fluxtion.auditCapable">false</data>
+            <data key="fluxtion.auditCapableVia">none</data>
+            <data key="fluxtion.callbackKinds">INITIALISE,ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">2</data>
+        </node>
+        <node id="context">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:context&#10;class:com.telamin.fluxtion.runtime.node.MutableDataFlowContext"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.node.MutableDataFlowContext</data>
+            <data key="fluxtion.framework">true</data>
+            <data key="fluxtion.auditCapable">false</data>
+            <data key="fluxtion.auditCapableVia">none</data>
+            <data key="fluxtion.topologicalRank">11</data>
+        </node>
+        <node id="decider">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:decider&#10;class:com.acme.entitlement.graph.Decider"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.acme.entitlement.graph.Decider</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">9</data>
+        </node>
+        <node id="eventLogger">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:eventLogger&#10;class:com.telamin.fluxtion.runtime.audit.EventLogManager"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.audit.EventLogManager</data>
+            <data key="fluxtion.framework">true</data>
+            <data key="fluxtion.auditCapable">false</data>
+            <data key="fluxtion.auditCapableVia">none</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">3</data>
+        </node>
+        <node id="ledger">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:ledger&#10;class:com.acme.entitlement.graph.AllowanceLedger"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.acme.entitlement.graph.AllowanceLedger</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">6</data>
+        </node>
+        <node id="nodeNameLookup">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:nodeNameLookup&#10;class:com.telamin.fluxtion.runtime.audit.NodeNameAuditor"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.audit.NodeNameAuditor</data>
+            <data key="fluxtion.framework">true</data>
+            <data key="fluxtion.auditCapable">false</data>
+            <data key="fluxtion.auditCapableVia">none</data>
+            <data key="fluxtion.topologicalRank">4</data>
+        </node>
+        <node id="period">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:period&#10;class:com.acme.entitlement.graph.PeriodNode"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.acme.entitlement.graph.PeriodNode</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">5</data>
+        </node>
+        <node id="policy">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:policy&#10;class:com.acme.entitlement.graph.PolicyNode"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.acme.entitlement.graph.PolicyNode</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">7</data>
+        </node>
+        <node id="requests">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:requests&#10;class:com.acme.entitlement.graph.RequestRegistry"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.acme.entitlement.graph.RequestRegistry</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">8</data>
+        </node>
+        <node id="serviceRegistry">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:serviceRegistry&#10;class:com.telamin.fluxtion.runtime.service.ServiceRegistryNode"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.service.ServiceRegistryNode</data>
+            <data key="fluxtion.framework">true</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">EXPORT_SERVICE</data>
+            <data key="fluxtion.topologicalRank">12</data>
+        </node>
+        <node id="subscriptionManager">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:subscriptionManager&#10;class:com.telamin.fluxtion.runtime.input.SubscriptionManagerNode"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.telamin.fluxtion.runtime.input.SubscriptionManagerNode</data>
+            <data key="fluxtion.framework">true</data>
+            <data key="fluxtion.auditCapable">false</data>
+            <data key="fluxtion.auditCapableVia">none</data>
+            <data key="fluxtion.callbackKinds">SERVICE_REGISTERED,SERVICE_DEREGISTERED,TEAR_DOWN</data>
+            <data key="fluxtion.topologicalRank">10</data>
+        </node>
+        <edge id="1" source="AdvanceBillingPeriod" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onAdvancePeriod</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="2" source="ClockStrategyEvent" target="clock">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.handlerMethod">setClockStrategy</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="3" source="CompleteGeneration" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onComplete</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="4" source="Configured" target="policy">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onConfigured</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="5" source="EntitlementEvent" target="accounts">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onEvent</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="6" source="EntitlementEvent" target="ledger">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onEvent</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="7" source="EntitlementEvent" target="period">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onEvent</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="8" source="EntitlementEvent" target="requests">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onEvent</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="9" source="EventLogControlEvent" target="eventLogger">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.handlerMethod">calculationLogConfig</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="10" source="ExpireResult" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onExpire</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="11" source="FailGeneration" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onFail</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="12" source="GrantAllowance" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onGrant</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="13" source="IssueHandshake" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onHandshake</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="14" source="ProvisionAccount" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onProvision</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="15" source="RemoveAllowance" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onRemove</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="16" source="ReserveGeneration" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onReserve</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="17" source="ServiceListener" target="serviceRegistry">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+        </edge>
+        <edge id="18" source="SetEntitlement" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onSetEntitlement</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="19" source="accounts" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">accounts</data>
+        </edge>
+        <edge id="20" source="callbackDispatcher" target="context">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">DATA</data>
+            <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.referenceField">dirtyStateMonitor</data>
+        </edge>
+        <edge id="21" source="callbackDispatcher" target="context">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">DATA</data>
+            <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.referenceField">eventDispatcher</data>
+        </edge>
+        <edge id="22" source="clock" target="context">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">clock</data>
+        </edge>
+        <edge id="23" source="clock" target="eventLogger">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">clock</data>
+        </edge>
+        <edge id="24" source="context" target="serviceRegistry">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">DATA</data>
+            <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.referenceField">dataFlowContext</data>
+        </edge>
+        <edge id="25" source="ledger" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">ledger</data>
+        </edge>
+        <edge id="26" source="nodeNameLookup" target="context">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">DATA</data>
+            <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.referenceField">nodeNameLookup</data>
+        </edge>
+        <edge id="27" source="period" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">period</data>
+        </edge>
+        <edge id="28" source="period" target="ledger">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">period</data>
+        </edge>
+        <edge id="29" source="policy" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">policy</data>
+        </edge>
+        <edge id="30" source="requests" target="decider">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">requests</data>
+        </edge>
+        <edge id="31" source="subscriptionManager" target="context">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">DATA</data>
+            <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.referenceField">subscriptionManager</data>
+        </edge>
+    </graph>
+</graphml>

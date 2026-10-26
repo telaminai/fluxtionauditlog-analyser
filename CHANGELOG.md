@@ -6,6 +6,35 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- *Getting started ▸ Investigate a compiler charge* covers getting the file (the service admin page's **Download audit
+  log** zip, with the log and `EntitlementProcessor.graphml`, or the export tool), opening that graph explicitly, and
+  reading an operator's credit removal (`ALLOWANCE_REMOVED`) and the removal answers that leave no row.
+- **AI ▸ Compiler account…** is laid out in sections (Account, Credits, This device, Your devices) with aligned rows,
+  the credits as a row of figures, Refresh and Copy details on the left, and Close the default; connected, the top
+  line names just the service's host. The service address is
+  an editable drop-down that offers the addresses this machine has connected with. Each device row shows a short
+  credential id (the whole id in its tooltip), its kind, and when it was created to the minute in UTC, so devices
+  with the same name can be told apart. After a disconnect the dialog shrinks back to fit, rather than keeping an empty
+  connected-size window.
+- **AI ▸ Compiler account…** now shows the account: its type (Personal or Organisation), your role, the plan and
+  whether it is active; the credits remaining, used and in progress, generations and failures, and whether the
+  allowance is one-time or when it next resets; this device's name and credential id; and your devices, with this
+  machine marked and **Revoke selected** (confirmed first) for a lost or old one. **Copy details** puts a plain-text
+  summary for a support request on the clipboard, never the credential. A new sign-in names the device
+  "Fluxtion analyser on <host>", so several machines can be told apart. Deleting the account is not in the app yet.
+- Docs: *Getting started ▸ Investigate a compiler charge* explains how to open a compiler service's exported investigation of an account, find one request, read why it was charged, released or refused, and chart the balance.
+- **AI ▸ Compiler account…**: a rate-limited or briefly unavailable service no longer ends a device sign-in (the poll waits
+  longer and retries a bounded number of times); **Revoke this device** keeps the device connected when the service
+  answers 401, since that cannot prove the credential was revoked; any 127.x.x.x address may be plain http, like localhost.
+- **AI ▸ Compiler account…** connects the analyser to a compiler account by device sign-in: it opens your browser at the
+  service's sign-in page, shows the code to enter, honours the service's polling interval, slow-down and expiry, and can
+  be cancelled. The credential is kept in the macOS Keychain or the Linux Secret Service keyring (an owner-only file
+  elsewhere), never on a command line or in a project, export, report, bundle or `context`. The dialog shows the plan,
+  available credits and next reset (when there is one), and offers *Disconnect* and *Revoke this device*. The analyser
+  only reads the account; it never changes it.
+
 ## [1.39.0] - 2026-10-26
 
 ### Changed

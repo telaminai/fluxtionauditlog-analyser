@@ -41,6 +41,27 @@ public final class AppConfig {
 
     public String awsProfile = "";        // for s3:// loads via the aws CLI
     public String awsRegion = "";
+    /**
+     * CA-1: the compiler service's public base address for *Compiler account…* (empty until the person sets it). Machine
+     * tier only, never a profile or share family. It is an address, not a credential: the credential lives in the OS
+     * store ({@code account.CredentialStores}) and carries its own service address, so changing this never redirects it.
+     */
+    public String compilerServiceUrl = "";
+    /**
+     * The compiler-service addresses this machine connected with, most recent first: the address field's suggestions.
+     * Machine tier, like {@link #compilerServiceUrl}; addresses only, never a credential.
+     */
+    public final List<String> recentCompilerServices = new ArrayList<>();
+    /** At most this many remembered compiler-service addresses. */
+    public static final int RECENT_COMPILER_SERVICES = 5;
+
+    /** Remember {@code address} as the most recent compiler service (moved to the front, the list capped). */
+    public void rememberCompilerService(String address) {
+        if (address == null || address.isBlank()) return;
+        recentCompilerServices.remove(address);
+        recentCompilerServices.add(0, address);
+        while (recentCompilerServices.size() > RECENT_COMPILER_SERVICES) recentCompilerServices.remove(recentCompilerServices.size() - 1);
+    }
     public String theme = "Light";        // FlatLaf theme: Light | Dark | IntelliJ | Darcula
     public final List<String> recentFiles = new ArrayList<>();
 
