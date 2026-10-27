@@ -151,13 +151,19 @@ are recomputed from those rows alone, by replaying them through the same graph; 
   `interpret:model-0001`), and it only ever draws on interpret credit. A grant or removal names its kind too.
 - **Refused for the plan:** a request beyond the plan's limits is refused before any work and charges nothing. It is
   a single `GENERATION_REFUSED` row with failure `CAPABILITY_EXCEEDED` and reason `capability_exceeded`, and its
-  detail names the limit, such as `capability=maxNodes;limit=20;requested=120;plan=free`. The caller was answered
-  HTTP 403 with the same limit. An interpretation with no interpret credit left is refused
+  detail names the limit, such as `capability=maxNodes;limit=20;requested=120;plan=free`. The limit is one of
+  `maxNodes`, `maxInputs`, `maxExportedInterfaces`, `targets`, `wasm` or `assurance`. **Inputs** are the graph's
+  event types plus the methods of the interfaces it exports, each method counting as one input, so
+  `capability=maxInputs;limit=6;requested=7;plan=free` is a graph with seven inputs on a plan that allows six, and
+  `capability=maxExportedInterfaces;limit=1;requested=2;plan=free` one that exports two interfaces where one is
+  allowed. The caller was answered HTTP 403 with the same limit. An interpretation with no interpret credit left is refused
   `INTERPRET_ALLOWANCE_EXHAUSTED` (HTTP 429 to the caller), with reason `exhausted`, just as a compile without
   credit is refused `CREDIT_ALLOWANCE_EXHAUSTED`.
 - **A limit an operator set:** a `CAPABILITY_SET` row records one per-account limit. Its detail is the capability
-  name, an equals sign and the value (`maxEventTypes=10` here), and its reason says who and why
-  (`operator:ops:contract`). **capabilities** shows the `capability` and its `value`. The service keeps such a limit
+  name, an equals sign and the value (`maxInputs=10` here), and its reason says who and why
+  (`operator:ops:contract`). **capabilities** shows the `capability` and its `value`. A limit set before the inputs
+  limit replaced the event-type limit is named `maxEventTypes`; the service counts it as `maxInputs` unless a
+  `maxInputs` limit is also set. The service keeps such a limit
   on any plan but applies it only on a plan that allows per-account limits, so a refusal's detail is the authority
   on the limit that was in force.
 - **See the balance over time:** in the Graph tab, **Add key** `ledger.available`. It is the balance of the bucket

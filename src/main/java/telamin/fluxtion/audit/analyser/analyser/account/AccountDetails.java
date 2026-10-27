@@ -67,8 +67,12 @@ public final class AccountDetails {
     public static final String PLAN_DETAILS_UNAVAILABLE = "Plan details unavailable from this service";
     /** What a service without a separate interpret allowance leaves the Interpret figures to say. */
     public static final String INTERPRET_NOT_REPORTED = "Not reported by this service";
-    /** The plan's key limits, as the panel's rows and the summary's lines name them. */
-    public static final List<String> PLAN_LIMITS = List.of("Max nodes", "Max event types", "Languages", "WASM", "Assurance");
+    /**
+     * The plan's key limits, as the panel's rows and the summary's lines name them. "Max inputs" is event types plus
+     * exported methods; an older service's {@code maxEventTypes} is shown under it, never as a row of its own.
+     */
+    public static final List<String> PLAN_LIMITS = List.of("Max nodes", "Max inputs", "Max exported interfaces", "Languages",
+            "WASM", "Assurance");
 
     /**
      * The values of {@link #PLAN_LIMITS}, read from the service's capability profile only; a limit it did not state is
@@ -78,7 +82,10 @@ public final class AccountDetails {
         List<String> targets = caps.targets() == null ? List.of() : caps.targets();
         return List.of(
                 overridden(stated(caps.maxNodes()), caps, "maxNodes", String.valueOf(caps.maxNodes())),
-                overridden(stated(caps.maxEventTypes()), caps, "maxEventTypes", String.valueOf(caps.maxEventTypes())),
+                overridden(stated(caps.maxInputs()), caps, caps.overrides().containsKey("maxInputs") ? "maxInputs"
+                        : "maxEventTypes", String.valueOf(caps.maxInputs())),
+                overridden(stated(caps.maxExportedInterfaces()), caps, "maxExportedInterfaces",
+                        String.valueOf(caps.maxExportedInterfaces())),
                 overridden(targets.isEmpty() ? "Not stated"
                                 : String.join(", ", targets.stream().map(AccountDetails::language).toList()),
                         caps, "targets", String.join(",", targets)),

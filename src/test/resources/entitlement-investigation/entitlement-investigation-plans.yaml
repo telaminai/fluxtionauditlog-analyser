@@ -49,11 +49,11 @@ eventLogRecord:
     logTime: 1792000002020
     groupingId: null
     event: EntitlementEvent
-    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=4, accountId=account-1, requestId=null, requestDigest=null, type=CAPABILITY_SET, units=0, bucket=null, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000002020, reasonCode=operator:ops:contract, sourceEventId=op:ops:ticket-12-capability-01, detail=maxEventTypes=10, creditKind=null]
+    eventToString: EntitlementEvent[schemaVersion=2, ownerEpoch=1, sequence=4, accountId=account-1, requestId=null, requestDigest=null, type=CAPABILITY_SET, units=0, bucket=null, bucketPeriod=null, attemptId=null, resultRef=null, failureCode=null, policyVersion=policy-2026-10, atMillis=1792000002020, reasonCode=operator:ops:contract, sourceEventId=op:ops:ticket-12-capability-01, detail=maxInputs=10, creditKind=null]
     thread: main
     nodeLogs: 
         - accounts: { thread: main, method: onEvent, annotation: OnEventHandler}
-        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, capability: maxEventTypes, value: 10}
+        - capabilities: { thread: main, method: onEvent, annotation: OnEventHandler, account: account-1, capability: maxInputs, value: 10}
         - period: { thread: main, method: onEvent, annotation: OnEventHandler}
         - ledger: { thread: main, method: onEvent, annotation: OnEventHandler}
         - requests: { thread: main, method: onEvent, annotation: OnEventHandler}

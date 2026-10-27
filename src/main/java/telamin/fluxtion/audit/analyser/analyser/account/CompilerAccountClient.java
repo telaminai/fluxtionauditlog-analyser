@@ -128,10 +128,13 @@ public final class CompilerAccountClient {
 
     /**
      * What the plan allows, as the service's {@code capabilities} object states it. A field the service did not state
-     * is null (never a default the analyser made up). {@code overrides} are an operator's per-account values, by
-     * capability name; empty when none.
+     * is null (never a default the analyser made up). {@code maxInputs} counts event types plus the methods of exported
+     * interfaces (each method one input); a service from before that limit states only {@code maxEventTypes}, which is
+     * read as the inputs limit, so the two are never shown side by side. {@code overrides} are an operator's
+     * per-account values, by capability name; empty when none.
      */
-    public record Capabilities(String plan, Long maxNodes, Long maxEventTypes, List<String> targets, Boolean wasm,
+    public record Capabilities(String plan, Long maxNodes, Long maxInputs, Long maxExportedInterfaces,
+                               List<String> targets, Boolean wasm,
                                String assurance, Long compilePerMinute, Long interpretPerMinute,
                                Map<String, String> overrides) { }
 
@@ -331,8 +334,11 @@ public final class CompilerAccountClient {
         Map<String, String> overrides = new LinkedHashMap<>();
         if (caps.get("overrides") instanceof Map<?, ?> o)
             o.forEach((k, v) -> { if (k instanceof String key && v != null) overrides.put(key, String.valueOf(v)); });
-        return new Capabilities(string(caps, "plan"), optional(caps, "maxNodes"), optional(caps, "maxEventTypes"),
-                targets, caps.get("wasm") instanceof Boolean w ? w : null, string(caps, "assurance"),
+        Long maxInputs = optional(caps, "maxInputs");
+        if (maxInputs == null) maxInputs = optional(caps, "maxEventTypes"); // a service before inputs: its one limit
+        return new Capabilities(string(caps, "plan"), optional(caps, "maxNodes"), maxInputs,
+                optional(caps, "maxExportedInterfaces"), targets, caps.get("wasm") instanceof Boolean w ? w : null,
+                string(caps, "assurance"),
                 optional(caps, "compilePerMinute"), optional(caps, "interpretPerMinute"),
                 java.util.Collections.unmodifiableMap(overrides));
     }

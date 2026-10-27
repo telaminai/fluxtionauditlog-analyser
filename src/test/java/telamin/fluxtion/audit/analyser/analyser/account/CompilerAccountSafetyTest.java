@@ -53,7 +53,7 @@ class CompilerAccountSafetyTest {
                 StandInCompilerService.BEARER);
         CompilerAccountClient.Usage u = new CompilerAccountClient.Usage("acct-demo", "free", true, 120, 30, 2, 3, 1, null,
                 new CompilerAccountClient.Balance(481, 18, 1, 17, 2),
-                new CompilerAccountClient.Capabilities("enterprise", 5000L, 50L, List.of("java", "cpp"), true,
+                new CompilerAccountClient.Capabilities("enterprise", 5000L, 80L, 12L, List.of("java", "cpp"), true,
                         "verification", 30L, 300L, java.util.Map.of("maxNodes", "5000")));
         CompilerAccountClient.Me me = new CompilerAccountClient.Me("acct-demo", true, "administrator");
         String text = AccountDetails.text(c, me, u, "Fluxtion analyser on demo-host", "1.38.0",
@@ -64,12 +64,13 @@ class CompilerAccountSafetyTest {
                 "Compile failures: 1",
                 "Interpret remaining: 481", "Interpret used: 18", "Interpret in progress: 1", "Interpret completed: 17",
                 "Interpret failures: 2",
-                "Max nodes: 5000 (set for this account)", "Max event types: 50", "Languages: Java, C++", "WASM: Yes",
+                "Max nodes: 5000 (set for this account)", "Max inputs: 80", "Max exported interfaces: 12", "Languages: Java, C++", "WASM: Yes",
                 "Assurance: Provenance + verification report", "Rate per minute: compile 30, interpret 300",
                 "Account overrides: maxNodes=5000",
                 "Reset: one-time allowance (no reset)", "This device: cred01",
                 "Device name: Fluxtion analyser on demo-host", "Analyser version: 1.38.0", "Time: 2026-10-26 09:30:00 UTC"))
             assertTrue(text.contains(expected), expected + " missing from:\n" + text);
+        assertFalse(text.contains("Max event types"), "the retired limit is never a line of its own:\n" + text);
         assertNoCredential(text);
 
         // a service before plans: compile still, and the summary says what the service did not report

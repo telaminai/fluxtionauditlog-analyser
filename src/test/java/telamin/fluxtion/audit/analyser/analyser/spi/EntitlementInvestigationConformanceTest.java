@@ -41,7 +41,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * an operator's {@code CAPABILITY_SET}, and the two new refusals, {@code CAPABILITY_EXCEEDED} and
  * {@code INTERPRET_ALLOWANCE_EXHAUSTED}. The producer's own export test does not yet write that scenario; it was
  * exported from the producer's code unchanged, by a scenario run beside it (provision; one compile and one interpret
- * credit; {@code set-capability maxEventTypes=10}; a 120-node compile; two interpretations; a 12-node compile).
+ * credit; {@code set-capability maxInputs=10}; a 120-node compile; two interpretations; a 12-node compile). Since the
+ * inputs limit (compiler design 03 §3, 2026-10-27) replaced the event-type limit, the scenario's operator limit is
+ * {@code maxInputs}; the fixture was regenerated from the producer's {@code InvestigationExportTest}.
  */
 class EntitlementInvestigationConformanceTest {
 
@@ -177,10 +179,10 @@ class EntitlementInvestigationConformanceTest {
     @Test
     void anOperatorsCapabilityIsItsOwnRow() {
         LogRecord set = first(PLANS, "CAPABILITY_SET", null).orElseThrow();
-        assertEquals("maxEventTypes=10", field(set.eventToString(), "detail"));
+        assertEquals("maxInputs=10", field(set.eventToString(), "detail"));
         assertEquals("operator:ops:contract", field(set.eventToString(), "reasonCode"));
         NodeLog caps = node(set, "capabilities");
-        assertEquals("maxEventTypes", value(caps, "capability"));
+        assertEquals("maxInputs", value(caps, "capability"));
         assertEquals("10", value(caps, "value"));
     }
 
@@ -263,7 +265,34 @@ class EntitlementInvestigationConformanceTest {
             "EXPIRED", "retention_elapsed", "account_inactive", "no_account", "request_changed_under_same_id",
             // an operator's removal, refused (UNKNOWN_BUCKET) or a no-op: answered to the operator, never written as a
             // row, so no export can contain them
-            "UNKNOWN_BUCKET", "ALREADY_REMOVED", "NOTHING_TO_REMOVE");
+            "UNKNOWN_BUCKET", "ALREADY_REMOVED", "NOTHING_TO_REMOVE",
+            // the capability names a CAPABILITY_EXCEEDED refusal or a CAPABILITY_SET row may carry (the producer's
+            // PlanProfile names); this fixture refuses only maxNodes and sets only maxInputs
+            "maxExportedInterfaces", "targets", "wasm", "assurance",
+            // an operator limit recorded before maxInputs replaced it (2026-10-27): its rows still carry this name and
+            // the producer replays them as maxInputs
+            "maxEventTypes",
+            // refusal details for the two input limits, in the producer's Refusal.detail() form; their shape is pinned
+            // against the fixture's own refusal by detailExamplesHaveTheShapeTheProducerWrites
+            "capability=maxInputs;limit=6;requested=7;plan=free",
+            "capability=maxExportedInterfaces;limit=1;requested=2;plan=free");
+
+    /** The refusal details the guide names but the fixture does not hold are in the shape the fixture's refusal has. */
+    @Test
+    void detailExamplesHaveTheShapeTheProducerWrites() {
+        LogRecord over = first(PLANS, "GENERATION_REFUSED", "failureCode=CAPABILITY_EXCEEDED").orElseThrow();
+        String shape = field(over.eventToString(), "detail").replaceAll("=[^;]+", "=_");
+        assertEquals("capability=_;limit=_;requested=_;plan=_", shape);
+        int examples = 0;
+        for (String code : PRODUCER_CODES_NOT_IN_FIXTURE) {
+            if (!code.startsWith("capability=")) continue;
+            examples++;
+            assertEquals(shape, code.replaceAll("=[^;]+", "=_"), code);
+            String capability = code.substring("capability=".length(), code.indexOf(';'));
+            assertTrue(PRODUCER_CODES_NOT_IN_FIXTURE.contains(capability) || resource("entitlement-investigation-plans.yaml").contains(capability), capability);
+        }
+        assertEquals(2, examples, "maxInputs and maxExportedInterfaces");
+    }
 
     /** Every key, status and reason the guide's *Investigate a compiler charge* names is one the producer writes. */
     @Test

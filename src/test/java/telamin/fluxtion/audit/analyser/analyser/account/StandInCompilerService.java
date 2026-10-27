@@ -47,7 +47,8 @@ public final class StandInCompilerService implements AutoCloseable {
     /**
      * A service with plans (design 03 §5), in the field order its {@code /v1/usage} route writes: the top level is the
      * compile balance, {@code kinds} holds both kinds, each bucket names its kind, and {@code capabilities} is the
-     * Free plan's profile. The interpret figures differ from compile's everywhere, so a panel that showed one for the
+     * Free plan's profile: {@code maxInputs} and {@code maxExportedInterfaces}, with {@code maxEventTypes} as the
+     * one-release deprecated alias equal to {@code maxInputs}. The interpret figures differ from compile's everywhere, so a panel that showed one for the
      * other is caught.
      */
     public static final String PLANS_USAGE_BODY = "{\"accountId\":\"acct-demo\",\"plan\":\"free\",\"active\":true,\"available\":120,"
@@ -57,7 +58,8 @@ public final class StandInCompilerService implements AutoCloseable {
             + "\"currentPeriod\":\"2026-10\",\"nextReset\":null,\"buckets\":["
             + "{\"name\":\"free\",\"kind\":\"compile\",\"period\":null,\"granted\":150,\"available\":120,\"usable\":true},"
             + "{\"name\":\"free\",\"kind\":\"interpret\",\"period\":null,\"granted\":500,\"available\":481,\"usable\":true}],"
-            + "\"capabilities\":{\"plan\":\"free\",\"maxNodes\":20,\"maxEventTypes\":5,\"targets\":[\"java\"],\"wasm\":false,"
+            + "\"capabilities\":{\"plan\":\"free\",\"maxNodes\":20,\"maxInputs\":6,\"maxExportedInterfaces\":1,"
+            + "\"maxEventTypes\":6,\"targets\":[\"java\"],\"wasm\":false,"
             + "\"assurance\":\"none\",\"compilePerMinute\":10,\"interpretPerMinute\":60},"
             + "\"policyVersion\":\"p1\",\"as_of_sequence\":42}";
     public volatile String usageBody = PLANS_USAGE_BODY;

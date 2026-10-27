@@ -176,7 +176,8 @@ class CompilerAccountClientTest {
         assertNotNull(caps);
         assertEquals("free", caps.plan());
         assertEquals(20L, caps.maxNodes());
-        assertEquals(5L, caps.maxEventTypes());
+        assertEquals(6L, caps.maxInputs());
+        assertEquals(1L, caps.maxExportedInterfaces());
         assertEquals(List.of("java"), caps.targets());
         assertEquals(Boolean.FALSE, caps.wasm());
         assertEquals("none", caps.assurance());
@@ -187,19 +188,47 @@ class CompilerAccountClientTest {
         // an Enterprise account with an operator's override: the profile's values are read, not a table keyed on the
         // plan's name, and the plan's name is the profile's own
         service.usageBody = StandInCompilerService.PLANS_USAGE_BODY
-                .replace("\"capabilities\":{\"plan\":\"free\",\"maxNodes\":20,\"maxEventTypes\":5,\"targets\":[\"java\"],\"wasm\":false,"
-                                + "\"assurance\":\"none\"",
-                        "\"capabilities\":{\"plan\":\"enterprise\",\"maxNodes\":5000,\"maxEventTypes\":50,\"targets\":[\"java\",\"cpp\"],"
-                                + "\"wasm\":true,\"assurance\":\"verification\"")
+                .replace(FREE_PROFILE,
+                        "\"capabilities\":{\"plan\":\"enterprise\",\"maxNodes\":5000,\"maxInputs\":80,\"maxExportedInterfaces\":12,"
+                                + "\"maxEventTypes\":80,\"targets\":[\"java\",\"cpp\"],\"wasm\":true,\"assurance\":\"verification\"")
                 .replace("\"interpretPerMinute\":60}", "\"interpretPerMinute\":300,\"overrides\":{\"maxNodes\":\"5000\"}}");
         caps = client.usage(c).capabilities();
         assertEquals("enterprise", caps.plan());
         assertEquals(5000L, caps.maxNodes());
+        assertEquals(80L, caps.maxInputs());
+        assertEquals(12L, caps.maxExportedInterfaces());
         assertEquals(List.of("java", "cpp"), caps.targets());
         assertEquals(Boolean.TRUE, caps.wasm());
         assertEquals("verification", caps.assurance());
         assertEquals(java.util.Map.of("maxNodes", "5000"), caps.overrides());
         assertEquals("enterprise", client.usage(c).planName(), "the plan named is the profile's");
+    }
+
+    private static final String FREE_PROFILE = "\"capabilities\":{\"plan\":\"free\",\"maxNodes\":20,\"maxInputs\":6,"
+            + "\"maxExportedInterfaces\":1,\"maxEventTypes\":6,\"targets\":[\"java\"],\"wasm\":false,\"assurance\":\"none\"";
+
+    /**
+     * Compiler design 03 §3 (2026-10-27): the inputs limit is {@code maxInputs}, event types plus exported methods. A
+     * service after the one-release alias states only it; a service from before it states only {@code maxEventTypes},
+     * which is then the inputs limit (shown once, as "Max inputs"); where both are stated the new field wins.
+     */
+    @Test
+    void theInputsLimitIsMaxInputs_andAnOlderServicesMaxEventTypesIsReadAsIt() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        service.usageBody = StandInCompilerService.PLANS_USAGE_BODY.replace(",\"maxEventTypes\":6", "");
+        CompilerAccountClient.Capabilities caps = client.usage(c).capabilities();
+        assertEquals(6L, caps.maxInputs(), "after the alias is retired: maxInputs alone");
+        assertEquals(1L, caps.maxExportedInterfaces());
+
+        service.usageBody = StandInCompilerService.PLANS_USAGE_BODY.replace("\"maxInputs\":6,\"maxExportedInterfaces\":1,", "")
+                .replace("\"maxEventTypes\":6", "\"maxEventTypes\":5");
+        caps = client.usage(c).capabilities();
+        assertEquals(5L, caps.maxInputs(), "an older service: its event-type limit is the inputs limit");
+        assertNull(caps.maxExportedInterfaces(), "an older service states no interfaces limit: none invented");
+
+        service.usageBody = StandInCompilerService.PLANS_USAGE_BODY.replace("\"maxEventTypes\":6", "\"maxEventTypes\":9");
+        assertEquals(6L, client.usage(c).capabilities().maxInputs(), "both stated: the new field wins");
     }
 
     /** A service older than plans: compile is still shown, and nothing is invented for what it did not report. */

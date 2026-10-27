@@ -263,7 +263,9 @@ class CompilerAccountFrameTest {
         assertEquals("30", figure("Compile", "Used"));
         assertEquals("free", after("Plan"));
         assertEquals("20", after("Max nodes"));
-        assertEquals("5", after("Max event types"));
+        assertEquals("6", after("Max inputs"));
+        assertEquals("1", after("Max exported interfaces"));
+        assertFalse(List.of(text().split("\n")).contains("Max event types"), "the retired limit has no row");
         assertEquals("Java", after("Languages"));
         assertEquals("No", after("WASM"));
         assertEquals("None", after("Assurance"));
@@ -273,10 +275,18 @@ class CompilerAccountFrameTest {
         onEdt(() -> button(CompilerAccountDialog.COPY_DETAILS).doClick());
         assertEquals(1, copied.size());
         for (String expected : List.of("Plan: free", "Compile remaining: 120", "Interpret remaining: 481", "Max nodes: 20",
-                "Languages: Java", "Assurance: None"))
+                "Max inputs: 6", "Max exported interfaces: 1", "Languages: Java", "Assurance: None"))
             assertTrue(copied.get(0).contains(expected), expected + " missing from:\n" + copied.get(0));
         assertFalse(copied.get(0).contains(StandInCompilerService.BEARER), "Copy details carries the credential");
         assertNoSecretOnScreen();
+
+        // a service from before the inputs limit states only maxEventTypes: it is shown once, as Max inputs
+        service.usageBody = StandInCompilerService.PLANS_USAGE_BODY
+                .replace("\"maxInputs\":6,\"maxExportedInterfaces\":1,\"maxEventTypes\":6", "\"maxEventTypes\":5");
+        onEdt(() -> button(CompilerAccountDialog.REFRESH).doClick());
+        await(() -> "5".equals(after("Max inputs")), "an older service's event-type limit shows as Max inputs");
+        assertEquals("Not stated", after("Max exported interfaces"));
+        assertFalse(List.of(text().split("\n")).contains("Max event types"), "never both");
 
         service.usageBody = StandInCompilerService.OLD_USAGE_BODY.replace("\"available\":120", "\"available\":117");
         onEdt(() -> button(CompilerAccountDialog.REFRESH).doClick());

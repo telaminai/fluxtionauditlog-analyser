@@ -27,22 +27,31 @@ class CompilerAccountWordsTest {
     /** Design 03 §2/§5: the plan's key limits in words, from the service's profile only. */
     @Test
     void thePlansLimitsAreSaidFromTheProfile_andAnOverrideIsMarkedOnlyWhenItIsInForce() {
-        assertEquals(List.of("Max nodes", "Max event types", "Languages", "WASM", "Assurance"), CompilerAccountDialog.PLAN_ROWS);
-        CompilerAccountClient.Capabilities free = new CompilerAccountClient.Capabilities("free", 20L, 5L, List.of("java"),
-                false, "none", 10L, 60L, java.util.Map.of());
-        assertEquals(List.of("20", "5", "Java", "No", "None"), AccountDetails.planLimits(free));
-        CompilerAccountClient.Capabilities enterprise = new CompilerAccountClient.Capabilities("enterprise", 5000L, 50L,
-                List.of("java", "cpp", "rust"), true, "verification", 30L, 300L, java.util.Map.of("maxNodes", "5000"));
-        assertEquals(List.of("5000 (set for this account)", "50", "Java, C++, rust", "Yes", "Provenance + verification report"),
+        assertEquals(List.of("Max nodes", "Max inputs", "Max exported interfaces", "Languages", "WASM", "Assurance"),
+                CompilerAccountDialog.PLAN_ROWS);
+        CompilerAccountClient.Capabilities free = new CompilerAccountClient.Capabilities("free", 20L, 6L, 1L,
+                List.of("java"), false, "none", 10L, 60L, java.util.Map.of());
+        assertEquals(List.of("20", "6", "1", "Java", "No", "None"), AccountDetails.planLimits(free));
+        CompilerAccountClient.Capabilities enterprise = new CompilerAccountClient.Capabilities("enterprise", 5000L, 80L, 12L,
+                List.of("java", "cpp", "rust"), true, "verification", 30L, 300L,
+                java.util.Map.of("maxNodes", "5000", "maxInputs", "80", "maxExportedInterfaces", "12"));
+        assertEquals(List.of("5000 (set for this account)", "80 (set for this account)", "12 (set for this account)",
+                        "Java, C++, rust", "Yes", "Provenance + verification report"),
                 AccountDetails.planLimits(enterprise));
+        // an override recorded under the retired name before the server change still counts as the inputs limit
+        CompilerAccountClient.Capabilities olderOverride = new CompilerAccountClient.Capabilities("enterprise", 5000L,
+                10L, null, List.of("java"), false, "none", 10L, 60L, java.util.Map.of("maxEventTypes", "10"));
+        assertEquals(List.of("5000", "10 (set for this account)", "Not stated"),
+                AccountDetails.planLimits(olderOverride).subList(0, 3));
         // the service keeps an override on any plan but applies it only on Enterprise: on Free the limit in force is
         // the plan's, and saying "set for this account" beside it would be false
-        CompilerAccountClient.Capabilities keptNotApplied = new CompilerAccountClient.Capabilities("free", 20L, 5L,
+        CompilerAccountClient.Capabilities keptNotApplied = new CompilerAccountClient.Capabilities("free", 20L, 6L, 1L,
                 List.of("java"), false, "none", 10L, 60L, java.util.Map.of("maxNodes", "5000"));
         assertEquals("20", AccountDetails.planLimits(keptNotApplied).get(0));
         CompilerAccountClient.Capabilities unstated = new CompilerAccountClient.Capabilities(null, null, null, null, null,
-                null, null, null, java.util.Map.of());
-        assertEquals(List.of("Not stated", "Not stated", "Not stated", "Not stated", "Not stated"), AccountDetails.planLimits(unstated));
+                null, null, null, null, java.util.Map.of());
+        assertEquals(List.of("Not stated", "Not stated", "Not stated", "Not stated", "Not stated", "Not stated"),
+                AccountDetails.planLimits(unstated));
         assertEquals("Provenance", AccountDetails.assurance("provenance"));
         Usage plans = new Usage("acct-demo", "free", true, 120, 30, 0, 3, 0, null,
                 new CompilerAccountClient.Balance(481, 18, 1, 17, 2), enterprise);
