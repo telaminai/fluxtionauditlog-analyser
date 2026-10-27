@@ -4634,7 +4634,7 @@ public final class MainFrame extends JFrame {
         else clearSpotlightHere();
         for (int i = 0; i < set.lit().size(); i++) {
             SpotlightTarget.Resolution r = set.lit().get(i);
-            spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption());
+            spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption(), !walkOwnSpotlight);
             if (prepared.containsKey(r.target().name()))
                 javaSpotlightBindings.put(r.target().name(), prepared.get(r.target().name()));
             if (r.target().name().startsWith("source:design") && session().processor().designSession.revision() != null)

@@ -54,6 +54,8 @@ public final class FirstMinuteAppProbe {
                 case "personal-returning" -> returning(true);
                 case "substituted" -> substituted(Path.of(args[1]));
                 case "failed" -> failed(Path.of(args[1]));
+                case "close-all" -> closeAll(Path.of(args[1]));
+                case "live-spotlight" -> liveSpotlight();
                 default -> fail("unknown isolated probe");
             }
             edt(() -> frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING)));
@@ -188,6 +190,50 @@ public final class FirstMinuteAppProbe {
             var result = AsyncOpenInterleavingFrameTest.render(executor, "flag",
                     java.util.Map.of("recordIndexes", java.util.List.of(4), "note", "DEMO first-minute note"));
             assertEquals(true, result.get("ok"), "the real flag entrance accepts the finding");
+        });
+    }
+
+    /** f9d69abb: after the first minute, Audit log ▸ Close log and topology is the start page, not an empty workspace. */
+    private static void closeAll(Path output) throws Exception {
+        await(() -> snapshot().walkPlayback().step() == 0 && "SHOWN".equals(snapshot().walkPlayback().phase()),
+                20, "the first minute is actually shown; " + state());
+        edt(() -> {
+            assertNotNull(driver().processor().designSession.document(), "control: the diamond's XML is the session's design");
+            ((JMenuItem) field(frame, "resetItem")).doClick();
+        });
+        await(() -> ((StartPanel) field(frame, "startPanel")).isShowing(), 10,
+                "Close log and topology after the first minute shows the start page; " + state());
+        edt(() -> {
+            assertFalse(snapshot().logOpen(), "the log is closed");
+            assertNull(driver().processor().designSession.document(), "the design is closed too");
+            capture(output.resolve("closed-to-start.png"));
+        });
+    }
+
+    /** N2: a live spotlight added beside the shipped strip is the assistant's, never "bundled". */
+    private static void liveSpotlight() throws Exception {
+        await(() -> snapshot().walkPlayback().step() == 0 && "SHOWN".equals(snapshot().walkPlayback().phase()),
+                20, "the first step is actually shown; " + state());
+        edt(() -> {
+            var executor = (ActionExecutor) field(frame, "actionExecutor");
+            var result = AsyncOpenInterleavingFrameTest.render(executor, "spotlight", java.util.Map.of(
+                    "target", "records:row:5", "caption", "DEMO live callout", "add", true));
+            assertEquals(true, result.get("ok"), "the live spotlight is accepted: " + result);
+        });
+        await(() -> java.util.Arrays.stream(((SpotlightOverlay) field(frame, "spotlight")).getComponents())
+                .anyMatch(c -> c.isVisible() && c.getAccessibleContext() != null
+                        && "DEMO live callout".equals(c.getAccessibleContext().getAccessibleName())), 5, "the live callout is drawn");
+        edt(() -> {
+            var overlay = (SpotlightOverlay) field(frame, "spotlight");
+            assertTrue(overlay.strip() != null && overlay.strip().title().contains("bundled commentary"),
+                    "control: the shipped strip is still up");
+            java.util.Map<String, String> described = new java.util.HashMap<>();
+            for (var c : overlay.getComponents()) if (c.isVisible() && c.getAccessibleContext() != null)
+                described.put(c.getAccessibleContext().getAccessibleName(), String.valueOf(c.getAccessibleContext().getAccessibleDescription()));
+            assertTrue(described.get("DEMO live callout").startsWith("assistant commentary"),
+                    "N2: the live callout must not carry the bundled label: " + described);
+            assertTrue(described.entrySet().stream().anyMatch(e -> !e.getKey().equals("DEMO live callout")
+                    && e.getValue().startsWith("bundled commentary")), "control: the walk's own callouts stay bundled: " + described);
         });
     }
 

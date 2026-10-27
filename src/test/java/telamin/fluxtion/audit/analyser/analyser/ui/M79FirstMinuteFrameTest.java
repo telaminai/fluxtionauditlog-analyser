@@ -45,6 +45,18 @@ class M79FirstMinuteFrameTest {
                 Files.createTempDirectory(Path.of("target"), "m79-failed-").toAbsolutePath(), "failed");
     }
 
+    @Test void closeLogAndTopologyAfterTheFirstMinuteShowsTheStartPage(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        probe(tmp, Files.createDirectories(tmp.resolve("home")), stub(tmp),
+                Files.createTempDirectory(Path.of("target"), "m79-close-all-").toAbsolutePath(), "close-all");
+    }
+
+    @Test void aLiveSpotlightBesideTheShippedStripIsNotLabelledBundled(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        probe(tmp, Files.createDirectories(tmp.resolve("home")), stub(tmp),
+                Files.createTempDirectory(Path.of("target"), "m79-live-").toAbsolutePath(), "live-spotlight");
+    }
+
     private static Path stub(Path tmp) throws Exception {
         Path bin = Files.createDirectories(tmp.resolve("stub-bin"));
         Path claude = Files.writeString(bin.resolve("claude"),

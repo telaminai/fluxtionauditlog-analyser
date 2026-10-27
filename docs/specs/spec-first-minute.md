@@ -146,8 +146,8 @@ for recovery. Anything the person added makes it an ordinary session (A1.9). **F
 launch that defers leaves the key unset. Once any project is recent, the first minute never qualifies again. The
 diamond stays one act away: *Learn ▸ The diamond*, once M79-1b provides that returning entry.
 
-**Review clarification, 2026-10-25 (PR #196):** source/declaration navigation and diagnostics reads are
-read-only and do not dismiss first contact; an explicit design open does. Accepted producer results,
+**Review clarification, 2026-10-25 (PR #196):** source/declaration navigation and diagnostic-location navigation
+are read-only and do not dismiss first contact; an explicit design open does. Accepted producer results,
 replacement graphs and accepted designs remain personal content after Close or a cancelled Investigate.
 A failed first-minute generation retains only its causal omission receipt, never bundled standing:
 without personal additions it is omitted from recovery, even when verification failed. A subsequent

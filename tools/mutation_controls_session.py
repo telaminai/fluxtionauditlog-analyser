@@ -85,6 +85,19 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
                 : BundleProvenance.NONE;"""
 
 CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
+    # PR #196 owner round (2026-10-27): close-all closes the design; a live spotlight is never bundled (N2).
+    ('m79-close-all-closes-design', NODE + 'DesignSession.java',
+     'if (e.target() != SessionEvents.CloseRequested.Target.ALL || (path == null && document == null && result == null)) return false;',
+     'if (true) return false;',
+     'M79FirstMinuteFrameTest#closeLogAndTopologyAfterTheFirstMinuteShowsTheStartPage'),
+    ('m79-live-spotlight-not-bundled-frame', UI + 'MainFrame.java',
+     'spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption(), !walkOwnSpotlight);',
+     'spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption(), false);',
+     'M79FirstMinuteFrameTest#aLiveSpotlightBesideTheShippedStripIsNotLabelledBundled'),
+    ('m79-live-spotlight-not-bundled-overlay', UI + 'SpotlightOverlay.java',
+     'return liveTargets.contains(l.target().toLowerCase(java.util.Locale.ROOT)) ? "assistant" : calloutAuthor;',
+     'return calloutAuthor;',
+     'SpotlightOverlayTest#aLiveSpotlightBesideAShippedStripKeepsTheAssistantLabel'),
     # Imported declarations cannot grant the shipped qualifier; reset live accessibility too.
     ('m79-review196-callout-accessibility-resets', UI + 'SpotlightOverlay.java',
      'if (next == null) setBundledCommentary(false);',

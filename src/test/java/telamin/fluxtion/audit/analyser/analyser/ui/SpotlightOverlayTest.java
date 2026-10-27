@@ -34,6 +34,20 @@ class SpotlightOverlayTest {
                 "an ordinary later spotlight keeps its live label");
     }
 
+    @Test void aLiveSpotlightBesideAShippedStripKeepsTheAssistantLabel() {
+        SpotlightOverlay o = new SpotlightOverlay(null);
+        o.setSize(900, 600);
+        o.setBundledCommentary(true);
+        o.add("status", new Rectangle(30, 30, 80, 30), "DEMO shipped callout", false);
+        o.add("records", new Rectangle(300, 300, 80, 30), "DEMO live callout", true);
+        java.util.Map<String, String> byName = new java.util.HashMap<>();
+        for (var c : o.getComponents()) if (c.getAccessibleContext() != null && c.isVisible())
+            byName.put(c.getAccessibleContext().getAccessibleName(), String.valueOf(c.getAccessibleContext().getAccessibleDescription()));
+        assertTrue(byName.get("DEMO shipped callout").startsWith("bundled commentary"), "the walk's own callout is bundled: " + byName);
+        assertTrue(byName.get("DEMO live callout").startsWith("assistant commentary"),
+                "N2: a live callout lit while the shipped strip shows is not bundled: " + byName);
+    }
+
     private static final Rectangle A = new Rectangle(10, 10, 50, 20), B = new Rectangle(200, 10, 50, 20);
 
     private static List<String> names(SpotlightOverlay o) {

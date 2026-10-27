@@ -62,6 +62,14 @@ public final class SpotlightOverlay extends JComponent {
         calloutAuthor = next;
         changed();
     }
+    /**
+     * N2: targets lit by a live spotlight (an assistant or a socket client) while a shipped strip shows. They never take
+     * the bundled label, whatever the strip says: only the walk's own callouts are the shipped commentary.
+     */
+    private final java.util.Set<String> liveTargets = new java.util.HashSet<>();
+    private String authorOf(Lit l) {
+        return liveTargets.contains(l.target().toLowerCase(java.util.Locale.ROOT)) ? "assistant" : calloutAuthor;
+    }
     private static final int BADGE = 22;
 
     /** One lit thing: its number, the target's name, where it is (overlay coordinates), its callout or null. */
@@ -263,6 +271,7 @@ public final class SpotlightOverlay extends JComponent {
     /** Light ONE thing, replacing whatever was lit. */
     public void light(String targetName, Rectangle bounds, String caption) {
         lit.clear();
+        liveTargets.clear();
         keepClear.clear();
         nextNumber = 1;
         add(targetName, bounds, caption);
@@ -274,6 +283,13 @@ public final class SpotlightOverlay extends JComponent {
      * ({@link SpotlightTarget#MAX_LIT}); the overlay draws whatever it is given.
      */
     public int add(String targetName, Rectangle bounds, String caption) {
+        return add(targetName, bounds, caption, false);
+    }
+
+    /** {@code live}: lit by a live spotlight rather than by the showing walk itself (N2). */
+    public int add(String targetName, Rectangle bounds, String caption, boolean live) {
+        if (live) liveTargets.add(targetName.toLowerCase(java.util.Locale.ROOT));
+        else liveTargets.remove(targetName.toLowerCase(java.util.Locale.ROOT));
         String words = caption == null || caption.isBlank() ? null : caption.trim();
         for (int i = 0; i < lit.size(); i++) {
             if (lit.get(i).target().equalsIgnoreCase(targetName)) {
@@ -294,6 +310,7 @@ public final class SpotlightOverlay extends JComponent {
     /** Put ONE out. True when it was lit. The others keep their numbers. */
     public boolean remove(String targetName) {
         boolean was = lit.removeIf(l -> l.target().equalsIgnoreCase(targetName));
+        liveTargets.remove(targetName.toLowerCase(java.util.Locale.ROOT));
         keepClear.remove(targetName.toLowerCase(java.util.Locale.ROOT));
         if (lit.isEmpty()) wentDark();
         changed();
@@ -336,6 +353,7 @@ public final class SpotlightOverlay extends JComponent {
     public void clearSpotlight() {
         if (!isLit()) return;
         lit.clear();
+        liveTargets.clear();
         keepClear.clear();
         wentDark();
         changed();
@@ -541,7 +559,7 @@ public final class SpotlightOverlay extends JComponent {
         List<String> tags = new ArrayList<>();
         List<Dimension> boxes = new ArrayList<>();
         for (Lit l : lit) {
-            String tag = numbered(l) ? calloutAuthor + " · " + l.n() : calloutAuthor;
+            String tag = numbered(l) ? authorOf(l) + " · " + l.n() : authorOf(l);
             tags.add(tag);
             if (l.caption() == null) {
                 wrapped.add(List.of());
@@ -802,7 +820,7 @@ public final class SpotlightOverlay extends JComponent {
             t.setVisible(shown);
             if (caption == null || at == null) continue;
             t.getAccessibleContext().setAccessibleName(caption);              // always the WHOLE caption
-            t.getAccessibleContext().setAccessibleDescription(calloutAuthor + " commentary"
+            t.getAccessibleContext().setAccessibleDescription(authorOf(lit.get(i)) + " commentary"
                     + (numbered(lit.get(i)) ? " " + lit.get(i).n() : "") + " — its words, not a verified result");
             if (!at.equals(t.getBounds())) t.setBounds(at);
         }
