@@ -44,8 +44,9 @@ public final class AccountDetails {
             if (caps == null) {
                 line(b, "Plan details", "unavailable from this service");
             } else {
+                List<String> labels = planLimitLabels(caps);
                 List<String> values = planLimits(caps);
-                for (int i = 0; i < PLAN_LIMITS.size(); i++) line(b, PLAN_LIMITS.get(i), values.get(i));
+                for (int i = 0; i < labels.size(); i++) line(b, labels.get(i), values.get(i));
                 line(b, "Rate per minute", "compile " + stated(caps.compilePerMinute()) + ", interpret "
                         + stated(caps.interpretPerMinute()));
                 if (!caps.overrides().isEmpty()) {
@@ -67,12 +68,27 @@ public final class AccountDetails {
     public static final String PLAN_DETAILS_UNAVAILABLE = "Plan details unavailable from this service";
     /** What a service without a separate interpret allowance leaves the Interpret figures to say. */
     public static final String INTERPRET_NOT_REPORTED = "Not reported by this service";
+    /** The inputs row: {@code maxInputs}, event types plus exported methods, each method one input. */
+    public static final String MAX_INPUTS = "Max inputs (event types + exported methods)";
+    /** The same row for a service from before the inputs limit: its {@code maxEventTypes} counts event types only. */
+    public static final String MAX_EVENT_TYPES = "Max event types";
     /**
-     * The plan's key limits, as the panel's rows and the summary's lines name them. "Max inputs" is event types plus
-     * exported methods; an older service's {@code maxEventTypes} is shown under it, never as a row of its own.
+     * The plan's key limits, as the panel's rows and the summary's lines name them for a current service; see
+     * {@link #planLimitLabels} for the names a given profile is shown under.
      */
-    public static final List<String> PLAN_LIMITS = List.of("Max nodes", "Max inputs", "Max exported interfaces", "Languages",
+    public static final List<String> PLAN_LIMITS = List.of("Max nodes", MAX_INPUTS, "Max exported interfaces", "Languages",
             "WASM", "Assurance");
+
+    /**
+     * The row names for {@code caps}: {@link #PLAN_LIMITS}, except that a service from before the inputs limit has its
+     * one limit named {@link #MAX_EVENT_TYPES}, since it counts event types only. Never both.
+     */
+    public static List<String> planLimitLabels(Capabilities caps) {
+        if (!caps.eventTypesOnly()) return PLAN_LIMITS;
+        List<String> labels = new ArrayList<>(PLAN_LIMITS);
+        labels.set(1, MAX_EVENT_TYPES);
+        return List.copyOf(labels);
+    }
 
     /**
      * The values of {@link #PLAN_LIMITS}, read from the service's capability profile only; a limit it did not state is
@@ -82,8 +98,11 @@ public final class AccountDetails {
         List<String> targets = caps.targets() == null ? List.of() : caps.targets();
         return List.of(
                 overridden(stated(caps.maxNodes()), caps, "maxNodes", String.valueOf(caps.maxNodes())),
-                overridden(stated(caps.maxInputs()), caps, caps.overrides().containsKey("maxInputs") ? "maxInputs"
-                        : "maxEventTypes", String.valueOf(caps.maxInputs())),
+                caps.eventTypesOnly()
+                        ? overridden(stated(caps.maxEventTypes()), caps, "maxEventTypes",
+                                String.valueOf(caps.maxEventTypes()))
+                        : overridden(stated(caps.maxInputs()), caps, caps.overrides().containsKey("maxInputs")
+                                ? "maxInputs" : "maxEventTypes", String.valueOf(caps.maxInputs())),
                 overridden(stated(caps.maxExportedInterfaces()), caps, "maxExportedInterfaces",
                         String.valueOf(caps.maxExportedInterfaces())),
                 overridden(targets.isEmpty() ? "Not stated"

@@ -542,6 +542,8 @@ public final class CompilerAccountDialog extends JDialog {
             setAll(accountValues, accountRows(me, usage, connected));
             boolean limits = usage != null && usage.capabilities() != null;
             setAll(planValues, limits ? AccountDetails.planLimits(usage.capabilities()) : List.of());
+            List<String> names = limits ? AccountDetails.planLimitLabels(usage.capabilities()) : PLAN_ROWS;
+            for (int i = 0; i < PLAN_ROWS.size(); i++) planLabels[i].setText(UiText.inert(names.get(i)));
             for (int i = 0; i < PLAN_ROWS.size(); i++) {
                 planLabels[i].setVisible(limits);
                 planValues[i].setVisible(limits);

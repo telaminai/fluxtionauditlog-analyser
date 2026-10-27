@@ -152,7 +152,8 @@ are recomputed from those rows alone, by replaying them through the same graph; 
 - **Refused for the plan:** a request beyond the plan's limits is refused before any work and charges nothing. It is
   a single `GENERATION_REFUSED` row with failure `CAPABILITY_EXCEEDED` and reason `capability_exceeded`, and its
   detail names the limit, such as `capability=maxNodes;limit=20;requested=120;plan=free`. The limit is one of
-  `maxNodes`, `maxInputs`, `maxExportedInterfaces`, `targets`, `wasm` or `assurance`. **Inputs** are the graph's
+  `maxNodes`, `maxInputs`, `maxExportedInterfaces`, `targets`, `wasm` or `assurance`; a log from a service before the
+  inputs limit may name `maxEventTypes` instead, which counts event types only, not exported methods. **Inputs** are the graph's
   event types plus the methods of the interfaces it exports, each method counting as one input, so
   `capability=maxInputs;limit=6;requested=7;plan=free` is a graph with seven inputs on a plan that allows six, and
   `capability=maxExportedInterfaces;limit=1;requested=2;plan=free` one that exports two interfaces where one is

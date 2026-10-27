@@ -53,7 +53,7 @@ class CompilerAccountSafetyTest {
                 StandInCompilerService.BEARER);
         CompilerAccountClient.Usage u = new CompilerAccountClient.Usage("acct-demo", "free", true, 120, 30, 2, 3, 1, null,
                 new CompilerAccountClient.Balance(481, 18, 1, 17, 2),
-                new CompilerAccountClient.Capabilities("enterprise", 5000L, 80L, 12L, List.of("java", "cpp"), true,
+                new CompilerAccountClient.Capabilities("enterprise", 5000L, 80L, 80L, 12L, List.of("java", "cpp"), true,
                         "verification", 30L, 300L, java.util.Map.of("maxNodes", "5000")));
         CompilerAccountClient.Me me = new CompilerAccountClient.Me("acct-demo", true, "administrator");
         String text = AccountDetails.text(c, me, u, "Fluxtion analyser on demo-host", "1.38.0",
@@ -64,7 +64,7 @@ class CompilerAccountSafetyTest {
                 "Compile failures: 1",
                 "Interpret remaining: 481", "Interpret used: 18", "Interpret in progress: 1", "Interpret completed: 17",
                 "Interpret failures: 2",
-                "Max nodes: 5000 (set for this account)", "Max inputs: 80", "Max exported interfaces: 12", "Languages: Java, C++", "WASM: Yes",
+                "Max nodes: 5000 (set for this account)", "Max inputs (event types + exported methods): 80", "Max exported interfaces: 12", "Languages: Java, C++", "WASM: Yes",
                 "Assurance: Provenance + verification report", "Rate per minute: compile 30, interpret 300",
                 "Account overrides: maxNodes=5000",
                 "Reset: one-time allowance (no reset)", "This device: cred01",
@@ -72,6 +72,16 @@ class CompilerAccountSafetyTest {
             assertTrue(text.contains(expected), expected + " missing from:\n" + text);
         assertFalse(text.contains("Max event types"), "the retired limit is never a line of its own:\n" + text);
         assertNoCredential(text);
+
+        // a service from before the inputs limit: its maxEventTypes counts event types only, and Copy details says so,
+        // with nothing about exported methods (re-check 2026-10-27)
+        CompilerAccountClient.Usage eventTypesOnly = new CompilerAccountClient.Usage("acct-demo", "free", true, 120, 30, 2,
+                3, 1, null, null, new CompilerAccountClient.Capabilities("free", 20L, null, 5L, null, List.of("java"),
+                false, "none", 10L, 60L, java.util.Map.of()));
+        String olderLimit = AccountDetails.text(c, me, eventTypesOnly, null, "1.38.0", java.time.Instant.EPOCH);
+        assertTrue(olderLimit.contains("Max event types: 5"), olderLimit);
+        assertFalse(olderLimit.contains("Max inputs"), olderLimit);
+        assertFalse(olderLimit.contains("exported methods"), olderLimit);
 
         // a service before plans: compile still, and the summary says what the service did not report
         CompilerAccountClient.Usage old = new CompilerAccountClient.Usage("acct-demo", "free", true, 120, 30, 2, 3, 1, null);

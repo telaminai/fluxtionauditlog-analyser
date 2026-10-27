@@ -12,7 +12,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   used, what is in progress, and how many requests completed or failed. Below the account rows are the plan's key
   limits, as the service reports them: most nodes, most inputs (event types plus exported methods, each method one
   input), most exported interfaces, languages, WASM and software assurance; a limit set for your account is marked. A
-  service from before the inputs limit reports only its event-type limit, which is shown once, as the inputs limit. **Copy details** includes both balances, the plan, its limits and rates, and still
+  service from before the inputs limit reports only its event-type limit, which counts event types alone: it is shown
+  as **Max event types**, with nothing said about exported methods, and never beside the inputs limit. **Copy details** includes both balances, the plan, its limits and rates, and still
   never the credential. A service without plans still shows compile credit and says the plan's details and interpret
   credit were not reported, rather than guessing.
 - *Getting started ▸ Investigate a compiler charge* covers interpretations (`creditKind`, `interpret:` request ids),

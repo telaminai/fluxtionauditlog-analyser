@@ -129,14 +129,24 @@ public final class CompilerAccountClient {
     /**
      * What the plan allows, as the service's {@code capabilities} object states it. A field the service did not state
      * is null (never a default the analyser made up). {@code maxInputs} counts event types plus the methods of exported
-     * interfaces (each method one input); a service from before that limit states only {@code maxEventTypes}, which is
-     * read as the inputs limit, so the two are never shown side by side. {@code overrides} are an operator's
-     * per-account values, by capability name; empty when none.
+     * interfaces (each method one input). {@code maxEventTypes} is as the service sent it: the current service's
+     * deprecated alias, equal to {@code maxInputs}, or a service from before the inputs limit, whose one limit counts
+     * event types only. Read which through {@link #eventTypesOnly()}; the two are never shown side by side.
+     * {@code overrides} are an operator's per-account values, by capability name; empty when none.
      */
-    public record Capabilities(String plan, Long maxNodes, Long maxInputs, Long maxExportedInterfaces,
+    public record Capabilities(String plan, Long maxNodes, Long maxInputs, Long maxEventTypes, Long maxExportedInterfaces,
                                List<String> targets, Boolean wasm,
                                String assurance, Long compilePerMinute, Long interpretPerMinute,
-                               Map<String, String> overrides) { }
+                               Map<String, String> overrides) {
+        /**
+         * True for a service from before the inputs limit: it states {@code maxEventTypes} and no {@code maxInputs},
+         * so its limit counts event types only and says nothing about exported methods. Whenever {@code maxInputs} is
+         * stated it is the limit, and {@code maxEventTypes} is only its alias.
+         */
+        public boolean eventTypesOnly() {
+            return maxInputs == null && maxEventTypes != null;
+        }
+    }
 
     /**
      * Who the credential belongs to: the selected account, whether it is a personal one, and the person's role in it.
@@ -335,8 +345,8 @@ public final class CompilerAccountClient {
         if (caps.get("overrides") instanceof Map<?, ?> o)
             o.forEach((k, v) -> { if (k instanceof String key && v != null) overrides.put(key, String.valueOf(v)); });
         Long maxInputs = optional(caps, "maxInputs");
-        if (maxInputs == null) maxInputs = optional(caps, "maxEventTypes"); // a service before inputs: its one limit
-        return new Capabilities(string(caps, "plan"), optional(caps, "maxNodes"), maxInputs,
+        Long maxEventTypes = optional(caps, "maxEventTypes"); // an older service's event-type limit, or the alias
+        return new Capabilities(string(caps, "plan"), optional(caps, "maxNodes"), maxInputs, maxEventTypes,
                 optional(caps, "maxExportedInterfaces"), targets, caps.get("wasm") instanceof Boolean w ? w : null,
                 string(caps, "assurance"),
                 optional(caps, "compilePerMinute"), optional(caps, "interpretPerMinute"),

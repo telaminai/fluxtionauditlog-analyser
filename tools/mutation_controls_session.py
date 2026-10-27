@@ -2945,14 +2945,20 @@ CONTROLS += [
      'if (!(body.get("capabilities") instanceof Map<?, ?> caps)) return null;',
      'if (!(body instanceof Map<?, ?> caps)) return null;',
      'CompilerAccountClientTest#aServiceWithPlansReportsBothBalancesAndThePlansProfile'),
-    # compiler design 03 §3 (2026-10-27): the inputs limit is maxInputs; maxEventTypes is only an older service's
-    # word for it, read when maxInputs is absent and never shown beside it
+    # compiler design 03 §3 (2026-10-27): the inputs limit is maxInputs (event types + exported methods). An older
+    # service's maxEventTypes counts event types only: it is never read as the inputs limit, and is shown as
+    # "Max event types" only when maxInputs is absent (re-check 2026-10-27; this replaced the control
+    # plans-inputs-fall-back-to-event-types, which pinned the old, wrong fallback)
     ('plans-limits-from-capabilities', ACCOUNT + 'CompilerAccountClient.java',
      'Long maxInputs = optional(caps, "maxInputs");', 'Long maxInputs = optional(caps, "maxEventTypes");',
-     'CompilerAccountClientTest#theInputsLimitIsMaxInputs_andAnOlderServicesMaxEventTypesIsReadAsIt'),
-    ('plans-inputs-fall-back-to-event-types', ACCOUNT + 'CompilerAccountClient.java',
-     'if (maxInputs == null) maxInputs = optional(caps, "maxEventTypes");', 'if (false) maxInputs = null;',
-     'CompilerAccountClientTest#theInputsLimitIsMaxInputs_andAnOlderServicesMaxEventTypesIsReadAsIt'),
+     'CompilerAccountClientTest#theInputsLimitIsMaxInputs_andAnOlderServicesMaxEventTypesIsEventTypesOnly'),
+    ('plans-older-limit-is-event-types-not-inputs', ACCOUNT + 'CompilerAccountClient.java',
+     'Long maxInputs = optional(caps, "maxInputs");',
+     'Long maxInputs = optional(caps, "maxInputs") != null ? optional(caps, "maxInputs") : optional(caps, "maxEventTypes");',
+     'CompilerAccountClientTest#theInputsLimitIsMaxInputs_andAnOlderServicesMaxEventTypesIsEventTypesOnly'),
+    ('plans-older-limit-named-event-types', ACCOUNT + 'CompilerAccountClient.java',
+     'return maxInputs == null && maxEventTypes != null;', 'return false;',
+     'CompilerAccountWordsTest#anOlderServicesLimitIsSaidAsEventTypes_andACurrentOnesAsInputs_neverBoth'),
     ('plans-exported-interfaces-from-capabilities', ACCOUNT + 'CompilerAccountClient.java',
      'optional(caps, "maxExportedInterfaces"), targets,', 'null, targets,',
      'CompilerAccountClientTest#aServiceWithPlansReportsBothBalancesAndThePlansProfile'),

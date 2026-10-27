@@ -210,25 +210,31 @@ class CompilerAccountClientTest {
     /**
      * Compiler design 03 §3 (2026-10-27): the inputs limit is {@code maxInputs}, event types plus exported methods. A
      * service after the one-release alias states only it; a service from before it states only {@code maxEventTypes},
-     * which is then the inputs limit (shown once, as "Max inputs"); where both are stated the new field wins.
+     * which counts event types alone and is read as that, never as the inputs limit (re-check 2026-10-27, deliberately
+     * replacing the earlier fallback); where both are stated {@code maxInputs} is the limit.
      */
     @Test
-    void theInputsLimitIsMaxInputs_andAnOlderServicesMaxEventTypesIsReadAsIt() throws Exception {
+    void theInputsLimitIsMaxInputs_andAnOlderServicesMaxEventTypesIsEventTypesOnly() throws Exception {
         service.token("approved");
         CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
         service.usageBody = StandInCompilerService.PLANS_USAGE_BODY.replace(",\"maxEventTypes\":6", "");
         CompilerAccountClient.Capabilities caps = client.usage(c).capabilities();
         assertEquals(6L, caps.maxInputs(), "after the alias is retired: maxInputs alone");
+        assertFalse(caps.eventTypesOnly());
         assertEquals(1L, caps.maxExportedInterfaces());
 
         service.usageBody = StandInCompilerService.PLANS_USAGE_BODY.replace("\"maxInputs\":6,\"maxExportedInterfaces\":1,", "")
                 .replace("\"maxEventTypes\":6", "\"maxEventTypes\":5");
         caps = client.usage(c).capabilities();
-        assertEquals(5L, caps.maxInputs(), "an older service: its event-type limit is the inputs limit");
+        assertNull(caps.maxInputs(), "an older service: no inputs limit invented");
+        assertEquals(5L, caps.maxEventTypes());
+        assertTrue(caps.eventTypesOnly(), "an older service: its one limit counts event types only");
         assertNull(caps.maxExportedInterfaces(), "an older service states no interfaces limit: none invented");
 
         service.usageBody = StandInCompilerService.PLANS_USAGE_BODY.replace("\"maxEventTypes\":6", "\"maxEventTypes\":9");
-        assertEquals(6L, client.usage(c).capabilities().maxInputs(), "both stated: the new field wins");
+        caps = client.usage(c).capabilities();
+        assertEquals(6L, caps.maxInputs(), "both stated: the new field wins");
+        assertFalse(caps.eventTypesOnly(), "both stated: inputs, never event types");
     }
 
     /** A service older than plans: compile is still shown, and nothing is invented for what it did not report. */
