@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-10-27
+
 ### Added
 
 - **AI ▸ Compiler account…** shows compile and interpret credits separately, one row each with what remains, what was
