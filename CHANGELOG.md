@@ -23,6 +23,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - The first minute's stage gives the diamond the room: the time range is hidden while it shows, the topology index folds
   to one line, the graph is refitted to the stage and its spotlights remeasured, and callouts stay above the walk's strip.
   The end card is one row of equal buttons with a small ✕.
+- The start page fits in under 40 words: *See what your code did.*, three doors (*Learn*: The diamond, Guided tour;
+  *Investigate*: Open audit log; *Build*: Start from a template), the AI line in its short form (the long form is its
+  tooltip), *Recent* when there is something recent, and everything else under *Or open directly ▸*. The prompt box
+  opens from *Ask…* or by typing on the page.
+- **Learn ▸ The diamond** replays the bundled diamond and its walk at any time. With a log, graph, design or project
+  open it first says what the diamond replaces, and opens only on OK; your project's settings and selected processor
+  are not changed, nothing enters your recent files, and an untouched diamond is not offered as your saved session.
 - Spotlighting several line ranges of one Java file reveals them as one band, and a Split source half grows to fit a
   range taller than it, instead of refusing the step as "cannot be on screen at the same time".
 

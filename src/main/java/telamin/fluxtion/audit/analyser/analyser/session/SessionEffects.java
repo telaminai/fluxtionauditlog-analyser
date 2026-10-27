@@ -191,6 +191,8 @@ public sealed interface SessionEffects {
     record PlayBundledWalkEffect(long opId, long ticket, String resource, String walkName, String origin,
                                  String digest, WalkPlaybackState.Stage stage) implements SessionEffects { }
     record MarkFirstMinutePlayedEffect(long opId, long ticket) implements SessionEffects { }
+    /** M79-1b: something is open, so say what the diamond replaces before it does (FirstMinuteLines.REPLACES). */
+    record ConfirmDiamondReplayEffect(long opId, long ticket) implements SessionEffects { }
     record RunFirstMinuteDoorEffect(long opId, long ticket, String door) implements SessionEffects { }
     record AdmitSessionCaptureEffect(long opId, long request, boolean capture) implements SessionEffects { }
 

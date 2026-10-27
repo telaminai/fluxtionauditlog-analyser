@@ -632,6 +632,10 @@ public final class SessionEvents {
     public record StageToggleRequested(WalkPlaybackState.Stage stage) { }
     public record FirstMinuteDoorChosen(String door) { }
     public record FirstMinuteCardClosed() { }
+    /** M79-1b: Learn ▸ The diamond. {@code confirmed}: the person already agreed to replace what is open. */
+    public record DiamondReplayRequested(boolean confirmed) { }
+    /** The person's answer to {@link SessionEffects.ConfirmDiamondReplayEffect}, for that ticket only. */
+    public record DiamondReplayAnswered(long ticket, boolean yes) { }
 
     public record FirstMinuteStartupObserved(boolean firstRunAtStart, int recentProjects, int recentFiles,
                                              int recentBundles, boolean played, boolean restLaunch, boolean launchFile,

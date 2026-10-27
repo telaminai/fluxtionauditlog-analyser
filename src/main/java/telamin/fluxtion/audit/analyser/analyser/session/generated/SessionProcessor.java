@@ -99,6 +99,8 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureSta
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeAuthObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayAnswered;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDeadlinePassed;
@@ -372,6 +374,8 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeAuthObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ClaudeObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayAnswered
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDeadlinePassed
@@ -650,7 +654,14 @@ public class SessionProcessor
           openLog, assistantLoop, effectQueue);;
   public final transient FirstMinute firstMinute =
       new telamin.fluxtion.audit.analyser.analyser.session.node.FirstMinute(
-          openLog, walkPlayback, sessionRecovery, operationGate, designSession, effectQueue);;
+          openLog,
+          walkPlayback,
+          sessionRecovery,
+          operationGate,
+          designSession,
+          openGraph,
+          activeProject,
+          effectQueue);;
   public final transient IgnoredParameters ignoredParameters = new IgnoredParameters();
   private final transient ExportFunctionAuditEvent functionAudit = new ExportFunctionAuditEvent();
   //Dirty flags
@@ -926,6 +937,14 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "CloseRequested",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "DiamondReplayAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayAnswered",
+                false),
+            new ProcessorDescriptor.Input(
+                "DiamondReplayRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayRequested",
                 false),
             new ProcessorDescriptor.Input(
                 "DiscoveryCompleted",
@@ -1585,7 +1604,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "1bbb9356866deb2738434c6953bdf3897c2f2f17fcd37cb02e499790a73dc47c",
+              "bf04ea3e297c2ba2ff02f427d0d236bb4471f5232d8347972feabc8e03466c30",
               null));
 
   @Override
@@ -1967,6 +1986,12 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof CloseRequested) {
       CloseRequested typedEvent = (CloseRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof DiamondReplayAnswered) {
+      DiamondReplayAnswered typedEvent = (DiamondReplayAnswered) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof DiamondReplayRequested) {
+      DiamondReplayRequested typedEvent = (DiamondReplayRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof DraftPlaced) {
       DraftPlaced typedEvent = (DraftPlaced) event;
@@ -2762,6 +2787,16 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(CloseRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(DiamondReplayAnswered event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(DiamondReplayRequested event) {
     processEvent(event);
   }
 
@@ -4311,6 +4346,22 @@ public class SessionProcessor
       auditInvocation(firstMinute, "firstMinute", "changed", typedEvent);
       firstMinute.changed();
     }
+    afterEvent();
+  }
+
+  public void handleEvent(DiamondReplayAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(firstMinute, "firstMinute", "replayAnswered", typedEvent);
+    firstMinute.replayAnswered(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(DiamondReplayRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(firstMinute, "firstMinute", "replay", typedEvent);
+    firstMinute.replay(typedEvent);
     afterEvent();
   }
 
@@ -7220,6 +7271,16 @@ public class SessionProcessor
         isDirty_designSession = designSession.closeAll(typedEvent);
         auditInvocation(assistantLoop, "assistantLoop", "onCloseRequested", typedEvent);
         isDirty_assistantLoop = assistantLoop.onCloseRequested(typedEvent);
+      } else if (event instanceof DiamondReplayAnswered) {
+        DiamondReplayAnswered typedEvent = (DiamondReplayAnswered) event;
+        auditEvent(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "replayAnswered", typedEvent);
+        firstMinute.replayAnswered(typedEvent);
+      } else if (event instanceof DiamondReplayRequested) {
+        DiamondReplayRequested typedEvent = (DiamondReplayRequested) event;
+        auditEvent(typedEvent);
+        auditInvocation(firstMinute, "firstMinute", "replay", typedEvent);
+        firstMinute.replay(typedEvent);
       } else if (event instanceof DraftPlaced) {
         DraftPlaced typedEvent = (DraftPlaced) event;
         auditEvent(typedEvent);
@@ -8609,7 +8670,9 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_firstMinute() {
-    return isDirty_designSession
+    return isDirty_activeProject
+        | isDirty_designSession
+        | isDirty_openGraph
         | isDirty_openLog
         | isDirty_operationGate
         | isDirty_sessionRecovery

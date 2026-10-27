@@ -21,6 +21,8 @@ public class FirstMinute implements EventLogSource {
     private final SessionRecovery sessionRecovery;
     private final OperationGate gate;
     private final DesignSession designSession;
+    private final OpenGraph openGraph;
+    private final ActiveProject activeProject;
     @PushReference private final EffectQueue effects;
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private SessionEvents.FirstMinuteStartupObserved startup;
@@ -32,11 +34,52 @@ public class FirstMinute implements EventLogSource {
     private long verifiedGeneration = -1, verifiedTicket = -1;
     private long failedGeneration = -1, failedTicket = -1;
     private long ownedDesignReadGeneration = -1;
+    private long confirmTicket = -1;
 
     public FirstMinute(OpenLog openLog, WalkPlayback walkPlayback, SessionRecovery sessionRecovery,
-                       OperationGate gate, DesignSession designSession, EffectQueue effects) {
+                       OperationGate gate, DesignSession designSession, OpenGraph openGraph, ActiveProject activeProject,
+                       EffectQueue effects) {
         this.openLog = openLog; this.walkPlayback = walkPlayback; this.sessionRecovery = sessionRecovery;
-        this.gate = gate; this.designSession = designSession; this.effects = effects;
+        this.gate = gate; this.designSession = designSession; this.openGraph = openGraph;
+        this.activeProject = activeProject; this.effects = effects;
+    }
+
+    /**
+     * M79-1b, Learn ▸ The diamond: the returning entry. The same owned, verified presentation as the first minute, with
+     * the same no-pollution rules (no recents, no machine log/graph/processor), and recoverable only if the person adds
+     * something. When a log, graph, design or project is open, the person is told what the diamond replaces first; the
+     * project's own settings, its selected processor among them, are never written.
+     */
+    @OnEventHandler public boolean replay(SessionEvents.DiamondReplayRequested e) {
+        if (List.of("OPENING", "PLAYING").contains(phase)) return false;
+        boolean occupied = openLog.isOpen() || openGraph.isOpen() || designSession.path() != null
+                || activeProject.profilePath() != null;
+        if (occupied && !e.confirmed()) {
+            confirmTicket = ++ticket;
+            effects.request(new SessionEffects.ConfirmDiamondReplayEffect(0, confirmTicket));
+            return true;
+        }
+        return startReplay();
+    }
+
+    @OnEventHandler public boolean replayAnswered(SessionEvents.DiamondReplayAnswered e) {
+        if (e.ticket() != confirmTicket || confirmTicket != ticket) return false;
+        confirmTicket = -1;
+        return e.yes() && startReplay();
+    }
+
+    private boolean startReplay() {
+        startupDecided = true;
+        phase = "OPENING"; reason = "";
+        bundled = false; readRequested = false; presentationRequested = false; personalContent = false;
+        marked = true;                 // replaying is not a first run; the played key is already the machine's
+        launchOperation = -1;
+        operationAtStart = gate.expectedOpId();
+        generation = openLog.generation();
+        walkTicketAtStart = walkPlayback.state().ticket();
+        effects.request(new SessionEffects.OpenDiamondEffect(0, ++ticket));
+        auditLog.info("firstMinute", "replay").info("ticket", ticket);
+        return true;
     }
     @Override public void setLogger(EventLogger logger) { auditLog = logger; }
 

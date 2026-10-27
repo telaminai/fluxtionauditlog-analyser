@@ -130,6 +130,39 @@ class FirstMinuteTest {
             assertTrue(reason.contains("…/diamond.xml"));
         }
     }
+    @Test void learnTheDiamondReplaysOnAnEmptyWindowAndAsksFirstWhenSomethingIsOpen() {
+        // A returning machine: startup deferred, nothing open — the door opens the diamond at once.
+        var a = new FakeSessionAdapter(); var d = new SessionDriver(a);
+        d.post(new ResumeEvents.Activated(null));
+        d.post(startup(2));
+        d.post(new ResumeEvents.OfferLoaded(d.processor().sessionRecovery.generation(), SessionResumeStore.NO_PROJECT, null, null, null));
+        assertFalse(a.performed.stream().anyMatch(SessionEffects.OpenDiamondEffect.class::isInstance), "control: a returning machine");
+        d.post(new SessionEvents.DiamondReplayRequested(false));
+        assertEquals("OPENING", d.snapshot().firstMinute().phase());
+        assertTrue(a.performed.stream().anyMatch(SessionEffects.OpenDiamondEffect.class::isInstance), "an empty window replays at once");
+        assertFalse(a.performed.stream().anyMatch(SessionEffects.ConfirmDiamondReplayEffect.class::isInstance));
+        // With the played diamond still open, a second replay says what it replaces first; Cancel changes nothing.
+        Run r = playing();
+        r.driver.post(new SessionEvents.FirstMinuteCardClosed());
+        int opens = (int) r.adapter.performed.stream().filter(SessionEffects.OpenDiamondEffect.class::isInstance).count();
+        r.driver.post(new SessionEvents.DiamondReplayRequested(false));
+        var confirm = r.adapter.performed.stream().filter(SessionEffects.ConfirmDiamondReplayEffect.class::isInstance)
+                .map(SessionEffects.ConfirmDiamondReplayEffect.class::cast).reduce((x, y) -> y).orElseThrow();
+        r.driver.post(new SessionEvents.DiamondReplayAnswered(confirm.ticket(), false));
+        assertEquals(opens, r.adapter.performed.stream().filter(SessionEffects.OpenDiamondEffect.class::isInstance).count(),
+                "Cancel replaces nothing");
+        r.driver.post(new SessionEvents.DiamondReplayRequested(false));
+        var again = r.adapter.performed.stream().filter(SessionEffects.ConfirmDiamondReplayEffect.class::isInstance)
+                .map(SessionEffects.ConfirmDiamondReplayEffect.class::cast).reduce((x, y) -> y).orElseThrow();
+        r.driver.post(new SessionEvents.DiamondReplayAnswered(confirm.ticket(), true));
+        assertEquals(opens, r.adapter.performed.stream().filter(SessionEffects.OpenDiamondEffect.class::isInstance).count(),
+                "a stale answer is ignored");
+        r.driver.post(new SessionEvents.DiamondReplayAnswered(again.ticket(), true));
+        assertEquals(opens + 1, r.adapter.performed.stream().filter(SessionEffects.OpenDiamondEffect.class::isInstance).count(),
+                "OK replays the diamond");
+        assertEquals("OPENING", r.driver.snapshot().firstMinute().phase());
+    }
+
     record Run(SessionDriver driver, FakeSessionAdapter adapter, long ticket, long operation) { }
 
     static SessionEvents.FirstMinuteStartupObserved startup(int refusalMask) {

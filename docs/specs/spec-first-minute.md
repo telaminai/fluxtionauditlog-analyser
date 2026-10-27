@@ -182,10 +182,39 @@ re-entry so it never disturbs an active project's `selectedEventProcessor`, open
    picture of its own diamond with its own node names (lead's decision, creative round 2: tiles, not a dropdown), the
    current one marked.
    Choosing one opens that domain's own run (§6, §7.1). It does not autoplay again; ▶ replays the walk.
-4. The four-step walk plays once, advancing by itself (§7.3). The strip reads *"Step n of 4 · Esc skips"*. ← and →
-   take over the pace, and Esc skips to the end state.
+4. The walk plays once, advancing by itself (§7.3). **r8 (owner, 2026-10-27): nine steps**, and the strip reads
+   *"Step n of 9 · {role} · Esc skips"*, the role being the step's own caption (§5.2a). ← and → take over the pace,
+   and Esc skips to the end state.
 
-**The walk** (generic copy; each domain's walk carries its own nouns, §6.3):
+### 5.2a The r8 walk (owner, 2026-10-27; supersedes the four-step table below for the generic domain)
+
+The owner found four steps not enough and set the order: intent, then what the LLM writes, then what Fluxtion
+generates, then the evidence. Each step's caption is a **role with its time**, not a claim about who wrote these pinned
+files (the pinned README says the XML and the nodes were written by hand; nothing records LLM authorship): *Your LLM ·
+design time* (the Spring XML and the node classes), *Fluxtion · build time* (the graph and the dispatcher), *Audit log ·
+run time* (the evidence). The definition is `src/main/resources/demo/diamond/diamond.fluxtion-settings`, in this repo.
+
+| # | Role | Targets and captions |
+|---|---|---|
+| 1 | Your LLM · design time | `source:design:bean:a` *You state the intent; your LLM writes this XML. This bean is node a.* · `topology:node:a` *This box is the bean a. Each box is one node class.* · `source:design:bean:d` *d's constructor-arg refs name its parents, b and c.* · `topology:node:d` *Those refs are the arrows into d: an arrow points from parent to child.* |
+| 2 | Fluxtion · build time | `topology:node:X` *Events enter here: X goes to a's event handler first.* · `topology:node:b` *Top to bottom is dispatch order: a, then b and c, then d.* · `topology:node:d` *At build time Fluxtion compiled the XML into this graph and its dispatcher.* |
+| 3 | Your LLM · design time | `D.java:13-16` *d names its two parents, b and c, in its constructor.* · `D.java:18-19` *@OnTrigger: Fluxtion calls d.recalculate() when b or c changed.* |
+| 4 | Your LLM · design time | `A.java:11-12` *@OnEventHandler: a.onX runs for every X event.* · `A.java:13-16` *It returns true only when x differs from the value a held.* |
+| 5 | Your LLM · design time | `B.java:17-19` *b recomputes floor(a / 2) and compares it with its last value.* · `B.java:21` *Its return value is b's dirty flag: true tells b's children to run.* |
+| 6 | Fluxtion · build time | `DiamondSpringProcessor.java:307` *a.onX's result becomes a's dirty flag, isDirty_a.* · `:308-311` *b is called only if a is dirty: guardCheck_b returns isDirty_a; c is guarded the same way.* · `:316-319` *d is called if b or c is dirty (isDirty_b \| isDirty_c); afterEvent() then clears the flags.* |
+| 7 | Audit log · run time | record [2]: `records:row:2` *An X event arrives, X[value=2].* · `topology:node:a` *a changed, so its dirty flag let b and c run.* · `topology:node:d` *A green-edged box ran in this event; a faded box did not.* · `detail:node:d` *d ran with b: 1 and c: 6, both changed.* |
+| 8 | Audit log · run time | record [4], unchanged: *same input — nothing changed* · *a saw the same value…* · ***d did not run*** (E5 withholding kept) |
+| 9 | Audit log · run time | record [4]: `detail:node:a` *Only a logged here. Every node that runs logs, so b, c and d did not run.* |
+
+Record [2] is walked, not record [3]: records [3] and [5] are SC-C1's held-out cycles. Arrows and the legend have no
+spotlight target kind, so their captions sit on the node boxes. **Code captions are bound to the shipped source:** each
+Java target carries `basis=source` with the shipped file's SHA-256 from the manifest; the displayed document is compared
+when it is read, and any other revision is refused (the step says why), never captioned. `DiamondAssetsTest` checks each
+pinned line range still holds the code its caption names, and each record caption against its record. While the owner
+iterates on the captions (fast mode, 2026-10-27), the walk file's own digest pin is a warning rather than a refusal;
+the pin returns with the gates.
+
+**The walk** (r7, generic copy; each domain's walk carries its own nouns, §6.3):
 
 | Step | View | Targets and captions |
 |---|---|---|
@@ -237,6 +266,16 @@ state, not the view's. The stage stays `graph` for **first contact**, until the 
 **Topology | Records** toggle (§7.2). Then the investigation layout returns: the records table is the main view (OD-79.7).
 
 ### 5.4 The start page: under 40 words
+
+**Built in r8 (M79-1b, folded into PR #196):** the hero *See what your code did.*, the three doors (*Learn*: The
+diamond, Guided tour; *Investigate*: Open audit log; *Build*: Start from a template), the AI line's short form with the
+long form as its tooltip, *Recent* only when something is recent, and *Or open directly ▸* holding the lede, the drop
+hint and the four groups. 29 words on a returning machine with nothing set up. **Learn ▸ The diamond** is a
+`DiamondReplayRequested` fact decided by `firstMinute`: on an empty window it opens the verified diamond at once; with a
+log, graph, design or project open it first asks (`ConfirmDiamondReplayEffect`, *FirstMinuteLines.REPLACES*) and opens
+only on OK. The replay keeps the first minute's rules: no recents, no machine log/graph/processor, the project's own
+settings (its selected processor) never written, and no recovery capture unless the person adds something. Open
+follow-ups: the expansion is not yet remembered per machine; A1.6's count is taken in one AI state, not all six.
 
 The start page is what a returning person sees, and it is one door away for a newcomer. Its always-visible text drops
 from about 225 words to **at most 39**. The budget is pinned by A1.6.
@@ -1474,6 +1513,11 @@ copy question, which pack gets the first `teach:` entry, and whether the Python 
 match).
 
 ## Revision history
+
+- **r8, 2026-10-27 (owner, testing PR #196)** — the walk grows to nine steps in the owner's order, with role-and-time
+  labels on the strip and pinned source bases for code captions (§5.2a); the stage gives the diamond room; the doors
+  card is one row of equal buttons; M79-1b is folded in (§5.4, *Learn ▸ The diamond*). Review clarification wording:
+  *diagnostic-location navigation*.
 
 - **r1, 2026-10-18** — **ACCEPTED.** Written from the insider and stranger reviews of 2026-10-18 and the owner's
   decisions OD-79.1–.6 of the same day, read against `docs/m77-ai-setup-wizard` (M77 r4), the M69 walk contract and

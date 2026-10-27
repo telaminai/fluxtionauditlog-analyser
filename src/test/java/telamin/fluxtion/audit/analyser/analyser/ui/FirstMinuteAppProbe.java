@@ -30,6 +30,10 @@ public final class FirstMinuteAppProbe {
 
     public static void main(String[] args) {
         try {
+            if ("learn-diamond".equals(args[0])) {   // a returning machine: the start page, not the first minute
+                var config = new ConfigStore();
+                var c = config.load(); c.firstMinutePlayed = true; config.save(c);
+            }
             if ("failed".equals(args[0])) {
                 java.nio.file.Files.createDirectories(DiamondAssets.root().getParent());
                 java.nio.file.Files.writeString(DiamondAssets.root(), "DEMO extraction folder is a file");
@@ -64,6 +68,7 @@ public final class FirstMinuteAppProbe {
                 case "failed" -> failed(Path.of(args[1]));
                 case "close-all" -> closeAll(Path.of(args[1]));
                 case "live-spotlight" -> liveSpotlight();
+                case "learn-diamond" -> learnDiamond(Path.of(args[1]));
                 default -> fail("unknown isolated probe");
             }
             edt(() -> frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING)));
@@ -247,6 +252,48 @@ public final class FirstMinuteAppProbe {
             assertNull(driver().processor().designSession.document(), "the design is closed too");
             capture(output.resolve("closed-to-start.png"));
         });
+    }
+
+    /** M79-1b: the start page under 40 words, in both themes, and Learn ▸ The diamond replays the walk. */
+    private static void learnDiamond(Path output) throws Exception {
+        await(() -> ((StartPanel) field(frame, "startPanel")).isShowing()
+                && !"checking".equals(driver().processor().sessionRecovery.state()), 15, "a returning machine shows the start page");
+        for (String theme : java.util.List.of("Light", "Dark")) {
+            edt(() -> {
+                try { var m = MainFrame.class.getDeclaredMethod("applyTheme", String.class); m.setAccessible(true); m.invoke(frame, theme); }
+                catch (ReflectiveOperationException failure) { throw new AssertionError(failure); }
+            });
+            Thread.sleep(300);
+            edt(() -> {
+                var start = (StartPanel) field(frame, "startPanel");
+                java.util.List<String> words = new java.util.ArrayList<>();
+                countWords(start, words);
+                try { java.nio.file.Files.writeString(output.resolve("words-" + theme + ".txt"), words.size() + " " + words); }
+                catch (java.io.IOException failure) { throw new AssertionError(failure); }
+                capture(output.resolve("start-" + theme.toLowerCase(java.util.Locale.ROOT) + "-check.png"));
+                assertTrue(words.size() <= 39, "§5.4: at most 39 always-visible words, " + words.size() + ": " + words);
+                capture(output.resolve("start-" + theme.toLowerCase(java.util.Locale.ROOT) + ".png"));
+            });
+        }
+        edt(() -> {
+            var start = (StartPanel) field(frame, "startPanel");
+            start.doorButtons().getFirst().doClick();
+        });
+        await(() -> snapshot().walkPlayback().step() == 0 && "SHOWN".equals(snapshot().walkPlayback().phase()),
+                25, "Learn ▸ The diamond plays the walk again on a returning machine; " + state());
+        edt(() -> assertTrue(snapshot().firstMinute().bundled(), "the replay is the verified shipped diamond"));
+    }
+
+    /** §5.4's counting rule: tokens with a letter or digit in every visible text, excluding recent entries' names. */
+    private static void countWords(Container root, java.util.List<String> out) {
+        for (Component c : root.getComponents()) {
+            if (!c.isShowing()) continue;
+            String text = c instanceof JLabel l ? l.getText() : c instanceof AbstractButton b ? b.getText()
+                    : c instanceof javax.swing.text.JTextComponent t ? t.getText() : null;
+            if (text != null) for (String token : text.trim().split("\\s+"))
+                if (token.chars().anyMatch(Character::isLetterOrDigit)) out.add(token);
+            if (c instanceof Container k && !(c instanceof javax.swing.text.JTextComponent)) countWords(k, out);
+        }
     }
 
     /** N2: a live spotlight added beside the shipped strip is the assistant's, never "bundled". */

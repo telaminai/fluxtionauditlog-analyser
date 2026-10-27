@@ -215,7 +215,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         var sessionRecovery = new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate);
         cfg.addNode(sessionRecovery, "sessionRecovery");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.FirstMinute(openLog, walkPlayback,
-                sessionRecovery, gate, designSession, effects), "firstMinute");
+                sessionRecovery, gate, designSession, openGraph, activeProject, effects), "firstMinute");
 
         // WITH a level: invocation tracing is compiled in, so every node that runs appears in the record
         // whether or not it made an auditLog call of its own. That is the regime in which absence from

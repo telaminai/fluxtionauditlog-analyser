@@ -328,6 +328,7 @@ public final class SessionDriver {
             case SessionEffects.PrepareDiamondPresentationEffect ignored -> "prepareDiamondPresentation";
             case SessionEffects.PlayBundledWalkEffect ignored -> "playBundledWalk";
             case SessionEffects.MarkFirstMinutePlayedEffect ignored -> "markFirstMinutePlayed";
+            case SessionEffects.ConfirmDiamondReplayEffect ignored -> "confirmDiamondReplay";
             case SessionEffects.RunFirstMinuteDoorEffect ignored -> "firstMinuteDoor";
             case SessionEffects.AdmitSessionCaptureEffect ignored -> "admitSessionCapture";
             case SessionEffects.SetFollowEffect ignored -> "setFollow";

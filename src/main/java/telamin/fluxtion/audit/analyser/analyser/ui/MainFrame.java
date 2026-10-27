@@ -5024,6 +5024,9 @@ public final class MainFrame extends JFrame {
             @Override public void openDemo(Path log, boolean withGraph) { openDemoLog(log, withGraph); }
             @Override public void openSampleProject() { MainFrame.this.openSampleProject(); }
             @Override public void openGuidedTour() { MainFrame.this.openSampleProject(true); }
+            @Override public void replayDiamond() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayRequested(false));
+            }
             @Override public void openExistingProject() { chooseAndOpenProject(); }
             @Override public void showTab(String name) { selectTab(name); }
             @Override public void openOwnLog() { chooseFile(); }
@@ -9640,6 +9643,18 @@ public final class MainFrame extends JFrame {
                 }, failure -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
                         .FirstMinuteOpenFailed(e.ticket(), rootMessage(failure))));
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "play");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmDiamondReplayEffect e -> {
+                // The node decided something is open; the adapter only asks and reports the answer as a fact.
+                SwingUtilities.invokeLater(() -> {
+                    int answer = JOptionPane.showConfirmDialog(this,
+                            Fluid.text(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.REPLACES),
+                            telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.THE_DIAMOND,
+                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayAnswered(
+                            e.ticket(), answer == JOptionPane.OK_OPTION));
+                });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "confirm");
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.MarkFirstMinutePlayedEffect e -> {
                 config.firstMinutePlayed = true;
