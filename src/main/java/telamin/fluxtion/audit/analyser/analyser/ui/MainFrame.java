@@ -3114,6 +3114,13 @@ public final class MainFrame extends JFrame {
         fluxtionKey.setToolTipText("Manage the local key file used when a processor is regenerated");
         fluxtionKey.addActionListener(e -> openFluxtionKeyDialog());
         ai.add(fluxtionKey);
+        // CA-1: beside the build key — the one owner of the compiler-account connection (D-AI2). The dialog
+        // signs in, reads usage and revokes its own device; it runs nothing of the project's (D-AI4)
+        JMenuItem compilerAccount = new JMenuItem("Compiler account…");
+        compilerAccount.setToolTipText("Connect a compiler account by signing in through your browser; see its plan "
+                + "and credits, disconnect, or revoke this device");
+        compilerAccount.addActionListener(e -> CompilerAccountDialog.show(this, config, this::saveConfigQuietly));
+        ai.add(compilerAccount);
 
         ai.addSeparator();
         JMenuItem runbooks = new JMenuItem("Runbooks…");

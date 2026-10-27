@@ -1,6 +1,6 @@
 ---
 name: point-at-the-fault
-description: Use when asked what is wrong with this application, to find and fix a fault, or to show which record proves it. Keep the broken run's evidence, fix, then report the symptom from a cited record and the cause from the diff. Also checks an audit log for one fault class and points at the evidence.
+description: Use when asked what is wrong with this application, to find and fix a fault, or which record proves a claim (to explain a working run, use load-audit-log). Keep the broken run's evidence, fix, then report the symptom from a cited record and the cause from the diff. Checks one fault class.
 x-analyser-min-version: 1.12.0
 ---
 
@@ -12,6 +12,12 @@ that quotes what it matched on. *"Here is what I found"* becomes *"here it is"* 
 tool learns where that kind of fault shows up at the same moment they learn they have one.
 
 This skill is the **shape**. Copy it for your own fault class; the worked example at the end is one.
+
+## Showing which record proves a claim (the short version)
+
+Find the record (the table in step 2 below), `analyser_spotlight` it (`records:row:<n>`), then
+**`analyser_flag {"recordIndexes": [<n>], "note": "<what it proves>"}`** so the finding is kept, then explain.
+To explain a working run, use load-audit-log.
 
 ## If you are fixing a fault — read this first
 

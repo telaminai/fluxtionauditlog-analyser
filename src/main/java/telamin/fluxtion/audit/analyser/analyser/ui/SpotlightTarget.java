@@ -535,6 +535,39 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
         return null;
     }
 
+    /**
+     * The families that point INTO the open log's records. While a log open is in flight they would land on the log
+     * being replaced, or on nothing (stranger authoring trial h1, 2026-10-25: an agent opened a fresh export and,
+     * with the log still loading, lit a topology node instead of the record it meant to show).
+     */
+    public static final Set<Family> RECORD_FAMILIES = Set.of(Family.RECORDS, Family.RECORDS_ROW, Family.DETAIL,
+            Family.DETAIL_NODE);
+
+    /** The first sentence of the refusal, so a client (and a test) can recognise it. */
+    public static final String LOG_STILL_LOADING = "log still loading; record targets not ready";
+
+    /** The note a spotlight that DID light carries while a log is loading: lit, but not the record. */
+    public static final String LOADING_NOTE = LOG_STILL_LOADING + " — what was lit is not a record. Wait until "
+            + "context no longer reports inFlight, then light the record";
+
+    /**
+     * The refusal for a call naming a record target while a log open is in flight, or null. {@code loading} is the
+     * session's published decision ({@code SessionSnapshot.pending}); nothing here judges it. Judged before anything
+     * is revealed, like {@link #precheck}: a refused call touches nothing.
+     */
+    public static String loadingRefusal(Requests asked, boolean loading) {
+        if (!loading || !asked.ok()) return null;
+        for (Request r : asked.requests()) {
+            Parsed parsed = parse(r.target());
+            if (parsed.ok() && RECORD_FAMILIES.contains(parsed.target().family())) {
+                return "'" + parsed.target().name() + "': " + LOG_STILL_LOADING + " (records, records:row, detail, "
+                        + "detail:node). Nothing was lit or changed. Wait until context no longer reports inFlight, "
+                        + "then send this spotlight again";
+            }
+        }
+        return null;
+    }
+
     /** Why a caption is refused, or null when it is fine (null and blank captions are fine: no callout). */
     public static String captionError(String caption) {
         if (caption == null) return null;

@@ -42,7 +42,7 @@ public final class KnownKeys {
 
     static {
         Set<String> all = new java.util.HashSet<>(PROFILE_FAMILIES);
-        all.addAll(Set.of("activeProjectPath", "apiKey", "deletedReport", "deletedWalk", "deletedChart", "awsProfile", "awsRegion", "eventFilterCollapsed", "graphmlFile",
+        all.addAll(Set.of("activeProjectPath", "apiKey", "deletedReport", "deletedWalk", "deletedChart", "awsProfile", "awsRegion", "compilerServiceUrl", "recentCompilerService", "eventFilterCollapsed", "graphmlFile",
                 "lastRunVersion", "firstMinute", "logFile", "memoryThresholdMb", "projectPanelCollapsed", "recentFile", "recentGraphml",
                 "recentProject", "recentBundle", "searchHistory", "theme", "mcp", "topologyOrientation",
                 // the focus each project was last left on, machine tier: owned here so entries above a

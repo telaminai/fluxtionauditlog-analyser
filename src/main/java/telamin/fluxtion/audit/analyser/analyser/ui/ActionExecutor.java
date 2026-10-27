@@ -210,8 +210,15 @@ public final class ActionExecutor implements RenderExecutor {
                 // M64: needs no log — a tab, the toolbar, the status line and the Project panel are all
                 // there on a fresh start, which is when a tutor first says "look here"
                 if (app == null) return ActionResult.error("'spotlight' is not enabled here");
-                if (SpotlightTarget.hasJava(params)) return doJavaSpotlight(params);
-                return onEdt(() -> doSpotlight(params));
+                // trial h1 (2026-10-25): a record target sent while a log open is in flight is refused, never lit on
+                // the log being replaced or swapped for another target; a target that did light says it is not the record
+                boolean loading = logOpenInFlight();
+                if (!Boolean.TRUE.equals(params.get("clear"))) {
+                    String notReady = SpotlightTarget.loadingRefusal(SpotlightTarget.requests(params), loading);
+                    if (notReady != null) return ActionResult.error(notReady);
+                }
+                ActionResult lit = SpotlightTarget.hasJava(params) ? doJavaSpotlight(params) : onEdt(() -> doSpotlight(params));
+                return loading ? withLoadingNote(lit) : lit;
             }
             case "walk" -> {
                 // #82: recording a reel plays the walk step by step and waits for each to settle, so it runs on the
@@ -1145,8 +1152,12 @@ public final class ActionExecutor implements RenderExecutor {
             if (answer.isDone()) return;
             try {
                 checkGuard(guard);
+                String notReady = SpotlightTarget.loadingRefusal(SpotlightTarget.requests(params), logOpenInFlight());
+                if (notReady != null) { answer.complete(ActionResult.error(notReady)); return; }
                 var pending = app.prepareJavaSpotlight(params, () -> {
                     checkGuard(guard); // asynchronous preparation has finished: check again before ANY reveal/apply
+                    String loadingRefusal = SpotlightTarget.loadingRefusal(SpotlightTarget.requests(params), logOpenInFlight());
+                    if (loadingRefusal != null) throw new IllegalStateException(loadingRefusal);
                     revealSpotlightRows(params);
                 });
                 answer.whenComplete((value, failure) -> { if (answer.isCancelled()) pending.cancel(false); });
@@ -1165,10 +1176,29 @@ public final class ActionExecutor implements RenderExecutor {
         }
     }
 
+    /** Whether the session has a log open in flight — its published decision, read, never re-judged (rule 9). */
+    private boolean logOpenInFlight() {
+        var snapshot = sessionSnapshot == null ? null : sessionSnapshot.get();
+        return snapshot != null && snapshot.pending();
+    }
+
+    /** A lit spotlight's reply, plus {@code logLoading}: what was lit is not a record while the log loads. */
+    static ActionResult withLoadingNote(ActionResult lit) {
+        if (!lit.ok() || lit.payload() == null) return lit;
+        Map<String, Object> payload = new java.util.LinkedHashMap<>(lit.payload());
+        payload.put("logLoading", SpotlightTarget.LOADING_NOTE);
+        return new ActionResult(true, lit.action(), lit.payloadKey(), payload, null, lit.reportReceipt());
+    }
+
     private ActionResult doSpotlight(Map<String, Object> params) {
         LogStore s = store.get();
         if (Boolean.TRUE.equals(params.get("clear"))) return app.spotlight(params);
         SpotlightTarget.Requests asked = SpotlightTarget.requests(params);
+        // The caller may have waited for the EDT while a log open began. Read the session's published state
+        // again at the reveal boundary; no record selection or overlay may precede this check.
+        boolean loading = logOpenInFlight();
+        String notReady = SpotlightTarget.loadingRefusal(asked, loading);
+        if (notReady != null) return ActionResult.error(notReady);
         // Judge the WHOLE call before the first reveal (review of M64.6, F2). goto's reveal relaxes the filter and
         // changes the selection, so a call refused for a misspelt member — or for being a seventh — must be
         // refused HERE, not after a row in the same call has already erased the person's investigation scope.
@@ -1177,7 +1207,8 @@ public final class ActionExecutor implements RenderExecutor {
         String wrong = SpotlightTarget.precheck(asked, app.spotlightLit(), s == null ? -1 : s.index().size());
         if (wrong != null) return ActionResult.error(wrong);
         revealSpotlightRows(params);
-        return app.spotlight(params);
+        ActionResult lit = app.spotlight(params);
+        return loading ? withLoadingNote(lit) : lit;
     }
 
     private void revealSpotlightRows(Map<String, Object> params) {

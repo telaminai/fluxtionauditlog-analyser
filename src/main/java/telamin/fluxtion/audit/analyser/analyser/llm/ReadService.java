@@ -81,7 +81,10 @@ public final class ReadService {
             Long lt = snap.logTime(anchor);
             if (lt != null && lt > at) anchorNote = "every timed record is after 'at' — anchored to the first";
         } else {
-            throw new IllegalArgumentException("read needs a recordIndex, byteOffset or at (epoch millis) anchor");
+            // stranger trial r2: a bare read was an error the model had to guess its way out of; read the head instead
+            anchor = 0;
+            anchorNote = "no anchor given (recordIndex, byteOffset or at) — read from the first record; "
+                    + "e.g. {\"recordIndex\": 40, \"count\": 3}";
         }
 
         Integer count = asInt(params.get("count"));
