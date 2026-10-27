@@ -97,6 +97,10 @@ public final class CompilerAccountDialog extends JDialog {
     /** The plan's key limits, as rows under the Account rows. */
     static final List<String> PLAN_ROWS = AccountDetails.PLAN_LIMITS;
     static final List<String> DEVICE_ROWS = List.of("Name", "Credential");
+    /** The devices view's width before any name is measured; {@link #fitNames} widens it to the widest name. */
+    static final int DEVICES_WIDTH = 520;
+    /** The widest the Name column grows to fit a name: past it, the dialog would leave the screen. */
+    static final int NAME_WIDTH_CAP = 900;
     /**
      * A device's creation time, to the minute, so devices made the same day can be told apart. The zone is UTC and the
      * column header says so, which leaves the width to the Name column (owner, 2026-10-26).
@@ -139,6 +143,8 @@ public final class CompilerAccountDialog extends JDialog {
     private final DefaultTableModel deviceModel = new DefaultTableModel(new Object[]{"Name", "ID", "Kind", "Created (UTC)"}, 0) {
         @Override public boolean isCellEditable(int row, int column) { return false; }
     };
+    /** The devices table's view; its width follows the widest name, so a long machine name is never cut. */
+    private JScrollPane devicesScroll;
     private final JTable deviceTable = UiText.plainCells(new JTable(deviceModel) {
         @Override public String getToolTipText(java.awt.event.MouseEvent e) {
             int row = rowAtPoint(e.getPoint());
@@ -299,8 +305,8 @@ public final class CompilerAccountDialog extends JDialog {
         fixColumn(3, Math.max(fm.stringWidth("2026-10-26 11:10"), fm.stringWidth("Created (UTC)")) + 12);
         deviceTable.getColumnModel().getColumn(0).setPreferredWidth(360);
         deviceTable.getSelectionModel().addListSelectionListener(e -> render());
-        JScrollPane devicesScroll = new JScrollPane(deviceTable);
-        devicesScroll.setPreferredSize(new Dimension(520, deviceTable.getRowHeight() * 3 + deviceTable.getTableHeader().getPreferredSize().height + 4));
+        devicesScroll = new JScrollPane(deviceTable);
+        devicesScroll.setPreferredSize(new Dimension(DEVICES_WIDTH, deviceTable.getRowHeight() * 3 + deviceTable.getTableHeader().getPreferredSize().height + 4));
         devicesScroll.setMinimumSize(new Dimension(200, deviceTable.getRowHeight() * 2 + deviceTable.getTableHeader().getPreferredSize().height + 4));
         rows.full(devicesScroll, 1);
         JPanel deviceButtons = new JPanel(new BorderLayout(UiTheme.SPACE_MD, 0));
@@ -338,6 +344,26 @@ public final class CompilerAccountDialog extends JDialog {
         root.add(south, BorderLayout.SOUTH);
         getRootPane().setDefaultButton(close);
         return root;
+    }
+
+    /**
+     * The Name column takes what the widest name and its "(this machine)" tag need, measured with the fonts in use, and
+     * the table's view widens to hold it beside the fixed columns. A fixed view width fit on one platform's fonts and
+     * cut the name on another's (CI's Linux fonts: 399px needed, 329px given), so nothing here is a constant. A name
+     * past {@link #NAME_WIDTH_CAP} is the one case cut, so a pathological name cannot widen the dialog off the screen.
+     */
+    private void fitNames() {
+        int widest = 0;
+        for (int r = 0; r < deviceTable.getRowCount(); r++)
+            widest = Math.max(widest, deviceTable.prepareRenderer(deviceTable.getCellRenderer(r, 0), r, 0).getPreferredSize().width);
+        int name = Math.min(NAME_WIDTH_CAP, widest + 2);
+        int fixed = 0;
+        for (int c = 1; c < deviceTable.getColumnCount(); c++) fixed += deviceTable.getColumnModel().getColumn(c).getPreferredWidth();
+        java.awt.Insets in = devicesScroll.getInsets();
+        int vertical = devicesScroll.getVerticalScrollBar().getPreferredSize().width;   // a third device adds the bar
+        int width = Math.max(DEVICES_WIDTH, name + fixed + in.left + in.right + vertical);
+        deviceTable.getColumnModel().getColumn(0).setPreferredWidth(Math.max(360, name));
+        devicesScroll.setPreferredSize(new Dimension(width, devicesScroll.getPreferredSize().height));
     }
 
     private void fixColumn(int index, int width) {
@@ -561,12 +587,14 @@ public final class CompilerAccountDialog extends JDialog {
         }
         if (isDisplayable()) {
             revalidate();
+            grew |= getPreferredSize().width > getWidth();   // a device's longer name widens the view: never cut it
             if (grew || getPreferredSize().height > getHeight()) {   // the sign-in rows must not push the buttons off
                 Dimension pref = getPreferredSize();
                 setSize(Math.max(getWidth(), pref.width), Math.max(getHeight(), pref.height));
             } else if (shrank && !signingIn) {   // disconnected: no empty two-thirds; never while a sign-in is showing
                 setSize(getWidth(), Math.max(getMinimumSize().height, getPreferredSize().height));
             }
+            validate();   // lay out now: the devices' columns take their widths before anyone reads or paints them
             repaint();
         }
     }
@@ -749,6 +777,7 @@ public final class CompilerAccountDialog extends JDialog {
         deviceModel.setRowCount(0);
         String own = connected == null ? null : connected.credentialId();
         for (Device d : devices) deviceModel.addRow(deviceRow(d, d.credentialId().equals(own)));
+        fitNames();
     }
 
     private String thisDeviceName() {

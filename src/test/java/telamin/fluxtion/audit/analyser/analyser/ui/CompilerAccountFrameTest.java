@@ -166,6 +166,48 @@ class CompilerAccountFrameTest {
     }
 
     @Test
+    void aMachineNameWiderThanAnyFixedColumnIsNeverCut_theDialogWidensToHoldIt() throws Exception {
+        // CI (2026-10-27): a fixed 520px view fit this machine's name on macOS fonts and cut it on Linux's (399px
+        // needed, 329px given). The width now comes from measuring the names; this name is wider than the old fixed
+        // Name column on any fonts, so the check does not depend on which fonts the display has.
+        service.token("approved");
+        String longName = "Fluxtion analyser on build-agent-0042.continuous-integration.example.internal";
+        service.credentials.get("cred01")[1] = longName;
+        AppConfig config = new AppConfig();
+        config.compilerServiceUrl = service.base();
+        open(config);
+        onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
+        await(() -> table().getRowCount() == 2, "the devices are listed");
+        onEdt(() -> {
+            assertEquals(longName + " (this machine)", table().getValueAt(0, 0));
+            Component own = table().prepareRenderer(table().getCellRenderer(0, 0), 0, 0);
+            int column = table().getColumnModel().getColumn(0).getWidth();
+            assertTrue(own.getPreferredSize().width > 360, "the name is wider than the old fixed column, on any fonts");
+            assertTrue(own.getPreferredSize().width <= column,
+                    "the name is cut: needs " + own.getPreferredSize().width + "px, the column has " + column);
+            java.awt.Rectangle view = table().getVisibleRect();
+            assertTrue(view.width >= table().getWidth(), "the whole table is in view, nothing scrolled sideways");
+        });
+        for (String b : List.of(CompilerAccountDialog.REFRESH, "Close")) assertInsideTheDialog(button(b));
+
+        // a name that grows on a later read, with the dialog already open and sized, widens it again
+        String longer = longName + ".and-a-further-forty-characters-of-domain";   // plain, untagged: wider still
+        onEdt(() -> assertTrue(table().getFontMetrics(table().getFont()).stringWidth(longer)
+                > table().prepareRenderer(table().getCellRenderer(0, 0), 0, 0).getPreferredSize().width,
+                "the later name is wider than the first, so it needs the dialog to widen again"));
+        service.credentials.get("cred02")[1] = longer;
+        onEdt(() -> button(CompilerAccountDialog.REFRESH).doClick());
+        await(() -> longer.equals(String.valueOf(table().getValueAt(1, 0))), "the longer name is read");
+        onEdt(() -> {
+            Component other = table().prepareRenderer(table().getCellRenderer(1, 0), 1, 0);
+            int column = table().getColumnModel().getColumn(0).getWidth();
+            assertTrue(other.getPreferredSize().width <= column,
+                    "after Refresh the name is cut: needs " + other.getPreferredSize().width + "px, the column has " + column);
+        });
+        for (String b : List.of(CompilerAccountDialog.REFRESH, "Close")) assertInsideTheDialog(button(b));
+    }
+
+    @Test
     void thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential() throws Exception {
         service.token("approved");
         service.credentials.get("cred01")[1] = "Fluxtion analyser on Mac-1454.Home";   // a real machine's length of name
@@ -185,6 +227,13 @@ class CompilerAccountFrameTest {
             int column = table().getColumnModel().getColumn(0).getWidth();
             assertTrue(own.getPreferredSize().width <= column,
                     "the name is cut: needs " + own.getPreferredSize().width + "px, the column has " + column);
+            // ID, Kind and Created stay at what their content needs; a wider dialog gives all its extra to Name
+            int[] side = java.util.stream.IntStream.rangeClosed(1, 3).map(i -> table().getColumnModel().getColumn(i).getWidth()).toArray();
+            dialog.setSize(dialog.getWidth() + 200, dialog.getHeight());
+            dialog.validate();
+            assertArrayEquals(side, java.util.stream.IntStream.rangeClosed(1, 3).map(i -> table().getColumnModel().getColumn(i).getWidth()).toArray(),
+                    "the side columns kept their widths");
+            assertTrue(table().getColumnModel().getColumn(0).getWidth() >= column + 200, "Name took the extra width");
             assertEquals("Fluxtion analyser on other-host", table().getValueAt(1, 0));
             assertEquals(List.of("Name", "ID", "Kind", "Created (UTC)"), java.util.stream.IntStream.range(0, table().getColumnCount())
                     .mapToObj(table()::getColumnName).toList());

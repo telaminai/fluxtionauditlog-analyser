@@ -2919,6 +2919,15 @@ CONTROLS += [
      '        deviceTable.getColumnModel().getColumn(2).setPreferredWidth(80);\n'
      '        deviceTable.getColumnModel().getColumn(3).setPreferredWidth(140);\n',
      'CompilerAccountFrameTest#thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential'),
+    # CI, 2026-10-27: a fixed 520px devices view fit this machine's name on macOS fonts and cut it on Linux's; the Name
+    # column is now measured from the names, and a longer name read later widens the open dialog again
+    ('ca1-name-column-measured-from-the-names', UI + 'CompilerAccountDialog.java',
+     '        for (Device d : devices) deviceModel.addRow(deviceRow(d, d.credentialId().equals(own)));\n        fitNames();\n',
+     '        for (Device d : devices) deviceModel.addRow(deviceRow(d, d.credentialId().equals(own)));\n',
+     'CompilerAccountFrameTest#aMachineNameWiderThanAnyFixedColumnIsNeverCut_theDialogWidensToHoldIt'),
+    ('ca1-a-longer-name-widens-the-open-dialog', UI + 'CompilerAccountDialog.java',
+     'grew |= getPreferredSize().width > getWidth();', 'grew |= false;',
+     'CompilerAccountFrameTest#aMachineNameWiderThanAnyFixedColumnIsNeverCut_theDialogWidensToHoldIt'),
     ('ca1-disconnected-dialog-shrinks', UI + 'CompilerAccountDialog.java',
      '} else if (shrank && !signingIn) {', '} else if (false) {',
      'CompilerAccountFrameTest#connectApproveReadUsageThenRevoke'),
