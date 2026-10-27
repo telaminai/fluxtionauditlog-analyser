@@ -303,7 +303,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  * generation time           : Not available
  * api version               : 1.1.0
  * analyser version          : 1.0.76
- * target generator version  : 1.0.80
+ * target generator version  : 1.0.82
  * </pre>
  *
  * Event classes supported:
@@ -1585,7 +1585,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "26987da60f3485c781acdc570c3d213dad190e334bc21ca8016711c7bba8f614",
+              "1bbb9356866deb2738434c6953bdf3897c2f2f17fcd37cb02e499790a73dc47c",
               null));
 
   @Override
@@ -4271,6 +4271,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(operationGate, "operationGate", "onCloseRequested", typedEvent);
     isDirty_operationGate = operationGate.onCloseRequested(typedEvent);
+    auditInvocation(designSession, "designSession", "closeAll", typedEvent);
+    isDirty_designSession = designSession.closeAll(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -7214,6 +7216,8 @@ public class SessionProcessor
         auditEvent(typedEvent);
         auditInvocation(operationGate, "operationGate", "onCloseRequested", typedEvent);
         isDirty_operationGate = operationGate.onCloseRequested(typedEvent);
+        auditInvocation(designSession, "designSession", "closeAll", typedEvent);
+        isDirty_designSession = designSession.closeAll(typedEvent);
         auditInvocation(assistantLoop, "assistantLoop", "onCloseRequested", typedEvent);
         isDirty_assistantLoop = assistantLoop.onCloseRequested(typedEvent);
       } else if (event instanceof DraftPlaced) {

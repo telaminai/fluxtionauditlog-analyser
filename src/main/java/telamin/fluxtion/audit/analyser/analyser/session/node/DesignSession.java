@@ -64,6 +64,16 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
         return true;
     }
     @OnEventHandler public boolean cleared(DesignEvents.Cleared e) { clear(); return true; }
+    /**
+     * Closing everything closes the design too. The start page is the state with nothing open, and the design is one of
+     * the things that can be open: without this, a person who closes log and topology after a session that opened a
+     * Spring XML (the first minute always does) stays on the workspace, because the menu has no other way to close it.
+     */
+    @OnEventHandler public boolean closeAll(SessionEvents.CloseRequested e) {
+        if (e.target() != SessionEvents.CloseRequested.Target.ALL || (path == null && document == null && result == null)) return false;
+        clear();
+        return true;
+    }
     @OnEventHandler public boolean project(SessionEvents.ProfileApplied e) { if (!gate.accepted()) return false; clear(); requestDiscovery(); return true; }
     @OnEventHandler public boolean restored(SessionEvents.SettingsRestored e) { if (!gate.accepted()) return false; clear(); requestDiscovery(); return true; }
     @OnEventHandler public boolean roots(SessionEvents.SourceRootsObserved e) {
