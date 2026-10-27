@@ -50,10 +50,11 @@ _Refreshed 2026-10-27, after 1.40.0._ **Delivery order:**
    Then close: revoke the key, remove the listing and the legacy routes, startup no longer requires the proxy secret.
 2. **Launch gate (compiler, owner).** External health check with alerting; Cloudflare WAF and rate limits; independent pen test; legal pages and DPAs; load test (compiler test 17); an automated regression check for the 2026-10-27 deploy incident.
 3. **Analyser merge queue:** #196 (M79-1a-i) → #197 (M79-7) → #199 (M79-3) → #198 (#177/#178/#179/#182/#183); each merges main in and regenerates.
+   **Then M79-1b first** (owner, 2026-10-27): the start page under 40 words with *Learn ▸ The diamond*, the only way back to the diamond once the first launch is over.
 4. **No key anywhere.** Canvas's compiler-account sign-in also authorises generation (today it only reads the account); starter bundles, starter CI and claude.txt move from the key file to sign-in; the managed host becomes the Maven plugin's default; one credential store shared by Maven and Canvas.
    Analyser docs still routing generation through RapidAPI: `docs/site/spring-authoring-getting-started.md:34`, `docs/site/spring-authoring.md:180`, `src/main/resources/starter-skills/playground/spring-authoring/contract.md:414`; getting-started limits wording becomes nodes, inputs and exported interfaces.
 5. **Mongoose 1.1 follow-through.** Fluxtion runtime 1.1.3 and builder ≥1.0.80/1.0.82 (failed cycles now closed in the audit log); read the control-audit export's manifest `complete` claim and its `controlFallback` documents. Producer asks MA-2, MA-5.7, UP-MNG-02 remain unmet.
-6. **Then** 2–3 friendly-team trials, and the M79 remainder (1a-ii, 1b, 2, 4–6).
+6. **Then** 2–3 friendly-team trials, and the M79 remainder (1a-ii, 2, 4–6).
 
 ⊘ RapidAPI self-serve and a trial/teaching key tier (the 2026-10-19 order's item 2): superseded by managed auth's free allowance.
 
@@ -166,7 +167,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M79] ◐ Accepted r7; generic first-launch slice on a feature branch, not merged. Later phases remain open; OD-79.26–.28 accepted, and OD-79.29 makes the first slice startup-only (owner, 2026-10-23).
 - [M79-1a-i] ◧ PR #196: required D1/D2 and posted F1/F2 corrections implemented, plus bounded follow-ups; local validation green (4451 tests; 47 display tests; 58/58 targeted controls). CI linked from the PR; independent delta re-review pending. F5–F7 tracked as #203–#205. ▸ [handoff](../handoff/handoff_m79_1a_i_2026_10_23.md). Not merged or released.
 - [M79-1a-ii] ☐ The four other domains: runs, GraphMLs, the caption template, the five tiles (spec §6.3).
-- [M79-1b] ☐ Start page under 40 words and returning *Learn ▸ The diamond* entry; re-entry must preserve an active project's selected processor, open log and graph (OD-79.29).
+- [M79-1b] ☐ **Folded into #196** (owner, 2026-10-27). The start page under 40 words, against M77's shipped wizard/AI line, with *Learn ▸ The diamond* as the returning entry (spec §5.3–§5.4); re-entry preserves an active project's selected processor, open log and graph (OD-79.29).
 - [M79-2] ☐ The teaching conversation in the onboard assistant: a shipped, recorded walk, *Continue with Claude*, the passive log (spec §11).
 - [M79-3] ☐ Quiet evidence wording: the three-state chip, accessible descriptions (spec §8).
 - [M79-4] ☐ The broken-diamond quest: works with No AI, confirmed by record digest, teacher mode (spec §9).
