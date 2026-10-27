@@ -8,10 +8,23 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
-- On a genuinely fresh launch, the shipped Spring diamond plays a four-step, evidence-bound introduction with its topology and XML side by side. Arrow keys take over the pace; the end card leads to the guided tour, a log or a template. An untouched first-minute demo is not offered as your saved session; anything you add remains recoverable.
+- On a genuinely fresh launch, the shipped Spring diamond plays a nine-step, evidence-bound introduction with its topology and XML side by side. Arrow keys take over the pace; the end card leads to the guided tour, a log or a template. An untouched first-minute demo is not offered as your saved session; anything you add remains recoverable.
 - First-minute recovery keeps a replacement graph or design after Close or a cancelled Investigate choice. A design chosen while startup recovery is being checked prevents autoplay, and later choices retire deferred first-minute callbacks without treating the diamond's own design read as personal content.
 - First-minute read-only navigation preserves the introduction; producer results and replacement evidence stay recoverable after closing it. Failed teaching loads can be left safely, and shipped inputs and processor selection stay out of machine settings. Reel recording keeps the same evidence checks, shipped commentary is labelled bundled without trusting imported author text, and recovery admission has a bounded wait.
 - Topology | Records switches the centre stage in ordinary open-log sessions as well as the first minute.
+- The first minute's walk teaches the diamond in nine steps, in the order of who does what and when: the Spring XML
+  and the node classes your LLM writes at design time (each XML bean beside its box, each constructor-arg ref beside its
+  arrow), how to read the topology, `@OnTrigger`, `@OnEventHandler` and a node's return value as its dirty flag, the
+  dispatcher Fluxtion generates at build time (`isDirty_*`, `guardCheck_*`), then the audit log at run time: an input
+  that ran everything, the repeated input where d did not run, and why that is proof. The strip names each step's role
+  (*Your LLM · design time*, *Fluxtion · build time*, *Audit log · run time*). Each code caption is pinned to the shipped
+  file's SHA-256 and is not shown over any other revision; the bundled XML and code say *Bundled with this run ·
+  verified by digest*.
+- The first minute's stage gives the diamond the room: the time range is hidden while it shows, the topology index folds
+  to one line, the graph is refitted to the stage and its spotlights remeasured, and callouts stay above the walk's strip.
+  The end card is one row of equal buttons with a small ✕.
+- Spotlighting several line ranges of one Java file reveals them as one band, and a Split source half grows to fit a
+  range taller than it, instead of refusing the step as "cannot be on screen at the same time".
 
 ### Changed
 

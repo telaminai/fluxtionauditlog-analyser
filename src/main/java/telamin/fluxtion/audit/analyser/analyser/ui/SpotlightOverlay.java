@@ -574,7 +574,10 @@ public final class SpotlightOverlay extends JComponent {
         }
         List<Rectangle> keep = new ArrayList<>();
         for (List<Rectangle> rects : keepClear.values()) keep.addAll(rects);
-        List<Rectangle> callouts = new ArrayList<>(SpotlightGeometry.layout(cuts, boxes, size, keep));
+        // r8 (owner run, 2026-10-27): a callout placed under the walk's strip could not be read. With a strip showing,
+        // callouts are laid out in the room above it.
+        Dimension room = strip == null ? size : new Dimension(size.width, Math.max(1, stripBounds(size).y - 4));
+        List<Rectangle> callouts = new ArrayList<>(SpotlightGeometry.layout(cuts, boxes, room, keep));
         // the expanded callout (hover or focus): the WHOLE caption in the same card, grown from where it was placed and
         // kept inside the frame; drawn last, on top of any card it now covers
         int open = expandedCallout();

@@ -101,6 +101,8 @@ public final class MainFrame extends JFrame {
     private JToggleButton topologyStageButton, recordsStageButton;
     private java.awt.Component stagePreviousTab;
     private JPanel workspaceChrome;
+    /** The time range: hidden on the bundled diamond's stage (six records), so the topology gets the height. */
+    private JComponent filterBarComponent;
     private JPanel workspaceStatusBar;
     private StartPanel startPanel;
     private final DetailPanel detailPanel = new DetailPanel();
@@ -1919,7 +1921,11 @@ public final class MainFrame extends JFrame {
 
     private String designNote() {
         var state = session().processor().designSession;
-        String note = "Working copy · matched by name · relationship to this run unverified";
+        // r8 (owner, 2026-10-27): the bundled diamond's XML IS verified — its digest is pinned in the manifest (E6).
+        boolean bundled = sessionSnapshot().firstMinute().bundled() && state.document() != null
+                && telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.DESIGN_SHA256.equals(state.document().revision());
+        String note = bundled ? telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.VERIFIED
+                : "Working copy · matched by name · relationship to this run unverified";
         if (state.result() != null) {
             note += "\n" + state.result().description(state.document());
         }
@@ -3274,7 +3280,7 @@ public final class MainFrame extends JFrame {
             // frame answers later, with the ticket, and the step stays PREPARING until it does -- the
             // same shape as any other step whose evidence takes a moment to be certain of.
             if (SpotlightTarget.hasJava(params)) {
-                prepareJavaSpotlightHere(params, () -> { }, ticket).thenAccept(prepared ->
+                prepareJavaSpotlightHere(params, () -> { }, ticket, pinnedSourceRevisions()).thenAccept(prepared ->
                         SwingUtilities.invokeLater(() -> {
                             boolean current = session().processor().walkPlayback.permitsSourceApplication(ticket);
                             if (current && prepared.ok()) spotlight.renumber(numbers);
@@ -3387,7 +3393,9 @@ public final class MainFrame extends JFrame {
         if (!state.reason().isBlank()) reasons.add(0, state.reason());
         String action = closedChartOfShowingStep() == null ? null : "Open chart";
         String stepLabel = telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback.FIRST_MINUTE.equals(state.origin())
-                ? telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.step(state.step() + 1, state.count())
+                ? telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.step(state.step() + 1, state.count(),
+                        state.bundledCommentary() && walk != null && state.step() < walk.steps().size()
+                                ? walk.steps().get(state.step()).caption() : null)
                 : "step " + (state.step() + 1) + " of " + state.count();
         spotlight.setBundledCommentary(state.bundledCommentary());
         spotlight.setStrip(new SpotlightOverlay.Strip(title, stepLabel, phase,
@@ -3879,6 +3887,22 @@ public final class MainFrame extends JFrame {
      */
     private java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlightHere(
             Map<String, Object> params, Runnable revealRows, long walkTicket) {
+        return prepareJavaSpotlightHere(params, revealRows, walkTicket, Map.of());
+    }
+
+    /** The showing step's pinned source revisions, from the node's frozen definition (never from config). */
+    private Map<String, String> pinnedSourceRevisions() {
+        var state = session().processor().walkPlayback.state();
+        var walk = state.definition();
+        if (walk == null || state.step() < 0 || state.step() >= walk.steps().size()) return Map.of();
+        Map<String, String> out = new java.util.HashMap<>();
+        for (var t : walk.steps().get(state.step()).targets())
+            if (telamin.fluxtion.audit.analyser.analyser.walk.WalkResolver.pinnedSource(t)) out.put(t.target(), t.basis().digest());
+        return out;
+    }
+
+    private java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlightHere(
+            Map<String, Object> params, Runnable revealRows, long walkTicket, Map<String, String> pinned) {
         var result = new java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult>();
         if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Capture belongs on EDT");
         var asked = SpotlightTarget.requests(params);
@@ -3916,7 +3940,7 @@ public final class MainFrame extends JFrame {
             if (ticket != javaSpotlightTicket) {
                 result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight superseded; retry against the current view")); return;
             }
-            worker.set(startJavaSpotlightPreparation(params, revealRows, walkTicket, asked, ticket, deadlineNanos, expire, result));
+            worker.set(startJavaSpotlightPreparation(params, revealRows, walkTicket, asked, ticket, deadlineNanos, expire, result, pinned));
         });
         return result;
     }
@@ -3939,7 +3963,8 @@ public final class MainFrame extends JFrame {
     /** Capture the settled view on the EDT, prepare off it, and apply back on it unless something newer moved it. */
     private java.util.concurrent.Future<?> startJavaSpotlightPreparation(Map<String, Object> params, Runnable revealRows,
             long walkTicket, SpotlightTarget.Requests asked, long ticket, long deadlineNanos, Runnable expire,
-            java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> result) {
+            java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> result,
+            Map<String, String> pinned) {
         var lookup = sourceService.captureLookup();
         var capturedStore = store;
         var capturedSourceView = sourcePanel.spotlightViewState();
@@ -3954,7 +3979,7 @@ public final class MainFrame extends JFrame {
                     || t.family() == SpotlightTarget.Family.TOPOLOGY_VERDICT;
         });
         return telamin.fluxtion.audit.analyser.analyser.core.Background.run(
-                () -> JavaSpotlightPlan.read(lookup, asked.requests(), retained), plan -> {
+                () -> JavaSpotlightPlan.read(lookup, asked.requests(), retained, pinned), plan -> {
                     if (result.isDone()) return;
                     if (System.nanoTime() - deadlineNanos >= 0) { expire.run(); return; }
                     boolean viewMoved = walkTicket < 0
@@ -3982,7 +4007,9 @@ public final class MainFrame extends JFrame {
                         selectSideTab(topology ? "topology" : "source");
                         Map<String, JavaBinding> staged = new java.util.LinkedHashMap<>();
                         for (var prepared : plan.targets().values()) {
-                            var anchor = viewer.showJavaSnapshot(prepared.target().sourceFqn(), prepared.document(), prepared.model());
+                            var anchor = viewer.showJavaSnapshot(prepared.target().sourceFqn(), prepared.document(), prepared.model(),
+                                    pinned.containsKey(prepared.target().name())   // the plan refused any other revision
+                                            ? telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.VERIFIED : null);
                             sourceService.acceptSpotlightModel(lookup, prepared.target().sourceFqn(), prepared.model());
                             staged.put(prepared.target().name(), new JavaBinding(viewer, anchor, javaLineFrom(prepared.target()),
                                     javaLineTo(prepared.target()), topology ? "topology-source" : "source-tab", lookup));
@@ -4576,8 +4603,16 @@ public final class MainFrame extends JFrame {
         SpotlightTarget.Surface surface = prepared.isEmpty() ? spotlightSurface : new SpotlightTarget.Surface() {
             public void reveal(SpotlightTarget target) {
                 JavaBinding binding = prepared.get(target.name());
-                if (binding == null) spotlightSurface.reveal(target);
-                else binding.viewer().revealJava(binding.anchor(), binding.lineFrom(), binding.lineTo());
+                if (binding == null) { spotlightSurface.reveal(target); return; }
+                // r8: a set of ranges in ONE document is revealed as one band, so bringing the second into view
+                // cannot scroll the first away (the generated dispatcher's step lights three ranges of handleEvent).
+                Integer from = binding.lineFrom(), to = binding.lineTo();
+                if (from != null) for (JavaBinding other : prepared.values()) {
+                    if (other.viewer() != binding.viewer() || other.lineFrom() == null
+                            || !other.anchor().document().equals(binding.anchor().document())) continue;
+                    from = Math.min(from, other.lineFrom()); to = Math.max(to, other.lineTo());
+                }
+                binding.viewer().revealJava(binding.anchor(), from, to);
             }
             public java.util.Optional<java.awt.Rectangle> bounds(SpotlightTarget target) {
                 JavaBinding binding = prepared.get(target.name());
@@ -5169,7 +5204,8 @@ public final class MainFrame extends JFrame {
         // top = toolbar over filter bar; left rail = event-type checklist
         JPanel north = new JPanel(new BorderLayout());
         north.add(buildToolBar(), BorderLayout.NORTH);
-        north.add(buildFilterBar(), BorderLayout.CENTER);
+        filterBarComponent = buildFilterBar();
+        north.add(filterBarComponent, BorderLayout.CENTER);
         workspaceChrome = north;
         add(north, BorderLayout.NORTH);
         // m6: no fixed preferred height — the checklist asks for its rows' height, up to its own maximum
@@ -7653,6 +7689,7 @@ public final class MainFrame extends JFrame {
     }
 
     private void renderFirstMinute(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        firstMinuteStage.onRefit(() -> { if (spotlight.isLit()) relightSpotlight(); });
         var stage = next.walkPlayback().stage();
         if (sideTabs != null && renderedStage != stage) {
             long previousTicket = walkViewChangeTicket;
@@ -7676,6 +7713,12 @@ public final class MainFrame extends JFrame {
             } finally { walkViewChangeTicket = previousTicket; }
         }
         firstMinuteStage.render(next.firstMinute());
+        boolean timeRange = !(next.firstMinute().bundled()
+                && stage == telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.TOPOLOGY);
+        if (filterBarComponent != null && filterBarComponent.isVisible() != timeRange) {
+            filterBarComponent.setVisible(timeRange);
+            revalidate();
+        }
         if (stageControls != null) {
             stageControls.setVisible(next.logOpen());
             topologyStageButton.setSelected(stage == telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.TOPOLOGY);

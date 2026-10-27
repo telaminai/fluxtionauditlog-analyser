@@ -274,7 +274,8 @@ final class WalkPresenter {
                 SpotlightTarget.Resolution r = frame.resolve(t.target());
                 if (!r.lit()) { available = false; reason = r.reason(); }
             }
-            out.add(new SessionEvents.WalkTargetState(n++, t.target(), WalkResolver.caption(t.caption(), v.state(), isSource(t.target())),
+            boolean unpinnedSource = isSource(t.target()) && !WalkResolver.pinnedSource(t);
+            out.add(new SessionEvents.WalkTargetState(n++, t.target(), WalkResolver.caption(t.caption(), v.state(), unpinnedSource),
                     v.state().name(), available, reason));
         }
         return out;

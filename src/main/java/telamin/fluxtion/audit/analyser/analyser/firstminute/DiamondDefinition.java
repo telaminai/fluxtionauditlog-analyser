@@ -9,7 +9,7 @@ public final class DiamondDefinition {
     public static final String PIN = "24d6d74340d45a3b4856297a135c57c88d4243b1";
     public static final String NAME = "The diamond";
     public static final String RESOURCE = "/demo/diamond/diamond.fluxtion-settings";
-    public static final String WALK_SHA256 = "ede2f8d03a2afd6494b809937b77ee12b0527c4d37033ab2ac8c4dce97bd03b8";
+    public static final String WALK_SHA256 = "f954bb70c5e806ac5db64c2a7802956138f17c5ef5441270c3c2c5d7fed76c4a";
     public static final String LOG_SHA256 = "6291ba0566a9539c6e128cb929161c8cfc21e12b57919f5df28d4f00c2c70487";
     public static final String GRAPH_SHA256 = "7ebd36b0c39ad016cc552b1b54c7cd743c797dbceff9e7e4b37ba7cf8d6b5dec";
     public static final String DESIGN_SHA256 = "f050de05aa8d815e2cbb0a48abe2901cffcddffcba0e3f43f34de5de92cd9bd4";

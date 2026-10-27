@@ -10,6 +10,13 @@ public final class FirstMinuteLines {
     public static final String GUIDED_TOUR = "Guided tour", OPEN_LOG = "Open audit log";
     public static final String TEMPLATE = "Start from a template", SAMPLE = "Sample project", CLOSE = "Close";
     public static final String SKIP = "Esc skips";
+    /** The shipped diamond's files, read back and matched to the manifest's pinned digests (E6). */
+    public static final String VERIFIED = "Bundled with this run · verified by digest";
     public static String step(int step, int count) { return "Step " + step + " of " + count + " · " + SKIP; }
+    /** r8 (owner, 2026-10-27): the strip names whose work the step shows — the shipped step's own caption. */
+    public static String step(int step, int count, String author) {
+        return author == null || author.isBlank() ? step(step, count)
+                : "Step " + step + " of " + count + " · " + author + " · " + SKIP;
+    }
     public static String failed(String reason) { return "The bundled diamond could not be opened: " + reason; }
 }

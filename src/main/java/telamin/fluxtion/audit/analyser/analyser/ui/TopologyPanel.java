@@ -1413,6 +1413,9 @@ public final class TopologyPanel extends JPanel {
         canvas.fitToView();
     }
 
+    /** The first-minute stage: the index folds to its header so the graph is not covered. */
+    void foldIndex() { index.fold(); }
+
     public void clearView() {
         clearHighlights();
     }

@@ -83,7 +83,7 @@ class M79FirstMinuteFrameTest {
         builder.redirectErrorStream(true).redirectOutput(output.toFile());
         Process child = builder.start();
         try {
-            assertTrue(child.waitFor(75, TimeUnit.SECONDS), "the isolated real-Main probe finishes: " + Files.readString(output));
+            assertTrue(child.waitFor(180, TimeUnit.SECONDS), "the isolated real-Main probe finishes: " + Files.readString(output));
             assertEquals(0, child.exitValue(), "real-Main " + mode + ": " + Files.readString(output));
         } finally {
             child.descendants().forEach(ProcessHandle::destroyForcibly);

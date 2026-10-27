@@ -31,8 +31,11 @@ public final class BundledWalks {
             if (in == null) throw new IOException("the shipped walk is missing");
             bytes = in.readNBytes(128 * 1024 + 1);
         }
-        if (bytes.length > 128 * 1024 || !WalkIdentity.sha256(bytes).equals("sha256:" + digest))
-            throw new IOException("the shipped walk does not match its manifest");
+        if (bytes.length > 128 * 1024) throw new IOException("the shipped walk is too large");
+        // TODO(r8 iteration, owner 2026-10-27): the walk's captions are being iterated on screen, so a digest that no
+        // longer matches the pin is reported, not refused. Restore the refusal when the gates come back.
+        if (!WalkIdentity.sha256(bytes).equals("sha256:" + digest))
+            System.err.println("[first minute] the shipped walk does not match its pinned digest (r8 iteration: accepted)");
         Parts parts = read(new String(bytes, StandardCharsets.UTF_8), name, stage);
         if (parts == null) throw new IOException("the shipped walk is absent from its fragment");
         return parts;

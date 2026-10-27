@@ -10,6 +10,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class FirstMinuteTest {
+    /** r8: the shipped walk's repeated-input step ("d did not run"), after the six teaching steps. */
+    static final int REPEAT_STEP = 7;
     @Test void anImportedAuthorWordCannotClaimBundledCommentary() {
         var imported = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare("").preview("""
                 share.version=1
@@ -30,11 +32,11 @@ class FirstMinuteTest {
     }
     @Test void aReelCannotWeakenTheShippedWalksWholeRecordClaim() {
         Run r = playing();
-        r.driver.post(new SessionEvents.WalkPlayRequested(0, DiamondDefinition.walk(), 2, "reel"));
+        r.driver.post(new SessionEvents.WalkPlayRequested(0, DiamondDefinition.walk(), REPEAT_STEP, "reel"));
         var w = r.driver.snapshot().walkPlayback();
         assertEquals("reel", w.origin(), "the recorder really took over pacing");
         var targets = new java.util.ArrayList<SessionEvents.WalkTargetState>();
-        var named = w.definition().steps().get(2).targets();
+        var named = w.definition().steps().get(REPEAT_STEP).targets();
         for (int i = 0; i < named.size(); i++) targets.add(new SessionEvents.WalkTargetState(i + 1,
                 named.get(i).target(), named.get(i).caption(), i == 0 ? "UNRESOLVED" : "CURRENT",
                 i != 0, i == 0 ? "record changed" : ""));
@@ -394,7 +396,7 @@ class FirstMinuteTest {
     @Test void firstShownMarksOnceAndAutoplayRejectsOldTicketsAndStepsThenEndsAtTheDoors() {
         Run r = playing();
         assertFalse(r.adapter.performed.stream().anyMatch(SessionEffects.MarkFirstMinutePlayedEffect.class::isInstance));
-        for (int step = 0; step < 4; step++) {
+        for (int step = 0; step < DiamondDefinition.walk().steps().size(); step++) {
             showStep(r);
             var w = r.driver.snapshot().walkPlayback();
             var schedule = r.adapter.performed.stream().filter(SessionEffects.ScheduleWalkAdvanceEffect.class::isInstance)

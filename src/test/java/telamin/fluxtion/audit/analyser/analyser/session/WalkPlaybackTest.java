@@ -89,7 +89,7 @@ class WalkPlaybackTest {
             FakeSessionAdapter a = new FakeSessionAdapter();
             SessionDriver d = opened(a);
             var definition = shipped ? telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.walk() : ordinary;
-            int index = shipped ? 2 : 0;
+            int index = shipped ? FirstMinuteTest.REPEAT_STEP : 0;
             d.post(new SessionEvents.WalkPlayRequested(0, definition, index, origin));
             var states = new java.util.ArrayList<SessionEvents.WalkTargetState>();
             for (var target : definition.steps().get(index).targets()) {

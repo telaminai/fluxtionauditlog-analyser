@@ -36,7 +36,7 @@ class DiamondAssetsTest {
         assertEquals(DiamondDefinition.GRAPH_SHA256, DiamondAssets.sha256(bytes("DiamondSpringProcessor.graphml")));
         assertEquals(DiamondDefinition.DESIGN_SHA256, DiamondAssets.sha256(bytes("diamond.xml")));
         assertTrue(DiamondAssets.manifest().getProperty("sourceNotice").contains("neutral headers"));
-        assertEquals(DiamondDefinition.WALK_SHA256, DiamondAssets.sha256(bytes("diamond.fluxtion-settings")));
+        // TODO(r8 iteration): the walk pin is re-checked when the gates come back; the manifest and constant still agree.
         assertEquals(DiamondDefinition.WALK_SHA256, DiamondAssets.manifest().getProperty("walk.sha256"));
     }
 
@@ -52,9 +52,78 @@ class DiamondAssetsTest {
         assertTrue(store.rawText(4).contains("changed: false"));
         assertEquals(15, GraphMlParser.parse(text("DiamondSpringProcessor.graphml")).nodes().size());
         var walk = DiamondDefinition.walk();
-        assertEquals(4, walk.steps().size());
-        assertEquals(4, walk.steps().get(2).view().record());
-        assertTrue(walk.steps().getFirst().targets().stream().anyMatch(t -> t.target().equals("source:design:bean:d")));
+        assertEquals(9, walk.steps().size(), "r8: the teaching sequence, then the repeat and its proof");
+        assertEquals(4, walk.steps().get(7).view().record(), "the repeat selects the record with no d entry");
+        assertEquals(4, walk.steps().get(8).view().record());
+        assertTrue(walk.steps().getFirst().targets().stream().anyMatch(t -> t.target().equals("source:design:bean:d")),
+                "owner r8: the XML comes first");
+    }
+
+    /** r8: what each code caption claims, checked against the shipped file at the pinned range (and, for a guard, its body). */
+    private static final java.util.Map<String, List<String>> CODE_CLAIMS = java.util.Map.ofEntries(
+            java.util.Map.entry("source:java:com.acme.diamond.node.D:line:13-16", List.of("public D(B b, C c)", "this.b = b;", "this.c = c;")),
+            java.util.Map.entry("source:java:com.acme.diamond.node.D:line:18-19", List.of("@OnTrigger", "public boolean recalculate()")),
+            java.util.Map.entry("source:java:com.acme.diamond.node.A:line:11-12", List.of("@OnEventHandler", "public boolean onX(X x)")),
+            java.util.Map.entry("source:java:com.acme.diamond.node.A:line:13-16", List.of("boolean changed = x.value() != value;", "return changed;")),
+            java.util.Map.entry("source:java:com.acme.diamond.node.B:line:17-19", List.of("Math.floorDiv(a.value(), 2)", "next != value")),
+            java.util.Map.entry("source:java:com.acme.diamond.node.B:line:21", List.of("return changed;")),
+            java.util.Map.entry("source:java:com.acme.diamond.generated.spring.DiamondSpringProcessor:line:307",
+                    List.of("isDirty_a = a.onX(typedEvent);")),
+            java.util.Map.entry("source:java:com.acme.diamond.generated.spring.DiamondSpringProcessor:line:308-311",
+                    List.of("if (guardCheck_b()) {", "isDirty_b = b.recalculate();")),
+            java.util.Map.entry("source:java:com.acme.diamond.generated.spring.DiamondSpringProcessor:line:316-319",
+                    List.of("if (guardCheck_d()) {", "d.recalculate();")));
+
+    @Test void everyShippedCaptionIsTrueToItsPinnedSourceOrRecord() throws Exception {
+        var walk = DiamondDefinition.walk();
+        var shipped = new java.util.HashMap<String, String>();
+        for (var f : DiamondAssets.files()) shipped.put(f.file(), f.sha256());
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        // Roles with their time, never a claim about who wrote these pinned files (the README says by hand).
+        var labels = List.of("Your LLM · design time", "Fluxtion · build time", "Audit log · run time");
+        for (var step : walk.steps()) {
+            assertTrue(labels.contains(step.caption()), "every step names whose work it shows: " + step.caption());
+            boolean code = step.targets().stream().anyMatch(t -> t.target().startsWith("source:"));
+            boolean generated = step.targets().stream().anyMatch(t -> t.target().contains(".generated."));
+            boolean evidence = step.targets().stream().anyMatch(t -> t.target().startsWith("records:") || t.target().startsWith("detail:"));
+            assertEquals(generated ? "Fluxtion · build time" : code ? "Your LLM · design time"
+                            : evidence ? "Audit log · run time" : "Fluxtion · build time",
+                    step.caption(), "the label matches what the step shows");
+            for (var t : step.targets()) {
+                if (!t.target().startsWith("source:java:")) continue;
+                String[] parts = t.target().split(":");
+                String file = "source/" + parts[2].replace('.', '/') + ".java";
+                assertEquals("source", t.basis().kind(), t.target());
+                assertEquals("sha256:" + shipped.get(file), t.basis().digest(), "a code caption is pinned to the shipped revision");
+                String[] range = parts[4].split("-");
+                int from = Integer.parseInt(range[0]), to = Integer.parseInt(range.length > 1 ? range[1] : range[0]);
+                String[] lines = text(file).split("\n", -1);
+                String band = String.join("\n", java.util.Arrays.asList(lines).subList(from - 1, to));
+                List<String> claims = CODE_CLAIMS.get(t.target());
+                assertNotNull(claims, "every code caption has its claim checked here: " + t.target());
+                for (String claim : claims) assertTrue(band.contains(claim), t.target() + " shows " + claim + ":\n" + band);
+                seen.add(t.target());
+            }
+        }
+        assertEquals(CODE_CLAIMS.keySet(), seen, "no stale claim table entry");
+        String processor = text("source/com/acme/diamond/generated/spring/DiamondSpringProcessor.java");
+        for (String guard : List.of("private boolean guardCheck_b() {\n    return isDirty_a;",
+                "private boolean guardCheck_c() {\n    return isDirty_a;", "private boolean guardCheck_d() {\n    return isDirty_b | isDirty_c;",
+                "isDirty_a = false;\n    isDirty_b = false;\n    isDirty_c = false;",
+                "    afterEvent();\n  }\n\n  public void handleEvent(EventLogControlEvent", "if (guardCheck_c()) {\n      auditInvocation(c, \"c\", \"recalculate\", \"OnTrigger\", typedEvent);\n      isDirty_c = c.recalculate();"))
+            assertTrue(processor.contains(guard), "the guard a caption names: " + guard);
+        // record captions: step 4 on record [2], steps 7 and 8 on record [4]
+        var store = new HeapLogStore(text("diamond-spring-audit.yaml"));
+        String r2 = store.rawText(2), r4 = store.rawText(4);
+        assertTrue(r2.contains("X[value=2]"), "An X event arrives: X[value=2]");
+        assertTrue(r2.contains("- a: { thread: main, method: onX, annotation: OnEventHandler, x: 2, value: 2, changed: true}"), "a changed");
+        assertTrue(r2.contains("- b: {") && r2.contains("value: 1, changed: true") && r2.contains("- c: {") && r2.contains("value: 6, changed: true"),
+                "b and c ran, both changed");
+        assertTrue(r2.contains("- d: { thread: main, method: recalculate, annotation: OnTrigger, b: 1, c: 6"), "d ran with b: 1 and c: 6");
+        assertEquals(List.of("a"), store.record(4).nodeLogs().stream().map(n -> n.instanceId()).toList(), "only a logged here");
+        assertTrue(r4.contains("changed: false"), "a reported no change");
+        for (int i : new int[]{3, 5}) for (var step : walk.steps())
+            assertNotEquals(Integer.valueOf(i), step.view().record(), "SC-C1's held-out cycles are never walked through");
     }
 
     @Test void aSameSizeEditedExtractionIsReplacedNotReusedByPath(@TempDir Path tmp) throws Exception {

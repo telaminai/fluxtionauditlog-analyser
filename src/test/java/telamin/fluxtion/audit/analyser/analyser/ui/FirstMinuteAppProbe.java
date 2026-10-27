@@ -22,6 +22,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Test-only child JVM. Its parent clears the environment, supplies a stub CLI, and isolates both homes. */
 public final class FirstMinuteAppProbe {
     private static MainFrame frame;
+    /** r8: the repeated input ("d did not run") is step 8 of 9, index 7. */
+    static final int REPEAT_STEP = 7;
+    private static final java.util.List<String> transitions = new java.util.concurrent.CopyOnWriteArrayList<>();
     private static final CountDownLatch closed = new CountDownLatch(1);
     private FirstMinuteAppProbe() { }
 
@@ -40,6 +43,11 @@ public final class FirstMinuteAppProbe {
                 }
                 return false;
             }, 15, "real Main creates its frame");
+            edt(() -> driver().onSnapshot(next -> {
+                String seen = next.walkPlayback().step() + ":" + next.walkPlayback().phase()
+                        + (next.walkPlayback().phase().endsWith("_SHOWN") && !next.walkPlayback().reason().isBlank() ? "(" + next.walkPlayback().reason() + ")" : "");
+                if (transitions.isEmpty() || !transitions.getLast().equals(seen)) transitions.add(seen);
+            }));
             switch (args[0]) {
                 case "first" -> first(Path.of(args[1]));
                 case "first-minute-config" -> {
@@ -90,7 +98,9 @@ public final class FirstMinuteAppProbe {
         }
     }
 
+    private static Path failureShots;
     private static void first(Path output) throws Exception {
+        failureShots = output;
         await(() -> snapshot().walkPlayback().step() == 0 && "SHOWN".equals(snapshot().walkPlayback().phase()),
                 20, "the first step is actually shown; " + state());
         edt(() -> {
@@ -108,10 +118,39 @@ public final class FirstMinuteAppProbe {
             assertEquals(-1, table.getSelectedRow(), "the declaration-first step begins without a selected record");
             assertTrue(w.targets().stream().allMatch(t -> "CURRENT".equals(t.state())),
                     "the pinned topology and displayed XML match their saved bases");
+            assertEveryTargetIsOnScreen();
+            String xml = texts(frame.getContentPane());
+            assertTrue(xml.contains(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.VERIFIED)
+                    && !xml.contains("Working copy · matched by name · relationship to this run unverified"), "the bundled XML says it is verified by digest: " + xml);
             capture(output.resolve("first-step.png"));
         });
-        await(() -> snapshot().walkPlayback().step() == 2 && "SHOWN".equals(snapshot().walkPlayback().phase()),
-                25, "automatic pacing reaches step three; " + state());
+        for (int step = 1; step < REPEAT_STEP; step++) {
+            int at = step;
+            await(() -> snapshot().walkPlayback().step() == at && "SHOWN".equals(snapshot().walkPlayback().phase()),
+                    25, "automatic pacing shows step " + (at + 1) + " in full; " + state());
+            edt(() -> {
+                var strip = ((SpotlightOverlay) field(frame, "spotlight")).strip();
+                assertTrue(strip.position().contains("of 9 · ") && strip.position().contains(
+                        snapshot().walkPlayback().definition().steps().get(at).caption()),
+                        "the strip names whose work this step shows: " + strip.position());
+                assertTrue(snapshot().walkPlayback().targets().stream().allMatch(t -> "CURRENT".equals(t.state()) && t.available()
+                                && !t.caption().contains("not compared")),
+                        "every target of the shipped step is current and its code caption is checked: " + snapshot().walkPlayback().targets());
+                assertEveryTargetIsOnScreen();
+                var overlay = (SpotlightOverlay) field(frame, "spotlight");
+                Rectangle stripAt = overlay.stripBounds(overlay.getSize());
+                for (Rectangle callout : overlay.lastCallouts()) if (callout != null)
+                    assertFalse(callout.intersects(stripAt), "step " + (at + 1) + ": no callout is hidden under the strip: " + callout);
+                if (snapshot().walkPlayback().definition().steps().get(at).targets().stream().anyMatch(t -> t.target().startsWith("source:java:"))) {
+                    String shown = texts(frame.getContentPane());
+                    assertTrue(shown.contains(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.VERIFIED)
+                            && !shown.contains("Source/run: unverified"), "the bundled code says it is verified by digest: " + shown);
+                }
+                capture(output.resolve("step-" + (at + 1) + ".png"));
+            });
+        }
+        await(() -> snapshot().walkPlayback().step() == REPEAT_STEP && "SHOWN".equals(snapshot().walkPlayback().phase()),
+                25, "automatic pacing reaches the repeated input; " + state());
         edt(() -> {
             var table = ((LogTablePanel) field(frame, "tablePanel")).table();
             assertEquals(4, table.getSelectedRow(), "the repeated input, not the preceding input, is selected");
@@ -119,7 +158,7 @@ public final class FirstMinuteAppProbe {
             assertEquals("LOGGED", execution("a"), "the actual canvas lights a");
             capture(output.resolve("repeated-input.png"));
         });
-        await(() -> "DOORS".equals(snapshot().firstMinute().phase()), 25, "all four steps finish at the doors; " + state());
+        await(() -> "DOORS".equals(snapshot().firstMinute().phase()), 25, "all nine steps finish at the doors; " + state());
         await(() -> {
             TopologyCanvas canvas = (TopologyCanvas) field(field(frame, "topologyPanel"), "canvas");
             return java.util.List.of("a", "b", "c", "d").stream().allMatch(id -> {
@@ -274,7 +313,7 @@ public final class FirstMinuteAppProbe {
             // Deliberately bypass E6's earlier admission refusal to attack E5 independently through
             // the real presenter, reader and overlay. Without E5 the graph captions remain available.
             driver().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested(
-                    0, telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.walk(), 2, "FIRST_MINUTE"));
+                    0, telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.walk(), REPEAT_STEP, "FIRST_MINUTE"));
         });
         await(() -> !"PREPARING".equals(snapshot().walkPlayback().phase()), 10, "the substituted record's preparation settles");
         edt(() -> {
@@ -284,6 +323,43 @@ public final class FirstMinuteAppProbe {
             assertTrue(((SpotlightOverlay) field(frame, "spotlight")).lit().isEmpty(), "no graph caption survives on the actual overlay");
             capture(output.resolve("withheld-claim.png"));
         });
+    }
+
+    /** Owner, 2026-10-27 ("step 5 failed to show the source"): every target of every step is drawn inside its visible pane. */
+    private static void assertEveryTargetIsOnScreen() {
+        var walk = snapshot().walkPlayback();
+        var overlay = (SpotlightOverlay) field(frame, "spotlight");
+        assertEquals(walk.targets().size(), overlay.lit().size(), "every target of step " + (walk.step() + 1) + " is lit: " + overlay.lit());
+        Rectangle screen = new Rectangle(0, 0, overlay.getWidth(), overlay.getHeight());
+        for (var lit : overlay.lit()) {
+            assertTrue(lit.bounds().width > 0 && lit.bounds().height > 0 && screen.contains(lit.bounds()),
+                    "step " + (walk.step() + 1) + "'s " + lit.target() + " is on screen: " + lit.bounds());
+            if (lit.target().startsWith("topology:node:")) {
+                TopologyCanvas canvas = (TopologyCanvas) field(field(frame, "topologyPanel"), "canvas");
+                Rectangle box = canvas.screenBoundsOf(lit.target().substring("topology:node:".length()));
+                Rectangle at = SwingUtilities.convertRectangle(canvas, box, overlay);
+                assertTrue(box != null && lit.bounds().intersects(at),
+                        "step " + (walk.step() + 1) + "'s " + lit.target() + " is lit ON its box (" + at + "), not where it was: " + lit.bounds());
+            }
+            if (lit.target().startsWith("source:")) {
+                var source = (SourcePanel) field(frame, "sourcePanel");
+                Rectangle pane = SwingUtilities.convertRectangle(source, new Rectangle(0, 0, source.getWidth(), source.getHeight()), overlay);
+                assertTrue(source.isShowing() && pane.intersects(lit.bounds()),
+                        "step " + (walk.step() + 1) + "'s code target is in the visible source pane: " + lit.target());
+            }
+        }
+    }
+
+    /** Every visible text in a component tree, for provenance wording checks. */
+    private static String texts(Container root) {
+        StringBuilder out = new StringBuilder();
+        for (Component c : root.getComponents()) {
+            if (!c.isShowing()) continue;
+            if (c instanceof JLabel l) out.append(l.getText()).append('\n');
+            if (c instanceof javax.swing.text.JTextComponent t) out.append(t.getText()).append('\n');
+            if (c instanceof Container k) out.append(texts(k));
+        }
+        return out.toString();
     }
 
     private static String execution(String id) {
@@ -300,7 +376,11 @@ public final class FirstMinuteAppProbe {
             result.set(snapshot().firstMinute() + " / " + walk.phase() + " step=" + walk.step() + " " + walk.reason()
                     + " / selected=" + table.getSelectedRow() + " d=" + execution("d")
                     + " / firstRun=" + field(frame, "firstRunAtStart")
-                    + " / startup=" + driver().auditSink().matching("event: FirstMinuteStartupObserved"));
+                    + " / walk transitions=" + transitions
+                    + " / advances=" + driver().auditSink().matching("event: WalkAdvanceDue").stream()
+                            .map(r -> r.replaceAll("(?s).*?(ticket: \\S+).*?(step: \\S+).*", "$1 $2")).toList()
+                    + " / navigations=" + driver().auditSink().matching("event: WalkNavigated").size()
+                    + " / schedules=" + driver().auditSink().matching("ScheduleWalkAdvanceEffect").size());
         }); }
         catch (Exception failure) { return failure.toString(); }
         return result.get();
@@ -326,6 +406,7 @@ public final class FirstMinuteAppProbe {
             if (ready[0]) return;
             Thread.sleep(30);
         }
+        if (failureShots != null) try { edt(() -> capture(failureShots.resolve("failure.png"))); } catch (Exception ignored) { }
         fail(why + " — settled at " + state());
     }
 }
