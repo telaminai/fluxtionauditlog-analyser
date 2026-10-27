@@ -188,9 +188,10 @@ public final class SessionDriver {
                 processor.batchEnd();
                 RuntimeException fatal = processor.effectQueue.takeFatal();
                 if (fatal != null) {
-                    // Thrown HERE rather than out of batchEnd(): the generated batchEnd sets
-                    // processing=true with no try/finally, so a throw from inside it would leave the
-                    // processor wedged. By the time control is back here the flag is clear.
+                    // Thrown HERE rather than out of batchEnd(). Since hosted generator 1.0.80 (1.0.82 on this
+                    // branch) batchEnd() has a per-cycle try/finally and failedCycle(), so a throw from inside it
+                    // would no longer wedge the processor; it would end the cycle through failedCycle() instead.
+                    // Rethrowing here still lets batchEnd() finish its ordinary afterEvent() and audit record.
                     throw fatal;
                 }
             }
@@ -321,6 +322,15 @@ public final class SessionDriver {
             case SessionEffects.LightWalkTargetsEffect ignored -> "lightWalkTargets";
             case SessionEffects.ResolveWalkTargetsEffect ignored -> "resolveWalkTargets";
             case SessionEffects.EndWalkEffect ignored -> "endWalk";
+            case SessionEffects.ScheduleWalkAdvanceEffect ignored -> "scheduleWalkAdvance";
+            case SessionEffects.OpenDiamondEffect ignored -> "openDiamond";
+            case SessionEffects.VerifyDiamondReadEffect ignored -> "verifyDiamondRead";
+            case SessionEffects.PrepareDiamondPresentationEffect ignored -> "prepareDiamondPresentation";
+            case SessionEffects.PlayBundledWalkEffect ignored -> "playBundledWalk";
+            case SessionEffects.MarkFirstMinutePlayedEffect ignored -> "markFirstMinutePlayed";
+            case SessionEffects.ConfirmDiamondReplayEffect ignored -> "confirmDiamondReplay";
+            case SessionEffects.RunFirstMinuteDoorEffect ignored -> "firstMinuteDoor";
+            case SessionEffects.AdmitSessionCaptureEffect ignored -> "admitSessionCapture";
             case SessionEffects.SetFollowEffect ignored -> "setFollow";
             case SessionEffects.CaptureBundleEffect ignored -> "captureBundle";
             case SessionEffects.DeleteBundleEffect ignored -> "deleteBundle";

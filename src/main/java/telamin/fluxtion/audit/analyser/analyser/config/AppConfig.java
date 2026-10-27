@@ -368,6 +368,9 @@ public final class AppConfig {
 
     /** The app version last run, to show a what's-new note after an upgrade (M16 §7). */
     public String lastRunVersion = "";
+    /** M79: machine-local first contact only; never profile/share/bundle settings. */
+    public boolean firstMinutePlayed;
+    public String firstMinuteDomain = "generic";
 
     public void addSearch(String term) {
         if (term == null || term.isBlank()) return;

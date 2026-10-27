@@ -650,6 +650,22 @@ public final class AiSetupLines {
         return base + (externalOn ? " · your own client can connect" : "");
     }
 
+    /**
+     * M79-1b (§5.4): the short form of {@link #aiLine}, for the start page: its first clause, with the qualifiers (Claude
+     * Code found, your own client can connect, another window…) left to the tooltip, which is the long form.
+     */
+    public static String shortLine(String aiLine) {
+        if (aiLine == null || aiLine.isBlank()) return "";
+        String s = aiLine;
+        int cut = s.indexOf(" · ");
+        if (cut > 0) s = s.substring(0, cut);
+        cut = s.indexOf(" — ");
+        if (cut > 0) s = s.substring(0, cut);
+        return s.replace("Claude inside " + PRODUCT + " (Full Claude Code)", "Claude (Full)")
+                .replace("Claude inside " + PRODUCT + " (Safe analysis)", "Claude (Safe)")
+                .replace("the in-app assistant (your API key)", "in-app");
+    }
+
     /** The AI line's link: Set up AI… while nothing (or Off) is in force, Change… otherwise. */
     public static String aiLineLink(Choice inForce) {
         return inForce == null || inForce == Choice.NONE || inForce == Choice.NO_AI ? SET_UP_LINK : CHANGE_LINK;

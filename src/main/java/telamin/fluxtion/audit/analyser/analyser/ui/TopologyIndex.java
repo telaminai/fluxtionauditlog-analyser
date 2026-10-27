@@ -92,6 +92,9 @@ public final class TopologyIndex extends JPanel {
         for (Section s : sections) s.applyTheme();
     }
 
+    /** The first-minute stage folds the index to its one-line header so it does not cover the diamond. */
+    void fold() { if (open) setOpen(false); }
+
     private void setOpen(boolean nowOpen) {
         this.open = nowOpen;
         body.setVisible(nowOpen);

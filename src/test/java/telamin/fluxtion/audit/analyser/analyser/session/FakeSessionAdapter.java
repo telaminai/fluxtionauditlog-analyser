@@ -222,6 +222,15 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 walkEnds.add(e);
                 yield new SessionEvents.WalkAcknowledged(e.opId(), e.ticket(), "end");
             }
+            case SessionEffects.ScheduleWalkAdvanceEffect e -> new SessionEvents.WalkAcknowledged(e.opId(), e.ticket(), "advance scheduled");
+            case SessionEffects.OpenDiamondEffect e -> new SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "open");
+            case SessionEffects.VerifyDiamondReadEffect e -> new SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "verify");
+            case SessionEffects.PrepareDiamondPresentationEffect e -> new SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "prepare");
+            case SessionEffects.PlayBundledWalkEffect e -> new SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "play");
+            case SessionEffects.MarkFirstMinutePlayedEffect e -> new SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "played");
+            case SessionEffects.ConfirmDiamondReplayEffect e -> new SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "confirm");
+            case SessionEffects.RunFirstMinuteDoorEffect e -> new SessionEvents.FirstMinuteEffectStarted(e.opId(), 0, "door");
+            case SessionEffects.AdmitSessionCaptureEffect e -> new SessionEvents.FirstMinuteEffectStarted(e.opId(), 0, "capture admitted");
             case SessionEffects.SetFollowEffect e -> {
                 followSets.add(e);
                 yield new SessionEvents.FollowSet(e.opId(), e.ticket(), e.on());

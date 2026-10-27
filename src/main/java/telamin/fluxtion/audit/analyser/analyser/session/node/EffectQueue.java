@@ -49,9 +49,10 @@ import java.util.List;
  * complete record of its own</b> rather than being folded into the batch's.
  *
  * <h2>Why a throw may not escape this method</h2>
- * The generated {@code batchEnd()} sets {@code processing = true} with <b>no try/finally</b>. An
- * exception leaving here would leave the flag set, and every subsequent event would be queued as
- * re-entrant and never dispatched — a permanently wedged processor, silently. So everything is caught:
+ * Generators before 1.0.80 wrote {@code batchEnd()} with <b>no try/finally</b>, so an exception leaving here left
+ * {@code processing = true} and wedged the processor. Since 1.0.80 (1.0.82 on this branch) the generated cycle has a
+ * try/finally and calls {@code failedCycle()}, which clears the dirty flags and rethrows. Nothing here relies on either
+ * behaviour, because nothing is allowed to escape: everything is caught,
  * an effect failure becomes {@link SessionEvents.EffectFailed} as before, and a genuine protocol
  * violation is <em>stashed</em> for {@link SessionDriver} to rethrow once {@code batchEnd()} has
  * returned and the flag is clear. The violation still reaches the caller; it just does not take the

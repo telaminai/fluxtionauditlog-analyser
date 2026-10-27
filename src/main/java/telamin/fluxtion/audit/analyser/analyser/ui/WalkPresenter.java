@@ -58,6 +58,9 @@ final class WalkPresenter {
 
         List<String> runBasisNow();
 
+        /** Exact UTF-8 revision of the displayed definition; unavailable by default. */
+        default String designDigest() { return null; }
+
         SpotlightTarget.Resolution resolve(String target);
 
         /**
@@ -101,7 +104,8 @@ final class WalkPresenter {
             return refused(e, "walk '" + walk.name() + "' has " + walk.steps().size() + " step(s)");
         }
         WalkSpec.Step step = walk.steps().get(e.step());
-        String problem = WalkSteps.problem(step);            // validate the whole view before applying any of it
+        String problem = WalkSteps.problem(step,
+                telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.walk().equals(walk));
         if (problem != null) return refused(e, problem);
         if (step.view().filter() != null && !Set.of("DIMENSION", "RAW_EVENT").contains(step.view().filter().groupMode())) {
             return refused(e, "the step's filter grouping is not DIMENSION or RAW_EVENT");
@@ -270,7 +274,8 @@ final class WalkPresenter {
                 SpotlightTarget.Resolution r = frame.resolve(t.target());
                 if (!r.lit()) { available = false; reason = r.reason(); }
             }
-            out.add(new SessionEvents.WalkTargetState(n++, t.target(), WalkResolver.caption(t.caption(), v.state(), isSource(t.target())),
+            boolean unpinnedSource = isSource(t.target()) && !WalkResolver.pinnedSource(t);
+            out.add(new SessionEvents.WalkTargetState(n++, t.target(), WalkResolver.caption(t.caption(), v.state(), unpinnedSource),
                     v.state().name(), available, reason));
         }
         return out;
@@ -330,6 +335,7 @@ final class WalkPresenter {
                 return new WalkResolver.Drawn(d.drawn(), d.reason());
             }
             public String graphDigest() { return frame.topology().loadedGraphSha256(); }
+            public String designDigest() { return frame.designDigest(); }
             public boolean nodeExists(String id) { return frame.topology().hasNode(id); }
         };
     }

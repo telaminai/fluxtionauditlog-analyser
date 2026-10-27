@@ -27,7 +27,16 @@ import java.util.Map;
  */
 public record WalkSpec(String name, String title, String author, String createdAt, String updatedAt,
                        LogFingerprint fingerprint, List<String> runBasis, List<Step> steps,
-                       Map<String, String> extras, Conversation conversation) {
+                       Map<String, String> extras, Conversation conversation,
+                       telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage stage) {
+
+    /** Internal shipped-walk presentation only. Saved/share/verb readers deliberately use the old constructor. */
+    public WalkSpec(String name, String title, String author, String createdAt, String updatedAt,
+                    LogFingerprint fingerprint, List<String> runBasis, List<Step> steps,
+                    Map<String, String> extras, Conversation conversation) {
+        this(name, title, author, createdAt, updatedAt, fingerprint, runBasis, steps, extras, conversation,
+                telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.RECORDS);
+    }
 
     /** A walk without dialogue — every walk before OA-3, and most walks after it. */
     public WalkSpec(String name, String title, String author, String createdAt, String updatedAt,
@@ -50,6 +59,7 @@ public record WalkSpec(String name, String title, String author, String createdA
         runBasis = List.copyOf(runBasis == null ? List.of() : runBasis);
         steps = List.copyOf(steps == null ? List.of() : steps);
         extras = Map.copyOf(extras == null ? Map.of() : extras);
+        stage = stage == null ? telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.RECORDS : stage;
     }
 
     /** The title shown, falling back to the name. */
@@ -59,7 +69,7 @@ public record WalkSpec(String name, String title, String author, String createdA
 
     /** The same walk under a new name; its steps and bases are kept. */
     public WalkSpec renamed(String to) {
-        return new WalkSpec(to, title, author, createdAt, updatedAt, fingerprint, runBasis, steps, extras, conversation);
+        return new WalkSpec(to, title, author, createdAt, updatedAt, fingerprint, runBasis, steps, extras, conversation, stage);
     }
 
     /** How the strip names the author (§3.2): declared, and never "you". */

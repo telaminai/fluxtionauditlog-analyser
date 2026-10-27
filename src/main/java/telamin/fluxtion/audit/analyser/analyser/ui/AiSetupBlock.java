@@ -148,6 +148,10 @@ final class AiSetupBlock extends JPanel {
         }
     }
 
+    private boolean compact;
+    /** M79-1b: the start page's short form (§5.4); the long form is the line's tooltip. */
+    void compact(boolean on) { compact = on; }
+
     /** Render the node's decision: the first-run block, the one line, or nothing (before the session has said). */
     void render(AiSetupState s) {
         AiSetupState st = s == null ? AiSetupState.IDLE : s;
@@ -155,8 +159,9 @@ final class AiSetupBlock extends JPanel {
         try {
             boolean any = (st.firstRun() || !st.aiLine().isBlank() || st.external().offerTurnOff());
             setVisible(any);
-            firstRun.setVisible(st.firstRun());
-            lineRow.setVisible(!st.firstRun() && !st.aiLine().isBlank());
+            // M79-1b (OD-79.5): the start page shows the short line, never the first-run block; Set up… opens the wizard
+            firstRun.setVisible(st.firstRun() && !compact);
+            lineRow.setVisible((compact || !st.firstRun()) && !st.aiLine().isBlank());
             for (var e : radios.entrySet()) e.getValue().setSelected(st.choice() == e.getKey());
             if (radios.values().stream().noneMatch(JRadioButton::isSelected)) group.clearSelection();
             String words = AiSetupLines.sentenceFor(st.choice());
@@ -168,7 +173,8 @@ final class AiSetupBlock extends JPanel {
             proceed.setEnabled(st.choice() != Choice.NONE);
             alsoTurnOff.setVisible(st.firstRun() && st.external().offerAlsoTurnOff());
             alsoTurnOff.setSelected(st.external().alsoTurnOff());
-            line.setText(st.aiLine().isBlank() ? " " : st.aiLine());
+            line.setText(st.aiLine().isBlank() ? " " : compact ? AiSetupLines.shortLine(st.aiLine()) : st.aiLine());
+            line.setToolTipText(compact && !st.aiLine().isBlank() ? UiText.tooltip(st.aiLine()) : null);
             link.setText(st.aiLineLink().isBlank() ? AiSetupLines.SET_UP_LINK : st.aiLineLink());
             link.getAccessibleContext().setAccessibleName(link.getText().replace("…", "") + " AI");
             offerRow.setVisible(st.external().offerTurnOff());

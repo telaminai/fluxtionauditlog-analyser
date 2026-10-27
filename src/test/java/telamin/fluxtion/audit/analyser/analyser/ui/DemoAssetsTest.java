@@ -251,7 +251,7 @@ class DemoAssetsTest {
     }
 
     /** The terms of rule 1's `grep -ri "a\\|b\\|c"` sweep, parsed from CLAUDE.md so they are never spelled here. */
-    private static java.util.List<String> rule1SweepTerms() {
+    static java.util.List<String> rule1SweepTerms() {
         try {
             for (String line : java.nio.file.Files.readAllLines(java.nio.file.Path.of("CLAUDE.md"))) {
                 Matcher m = Pattern.compile("grep -ri \"([^\"]+)\"").matcher(line);

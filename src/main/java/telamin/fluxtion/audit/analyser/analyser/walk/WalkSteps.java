@@ -107,6 +107,11 @@ public final class WalkSteps {
 
     /** What is wrong with one step, or null (used for parsed and captured steps alike). */
     public static String problem(WalkSpec.Step step) {
+        return problem(step, false);
+    }
+
+    /** Internal shipped definition only: the external/saved-walk allow-list remains unchanged. */
+    public static String problem(WalkSpec.Step step, boolean pinnedDesign) {
         if (step.targets().isEmpty() && step.caption().isBlank() && step.view().isEmpty()) {
             return "an empty step — give it a caption, a view or at least one target";
         }
@@ -141,7 +146,8 @@ public final class WalkSteps {
             SpotlightTarget.Parsed parsed = SpotlightTarget.parse(t.target());
             if (!parsed.ok()) return "target '" + t.target() + "': " + parsed.error();
             SpotlightTarget.Family family = parsed.target().family();
-            if (!ALLOWED.contains(family)) {
+            if (!ALLOWED.contains(family) && !(pinnedDesign && family == SpotlightTarget.Family.DESIGN_BEAN
+                    && "design".equals(t.basis().kind()) && !t.basis().digest().isBlank())) {
                 return "target '" + t.target() + "' (" + family.form() + ") cannot be a walk step — a walk points "
                         + "at records, detail, topology, charts, tabs, Java source, the project panel and the "
                         + "status line; a design document, a toolbar and a menu have no basis a walk can check";

@@ -28,6 +28,34 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class OneDispatchModelTest {
 
+    @Test void firstMinuteSurfacesOnlyRenderAndOnlyEffectsOpenMarkOrChangeStage() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String performer = bodyOf(frame, PERFORMER);
+        String door = bodyOf(performer, "SessionEffects.RunFirstMinuteDoorEffect e ->");
+        assertTrue(bodyOf(door, "SwingUtilities.invokeLater(() ->").contains("firstMinute().permitsDoor(e.ticket())"),
+                "the deferred door rechecks its owning node inside the callback, not before scheduling it");
+        String render = bodyOf(frame, "private void renderFirstMinute(");
+        for (Pattern call : List.of(Pattern.compile("(?<!Result )\\bopenDiamond\\s*\\("),
+                Pattern.compile("config\\.firstMinute(?:Played|Domain)\\s*="))) {
+            assertTrue(count(call, performer) > 0, "the first-minute effect performer must exist");
+            assertEquals(count(call, performer), count(call, frame), "only effects open or persist first-minute decisions");
+        }
+        Pattern layout = Pattern.compile("firstMinuteStage\\.(attach|detach)\\(");
+        assertEquals(2, count(layout, render), "both stage layouts are renderings of the published stage");
+        assertEquals(count(layout, render), count(layout, frame), "no event handler places the stage beside the node");
+        for (String name : List.of("FirstMinuteStage.java", "StartPanel.java")) {
+            String surface = Files.readString(UI.resolve(name));
+            for (String forbidden : List.of("OpenDiamondEffect(", "WalkPlayRequested(", "MarkFirstMinutePlayedEffect(",
+                    "firstMinutePlayed =", "DiamondAssets.install(", "new Timer("))
+                assertFalse(surface.contains(forbidden), name + " renders, not dispatches: " + forbidden);
+        }
+        String reel = Files.readString(UI.resolve("WalkReelRecorder.java"));
+        assertEquals(1, count(Pattern.compile("frame\\.play\\("), reel), "only the initial reel play may request a walk directly");
+        assertFalse(bodyOf(reel, "private void tick(").contains("frame.play("), "a reel timer reports capture, never advances playback");
+        String main = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/Main.java"));
+        assertFalse(main.contains("OpenDiamondEffect("), "startup observes facts; the node decides whether to open");
+    }
+
     @Test void outputPanelsRenderAndOnlyTheNodeDecidesStabilityAndAcceptance() throws Exception {
         String panel = Files.readString(UI.resolve("ProjectOutputsPanel.java"));
         for (String forbidden : List.of("Files.", "new javax.swing.Timer", "openGraphml(", "requestOpenLog(",

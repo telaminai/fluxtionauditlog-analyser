@@ -45,6 +45,9 @@ public final class WalkResolver {
 
         String graphDigest();
 
+        /** Internal pinned design targets only; ordinary saved walks cannot author these. */
+        default String designDigest() { return null; }
+
         boolean nodeExists(String instanceId);
     }
 
@@ -58,6 +61,15 @@ public final class WalkResolver {
         SpotlightTarget.Parsed parsed = SpotlightTarget.parse(t.target());
         if (!parsed.ok()) return new Verdict(WalkIdentity.State.UNRESOLVED, false, parsed.error());
         SpotlightTarget target = parsed.target();
+        if (target.family() == SpotlightTarget.Family.DESIGN_BEAN && "design".equals(t.basis().kind())) {
+            WalkIdentity.State state = WalkIdentity.compare(t.basis().digest(), now.designDigest());
+            return new Verdict(state, state == WalkIdentity.State.CURRENT,
+                    state == WalkIdentity.State.CURRENT ? "" : "the displayed design does not match the shipped caption's revision");
+        }
+        if (target.javaSource() && pinnedSource(t)) {
+            // Compared where the document is read (JavaSpotlightPlan): a different revision is refused, never captioned.
+            return new Verdict(WalkIdentity.State.CURRENT, true, "");
+        }
         return switch (WalkSteps.basisKind(t.target())) {
             case "record" -> {
                 int index = target.family() == SpotlightTarget.Family.RECORDS_ROW ? target.number()
@@ -112,6 +124,11 @@ public final class WalkResolver {
             default -> new Verdict(WalkIdentity.State.CURRENT, true, target.javaSource()
                     ? "name/line lookup only: source revision was not compared with the saved caption" : "");
         };
+    }
+
+    /** A Java target that names the exact source revision it was written against ({@code basis=source}). */
+    public static boolean pinnedSource(WalkSpec.Target t) {
+        return "source".equals(t.basis().kind()) && t.basis().digest().startsWith("sha256:");
     }
 
     /** A lit target's caption, marked when it is not current — never presented as current when it is not. */

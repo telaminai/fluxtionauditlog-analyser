@@ -1,0 +1,896 @@
+{
+  "scope": "PR196 F1/F2 response targeted local feedback, not the complete CI gate",
+  "reviewedBase": "3821af13282a45eab27dd40f24935136df23862a",
+  "engine": "fast",
+  "requested": [
+    "m79-review196-design-during-recovery",
+    "m79-review196-graph-after-close",
+    "m79-review196-graph-after-cancelled-investigate",
+    "m79-review196-design-after-close",
+    "m79-review196-design-after-cancelled-investigate",
+    "m79-review196-owned-design-receipt",
+    "m79-review196-stale-design-is-not-content",
+    "m79-review196-design-identity-is-not-its-path",
+    "m79-review196-design-ends-first-contact",
+    "m79-review196-design-adapter-receipt",
+    "m79-review196-done-choice-retires-door",
+    "m79-project-during-recovery-defers-startup",
+    "m79-graph-choice-supersedes-opening",
+    "m79-own-graph-receipt-preserves-preparation",
+    "m79-person-graph-ends-first-contact",
+    "m79-graph-load-reports-its-receipt",
+    "m79-cancelled-bundle-does-not-reset-startup-choice",
+    "m79-reel-takes-over-showing-walk",
+    "m79-reel-takes-over-public-recording",
+    "m79-startup-rest-never-autoplays",
+    "m79-mark-only-fully-shown",
+    "m79-mark-not-at-startup",
+    "m79-autoplay-ticket",
+    "m79-manual-pace-stays-manual",
+    "m79-close-restores-records",
+    "m79-door-after-explicit-topology",
+    "m79-follow-does-not-own-next-generation",
+    "m79-captions-one-record-claim",
+    "m79-real-read-manifest",
+    "m79-extraction-heals-edits",
+    "m79-extraction-failure-names-cause",
+    "m79-capture-has-launch-ownership",
+    "m79-capture-preserves-personal-content",
+    "m79-placeholder-is-not-an-addition",
+    "m79-chart-edits-observed",
+    "m79-capture-admission-before-shutdown",
+    "m79-recovery-owned-design-read-epoch",
+    "m79-machine-family-never-shared",
+    "m79-no-hand-placed-open",
+    "m79-deferred-door-owned-operation",
+    "m79-deferred-door-rechecks-inside-callback",
+    "m69-s1-target-family-allow-list",
+    "m69-r5-clear-only-after-validation",
+    "m69-r1b-unassessed-log-is-said-so",
+    "ups1-r2-session-holds-withheld",
+    "ups1-r2-arrival-carries-withheld",
+    "reel-waits-for-the-step-to-settle",
+    "reel-waits-for-the-lighting-too",
+    "reel-abandons-a-walk-that-ended",
+    "m80-follow-presentation-requested",
+    "m80-follow-stale-refused",
+    "m80-failed-read-no-invented-form"
+  ],
+  "caught": [
+    "m79-review196-design-during-recovery",
+    "m79-review196-graph-after-close",
+    "m79-review196-graph-after-cancelled-investigate",
+    "m79-review196-design-after-close",
+    "m79-review196-design-after-cancelled-investigate",
+    "m79-review196-owned-design-receipt",
+    "m79-review196-stale-design-is-not-content",
+    "m79-review196-design-identity-is-not-its-path",
+    "m79-review196-design-ends-first-contact",
+    "m79-review196-design-adapter-receipt",
+    "m79-review196-done-choice-retires-door",
+    "m79-project-during-recovery-defers-startup",
+    "m79-graph-choice-supersedes-opening",
+    "m79-own-graph-receipt-preserves-preparation",
+    "m79-person-graph-ends-first-contact",
+    "m79-graph-load-reports-its-receipt",
+    "m79-cancelled-bundle-does-not-reset-startup-choice",
+    "m79-reel-takes-over-showing-walk",
+    "m79-reel-takes-over-public-recording",
+    "m79-startup-rest-never-autoplays",
+    "m79-mark-only-fully-shown",
+    "m79-mark-not-at-startup",
+    "m79-autoplay-ticket",
+    "m79-manual-pace-stays-manual",
+    "m79-close-restores-records",
+    "m79-door-after-explicit-topology",
+    "m79-follow-does-not-own-next-generation",
+    "m79-captions-one-record-claim",
+    "m79-real-read-manifest",
+    "m79-extraction-heals-edits",
+    "m79-extraction-failure-names-cause",
+    "m79-capture-has-launch-ownership",
+    "m79-capture-preserves-personal-content",
+    "m79-placeholder-is-not-an-addition",
+    "m79-chart-edits-observed",
+    "m79-capture-admission-before-shutdown",
+    "m79-recovery-owned-design-read-epoch",
+    "m79-machine-family-never-shared",
+    "m79-no-hand-placed-open",
+    "m79-deferred-door-owned-operation",
+    "m79-deferred-door-rechecks-inside-callback",
+    "m69-s1-target-family-allow-list",
+    "m69-r5-clear-only-after-validation",
+    "m69-r1b-unassessed-log-is-said-so",
+    "ups1-r2-session-holds-withheld",
+    "ups1-r2-arrival-carries-withheld",
+    "reel-waits-for-the-step-to-settle",
+    "reel-waits-for-the-lighting-too",
+    "reel-abandons-a-walk-that-ended",
+    "m80-failed-read-no-invented-form",
+    "m80-follow-presentation-requested",
+    "m80-follow-stale-refused"
+  ],
+  "fullCompileFallbacks": 0,
+  "runs": [
+    {
+      "name": "m79-review196-design-during-recovery",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aDesignChosenBeforeRecoverySettlesNeverQualifiesForStartupAutoplay"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-graph-after-close",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aReplacementGraphAfterCloseRemainsRecoverable"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-graph-after-cancelled-investigate",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aReplacementGraphAfterCancelledInvestigateRemainsRecoverable"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-design-after-close",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aReplacementDesignAfterCloseRemainsRecoverable"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-design-after-cancelled-investigate",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aReplacementDesignAfterCancelledInvestigateRemainsRecoverable"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-owned-design-receipt",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "theOwnedDesignReadDoesNotCancelPreparationOrInventPersonalContent"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-stale-design-is-not-content",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aStaleDesignCompletionDoesNotInventPersonalContent"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-design-identity-is-not-its-path",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aPlainOpenOfTheSameDesignIsPersonalContent"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-design-ends-first-contact",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aDesignChoiceSupersedesPreparationAndTheShowingWalk"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-design-adapter-receipt",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "dae912f4cb40c0febdcf373b3cb454bb391bdf4337da96eb01464b01f33fb3d9",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "firstLaunchPlaysThePinnedDiamondAndRelaunchOffersNeitherPlaybackNorRecovery"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-review196-done-choice-retires-door",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aReplacementGraphAfterCancelledInvestigateRemainsRecoverable"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-project-during-recovery-defers-startup",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aProjectChosenBeforeRecoverySettlesNeverQualifiesForStartupAutoplay"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-graph-choice-supersedes-opening",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aGraphChoiceSupersedesExtractionReadingAndPresentationButNotTheOwnedGraph"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-own-graph-receipt-preserves-preparation",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aGraphChoiceSupersedesExtractionReadingAndPresentationButNotTheOwnedGraph"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-person-graph-ends-first-contact",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aGraphOpenedDuringFirstContactRestoresTheInvestigationStage"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-graph-load-reports-its-receipt",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/TopologyPanel.java",
+      "sha256": "487c2fbbbe4b87787b203eaf35edc6b9cdc982b5fc6557c2a1aafbf8c2cdadc9",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "everySuccessfulLoadReportsItsOwnReceiptAndOrdinaryLoadsClearIt"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-cancelled-bundle-does-not-reset-startup-choice",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "cancellingBundlePreparationCannotMakeAnActiveProjectLookLikeFreshStartup"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-reel-takes-over-showing-walk",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aReelTakesOverTheShowingWalkAndAdvancesOnlyAfterCapture"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-reel-takes-over-public-recording",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "anAlreadyShowingWalkCanBeRecordedAsATwoFrameReel"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-startup-rest-never-autoplays",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "admissionRequiresEveryInputAndWaitsForRecovery"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-mark-only-fully-shown",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aPartlyShownStepNeverAutoplaysPastItsRefusal"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-mark-not-at-startup",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "admissionRequiresEveryInputAndWaitsForRecovery"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-autoplay-ticket",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "firstShownMarksOnceAndAutoplayRejectsOldTicketsAndStepsThenEndsAtTheDoors"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-manual-pace-stays-manual",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "navigationMakesTheShowingManualAndEscapeStillOffersTheDoors"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-close-restores-records",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "firstShownMarksOnceAndAutoplayRejectsOldTicketsAndStepsThenEndsAtTheDoors"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-door-after-explicit-topology",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aDoorRestoresRecordsEvenAfterThePersonExplicitlyChoseTopology"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-follow-does-not-own-next-generation",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aFollowRotationCannotBorrowTheOwnedGenerationStage"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-captions-one-record-claim",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aSubstitutedStepThreeRecordWithholdsTheWholeClaimOnTheRealOverlay"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-real-read-manifest",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "ownedLaunchAndMatchingReadGraphAndDesignAreAllRequired"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-extraction-heals-edits",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/DiamondAssets.java",
+      "sha256": "f48ebcd8a37dba506c534edf468d0c5991a3ad80fa72851c16e9526897c40542",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aSameSizeEditedExtractionIsReplacedNotReusedByPath"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-extraction-failure-names-cause",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/DiamondAssets.java",
+      "sha256": "f48ebcd8a37dba506c534edf468d0c5991a3ad80fa72851c16e9526897c40542",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aFailedExtractionShowsOneReasonAndNeverStartsAHiddenWalkOrDialog"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-capture-has-launch-ownership",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "onlyTheCausallyOwnedUntouchedReadIsOmittedFromRecovery"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-capture-preserves-personal-content",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "onlyTheCausallyOwnedUntouchedReadIsOmittedFromRecovery"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-placeholder-is-not-an-addition",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "dae912f4cb40c0febdcf373b3cb454bb391bdf4337da96eb01464b01f33fb3d9",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "firstLaunchPlaysThePinnedDiamondAndRelaunchOffersNeitherPlaybackNorRecovery"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-chart-edits-observed",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java",
+      "sha256": "4c8bf178d03de3343da0e72ca33e8814d2fe93253cf629716b147a3661de6008",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "theStructuralBlankTabIsNotPersonalButEveryRealChartEditIs"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-capture-admission-before-shutdown",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SessionRecoveryController.java",
+      "sha256": "acace9f5b06359ee6cba393880cf63d7ff90bd0e6f31cd2572056bc1fad28fcd",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "closeWaitsForDelayedCaptureAdmissionBeforeFinishing"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-recovery-owned-design-read-epoch",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "dae912f4cb40c0febdcf373b3cb454bb391bdf4337da96eb01464b01f33fb3d9",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "closeReopenOffersThenRestoresLogDesignDiagnosticsAndGraph"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-machine-family-never-shared",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SettingsShare.java",
+      "sha256": "49bc9f4403cdb3961cf6fecd4e25b2e266e8c2339e3a794ca4a35242a6408b2a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aPreviousProfileCannotCarryTheMachineFamilyAsUnknownKeys"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-no-hand-placed-open",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "dae912f4cb40c0febdcf373b3cb454bb391bdf4337da96eb01464b01f33fb3d9",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "firstMinuteSurfacesOnlyRenderAndOnlyEffectsOpenMarkOrChangeStage"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-deferred-door-owned-operation",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/FirstMinute.java",
+      "sha256": "80d08066b070916d2d714dc1466eb598f7873a0effa082e8b093b47e448a192a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aLaterOpenSupersedesTheDeferredDoorBeforeItsReaderCompletes"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m79-deferred-door-rechecks-inside-callback",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "dae912f4cb40c0febdcf373b3cb454bb391bdf4337da96eb01464b01f33fb3d9",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "firstMinuteSurfacesOnlyRenderAndOnlyEffectsOpenMarkOrChangeStage"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m69-s1-target-family-allow-list",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/walk/WalkSteps.java",
+      "sha256": "f1846f5c2957099d09ad387505c1dd4e07080d7ae2a0ff7eaf3de6f6acc6b7e5",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "unsupportedTargetFamiliesAreRefused"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m69-r5-clear-only-after-validation",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkPresenter.java",
+      "sha256": "297fcc244c9c2f1145b69013428e500e65e89f659d711966254f627c1d7fea42",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aRefusedViewLeavesThePreviousStep"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m69-r1b-unassessed-log-is-said-so",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+      "sha256": "f84498db82e1f35859b01ff648686257cb0724dd18e28d8e824c756cc44dfd65",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "anUnassessedLogIsSaidSo"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "ups1-r2-session-holds-withheld",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenLog.java",
+      "sha256": "d946b84227ba7c4052245a8c6a3af9a32ede4b7f076341244c169a04e309503a",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "anAllWithheldLogIsNotSilence"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "ups1-r2-arrival-carries-withheld",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "dae912f4cb40c0febdcf373b3cb454bb391bdf4337da96eb01464b01f33fb3d9",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "withheldNodeLogsAreNeverReportedAsAbsent"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "reel-waits-for-the-step-to-settle",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkReelRecorder.java",
+      "sha256": "88aae92c439dd6a1510cc6ce289af817be182f3b9c5baa3f85051ae4ac895ad5",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aStepIsNotPhotographedWhilePreparing"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "reel-waits-for-the-lighting-too",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkReelRecorder.java",
+      "sha256": "88aae92c439dd6a1510cc6ce289af817be182f3b9c5baa3f85051ae4ac895ad5",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aStepIsNotPhotographedWhileItsLightingIsInFlight"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "reel-abandons-a-walk-that-ended",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkReelRecorder.java",
+      "sha256": "88aae92c439dd6a1510cc6ce289af817be182f3b9c5baa3f85051ae4ac895ad5",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "aWalkThatEndsAbandonsTheReel"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m80-failed-read-no-invented-form",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/DesignSession.java",
+      "sha256": "543e9e522937ae199098f0d68a640eae00475d662a5e8c8cb892f8779b5af085",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "failedDesignReadNeverInventsASpringForm"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m80-follow-presentation-requested",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/DesignSession.java",
+      "sha256": "543e9e522937ae199098f0d68a640eae00475d662a5e8c8cb892f8779b5af085",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "anAcceptedJavaFollowReadRefreshesAndRebindsTheVisibleDeclaration"
+      ],
+      "restoredExit": 0
+    },
+    {
+      "name": "m80-follow-stale-refused",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/DesignSession.java",
+      "sha256": "543e9e522937ae199098f0d68a640eae00475d662a5e8c8cb892f8779b5af085",
+      "baselineGreen": true,
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "mutatedExit": 1,
+      "completedNormally": true,
+      "namedFailures": [
+        "followPresentationBelongsOnlyToAcceptedReadsIncludingFailures"
+      ],
+      "restoredExit": 0
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.session.node;
 
 import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
+import com.telamin.fluxtion.runtime.annotations.PushReference;
 import com.telamin.fluxtion.runtime.audit.*;
 import telamin.fluxtion.audit.analyser.analyser.design.*;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
@@ -10,7 +11,8 @@ import java.util.*;
 /** Authoritative design/result lifecycle; replayed through the same generated processor as log/project state. */
 public class DesignSession implements EventLogSource, DesignWorkspace.State {
     private final OperationGate gate;
-    private final EffectQueue effects;
+    // Decisions push effects outward; a dependent owner may consume our accepted-read verdict first.
+    @PushReference private final EffectQueue effects;
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private DesignDocument document;
     private BuilderDocument builder;
@@ -20,6 +22,8 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     private String path, error = "", resultError = "";
     private ProducerResult result;
     private long generation;
+    private boolean acceptedRead;
+    private boolean acceptedResult;
     public DesignSession(OperationGate gate, EffectQueue effects) { this.gate = gate; this.effects = effects; }
     @Override public void setLogger(EventLogger logger) { auditLog = logger; }
 
@@ -30,11 +34,13 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     }
 
     @OnEventHandler public boolean read(DesignEvents.ReadCompleted e) {
+        acceptedRead = false;
         if (e.generation() != generation) { auditLog.info("designRead", "stale result ignored"); return false; }
         if (e.sessionOpen()) {
             if (!Objects.equals(path, e.file())) { document = null; builder = null; result = null; resultError = ""; }
             path = e.file();
         } else if (!Objects.equals(path, e.file())) return false;
+        acceptedRead = true;
         generation++; // a newer explicit read also supersedes an older background completion
         error = e.error() == null ? "" : e.error();
         if (e.document() != null) document = e.document(); // an intermediate parse error retains the last good revision
@@ -49,13 +55,25 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
         return true;
     }
     @OnEventHandler public boolean result(DesignEvents.ResultReadCompleted e) {
+        acceptedResult = false;
         if (e.generation() != generation) return false;
+        acceptedResult = true;
         result = e.result(); // refusal clears the previous result
         resultError = e.error() == null ? "" : e.error();
         auditLog.info("producerResult", result == null ? "cleared" : result.stage());
         return true;
     }
     @OnEventHandler public boolean cleared(DesignEvents.Cleared e) { clear(); return true; }
+    /**
+     * Closing everything closes the design too. The start page is the state with nothing open, and the design is one of
+     * the things that can be open: without this, a person who closes log and topology after a session that opened a
+     * Spring XML (the first minute always does) stays on the workspace, because the menu has no other way to close it.
+     */
+    @OnEventHandler public boolean closeAll(SessionEvents.CloseRequested e) {
+        if (e.target() != SessionEvents.CloseRequested.Target.ALL || (path == null && document == null && result == null)) return false;
+        clear();
+        return true;
+    }
     @OnEventHandler public boolean project(SessionEvents.ProfileApplied e) { if (!gate.accepted()) return false; clear(); requestDiscovery(); return true; }
     @OnEventHandler public boolean restored(SessionEvents.SettingsRestored e) { if (!gate.accepted()) return false; clear(); requestDiscovery(); return true; }
     @OnEventHandler public boolean roots(SessionEvents.SourceRootsObserved e) {
@@ -89,6 +107,10 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     public ProducerResult result() { return result; }
     public String resultError() { return resultError; }
     public long generation() { return generation; }
+    /** Verdict for the current ReadCompleted dispatch; dependent nodes never repeat the epoch decision. */
+    public boolean acceptedRead() { return acceptedRead; }
+    /** Verdict for this result dispatch, including refusals that clear the previous result. */
+    public boolean acceptedResult() { return acceptedResult; }
     public String discoveryNote() {
         String note = discovery.source().startsWith("unavailable")
                 ? "Definition discovery " + discovery.source() + ". No partial list is shown."

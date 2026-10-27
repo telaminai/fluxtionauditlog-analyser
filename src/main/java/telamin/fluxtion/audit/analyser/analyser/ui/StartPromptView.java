@@ -840,4 +840,13 @@ public final class StartPromptView extends JPanel {
     public String boxText() {
         return box.getText();
     }
+
+    /** M79-1b: the start page opened the box (Ask… or typing); put the caret in it. */
+    void focusBox() { SwingUtilities.invokeLater(box::requestFocusInWindow); }
+
+    /** M79-1b: the key that opened the box is the first character of the question, not lost. */
+    void typeIntoBox(char c) {
+        box.replaceSelection(String.valueOf(c));
+        focusBox();
+    }
 }

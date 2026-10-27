@@ -1,0 +1,32 @@
+{
+  "productionHead": "3821af13282a45eab27dd40f24935136df23862a",
+  "scope": "New regression assertions against unchanged production code; no compile error counted",
+  "totals": {
+    "tests": 5,
+    "failures": 5,
+    "errors": 0,
+    "skipped": 0
+  },
+  "failures": [
+    {
+      "test": "aReplacementDesignAfterCancelledInvestigateRemainsRecoverable",
+      "message": "the person's replacement design after Investigate then cancel must survive recovery ==> expected: <true> but was: <false>"
+    },
+    {
+      "test": "aDesignChosenBeforeRecoverySettlesNeverQualifiesForStartupAutoplay",
+      "message": "a design chosen while startup/recovery was pending must not be overwritten by the diamond ==> expected: <false> but was: <true>"
+    },
+    {
+      "test": "aReplacementDesignAfterCloseRemainsRecoverable",
+      "message": "the person's replacement design after Close must survive recovery ==> expected: <true> but was: <false>"
+    },
+    {
+      "test": "aReplacementGraphAfterCloseRemainsRecoverable",
+      "message": "the person's replacement graph after Close must survive recovery ==> expected: <true> but was: <false>"
+    },
+    {
+      "test": "aReplacementGraphAfterCancelledInvestigateRemainsRecoverable",
+      "message": "the person's replacement graph after Investigate then cancel must survive recovery ==> expected: <true> but was: <false>"
+    }
+  ]
+}

@@ -832,6 +832,11 @@ public final class SourcePanel extends JPanel {
     public record JavaBand(Rectangle bounds, boolean partial) { }
 
     public JavaAnchor showJavaSnapshot(String fqn, SourceDocument document, EventProcessorModel model) {
+        return showJavaSnapshot(fqn, document, model, null);
+    }
+
+    /** {@code verified}: the provenance line when this exact revision was checked against a pinned digest, else null. */
+    public JavaAnchor showJavaSnapshot(String fqn, SourceDocument document, EventProcessorModel model, String verified) {
         supersedeTypeCheck();                                     // a spotlight destination supersedes a pending Ctrl-click
         Pane pane = Objects.equals(fqn, service.selectedFqn()) ? processorPane : nodePane;
         fileView = null;
@@ -842,7 +847,8 @@ public final class SourcePanel extends JPanel {
             pane.text.setWrap(wrap);
             pane.text.setCaretPosition(0);
         }
-        String disclosure = "Source/run: unverified\n" + fqn + "\nsource-viewer · first-match\n" + document.identity();
+        String disclosure = (verified == null ? "Source/run: unverified" : verified) + "\n" + fqn
+                + "\nsource-viewer · first-match\n" + document.identity();
         pane.label.setRows(5);
         pane.label.setText(disclosure);
         pane.label.setToolTipText(UiText.tooltip(disclosure + " · rendered-text-utf8 SHA-256 " + document.revision()));
@@ -873,6 +879,11 @@ public final class SourcePanel extends JPanel {
         try {
             Rectangle band = fromLine == null ? pane.logicalBand(1, 1) : pane.logicalBand(fromLine, toLine == null ? fromLine : toLine);
             Rectangle view = pane.scroll.getViewport().getViewRect();
+            if (band.height > view.height && growSplitPaneFor(pane, band.height - view.height)) {
+                if (window != null) window.validate();
+                pane.scroll.validate(); pane.text.validate();
+                view = pane.scroll.getViewport().getViewRect();
+            }
             if (!view.contains(band)) {
                 int y = band.height > view.height ? band.y : Math.max(0, band.y - (view.height - band.height) / 2);
                 pane.text.scrollRectToVisible(new Rectangle(view.x, y, view.width, view.height));
@@ -891,6 +902,24 @@ public final class SourcePanel extends JPanel {
      *
      * @return whether the divider moved (the caller re-validates)
      */
+    /**
+     * r8 (owner, 2026-10-27, "step 5 failed to show the source"): in Split, a range taller than its half was refused as
+     * not visible although the other half had room to give. The pane grows by what the band needs, leaving the other
+     * half at least {@link #MIN_SPLIT_PANE_HEIGHT}. Layout only.
+     */
+    boolean growSplitPaneFor(Pane pane, int extra) {
+        if (mode != Mode.SPLIT || split.getParent() == null || split.getHeight() <= 0 || extra <= 0) return false;
+        int usable = split.getHeight() - split.getDividerSize();
+        boolean top = split.getTopComponent() == pane;
+        // A divider never placed reports -1: measure from where the pane actually is, never from -1.
+        int location = top ? pane.getHeight() : split.getHeight() - split.getDividerSize() - pane.getHeight();
+        int next = top ? Math.min(usable - MIN_SPLIT_PANE_HEIGHT, location + extra + 8)
+                : Math.max(MIN_SPLIT_PANE_HEIGHT, location - extra - 8);
+        if (next == location) return false;
+        split.setDividerLocation(next);
+        return true;
+    }
+
     boolean giveSplitPaneRoom(JComponent pane) {
         if (mode != Mode.SPLIT || split.getParent() == null || split.getHeight() <= 0) return false;
         if (pane.getHeight() >= Math.min(MIN_SPLIT_PANE_HEIGHT, split.getHeight() / 2)) return false;

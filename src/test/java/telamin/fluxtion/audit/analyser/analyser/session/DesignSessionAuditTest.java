@@ -38,4 +38,19 @@ class DesignSessionAuditTest {
         assertNull(state.document());
         assertTrue(driver.auditSink().matching("ProfileApplied").stream().anyMatch(r -> r.contains("designSession") && r.contains("cleared")));
     }
+
+    /** Closing everything leaves nothing open, so the start page can show; a log- or graph-only close keeps the design. */
+    @Test void closeAllClearsTheDesignButANarrowerCloseKeepsIt() throws Exception {
+        SessionDriver driver = new SessionDriver(new FakeSessionAdapter());
+        var state = driver.processor().designSession;
+        var doc = DesignDocument.parse("demo.xml", "<beans><bean id='only'/></beans>");
+        driver.submit(new DesignEvents.ReadCompleted("demo.xml", doc, "", true, state.generation()));
+        assertNotNull(state.document());
+        driver.submit(new SessionEvents.CloseRequested(driver.nextOpId(), SessionEvents.CloseRequested.Target.LOG));
+        driver.submit(new SessionEvents.CloseRequested(driver.nextOpId(), SessionEvents.CloseRequested.Target.GRAPH));
+        assertNotNull(state.document(), "a log or graph close is not a request to close the design");
+        driver.submit(new SessionEvents.CloseRequested(driver.nextOpId(), SessionEvents.CloseRequested.Target.ALL));
+        assertNull(state.document(), "close all must close the design, or the start page never shows");
+        assertNull(state.path());
+    }
 }

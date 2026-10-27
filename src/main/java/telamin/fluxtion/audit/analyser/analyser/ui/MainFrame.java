@@ -51,7 +51,11 @@ public final class MainFrame extends JFrame {
     private static final String STRATEGY_PKG = "com.acme.marketmaker.strategy";
 
     private final ConfigStore configStore = new ConfigStore();
+    // Take this before any UI listener or adapter can save defaults during construction.
+    private final boolean firstRunAtStart = !configStore.exists();
     private SessionRecoveryController recovery;
+    private long captureAdmission;
+    private final java.util.Map<Long, java.util.function.Consumer<Boolean>> captureAdmissions = new java.util.HashMap<>();
     private PendingRecovery pendingRecovery;
     private record PendingRecovery(long generation, long opId,
             telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
@@ -90,7 +94,15 @@ public final class MainFrame extends JFrame {
     /** The start page uses the whole workspace; an open investigation uses the split view. */
     private final java.awt.CardLayout workspaceLayout = new java.awt.CardLayout();
     private final JPanel workspaceCards = new JPanel(workspaceLayout);
+    private final FirstMinuteStage firstMinuteStage = new FirstMinuteStage(fact -> session().post(fact));
+    private telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage renderedStage =
+            telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.RECORDS;
+    private JPanel stageControls;
+    private JToggleButton topologyStageButton, recordsStageButton;
+    private java.awt.Component stagePreviousTab;
     private JPanel workspaceChrome;
+    /** The time range: hidden on the bundled diamond's stage (six records), so the topology gets the height. */
+    private JComponent filterBarComponent;
     private JPanel workspaceStatusBar;
     private StartPanel startPanel;
     private final DetailPanel detailPanel = new DetailPanel();
@@ -434,7 +446,6 @@ public final class MainFrame extends JFrame {
         // M19.7: `--rest` turns the transport on for this launch AND persists it, and says so — an
         // agent-enabled setting that survives is what the next human launch needs; the sin would be
         // persisting it silently, not persisting it
-        firstRunAtStart = !configStore.exists();   // decided BEFORE the save below can create the file
         if (Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY) && !config.assistantActionsRest) {
             config.assistantActionsRest = true;
             saveConfigQuietly();
@@ -451,7 +462,7 @@ public final class MainFrame extends JFrame {
         detailPanel.setInstanceSourceOpener(this::openNodeSource);
         detailPanel.setEventHandlerOpener(rec -> {
             sourcePanel.showDispatchFor(rec);              // scroll the EP to the record's handler method
-            if (sideTabs != null) sideTabs.setSelectedComponent(sourcePanel);
+            if (sideTabs != null) selectCanvasComponent(sourcePanel);
         });
         detailPanel.setExplainAction(() -> askSingle(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.DETAIL_BUTTON));
         // one GraphTargets, shared: the detail viewer and the topology plot through the same path, so a
@@ -1563,7 +1574,9 @@ public final class MainFrame extends JFrame {
     }
 
     private void showWorkspace(boolean start) {
-        workspaceLayout.show(workspaceCards, start ? "start" : "investigation");
+        start = start || "FAILED".equals(sessionSnapshot().firstMinute().phase());
+        workspaceLayout.show(workspaceCards, start ? "start" : sessionSnapshot().walkPlayback().stage()
+                == telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.TOPOLOGY ? "topology-stage" : "investigation");
         if (workspaceChrome != null) workspaceChrome.setVisible(!start);
         if (workspaceStatusBar != null) workspaceStatusBar.setVisible(!start);
         JMenuBar menu = getJMenuBar();
@@ -1600,7 +1613,7 @@ public final class MainFrame extends JFrame {
         // profile — from a button whose contract is "nothing remembered, nothing personalised" (D-S3).
         // It lives in demoRoots and is appended at configure time; a restart forgets it, as it should.
         if (demoRoots.add(root.toString())) {
-            sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
+            sourceService.configure(effectiveSourceRoots(), selectedProcessor(),
                     config.mavenRepos, config.searchMavenRepos);
             refreshProjectPanel();                                    // M37: the transient root is a row, labelled demo
         }
@@ -1787,6 +1800,12 @@ public final class MainFrame extends JFrame {
 
     /** Source roots the demo added for this session only — never written to any config tier. */
     private final java.util.Set<String> demoRoots = new java.util.LinkedHashSet<>();
+    /** Selected by a shipped presentation effect; never part of machine or project configuration. */
+    private String presentationProcessor;
+    private String selectedProcessor() {
+        return presentationProcessor == null || config.selectedEventProcessor != null && !config.selectedEventProcessor.isBlank()
+                ? config.selectedEventProcessor : presentationProcessor;
+    }
 
     /** The configured roots plus the session's demo root(s), for the source service — config stays clean. */
     private List<String> effectiveSourceRoots() {
@@ -1806,7 +1825,7 @@ public final class MainFrame extends JFrame {
 
     private telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace designs() {
         if (designWorkspace == null) designWorkspace = new telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace(
-                this::designFiles, () -> session().processor().designSession, fact -> session().submit(fact));
+                this::designFiles, () -> session().processor().designSession, fact -> session().post(fact));
         return designWorkspace;
     }
 
@@ -1835,9 +1854,13 @@ public final class MainFrame extends JFrame {
         }
         var captured = actionExecutor.onEdt(() -> {
             if (!allowed.getAsBoolean()) return null;
-            session().submit(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested(kind));
+            long firstMinuteTicket = allowed instanceof FirstMinuteDesignGuard guard ? guard.ticket : 0;
+            session().submit(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested(kind, firstMinuteTicket));
             designExplicitReads++;
             var state = session().processor().designSession;
+            // ReadRequested advances the design epoch. It is THIS guard's own read, not a
+            // superseding operation; subsequent changes must still fail the completion guard.
+            if (allowed instanceof RecoveryReadGuard guard) guard.requested(state.generation());
             return new DesignReadContext(designFiles(), new telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Snapshot(state.path(), state.document(), state.generation()),
                     session().processor().sessionRecovery.generation(), session().processor().operationGate.expectedOpId());
         });
@@ -1847,7 +1870,7 @@ public final class MainFrame extends JFrame {
             designExplicitReads--;
             var current = session().processor().designSession;
             var files = designFiles();
-            if ((allowed instanceof StarterDesignGuard && !allowed.getAsBoolean())
+            if (!allowed.getAsBoolean()
                     || current.generation() != captured.state().generation()
                     || (allowed instanceof RecoveryReadGuard && (session().processor().sessionRecovery.generation() != captured.recoveryGeneration()
                         || session().processor().operationGate.expectedOpId() != captured.operationId()))
@@ -1877,6 +1900,7 @@ public final class MainFrame extends JFrame {
         public boolean getAsBoolean() {
             return recoveryCurrent(generation, operation) && session().processor().designSession.generation() == expectedDesign[0];
         }
+        void requested(long current) { expectedDesign[0] = current; }
         void completed(long current) { expectedDesign[0] = current; }
     }
 
@@ -1897,7 +1921,11 @@ public final class MainFrame extends JFrame {
 
     private String designNote() {
         var state = session().processor().designSession;
-        String note = "Working copy · matched by name · relationship to this run unverified";
+        // r8 (owner, 2026-10-27): the bundled diamond's XML IS verified — its digest is pinned in the manifest (E6).
+        boolean bundled = sessionSnapshot().firstMinute().bundled() && state.document() != null
+                && telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.DESIGN_SHA256.equals(state.document().revision());
+        String note = bundled ? telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.VERIFIED
+                : "Working copy · matched by name · relationship to this run unverified";
         if (state.result() != null) {
             note += "\n" + state.result().description(state.document());
         }
@@ -2532,7 +2560,7 @@ public final class MainFrame extends JFrame {
         var evidence = new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Evidence(
                 heading, finding,
                 (logDisplayLocation == null ? "No log" : new File(logDisplayLocation).getName()) + " — " + snapshotNote(),
-                config.selectedEventProcessor,
+                selectedProcessor(),
                 record.logTime() == null ? null : TimeFormat.utc(record.logTime()),
                 record.eventToString(), eventLines, nodeLogLines, pictures,
                 // when the analysis was made, not when the event happened — the two are months apart on
@@ -2722,7 +2750,7 @@ public final class MainFrame extends JFrame {
 
     private void openNodeSource(String instanceId, String method) {
         sourcePanel.openInstance(instanceId, method);
-        if (sideTabs != null) sideTabs.setSelectedComponent(sourcePanel);
+        if (sideTabs != null) selectCanvasComponent(sourcePanel);
     }
 
     /** Files dropped on either the start page or an open workspace use the normal open entrances. */
@@ -2820,7 +2848,7 @@ public final class MainFrame extends JFrame {
             if (result.ok()) {
                 opened = true;
                 showWorkspace(false);
-                sideTabs.setSelectedComponent(sourcePanel);
+                selectCanvasComponent(sourcePanel);
             } else status.setText(result.error());
         }
         Path graph = selected.get(DropKind.GRAPHML);
@@ -2830,7 +2858,7 @@ public final class MainFrame extends JFrame {
             if (topologyPanel.hasGraph()) {
                 opened = true;
                 showWorkspace(false);
-                sideTabs.setSelectedComponent(topologyPanel);
+                selectCanvasComponent(topologyPanel);
             }
         }
         Path log = selected.get(DropKind.LOG);
@@ -2930,7 +2958,7 @@ public final class MainFrame extends JFrame {
         openGraphml.addActionListener(e -> {
             sessionInteractive = true;      // R4-F2: Sources ▸ Open GraphML goes straight to the chooser, not via the helper
             topologyPanel.chooseFile();
-            if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+            if (sideTabs != null) selectCanvasComponent(topologyPanel);
         });
         sources.add(openGraphml);
         sources.add(recentGraphmlMenu);
@@ -3229,6 +3257,10 @@ public final class MainFrame extends JFrame {
         @Override public java.util.List<String> runBasisNow() {
             return walkRunBasisNow();
         }
+        @Override public String designDigest() {
+            var document = session().processor().designSession.document();
+            return document == null ? null : "sha256:" + document.revision();
+        }
         @Override public SpotlightTarget.Resolution resolve(String target) {
             return SpotlightTarget.resolve(target, spotlightSurface);
         }
@@ -3248,7 +3280,7 @@ public final class MainFrame extends JFrame {
             // frame answers later, with the ticket, and the step stays PREPARING until it does -- the
             // same shape as any other step whose evidence takes a moment to be certain of.
             if (SpotlightTarget.hasJava(params)) {
-                prepareJavaSpotlightHere(params, () -> { }, ticket).thenAccept(prepared ->
+                prepareJavaSpotlightHere(params, () -> { }, ticket, pinnedSourceRevisions()).thenAccept(prepared ->
                         SwingUtilities.invokeLater(() -> {
                             boolean current = session().processor().walkPlayback.permitsSourceApplication(ticket);
                             if (current && prepared.ok()) spotlight.renumber(numbers);
@@ -3342,7 +3374,7 @@ public final class MainFrame extends JFrame {
             return;
         }
         var walk = state.definition();
-        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " · " + walk.authorLabel())
+        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " · " + state.authorLabel())
                 + (walk == null || walk.conversation() == null ? "" : " · " + (walk.conversation().supported()
                 ? walk.conversation().label() : "dialogue unavailable"));   // OA-4: the strip names the journey's mode
         String phase = switch (state.phase()) {
@@ -3360,7 +3392,13 @@ public final class MainFrame extends JFrame {
         }
         if (!state.reason().isBlank()) reasons.add(0, state.reason());
         String action = closedChartOfShowingStep() == null ? null : "Open chart";
-        spotlight.setStrip(new SpotlightOverlay.Strip(title, "step " + (state.step() + 1) + " of " + state.count(), phase,
+        String stepLabel = telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback.FIRST_MINUTE.equals(state.origin())
+                ? telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.step(state.step() + 1, state.count(),
+                        state.bundledCommentary() && walk != null && state.step() < walk.steps().size()
+                                ? walk.steps().get(state.step()).caption() : null)
+                : "step " + (state.step() + 1) + " of " + state.count();
+        spotlight.setBundledCommentary(state.bundledCommentary());
+        spotlight.setStrip(new SpotlightOverlay.Strip(title, stepLabel, phase,
                 reasons, state.step() > 0, state.step() < state.count() - 1, action));
     }
 
@@ -3597,6 +3635,9 @@ public final class MainFrame extends JFrame {
         @Override public String play(String walk, int step) {
             return playWalk(walk, step, "reel");
         }
+        @Override public void captured(long ticket, int step) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkReelFrameCaptured(ticket, step));
+        }
         @Override public void end(String reason) {
             if (session != null) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkEndRequested(reason));
@@ -3700,7 +3741,7 @@ public final class MainFrame extends JFrame {
                 : TimeFormat.utc(store.minLogTime()) + " → " + TimeFormat.utc(store.maxLogTime()) + " UTC";
         var provenance = session == null
                 ? telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance.NONE : sessionSnapshot().bundle();
-        String processor = config.selectedEventProcessor == null ? "" : config.selectedEventProcessor;
+        String processor = selectedProcessor() == null ? "" : selectedProcessor();
         if (!processor.isEmpty() && provenance.fromBundle() && processor.equals(provenance.processor())) {
             // the same qualification context.project.bundle makes: a bundle's processor is the SENDER's selection
             processor += " — the sender's claim at capture, not paired against this log";
@@ -3846,6 +3887,22 @@ public final class MainFrame extends JFrame {
      */
     private java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlightHere(
             Map<String, Object> params, Runnable revealRows, long walkTicket) {
+        return prepareJavaSpotlightHere(params, revealRows, walkTicket, Map.of());
+    }
+
+    /** The showing step's pinned source revisions, from the node's frozen definition (never from config). */
+    private Map<String, String> pinnedSourceRevisions() {
+        var state = session().processor().walkPlayback.state();
+        var walk = state.definition();
+        if (walk == null || state.step() < 0 || state.step() >= walk.steps().size()) return Map.of();
+        Map<String, String> out = new java.util.HashMap<>();
+        for (var t : walk.steps().get(state.step()).targets())
+            if (telamin.fluxtion.audit.analyser.analyser.walk.WalkResolver.pinnedSource(t)) out.put(t.target(), t.basis().digest());
+        return out;
+    }
+
+    private java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlightHere(
+            Map<String, Object> params, Runnable revealRows, long walkTicket, Map<String, String> pinned) {
         var result = new java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult>();
         if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Capture belongs on EDT");
         var asked = SpotlightTarget.requests(params);
@@ -3883,7 +3940,7 @@ public final class MainFrame extends JFrame {
             if (ticket != javaSpotlightTicket) {
                 result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight superseded; retry against the current view")); return;
             }
-            worker.set(startJavaSpotlightPreparation(params, revealRows, walkTicket, asked, ticket, deadlineNanos, expire, result));
+            worker.set(startJavaSpotlightPreparation(params, revealRows, walkTicket, asked, ticket, deadlineNanos, expire, result, pinned));
         });
         return result;
     }
@@ -3906,7 +3963,8 @@ public final class MainFrame extends JFrame {
     /** Capture the settled view on the EDT, prepare off it, and apply back on it unless something newer moved it. */
     private java.util.concurrent.Future<?> startJavaSpotlightPreparation(Map<String, Object> params, Runnable revealRows,
             long walkTicket, SpotlightTarget.Requests asked, long ticket, long deadlineNanos, Runnable expire,
-            java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> result) {
+            java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> result,
+            Map<String, String> pinned) {
         var lookup = sourceService.captureLookup();
         var capturedStore = store;
         var capturedSourceView = sourcePanel.spotlightViewState();
@@ -3921,7 +3979,7 @@ public final class MainFrame extends JFrame {
                     || t.family() == SpotlightTarget.Family.TOPOLOGY_VERDICT;
         });
         return telamin.fluxtion.audit.analyser.analyser.core.Background.run(
-                () -> JavaSpotlightPlan.read(lookup, asked.requests(), retained), plan -> {
+                () -> JavaSpotlightPlan.read(lookup, asked.requests(), retained, pinned), plan -> {
                     if (result.isDone()) return;
                     if (System.nanoTime() - deadlineNanos >= 0) { expire.run(); return; }
                     boolean viewMoved = walkTicket < 0
@@ -3949,7 +4007,9 @@ public final class MainFrame extends JFrame {
                         selectSideTab(topology ? "topology" : "source");
                         Map<String, JavaBinding> staged = new java.util.LinkedHashMap<>();
                         for (var prepared : plan.targets().values()) {
-                            var anchor = viewer.showJavaSnapshot(prepared.target().sourceFqn(), prepared.document(), prepared.model());
+                            var anchor = viewer.showJavaSnapshot(prepared.target().sourceFqn(), prepared.document(), prepared.model(),
+                                    pinned.containsKey(prepared.target().name())   // the plan refused any other revision
+                                            ? telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.VERIFIED : null);
                             sourceService.acceptSpotlightModel(lookup, prepared.target().sourceFqn(), prepared.model());
                             staged.put(prepared.target().name(), new JavaBinding(viewer, anchor, javaLineFrom(prepared.target()),
                                     javaLineTo(prepared.target()), topology ? "topology-source" : "source-tab", lookup));
@@ -4053,7 +4113,9 @@ public final class MainFrame extends JFrame {
                 case DESIGN, DESIGN_BEAN, DESIGN_LINE -> {
                     var state = session().processor().designSession;
                     var before = state.document();
-                    if (state.path() != null) designs().refreshed(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.read(designFiles(), state.path(), false, state.generation()));
+                    // A walk lights the already prepared, revision-checked document. It neither reads
+                    // files inside dispatch nor starts a second operation while performing this effect.
+                    if (state.path() != null && !walkOwnSpotlight) designs().refreshed(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.read(designFiles(), state.path(), false, state.generation()));
                     refreshDesignView(before == null ? null : before.revision());
                     var doc = state.document();
                     Integer line = designTargetLine(t);
@@ -4541,8 +4603,16 @@ public final class MainFrame extends JFrame {
         SpotlightTarget.Surface surface = prepared.isEmpty() ? spotlightSurface : new SpotlightTarget.Surface() {
             public void reveal(SpotlightTarget target) {
                 JavaBinding binding = prepared.get(target.name());
-                if (binding == null) spotlightSurface.reveal(target);
-                else binding.viewer().revealJava(binding.anchor(), binding.lineFrom(), binding.lineTo());
+                if (binding == null) { spotlightSurface.reveal(target); return; }
+                // r8: a set of ranges in ONE document is revealed as one band, so bringing the second into view
+                // cannot scroll the first away (the generated dispatcher's step lights three ranges of handleEvent).
+                Integer from = binding.lineFrom(), to = binding.lineTo();
+                if (from != null) for (JavaBinding other : prepared.values()) {
+                    if (other.viewer() != binding.viewer() || other.lineFrom() == null
+                            || !other.anchor().document().equals(binding.anchor().document())) continue;
+                    from = Math.min(from, other.lineFrom()); to = Math.max(to, other.lineTo());
+                }
+                binding.viewer().revealJava(binding.anchor(), from, to);
             }
             public java.util.Optional<java.awt.Rectangle> bounds(SpotlightTarget target) {
                 JavaBinding binding = prepared.get(target.name());
@@ -4599,7 +4669,7 @@ public final class MainFrame extends JFrame {
         else clearSpotlightHere();
         for (int i = 0; i < set.lit().size(); i++) {
             SpotlightTarget.Resolution r = set.lit().get(i);
-            spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption());
+            spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption(), !walkOwnSpotlight);
             if (prepared.containsKey(r.target().name()))
                 javaSpotlightBindings.put(r.target().name(), prepared.get(r.target().name()));
             if (r.target().name().startsWith("source:design") && session().processor().designSession.revision() != null)
@@ -4921,7 +4991,7 @@ public final class MainFrame extends JFrame {
                                 .assembleTable(sec, store, this::coverageForReport),
                 row -> openRecordFromReport(row),
                 gname -> { sideTabs.setSelectedComponent(graphTabs); revealGraphByName(gname); },
-                fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
+                fname -> { selectCanvasComponent(topologyPanel); topologyPanel.recallFocus(fname); },
                 snap -> snap.applyTo(filter),
                 name -> exportReportPdfWithChooser(name),
                 this::removeReport,
@@ -4954,6 +5024,9 @@ public final class MainFrame extends JFrame {
             @Override public void openDemo(Path log, boolean withGraph) { openDemoLog(log, withGraph); }
             @Override public void openSampleProject() { MainFrame.this.openSampleProject(); }
             @Override public void openGuidedTour() { MainFrame.this.openSampleProject(true); }
+            @Override public void replayDiamond() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayRequested(false));
+            }
             @Override public void openExistingProject() { chooseAndOpenProject(); }
             @Override public void showTab(String name) { selectTab(name); }
             @Override public void openOwnLog() { chooseFile(); }
@@ -5134,7 +5207,8 @@ public final class MainFrame extends JFrame {
         // top = toolbar over filter bar; left rail = event-type checklist
         JPanel north = new JPanel(new BorderLayout());
         north.add(buildToolBar(), BorderLayout.NORTH);
-        north.add(buildFilterBar(), BorderLayout.CENTER);
+        filterBarComponent = buildFilterBar();
+        north.add(filterBarComponent, BorderLayout.CENTER);
         workspaceChrome = north;
         add(north, BorderLayout.NORTH);
         // m6: no fixed preferred height — the checklist asks for its rows' height, up to its own maximum
@@ -5152,6 +5226,7 @@ public final class MainFrame extends JFrame {
         });
         workspaceCards.add(startPanel, "start");
         workspaceCards.add(westOuter, "investigation");
+        workspaceCards.add(firstMinuteStage, "topology-stage");
         // owner hands-on 2026-10-18b: a proposal waiting for the person is said ABOVE the start page and the workspace, so it
         // is seen wherever the assistant is — docked behind another tab, or popped out behind this window
         buildProposalCue();
@@ -5160,6 +5235,18 @@ public final class MainFrame extends JFrame {
         workspaceNotices.setLayout(new javax.swing.BoxLayout(workspaceNotices, javax.swing.BoxLayout.Y_AXIS));
         workspaceNotices.add(proposalCue);
         workspaceNotices.add(projectOutputsPanel);
+        stageControls = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 4, 0));
+        var stageGroup = new ButtonGroup();
+        topologyStageButton = new JToggleButton(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.TOPOLOGY);
+        recordsStageButton = new JToggleButton(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.RECORDS);
+        stageGroup.add(topologyStageButton); stageGroup.add(recordsStageButton);
+        topologyStageButton.addActionListener(e -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StageToggleRequested(
+                telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.TOPOLOGY)));
+        recordsStageButton.addActionListener(e -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StageToggleRequested(
+                telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.RECORDS)));
+        stageControls.add(topologyStageButton); stageControls.add(recordsStageButton);
+        stageControls.setVisible(false);
+        workspaceNotices.add(stageControls);
         workspaceArea.add(workspaceNotices, BorderLayout.NORTH);
         workspaceArea.add(workspaceCards, BorderLayout.CENTER);
         add(workspaceArea, BorderLayout.CENTER);
@@ -6617,7 +6704,7 @@ public final class MainFrame extends JFrame {
         // M30 D-R5: opening a member of a rolled set OFFERS the set — never assumes it
         try {
             var siblings = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.discoverSiblings(path);
-            if (siblings.size() > 1 && request.fromActionSocket()) {
+            if (siblings.size() > 1 && request.suppressDialogs()) {
                 // M35.9: the fifth load-path modal, found by threading the request. An agent opening
                 // one member of a set would have hung on "Open the whole set?" — recorded as data
                 // instead; the set is one `open {logs: [...]}` away and context names the files.
@@ -6656,6 +6743,11 @@ public final class MainFrame extends JFrame {
     private void requestOpenLog(String location, String format, OpenRequest request) {
         var driver = session();
         long opId = driver.nextOpId();
+        requestOpenLog(opId, location, format, request);
+    }
+
+    private void requestOpenLog(long opId, String location, String format, OpenRequest request) {
+        var driver = session();
         pendingRequests.put(opId, request);
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested(
                 opId, location, format, request.provenance(), request.fromActionSocket(), request.assistantOrigin()));
@@ -6713,11 +6805,13 @@ public final class MainFrame extends JFrame {
         try { bundleCopies.hold(path); }
         catch (java.io.IOException unavailable) {
             reportOutputOpenFailure(request);
+            reportFirstMinuteFailure(request, unavailable.getMessage());
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(
                     opId, location, unavailable.getMessage());
         }
         if (format == null && !Files.isReadable(path)) {
             reportOutputOpenFailure(request);
+            reportFirstMinuteFailure(request, "cannot read the bundled diamond log");
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, "cannot read log '" + location + "'");
         }
         loadFile(path, format, request, opId);
@@ -6738,6 +6832,7 @@ public final class MainFrame extends JFrame {
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, rootMessage(err)));
         reportOutputOpenFailure(request);
+        reportFirstMinuteFailure(request, rootMessage(err));
         boolean superseded = !driver.processor().operationGate.accepted();
         if (driver.processor().operationGate.inFlightWhat() == null) setBusy(false);
         if (superseded) {
@@ -7051,6 +7146,7 @@ public final class MainFrame extends JFrame {
             }
         } catch (RuntimeException failure) {
             reportOutputOpenFailure(request);
+            reportFirstMinuteFailure(request, rootMessage(failure));
             if (request.assistantOrigin() != null) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplyFailed(
                         opId, request.assistantOrigin()));
@@ -7094,7 +7190,7 @@ public final class MainFrame extends JFrame {
         boolean followable = !S3Source.isS3(location) && loaded.supportsFollow();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, provenance,
                 arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString(),
-                provenanceSource, followable, arrival.withheld(), System.currentTimeMillis()));
+                provenanceSource, followable, arrival.withheld(), System.currentTimeMillis(), request.launch().name(), request.firstMinuteTicket()));
         if (driver.processor().operationGate.accepted()) sessionLogGeneration = driver.snapshot().logGeneration();
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
@@ -7126,6 +7222,7 @@ public final class MainFrame extends JFrame {
         // time-order gate read it, so a modal the socket path "suppressed" fired on every agent open.
         final boolean loadFromSocket = request.suppressDialogs();
         currentRequest = request;      // review F1: a follow rotation reloads with the SAME audience
+        if (request.launch() != OpenRequest.Launch.FIRST_MINUTE) presentationProcessor = null;
         // review R2-B2: the effects this arrival raises (a mismatched graph closed, a warning) are
         // rendered for THIS request's audience — a socket caller cannot dismiss a dialog. The flag
         // used to be set only by project transitions, so a fresh window's first socket load inherited
@@ -7200,16 +7297,18 @@ public final class MainFrame extends JFrame {
                 .RecordsViewInstalled(sessionLogGeneration));
 
         // source navigation: configure roots, then infer the EventProcessor in the background
-        sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
+        sourceService.configure(effectiveSourceRoots(), selectedProcessor(),
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
-        sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
-        topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
+        sourcePanel.setProcessors(candidateProcessors(), selectedProcessor());
+        topologyPanel.setEmbeddedProcessors(candidateProcessors(), selectedProcessor());
         inferAndPopulateSource();
         refreshProjectPanel();                                        // M37: the log, its provenance, the pairing
 
-        config.logFile = location;
-        config.addRecent(location);
+        if (request.launch() != OpenRequest.Launch.FIRST_MINUTE) {
+            config.logFile = location;
+            config.addRecent(location);
+        }
         rebuildRecentMenu();
         saveConfigQuietly();
         setBusy(false);
@@ -7341,7 +7440,7 @@ public final class MainFrame extends JFrame {
                 topologyPanel.load(c.file());
                 judgeOpenedGraph();
                 updateLifecycleMenu();
-                if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+                if (sideTabs != null) selectCanvasComponent(topologyPanel);
                 return;
             }
         }
@@ -7587,7 +7686,139 @@ public final class MainFrame extends JFrame {
      * outside any operation. There is nothing to decide here — which comparisons still describe the pairing is the
      * session's {@code pairingQualifier}, bound by log generation and graph revision.
      */
+    /** A tab component may already be visible beside the topology in the node-selected stage. */
+    private void selectCanvasComponent(java.awt.Component component) {
+        if (sideTabs != null && sideTabs.indexOfComponent(component) >= 0) sideTabs.setSelectedComponent(component);
+    }
+
+    private void renderFirstMinute(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        firstMinuteStage.onRefit(() -> { if (spotlight.isLit()) relightSpotlight(); });
+        var stage = next.walkPlayback().stage();
+        if (sideTabs != null && renderedStage != stage) {
+            long previousTicket = walkViewChangeTicket;
+            walkViewChangeTicket = next.walkPlayback().ticket();
+            try {
+                if (stage == telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.TOPOLOGY) {
+                    stagePreviousTab = sideTabs.getSelectedComponent();
+                    sideTabs.remove(sourcePanel); sideTabs.remove(topologyPanel);
+                    firstMinuteStage.attach(topologyPanel, sourcePanel, tablePanel, detailPanel);
+                } else {
+                    firstMinuteStage.detach();
+                    sideTabs.insertTab("Source", null, sourcePanel, null, 1);
+                    sideTabs.insertTab("Topology", null, topologyPanel, null, 3);
+                    factsSplit.setBottomComponent(detailPanel);
+                    layoutEventTypes();
+                    if (stagePreviousTab != null && sideTabs.indexOfComponent(stagePreviousTab) >= 0)
+                        sideTabs.setSelectedComponent(stagePreviousTab);
+                }
+                renderedStage = stage;
+                showWorkspace(false);
+            } finally { walkViewChangeTicket = previousTicket; }
+        }
+        firstMinuteStage.render(next.firstMinute());
+        boolean timeRange = !(next.firstMinute().bundled()
+                && stage == telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.TOPOLOGY);
+        if (filterBarComponent != null && filterBarComponent.isVisible() != timeRange) {
+            filterBarComponent.setVisible(timeRange);
+            revalidate();
+        }
+        if (stageControls != null) {
+            stageControls.setVisible(next.logOpen());
+            topologyStageButton.setSelected(stage == telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.TOPOLOGY);
+            recordsStageButton.setSelected(stage == telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.Stage.RECORDS);
+        }
+        if ("FAILED".equals(next.firstMinute().phase()) && startPanel != null) {
+            startPanel.showOperationFeedback(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.failed(next.firstMinute().reason()));
+            showWorkspace(true);
+        }
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.node.FirstMinute firstMinute() {
+        return session().processor().firstMinute;
+    }
+
+    /** Main reports startup inputs once, after recovery checking has been activated. The node admits or defers. */
+    public void observeFirstMinuteStartup(boolean launchFile) {
+        boolean upgradeSurface = !ReleaseNotes.isDevBuild() && config.lastRunVersion != null
+                && !config.lastRunVersion.isBlank() && !ReleaseNotes.version().equals(config.lastRunVersion)
+                && !ReleaseNotes.sectionFor(ReleaseNotes.version()).isBlank();
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteStartupObserved(
+                firstRunAtStart, config.recentProjects.size(), config.recentFiles.size(), config.recentBundles.size(),
+                config.firstMinutePlayed, Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY),
+                launchFile, config.firstMinuteDomain, upgradeSurface));
+    }
+
+    /** OpenDiamondEffect: only verified shipped bytes, ordinary asynchronous log open, no sample-project modal path. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openDiamond(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenDiamondEffect e) {
+        Background.run(() -> {
+            try { return DiamondAssets.install(); }
+            catch (java.io.IOException error) { throw new java.io.UncheckedIOException(error); }
+        }, root -> {
+            if (!firstMinute().permitsOpen(e.ticket())) return;
+            demoRoots.add(root.toString());
+            demoRoots.add(root.resolve("source").toString());
+            var driver = session();
+            long operation = driver.nextOpId();
+            driver.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteLaunchAssigned(e.ticket(), operation));
+            if (!firstMinute().permitsAssignedLaunch(e.ticket(), operation)) return;
+            requestOpenLog(operation, DiamondAssets.log().toString(), null,
+                    new OpenRequest(false, null, OpenRequest.Launch.FIRST_MINUTE, null, null, e.ticket()));
+        }, error -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteOpenFailed(
+                e.ticket(), rootMessage(error))));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "open");
+    }
+
+    private void reportFirstMinuteFailure(OpenRequest request, String reason) {
+        if (request.launch() == OpenRequest.Launch.FIRST_MINUTE) session().post(
+                new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteOpenFailed(request.firstMinuteTicket(), reason));
+    }
+
+    /** The read identity belongs to the store installed AFTER LogOpened's dispatch; defer observation to that point. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result verifyDiamondRead(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.VerifyDiamondReadEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            if (!firstMinute().permitsPreparation(e.ticket(), e.generation())) return;
+            var identities = store == null ? java.util.List.<telamin.fluxtion.audit.analyser.analyser.parse.FileReadIdentity>of() : store.readIdentities();
+            var identity = identities.size() == 1 ? identities.getFirst() : null;
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteLogReadObserved(
+                    e.ticket(), e.generation(), identity == null ? null : identity.sha256(),
+                    identity == null ? "the loaded log has no single read-time identity" : identity.problem()));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "verify");
+    }
+
+    /** Consume M66/M80's existing open-design path; no second reader or discovery route. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result prepareDiamondPresentation(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrepareDiamondPresentationEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            if (!firstMinute().permitsPreparation(e.ticket(), e.generation())) return;
+            sessionInteractive = false;
+            topologyPanel.load(DiamondAssets.graph(), e.ticket());
+            presentationProcessor = telamin.fluxtion.audit.analyser.analyser.firstminute.DiamondDefinition.PROCESSOR;
+            sourceService.configure(effectiveSourceRoots(), selectedProcessor(), config.mavenRepos, config.searchMavenRepos);
+            sourcePanel.setProcessors(java.util.List.of(selectedProcessor()), selectedProcessor());
+            Background.run(() -> ((AppControlAdapter) actionControl).openDesign(DiamondAssets.design().toString(),
+                    new FirstMinuteDesignGuard(e.ticket(), e.generation())), result -> {
+                if (!firstMinute().permitsPreparation(e.ticket(), e.generation())) return;
+                var document = session().processor().designSession.document();
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinutePresentationObserved(
+                        e.ticket(), e.generation(), topologyPanel.loadedGraphSha256(), document == null ? null : document.revision(),
+                        result.ok() ? null : result.error()));
+            }, error -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteOpenFailed(
+                    e.ticket(), rootMessage(error))));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "prepare");
+    }
+
+    private final class FirstMinuteDesignGuard implements java.util.function.BooleanSupplier {
+        private final long ticket, generation;
+        FirstMinuteDesignGuard(long ticket, long generation) { this.ticket = ticket; this.generation = generation; }
+        public boolean getAsBoolean() { return firstMinute().permitsPreparation(ticket, generation); }
+    }
+
     private void onSessionSnapshot(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        renderFirstMinute(next);
         publishPairing();
         // M68.5, the review's "table not suspended": the table states the session's file-identity verdict, from here
         tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
@@ -7998,8 +8229,8 @@ public final class MainFrame extends JFrame {
     /** Candidate EventProcessors: configured FQNs + those discovered in the strategy package. */
     private List<String> candidateProcessors() {
         Set<String> set = new LinkedHashSet<>(config.eventProcessorFqns);
-        if (config.selectedEventProcessor != null && !config.selectedEventProcessor.isBlank()) {
-            set.add(config.selectedEventProcessor);
+        if (selectedProcessor() != null && !selectedProcessor().isBlank()) {
+            set.add(selectedProcessor());
         }
         set.addAll(SourceService.discover(sourceService.resolver(), STRATEGY_PKG));
         return new ArrayList<>(set);
@@ -8009,6 +8240,10 @@ public final class MainFrame extends JFrame {
     private void inferAndPopulateSource() {
         final LogStore s = store;
         if (s == null) return;
+        // The shipped effect selects its processor explicitly. Inference must not write it into
+        // the person's configuration, including via a late callback from an earlier log.
+        if (currentRequest != null && currentRequest.launch() == OpenRequest.Launch.FIRST_MINUTE) return;
+        final long inferredGeneration = sessionLogGeneration;
         Background.run(
                 () -> {
                     Set<String> ids = new LinkedHashSet<>();
@@ -8022,6 +8257,7 @@ public final class MainFrame extends JFrame {
                     return new String[]{inferred, String.join("\n", candidates)};
                 },
                 result -> {
+                    if (s != store || inferredGeneration != sessionLogGeneration) return;
                     String inferred = result[0];
                     List<String> candidates = result[1].isEmpty() ? List.of() : List.of(result[1].split("\n"));
                     sourceService.select(inferred);
@@ -8038,14 +8274,6 @@ public final class MainFrame extends JFrame {
                 },
                 err -> { /* source inference is best-effort */ });
     }
-
-    /**
-     * Whether no config file existed when this frame was constructed. Captured THEN, because
-     * {@code --rest} saves the config in the constructor (it persists the transport setting) and would
-     * otherwise make the first run look like a second one by the time the splash timer asks — the
-     * first bench run found exactly that: the note below never printed.
-     */
-    private boolean firstRunAtStart;
 
     /**
      * First run. <b>No dialog, for anybody</b> — but a process that asked for {@code --rest} is told
@@ -8309,11 +8537,11 @@ public final class MainFrame extends JFrame {
             session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved(
                     telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inForce(config)));
         }
-        sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
+        sourceService.configure(effectiveSourceRoots(), selectedProcessor(),
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
-        sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
-        topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
+        sourcePanel.setProcessors(candidateProcessors(), selectedProcessor());
+        topologyPanel.setEmbeddedProcessors(candidateProcessors(), selectedProcessor());
         sourcePanel.showSelectedProcessor();
         topologyPanel.revalidateEmbeddedSource();
         searchField.setHistory(config.searchHistory);   // reflect cleared/updated history
@@ -8713,7 +8941,7 @@ public final class MainFrame extends JFrame {
             topologyPanel.load(selection.graph());
             judgeOpenedGraph();
             updateLifecycleMenu();
-            if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+            if (sideTabs != null) selectCanvasComponent(topologyPanel);
             status.setText(status.getText() + " and opened " + selection.graph().getFileName());
         }
     }
@@ -8995,7 +9223,7 @@ public final class MainFrame extends JFrame {
                 e.readSoFar(), e.replay() == null ? null : Path.of(e.replay()), e.replayRecords(), e.serviceCalls(),
                 e.replaySha256(),
                 // a CLASS NAME, not a path: it leaks nothing and without it a recipient has no processor
-                config.selectedEventProcessor);
+                selectedProcessor());
         telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {
                     try {
                         return telamin.fluxtion.audit.analyser.bundle.BundleWriter.write(job);
@@ -9400,6 +9628,64 @@ public final class MainFrame extends JFrame {
             // M74 P2: the Ask catalogue's drafts and the start page — the nodes decided; the frame performs and reports
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeLocalAgentDraftEffect e -> primeLocalAgentDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeAssistantDraftEffect e -> primeAssistantDraft(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenDiamondEffect e -> openDiamond(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.VerifyDiamondReadEffect e -> verifyDiamondRead(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrepareDiamondPresentationEffect e -> prepareDiamondPresentation(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlayBundledWalkEffect e -> {
+                Background.run(() -> {
+                    try { return telamin.fluxtion.audit.analyser.analyser.walk.BundledWalks.resource(
+                            e.resource(), e.walkName(), e.stage(), e.digest()); }
+                    catch (java.io.IOException failure) { throw new java.io.UncheckedIOException(failure); }
+                }, parts -> {
+                    if (firstMinute().permitsPlayback(e.ticket())) session().post(
+                            new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested(0,
+                                    parts.walk(), 0, e.origin()));
+                }, failure -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                        .FirstMinuteOpenFailed(e.ticket(), rootMessage(failure))));
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "play");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmDiamondReplayEffect e -> {
+                // The node decided something is open; the adapter only asks and reports the answer as a fact.
+                SwingUtilities.invokeLater(() -> {
+                    int answer = JOptionPane.showConfirmDialog(this,
+                            Fluid.text(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.REPLACES),
+                            telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.THE_DIAMOND,
+                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DiamondReplayAnswered(
+                            e.ticket(), answer == JOptionPane.OK_OPTION));
+                });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "confirm");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.MarkFirstMinutePlayedEffect e -> {
+                config.firstMinutePlayed = true;
+                saveConfigQuietly();
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "played");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunFirstMinuteDoorEffect e -> {
+                SwingUtilities.invokeLater(() -> {
+                    if (!firstMinute().permitsDoor(e.ticket())) return;
+                    switch (e.door()) {
+                        case "learn" -> openSampleProject(true);
+                        case "investigate" -> chooseFile();
+                        case "build" -> chooseTemplateProject();
+                        case "sample" -> openSampleProject();
+                        default -> throw new IllegalArgumentException("unknown first-minute door");
+                    }
+                });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), e.ticket(), "door");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AdmitSessionCaptureEffect e -> {
+                var continuation = captureAdmissions.remove(e.request());
+                if (continuation != null) continuation.accept(e.capture());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteEffectStarted(e.opId(), 0, "capture admitted");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ScheduleWalkAdvanceEffect e -> {
+                Timer advance = new Timer(e.dwellMs(), ignored -> session().post(
+                        new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkAdvanceDue(e.ticket(), e.step())));
+                advance.setRepeats(false);
+                advance.start();
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkAcknowledged(e.opId(), e.ticket(), "advance scheduled");
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlayDemoJourneyEffect e -> playDemoJourney(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunStartPageFlowEffect e -> runStartPageFlow(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ContinueStartPagePromptEffect e -> continueStartPrompt(e);
@@ -9529,7 +9815,7 @@ public final class MainFrame extends JFrame {
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened(graphFile == null ? null : graphFile.toString(),
                 topologyPanel.graphSource().name(),
                 telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(full), types,
-                ActionExecutor.assistantOrigin());
+                ActionExecutor.assistantOrigin(), topologyPanel.firstMinuteTicket());
     }
 
     /** The processor's generation of the log that is open here, stated on every fact about it (M44.4a). */
@@ -9584,6 +9870,7 @@ public final class MainFrame extends JFrame {
 
     /** @param fromTransition true when a project transition is rendering, not a person editing settings. */
     private void applyProjectSettings(boolean fromTransition) {
+        presentationProcessor = null;
         beforeProjectRender.run();
         restoreGraphDefinitions(List.copyOf(config.savedGraphs));
         onConfigChanged(fromTransition);   // source service, processors, menus, and the global save
@@ -10027,7 +10314,7 @@ public final class MainFrame extends JFrame {
             return;
         }
         topologyPanel.load(file);   // the load listener records it
-        if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+        if (sideTabs != null) selectCanvasComponent(topologyPanel);
     }
 
     /**
@@ -10723,7 +11010,7 @@ public final class MainFrame extends JFrame {
                                     outputOrigin.ticket(), outputOrigin.file()));
                 } catch (java.io.IOException | RuntimeException unknown) { /* no proven successful file, no receipt */ }
             }
-            if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+            if (sideTabs != null) selectCanvasComponent(topologyPanel);
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             echo.put("path", path);
             // M46 A3: this used to be one key, `nodes`, holding the AUTHORED count — 10 for the demo
@@ -10780,6 +11067,7 @@ public final class MainFrame extends JFrame {
                         "no source for '" + fqn + "' under the configured roots");
             }
             config.selectedEventProcessor = fqn;
+            presentationProcessor = null;
             sourceService.select(fqn);
             onConfigChanged();
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
@@ -11105,7 +11393,7 @@ public final class MainFrame extends JFrame {
             // the same assembly the pasted prompt uses, rendered as JSON instead of prose
             telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts facts = !need.test("log") && !need.test("source") ? null
                     : telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.of(
-                            currentLogFileInfo(), config.selectedEventProcessor, sourceService,
+                            currentLogFileInfo(), selectedProcessor(), sourceService,
                             telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.nodeTypes(
                                     selectedRecords, sourceService));
             Map<String, Object> log = facts == null ? new java.util.LinkedHashMap<>() : facts.logAsMap();
@@ -11323,10 +11611,10 @@ public final class MainFrame extends JFrame {
                 for (String fqn : candidateProcessors()) {
                     Map<String, Object> one = new java.util.LinkedHashMap<>();
                     one.put("class", fqn);
-                    one.put("selected", fqn.equals(config.selectedEventProcessor));
+                    one.put("selected", fqn.equals(selectedProcessor()));
                     one.put("source", sourceService.resolver().find(fqn).isPresent() ? "found" : "not found");
                     one.put("from", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.processorFrom(fqn,
-                            configured, config.selectedEventProcessor, project.hasProject()));
+                            configured, selectedProcessor(), project.hasProject()));
                     procs.add(one);
                 }
                 if (!procs.isEmpty()) out.put("processors", procs);
@@ -11563,7 +11851,7 @@ public final class MainFrame extends JFrame {
                 }
                 // PR #30 review, finding 2: the EDT does not read the processor to answer. Until a source pane has
                 // read it, node types are omitted and this says why, rather than stalling or guessing.
-                if (config.selectedEventProcessor != null && !config.selectedEventProcessor.isBlank()
+                if (selectedProcessor() != null && !selectedProcessor().isBlank()
                         && !sourceService.modelRead())
                     source.put("processorModel", "not yet read — node types appear once a source pane reads the processor");
                 out.put("source", source);
@@ -11680,6 +11968,7 @@ public final class MainFrame extends JFrame {
     }
 
     private void rememberGraphml(java.nio.file.Path file) {
+        if (topologyPanel.firstMinuteTicket() > 0) return; // this load's receipt, never pathname equality
         config.graphmlFile = file.toAbsolutePath().toString();
         config.addRecentGraphml(config.graphmlFile);
         rebuildRecentMenu();
@@ -11731,6 +12020,16 @@ public final class MainFrame extends JFrame {
         recovery = new SessionRecoveryController(files, new SessionRecoveryController.Host() {
             public telamin.fluxtion.audit.analyser.analyser.session.SessionDriver driver() { return session(); }
             public SessionRecoveryController.Capture capture() { return captureSession(); }
+            public void admit(SessionRecoveryController.Capture capture, java.util.function.Consumer<Boolean> answer) {
+                long request = ++captureAdmission;
+                captureAdmissions.put(request, answer);
+                var identities = store == null ? java.util.List.<telamin.fluxtion.audit.analyser.analyser.parse.FileReadIdentity>of() : store.readIdentities();
+                String digest = identities.size() == 1 && identities.getFirst().problem() == null ? identities.getFirst().sha256() : null;
+                boolean personal = !flaggedRows.isEmpty() || graphTabs.hasPersonalContent() || !config.reports.isEmpty()
+                        || !config.walks.isEmpty();
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FirstMinuteCaptureObserved(
+                        request, sessionLogGeneration, currentRequest == null ? 0 : currentRequest.firstMinuteTicket(), digest, personal));
+            }
             public void render() { refreshProjectPanel(); }
             public void apply(long generation, telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
                               java.util.function.Consumer<ResumeEvents.Outcome> completion) {
