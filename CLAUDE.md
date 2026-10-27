@@ -127,11 +127,11 @@ architecture, conventions). This file is only the rules that must never be skipp
 
 ## Current work
 
-**Latest release: 1.40.0 (2026-10-27).** The tracker's delivery order (refreshed 2026-10-19, after 1.36.0) is the
+**Latest release: 1.40.0 (2026-10-27).** The tracker's delivery order (current as of 2026-10-27, after 1.40.0) is the
 place to start; the notes below are older context and may lag it. Since 1.31.0: **1.40.0** *AI ▸ Compiler account…*
 (device sign-in; compile and interpret credits, the plan and its limits; devices and revoke) and the *Investigate a
 compiler charge* guide (CA, PRs #202/#208); **1.39.0** evidence-first MCP instructions and skills (open the fresh export,
-spotlight and flag the proving record), `read` without an anchor, record spotlights refused while a log loads; **1.38.0** project-output offers
+spotlight and flag the proving record), `read` without an anchor, record spotlights refused while a log loads (PR #207); **1.38.0** project-output offers
 (M81 D), Design discovery of Spring XML and Java builder definitions (M80), spotlight line ranges (PR #188);
 **1.37.0** Claude Code activity and silence cues, visible restart and recovery (M81 A/C), Markdown tables in the
 transcript; **1.36.0** (PR #168) Claude Code in the Assistant tab (Safe analysis / Full Claude Code), *Set up AI…*

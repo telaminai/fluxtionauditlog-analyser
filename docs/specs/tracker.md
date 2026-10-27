@@ -43,17 +43,22 @@ assistant panel, FIX-1…FIX-10, UX-SC, the OPT-2 Claude-Code-proposed starter, 
 C1–C8 corrections; M74's P1a…P3, UX-unification, r14/r15, and [DOCS-IA]. Archived in
 [completed/tracker.md](completed/tracker.md) ▸ *1.36.0*.
 
-_Refreshed 2026-10-19, after 1.36.0._ **Delivery order:**
+_Refreshed 2026-10-27, after 1.40.0._ **Delivery order:**
 
-1. **MVP, in parallel:** M79-1a (the first launch) and the M76 criterion chip + before/after run comparison.
-2. **Commercial track (owner):** the gateway hotfix (compiler#113) deploys, then RapidAPI self-serve and a
-   trial/teaching key tier.
-3. **The security one-pager** (OD-74.2), before any customer-facing Claude Code release.
-4. **2–3 friendly-team trials.**
+0. **Public hygiene (cross-repo).** Scrub a Mongoose release-plan doc of an internal reference (Mongoose PR in progress); commit identity pinned in every local clone (done 2026-10-27; GitHub-button merges still use the account's primary email, so merge locally); close stale shipped issues.
+1. **RapidAPI retirement (compiler, owner).** Production on managed auth since 2026-10-27 (compiler 1.0.82; playground in session mode); legacy routes stay open ~2 days to see stray clients, skipping entitlement and plan checks until then.
+   Then close: revoke the key, remove the listing and the legacy routes, startup no longer requires the proxy secret.
+2. **Launch gate (compiler, owner).** External health check with alerting; Cloudflare WAF and rate limits; independent pen test; legal pages and DPAs; load test (compiler test 17); an automated regression check for the 2026-10-27 deploy incident.
+3. **Analyser merge queue:** #196 (M79-1a-i) → #197 (M79-7) → #199 (M79-3) → #198 (#177/#178/#179/#182/#183); each merges main in and regenerates.
+4. **No key anywhere.** Canvas's compiler-account sign-in also authorises generation (today it only reads the account); starter bundles, starter CI and claude.txt move from the key file to sign-in; the managed host becomes the Maven plugin's default; one credential store shared by Maven and Canvas.
+   Analyser docs still routing generation through RapidAPI: `docs/site/spring-authoring-getting-started.md:34`, `docs/site/spring-authoring.md:180`, `src/main/resources/starter-skills/playground/spring-authoring/contract.md:414`; getting-started limits wording becomes nodes, inputs and exported interfaces.
+5. **Mongoose 1.1 follow-through.** Fluxtion runtime 1.1.3 and builder ≥1.0.80/1.0.82 (failed cycles now closed in the audit log); read the control-audit export's manifest `complete` claim and its `controlFallback` documents. Producer asks MA-2, MA-5.7, UP-MNG-02 remain unmet.
+6. **Then** 2–3 friendly-team trials, and the M79 remainder (1a-ii, 1b, 2, 4–6).
 
-Big builds wait **for the owner's plan usage reset (2026-10-22)**.
+⊘ RapidAPI self-serve and a trial/teaching key tier (the 2026-10-19 order's item 2): superseded by managed auth's free allowance.
 
-**Still carried:** M74 follow-ups (Settings ▸ Assistant around the four profiles, now partly superseded by M77's
+**Still carried:** the security one-pager (OD-74.2), before any customer-facing Claude Code release · the M76 criterion
+chip and before/after run comparison · M74 follow-ups (Settings ▸ Assistant around the four profiles, now partly superseded by M77's
 wizard and quick switch — re-scope or close; the spec split; `LocalAgentWiring`; the CLI-drift canary and
 managed-settings probe; Windows, #148) · virgin-LLM cycles (#155; T4 authoring first, T5 the external-loop gate) ·
 M75 (#153) once its owner decisions are answered · assurance debt (#70, #119) · owner decisions (M70 vs Mongoose
@@ -360,6 +365,10 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 ### M22 · Topology view usability — 36 of 41 shipped
 - [M22.3] ☐ export the view as PNG · [M22.6] ☐ alternative layouts · [M22.11] ☐ show re-dispatch's cause ·
   [M22.20] ☐ a DataFlow `.push()` target renders as an orphan. ▸ detail: *M22*.
+
+### UI — nice to have
+- ☐ [#200](https://github.com/telaminai/fluxtionauditlog-analyser/issues/200) Topology: optional animated pan to the stepped node, keeping zoom, plus an overview inset.
+- ☐ [#201](https://github.com/telaminai/fluxtionauditlog-analyser/issues/201) Text size: an overall X-Small to X-Large setting, and per-pane A-/A+ on source views.
 
 ### M20 · M29 · M33 · M40 — follow-ups
 - [M29.5] ☐ **(owner, optional)** `embed: true` for small external series.
