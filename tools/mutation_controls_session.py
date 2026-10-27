@@ -2919,7 +2919,76 @@ CONTROLS += [
      '        deviceTable.getColumnModel().getColumn(2).setPreferredWidth(80);\n'
      '        deviceTable.getColumnModel().getColumn(3).setPreferredWidth(140);\n',
      'CompilerAccountFrameTest#thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential'),
+    # CI, 2026-10-27: a fixed 520px devices view fit this machine's name on macOS fonts and cut it on Linux's; the Name
+    # column is now measured from the names, and a longer name read later widens the open dialog again
+    ('ca1-name-column-measured-from-the-names', UI + 'CompilerAccountDialog.java',
+     '        for (Device d : devices) deviceModel.addRow(deviceRow(d, d.credentialId().equals(own)));\n        fitNames();\n',
+     '        for (Device d : devices) deviceModel.addRow(deviceRow(d, d.credentialId().equals(own)));\n',
+     'CompilerAccountFrameTest#aMachineNameWiderThanAnyFixedColumnIsNeverCut_theDialogWidensToHoldIt'),
+    ('ca1-a-longer-name-widens-the-open-dialog', UI + 'CompilerAccountDialog.java',
+     'grew |= getPreferredSize().width > getWidth();', 'grew |= false;',
+     'CompilerAccountFrameTest#aMachineNameWiderThanAnyFixedColumnIsNeverCut_theDialogWidensToHoldIt'),
     ('ca1-disconnected-dialog-shrinks', UI + 'CompilerAccountDialog.java',
      '} else if (shrank && !signingIn) {', '} else if (false) {',
      'CompilerAccountFrameTest#connectApproveReadUsageThenRevoke'),
+]
+
+# Plans and the interpret allowance (compiler design 03 §5): the panel and Copy details show compile and interpret
+# credit separately; the plan and its limits come from the service's capability profile and are never guessed when an
+# older service sends none; an override is marked only when it is the limit in force; Copy details never carries the
+# credential; the guide names only codes the producer writes.
+WORDS = 'CompilerAccountWordsTest#thePlansLimitsAreSaidFromTheProfile_andAnOverrideIsMarkedOnlyWhenItIsInForce'
+PLANS_FRAME = 'CompilerAccountFrameTest#bothBalancesAndThePlansLimitsShow_andAnOlderServiceStillShowsCompile'
+CONTROLS += [
+    ('plans-interpret-shown-separately', UI + 'CompilerAccountDialog.java',
+     'Balance b = usage == null ? null : k == 0 ? usage.compile() : usage.interpret();',
+     'Balance b = usage == null ? null : usage.compile();',
+     PLANS_FRAME),
+    ('plans-interpret-copied-separately', ACCOUNT + 'AccountDetails.java',
+     'balance(b, "Interpret", usage.interpret());', 'balance(b, "Interpret", usage.compile());',
+     'CompilerAccountSafetyTest#copyDetailsCarriesTheFiguresForSupport_butNeverTheCredential'),
+    ('plans-interpret-read-from-kinds', ACCOUNT + 'CompilerAccountClient.java',
+     '!(kinds.get("interpret") instanceof Map<?, ?> k)', '!(kinds.get("compile") instanceof Map<?, ?> k)',
+     'CompilerAccountClientTest#aServiceWithPlansReportsBothBalancesAndThePlansProfile'),
+    ('plans-profile-from-capabilities-object', ACCOUNT + 'CompilerAccountClient.java',
+     'if (!(body.get("capabilities") instanceof Map<?, ?> caps)) return null;',
+     'if (!(body instanceof Map<?, ?> caps)) return null;',
+     'CompilerAccountClientTest#aServiceWithPlansReportsBothBalancesAndThePlansProfile'),
+    # compiler design 03 §3 (2026-10-27): the inputs limit is maxInputs (event types + exported methods). An older
+    # service's maxEventTypes counts event types only: it is never read as the inputs limit, and is shown as
+    # "Max event types" only when maxInputs is absent (re-check 2026-10-27; this replaced the control
+    # plans-inputs-fall-back-to-event-types, which pinned the old, wrong fallback)
+    ('plans-limits-from-capabilities', ACCOUNT + 'CompilerAccountClient.java',
+     'Long maxInputs = optional(caps, "maxInputs");', 'Long maxInputs = optional(caps, "maxEventTypes");',
+     'CompilerAccountClientTest#theInputsLimitIsMaxInputs_andAnOlderServicesMaxEventTypesIsEventTypesOnly'),
+    ('plans-older-limit-is-event-types-not-inputs', ACCOUNT + 'CompilerAccountClient.java',
+     'Long maxInputs = optional(caps, "maxInputs");',
+     'Long maxInputs = optional(caps, "maxInputs") != null ? optional(caps, "maxInputs") : optional(caps, "maxEventTypes");',
+     'CompilerAccountClientTest#theInputsLimitIsMaxInputs_andAnOlderServicesMaxEventTypesIsEventTypesOnly'),
+    ('plans-older-limit-named-event-types', ACCOUNT + 'CompilerAccountClient.java',
+     'return maxInputs == null && maxEventTypes != null;', 'return false;',
+     'CompilerAccountWordsTest#anOlderServicesLimitIsSaidAsEventTypes_andACurrentOnesAsInputs_neverBoth'),
+    ('plans-exported-interfaces-from-capabilities', ACCOUNT + 'CompilerAccountClient.java',
+     'optional(caps, "maxExportedInterfaces"), targets,', 'null, targets,',
+     'CompilerAccountClientTest#aServiceWithPlansReportsBothBalancesAndThePlansProfile'),
+    ('plans-exported-interfaces-shown', ACCOUNT + 'AccountDetails.java',
+     'overridden(stated(caps.maxExportedInterfaces()), caps, "maxExportedInterfaces",',
+     'overridden(stated(caps.maxInputs()), caps, "maxExportedInterfaces",',
+     WORDS),
+    ('plans-name-from-capabilities', ACCOUNT + 'CompilerAccountClient.java',
+     'return capabilities != null && capabilities.plan() != null ? capabilities.plan() : plan;', 'return plan;',
+     WORDS),
+    ('plans-unavailable-said-not-guessed', UI + 'CompilerAccountDialog.java',
+     'planUnavailable.setVisible(usage != null && !limits);', 'planUnavailable.setVisible(false);',
+     PLANS_FRAME),
+    ('plans-override-marked-only-in-force', ACCOUNT + 'AccountDetails.java',
+     'return o != null && o.replace(" ", "").equalsIgnoreCase(wire) ? value + " (set for this account)" : value;',
+     'return o != null ? value + " (set for this account)" : value;',
+     WORDS),
+    ('plans-copy-details-never-the-bearer', ACCOUNT + 'AccountDetails.java',
+     'line(b, "Plan", usage.planName());', 'line(b, "Plan", usage.planName() + " " + credential.bearer());',
+     'CompilerAccountSafetyTest#copyDetailsCarriesTheFiguresForSupport_butNeverTheCredential'),
+    ('plans-guide-names-only-producer-codes', 'docs/site/getting-started.md',
+     '`INTERPRET_ALLOWANCE_EXHAUSTED` (HTTP 429 to the caller)', '`INTERPRET_CREDIT_EXHAUSTED` (HTTP 429 to the caller)',
+     'EntitlementInvestigationConformanceTest#theGuideNamesOnlyKeysAndCodesTheProducerWrites'),
 ]

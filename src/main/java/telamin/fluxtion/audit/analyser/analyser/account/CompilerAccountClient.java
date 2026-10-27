@@ -95,11 +95,58 @@ public final class CompilerAccountClient {
 
     /**
      * Read-only usage, as the service reports it. {@code nextReset} is null when the plan has none (a one-time
-     * allowance). {@code available} is what remains, {@code consumed} what was used, {@code reserved} what generations
-     * still in progress hold.
+     * allowance). The top-level figures are the <b>compile</b> balance (the only kind before the service had two):
+     * {@code available} is what remains, {@code consumed} what was used, {@code reserved} what generations still in
+     * progress hold. {@code interpret} is the interpret balance, and {@code capabilities} the plan's profile; either is
+     * null when the service did not report it (a service older than plans), and nothing is guessed in its place.
      */
     public record Usage(String accountId, String plan, boolean active, long available, long consumed, long reserved,
-                        long generations, long failures, String nextReset) { }
+                        long generations, long failures, String nextReset, Balance interpret, Capabilities capabilities) {
+
+        /** A service that reports compile credit only, and no plan profile. */
+        public Usage(String accountId, String plan, boolean active, long available, long consumed, long reserved,
+                     long generations, long failures, String nextReset) {
+            this(accountId, plan, active, available, consumed, reserved, generations, failures, nextReset, null, null);
+        }
+
+        /** The compile balance: the top-level figures, with {@code generations} as its completed requests. */
+        public Balance compile() {
+            return new Balance(available, consumed, reserved, generations, failures);
+        }
+
+        /** The plan's name: the profile's own when the service reported one, else the account's plan field. */
+        public String planName() {
+            return capabilities != null && capabilities.plan() != null ? capabilities.plan() : plan;
+        }
+    }
+
+    /**
+     * One kind of credit: what remains, what was used, what requests in progress hold, how many requests completed
+     * (settled) and how many failed. Compile and interpret credit are separate; one never spends the other.
+     */
+    public record Balance(long available, long consumed, long reserved, long completed, long failures) { }
+
+    /**
+     * What the plan allows, as the service's {@code capabilities} object states it. A field the service did not state
+     * is null (never a default the analyser made up). {@code maxInputs} counts event types plus the methods of exported
+     * interfaces (each method one input). {@code maxEventTypes} is as the service sent it: the current service's
+     * deprecated alias, equal to {@code maxInputs}, or a service from before the inputs limit, whose one limit counts
+     * event types only. Read which through {@link #eventTypesOnly()}; the two are never shown side by side.
+     * {@code overrides} are an operator's per-account values, by capability name; empty when none.
+     */
+    public record Capabilities(String plan, Long maxNodes, Long maxInputs, Long maxEventTypes, Long maxExportedInterfaces,
+                               List<String> targets, Boolean wasm,
+                               String assurance, Long compilePerMinute, Long interpretPerMinute,
+                               Map<String, String> overrides) {
+        /**
+         * True for a service from before the inputs limit: it states {@code maxEventTypes} and no {@code maxInputs},
+         * so its limit counts event types only and says nothing about exported methods. Whenever {@code maxInputs} is
+         * stated it is the limit, and {@code maxEventTypes} is only its alias.
+         */
+        public boolean eventTypesOnly() {
+            return maxInputs == null && maxEventTypes != null;
+        }
+    }
 
     /**
      * Who the credential belongs to: the selected account, whether it is a personal one, and the person's role in it.
@@ -273,7 +320,37 @@ public final class CompilerAccountClient {
         String reset = body.get("nextReset") instanceof String s && !s.isBlank() ? s : null;
         return new Usage(account == null ? credential.accountId() : account, plan,
                 !(body.get("active") instanceof Boolean b) || b, n.longValue(), number(body, "consumed", 0),
-                number(body, "reserved", 0), number(body, "generations", 0), number(body, "failures", 0), reset);
+                number(body, "reserved", 0), number(body, "generations", 0), number(body, "failures", 0), reset,
+                interpret(body), capabilities(body));
+    }
+
+    /** {@code kinds.interpret}, when the service reports it with at least what remains; otherwise null. */
+    static Balance interpret(Map<?, ?> body) {
+        if (!(body.get("kinds") instanceof Map<?, ?> kinds) || !(kinds.get("interpret") instanceof Map<?, ?> k)
+                || !(k.get("available") instanceof Number available)) return null;
+        return new Balance(available.longValue(), number(k, "consumed", 0), number(k, "reserved", 0),
+                number(k, "settled", 0), number(k, "failures", 0));
+    }
+
+    /** The {@code capabilities} object, field by field; null when the service sent none. */
+    static Capabilities capabilities(Map<?, ?> body) {
+        if (!(body.get("capabilities") instanceof Map<?, ?> caps)) return null;
+        List<String> targets = null;
+        if (caps.get("targets") instanceof List<?> list) {
+            targets = new ArrayList<>();
+            for (Object t : list) if (t instanceof String s && !s.isBlank()) targets.add(s);
+            targets = List.copyOf(targets);
+        }
+        Map<String, String> overrides = new LinkedHashMap<>();
+        if (caps.get("overrides") instanceof Map<?, ?> o)
+            o.forEach((k, v) -> { if (k instanceof String key && v != null) overrides.put(key, String.valueOf(v)); });
+        Long maxInputs = optional(caps, "maxInputs");
+        Long maxEventTypes = optional(caps, "maxEventTypes"); // an older service's event-type limit, or the alias
+        return new Capabilities(string(caps, "plan"), optional(caps, "maxNodes"), maxInputs, maxEventTypes,
+                optional(caps, "maxExportedInterfaces"), targets, caps.get("wasm") instanceof Boolean w ? w : null,
+                string(caps, "assurance"),
+                optional(caps, "compilePerMinute"), optional(caps, "interpretPerMinute"),
+                java.util.Collections.unmodifiableMap(overrides));
     }
 
     /** Read who the credential belongs to: the selected account, its type and the person's role. Reads only. */
@@ -381,5 +458,9 @@ public final class CompilerAccountClient {
 
     private static long number(Map<?, ?> body, String key, long fallback) {
         return body.get(key) instanceof Number n ? n.longValue() : fallback;
+    }
+
+    private static Long optional(Map<?, ?> body, String key) {
+        return body.get(key) instanceof Number n ? n.longValue() : null;
     }
 }

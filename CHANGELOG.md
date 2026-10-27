@@ -8,6 +8,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- **AI ▸ Compiler account…** shows compile and interpret credits separately, one row each with what remains, what was
+  used, what is in progress, and how many requests completed or failed. Below the account rows are the plan's key
+  limits, as the service reports them: most nodes, most inputs (event types plus exported methods, each method one
+  input), most exported interfaces, languages, WASM and software assurance; a limit set for your account is marked. A
+  service from before the inputs limit reports only its event-type limit, which counts event types alone: it is shown
+  as **Max event types**, with nothing said about exported methods, and never beside the inputs limit. **Copy details** includes both balances, the plan, its limits and rates, and still
+  never the credential. A service without plans still shows compile credit and says the plan's details and interpret
+  credit were not reported, rather than guessing.
+- *Getting started ▸ Investigate a compiler charge* covers interpretations (`creditKind`, `interpret:` request ids),
+  an operator's per-account limit (`CAPABILITY_SET`), and the two new refusals, `CAPABILITY_EXCEEDED` (with the limit
+  in the row's detail, including `maxInputs` and `maxExportedInterfaces`) and `INTERPRET_ALLOWANCE_EXHAUSTED`.
 - *Getting started ▸ Investigate a compiler charge* covers getting the file (the service admin page's **Download audit
   log** zip, with the log and `EntitlementProcessor.graphml`, or the export tool), opening that graph explicitly, and
   reading an operator's credit removal (`ALLOWANCE_REMOVED`) and the removal answers that leave no row.
@@ -16,8 +27,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   line names just the service's host. The service address is
   an editable drop-down that offers the addresses this machine has connected with. Each device row shows a short
   credential id (the whole id in its tooltip), its kind, and when it was created to the minute in UTC, so devices
-  with the same name can be told apart. After a disconnect the dialog shrinks back to fit, rather than keeping an empty
-  connected-size window.
+  with the same name can be told apart. Each device's whole name fits, whatever the system's fonts: the Name column
+  is as wide as the longest name, and the dialog widens when a longer one is read. After a disconnect the dialog
+  shrinks back to fit, rather than keeping an empty connected-size window.
 - **AI ▸ Compiler account…** now shows the account: its type (Personal or Organisation), your role, the plan and
   whether it is active; the credits remaining, used and in progress, generations and failures, and whether the
   allowance is one-time or when it next resets; this device's name and credential id; and your devices, with this

@@ -6,6 +6,7 @@ import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.De
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Me;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.DeviceStart;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Outcome;
+import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Balance;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Usage;
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerCredential;
 import telamin.fluxtion.audit.analyser.analyser.account.CredentialStore;
@@ -58,8 +59,10 @@ import java.util.function.Consumer;
 
 /**
  * CA-1 — AI ▸ Compiler account…: connect this analyser to a compiler account by device sign-in; show the account (type,
- * role, plan), its credits, this device and the account's other devices; copy a support summary; disconnect, or revoke
- * this device or another one the person picks.
+ * role, plan and the plan's key limits), its compile and interpret credits, this device and the account's other
+ * devices; copy a support summary; disconnect, or revoke this device or another one the person picks. A service older
+ * than plans reports compile credit only: the panel shows it, and says the plan's details are unavailable rather than
+ * guessing them.
  *
  * <p><b>Reads, and revokes only on request.</b> The only calls are the device sign-in the person approves in their
  * browser, reads of the account, usage and device list, and the revoke of a credential the person chose
@@ -87,8 +90,17 @@ public final class CompilerAccountDialog extends JDialog {
     static final String THIS_MACHINE = " (this machine)";
     static final String DELETION_NOTE = "Deleting the account is not available in the app yet; ask the service's support.";
     static final List<String> ACCOUNT_ROWS = List.of("Account", "Type", "Your role", "Plan", "Status");
-    static final List<String> CREDIT_CAPTIONS = List.of("Remaining", "Used", "In progress", "Generations", "Failures");
+    /** The figures of each kind of credit, in order; Remaining is set larger. */
+    static final List<String> CREDIT_CAPTIONS = List.of("Remaining", "Used", "In progress", "Completed", "Failures");
+    /** The kinds of credit, one row each: compile ({@code /v1/generate}) and interpret ({@code /v1/model}). */
+    static final List<String> CREDIT_KINDS = List.of("Compile", "Interpret");
+    /** The plan's key limits, as rows under the Account rows. */
+    static final List<String> PLAN_ROWS = AccountDetails.PLAN_LIMITS;
     static final List<String> DEVICE_ROWS = List.of("Name", "Credential");
+    /** The devices view's width before any name is measured; {@link #fitNames} widens it to the widest name. */
+    static final int DEVICES_WIDTH = 520;
+    /** The widest the Name column grows to fit a name: past it, the dialog would leave the screen. */
+    static final int NAME_WIDTH_CAP = 900;
     /**
      * A device's creation time, to the minute, so devices made the same day can be told apart. The zone is UTC and the
      * column header says so, which leaves the width to the Name column (owner, 2026-10-26).
@@ -116,14 +128,23 @@ public final class CompilerAccountDialog extends JDialog {
     private final JPanel accountPanel = new JPanel();
     /** Value labels of the Account rows, in {@link #ACCOUNT_ROWS} order. */
     private final JLabel[] accountValues = values(ACCOUNT_ROWS.size());
-    /** Figures of the Credits row, in {@link #CREDIT_CAPTIONS} order; the first, Remaining, is set larger. */
-    private final JLabel[] creditValues = values(CREDIT_CAPTIONS.size());
+    /** Value labels of the plan's limits, in {@link #PLAN_ROWS} order, and their row labels (hidden with them). */
+    private final JLabel[] planValues = values(PLAN_ROWS.size());
+    private final JLabel[] planLabels = new JLabel[PLAN_ROWS.size()];
+    /** Said in place of the plan's limits when the service reported no capability profile. */
+    private final JLabel planUnavailable = UiText.label(AccountDetails.PLAN_DETAILS_UNAVAILABLE + ".");
+    /** Figures of the Credits rows: one row per {@link #CREDIT_KINDS}, in {@link #CREDIT_CAPTIONS} order. */
+    private final JLabel[][] creditValues = {values(CREDIT_CAPTIONS.size()), values(CREDIT_CAPTIONS.size())};
+    /** Said in place of a kind's figures when the service did not report that kind (interpret, on an older service). */
+    private final JLabel[] creditMissing = {UiText.label(" "), UiText.label(" ")};
     private final JLabel resetLine = UiText.label(" ");
     /** Value labels of the This device rows, in {@link #DEVICE_ROWS} order. */
     private final JLabel[] deviceValues = values(DEVICE_ROWS.size());
     private final DefaultTableModel deviceModel = new DefaultTableModel(new Object[]{"Name", "ID", "Kind", "Created (UTC)"}, 0) {
         @Override public boolean isCellEditable(int row, int column) { return false; }
     };
+    /** The devices table's view; its width follows the widest name, so a long machine name is never cut. */
+    private JScrollPane devicesScroll;
     private final JTable deviceTable = UiText.plainCells(new JTable(deviceModel) {
         @Override public String getToolTipText(java.awt.event.MouseEvent e) {
             int row = rowAtPoint(e.getPoint());
@@ -257,6 +278,9 @@ public final class CompilerAccountDialog extends JDialog {
         Rows rows = new Rows(accountPanel);
         rows.heading("Account", false);
         for (int i = 0; i < ACCOUNT_ROWS.size(); i++) rows.pair(ACCOUNT_ROWS.get(i), accountValues[i]);
+        for (int i = 0; i < PLAN_ROWS.size(); i++) planLabels[i] = rows.pair(PLAN_ROWS.get(i), planValues[i]);
+        UiTheme.status(planUnavailable);
+        rows.full(planUnavailable, 0);
         rows.heading("Credits", true);
         rows.full(creditFigures(), 0);
         UiTheme.status(resetLine);
@@ -281,8 +305,8 @@ public final class CompilerAccountDialog extends JDialog {
         fixColumn(3, Math.max(fm.stringWidth("2026-10-26 11:10"), fm.stringWidth("Created (UTC)")) + 12);
         deviceTable.getColumnModel().getColumn(0).setPreferredWidth(360);
         deviceTable.getSelectionModel().addListSelectionListener(e -> render());
-        JScrollPane devicesScroll = new JScrollPane(deviceTable);
-        devicesScroll.setPreferredSize(new Dimension(520, deviceTable.getRowHeight() * 3 + deviceTable.getTableHeader().getPreferredSize().height + 4));
+        devicesScroll = new JScrollPane(deviceTable);
+        devicesScroll.setPreferredSize(new Dimension(DEVICES_WIDTH, deviceTable.getRowHeight() * 3 + deviceTable.getTableHeader().getPreferredSize().height + 4));
         devicesScroll.setMinimumSize(new Dimension(200, deviceTable.getRowHeight() * 2 + deviceTable.getTableHeader().getPreferredSize().height + 4));
         rows.full(devicesScroll, 1);
         JPanel deviceButtons = new JPanel(new BorderLayout(UiTheme.SPACE_MD, 0));
@@ -322,6 +346,26 @@ public final class CompilerAccountDialog extends JDialog {
         return root;
     }
 
+    /**
+     * The Name column takes what the widest name and its "(this machine)" tag need, measured with the fonts in use, and
+     * the table's view widens to hold it beside the fixed columns. A fixed view width fit on one platform's fonts and
+     * cut the name on another's (CI's Linux fonts: 399px needed, 329px given), so nothing here is a constant. A name
+     * past {@link #NAME_WIDTH_CAP} is the one case cut, so a pathological name cannot widen the dialog off the screen.
+     */
+    private void fitNames() {
+        int widest = 0;
+        for (int r = 0; r < deviceTable.getRowCount(); r++)
+            widest = Math.max(widest, deviceTable.prepareRenderer(deviceTable.getCellRenderer(r, 0), r, 0).getPreferredSize().width);
+        int name = Math.min(NAME_WIDTH_CAP, widest + 2);
+        int fixed = 0;
+        for (int c = 1; c < deviceTable.getColumnCount(); c++) fixed += deviceTable.getColumnModel().getColumn(c).getPreferredWidth();
+        java.awt.Insets in = devicesScroll.getInsets();
+        int vertical = devicesScroll.getVerticalScrollBar().getPreferredSize().width;   // a third device adds the bar
+        int width = Math.max(DEVICES_WIDTH, name + fixed + in.left + in.right + vertical);
+        deviceTable.getColumnModel().getColumn(0).setPreferredWidth(Math.max(360, name));
+        devicesScroll.setPreferredSize(new Dimension(width, devicesScroll.getPreferredSize().height));
+    }
+
     private void fixColumn(int index, int width) {
         javax.swing.table.TableColumn c = deviceTable.getColumnModel().getColumn(index);
         c.setMinWidth(width);
@@ -334,28 +378,45 @@ public final class CompilerAccountDialog extends JDialog {
         group.add(b);
     }
 
-    /** The Credits row: each figure over its muted caption, Remaining first and set larger. */
+    /**
+     * The Credits rows: the captions once, then one row of figures per kind of credit (Compile, then Interpret), each
+     * led by its kind's name, Remaining set larger. A kind the service did not report says so across its row.
+     */
     private JPanel creditFigures() {
-        JPanel row = new JPanel(new GridBagLayout());
+        JPanel grid = new JPanel(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
-        c.anchor = GridBagConstraints.WEST;
+        c.anchor = GridBagConstraints.SOUTHWEST;
+        c.gridy = 0;
         for (int i = 0; i < CREDIT_CAPTIONS.size(); i++) {
-            JLabel v = creditValues[i];
-            Font f = v.getFont();
-            v.setFont(i == 0 ? f.deriveFont(Font.BOLD, f.getSize2D() * 1.5f) : f.deriveFont(Font.BOLD));
-            c.gridx = i;
-            c.gridy = 0;
-            c.anchor = GridBagConstraints.SOUTHWEST;
-            c.insets = new Insets(0, 0, 0, UiTheme.SPACE_LG + (i == 0 ? UiTheme.SPACE_SM : 0));
-            row.add(v, c);
-            c.gridy = 1;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            row.add(UiText.plain(muted(UiText.label(CREDIT_CAPTIONS.get(i)))), c);
+            c.gridx = i + 1;
+            c.insets = new Insets(0, 0, UiTheme.SPACE_XS, UiTheme.SPACE_LG + (i == 0 ? UiTheme.SPACE_SM : 0));
+            grid.add(UiText.plain(muted(UiText.label(CREDIT_CAPTIONS.get(i)))), c);
         }
-        c.gridx = CREDIT_CAPTIONS.size();
+        for (int k = 0; k < CREDIT_KINDS.size(); k++) {
+            c.gridy = k + 1;
+            c.gridx = 0;
+            c.gridwidth = 1;
+            c.insets = new Insets(0, 0, UiTheme.SPACE_XS, UiTheme.SPACE_LG);
+            grid.add(muted(UiText.label(CREDIT_KINDS.get(k))), c);
+            for (int i = 0; i < CREDIT_CAPTIONS.size(); i++) {
+                JLabel v = creditValues[k][i];
+                Font f = v.getFont();
+                v.setFont(i == 0 ? f.deriveFont(Font.BOLD, f.getSize2D() * 1.3f) : f.deriveFont(Font.BOLD));
+                c.gridx = i + 1;
+                c.insets = new Insets(0, 0, UiTheme.SPACE_XS, UiTheme.SPACE_LG + (i == 0 ? UiTheme.SPACE_SM : 0));
+                grid.add(v, c);
+            }
+            c.gridx = 1;
+            c.gridwidth = CREDIT_CAPTIONS.size();
+            UiTheme.status(creditMissing[k]);
+            grid.add(creditMissing[k], c);
+            c.gridwidth = 1;
+        }
+        c.gridx = CREDIT_CAPTIONS.size() + 1;
+        c.gridy = 0;
         c.weightx = 1;
-        row.add(Box.createHorizontalGlue(), c);
-        return row;
+        grid.add(Box.createHorizontalGlue(), c);
+        return grid;
     }
 
     /** Sections of aligned rows: a small heading, then muted labels in one column and values in the next. */
@@ -385,16 +446,18 @@ public final class CompilerAccountDialog extends JDialog {
             panel.add(h, c);
         }
 
-        void pair(String label, JLabel value) {
+        JLabel pair(String label, JLabel value) {
             GridBagConstraints c = constraints(0, 1);
             c.insets = new Insets(0, 0, UiTheme.SPACE_XS + 2, UiTheme.SPACE_LG);
-            panel.add(muted(UiText.label(label)), c);
+            JLabel name = muted(UiText.label(label));
+            panel.add(name, c);
             c = constraints(1, 1);
             c.weightx = 1;
             c.fill = GridBagConstraints.HORIZONTAL;
             c.insets = new Insets(0, 0, UiTheme.SPACE_XS + 2, 0);
             panel.add(value, c);
             y++;
+            return name;
         }
 
         void full(JComponent component, double weighty) {
@@ -503,18 +566,35 @@ public final class CompilerAccountDialog extends JDialog {
         accountPanel.setVisible(shows);
         if (shows) {
             setAll(accountValues, accountRows(me, usage, connected));
-            setAll(creditValues, usage == null ? List.of() : creditFigures(usage));
+            boolean limits = usage != null && usage.capabilities() != null;
+            setAll(planValues, limits ? AccountDetails.planLimits(usage.capabilities()) : List.of());
+            List<String> names = limits ? AccountDetails.planLimitLabels(usage.capabilities()) : PLAN_ROWS;
+            for (int i = 0; i < PLAN_ROWS.size(); i++) planLabels[i].setText(UiText.inert(names.get(i)));
+            for (int i = 0; i < PLAN_ROWS.size(); i++) {
+                planLabels[i].setVisible(limits);
+                planValues[i].setVisible(limits);
+            }
+            planUnavailable.setVisible(usage != null && !limits);
+            for (int k = 0; k < CREDIT_KINDS.size(); k++) {
+                Balance b = usage == null ? null : k == 0 ? usage.compile() : usage.interpret();
+                setAll(creditValues[k], b == null ? List.of() : creditFigures(b));
+                for (JLabel v : creditValues[k]) v.setVisible(b != null || usage == null);
+                creditMissing[k].setText(usage != null && b == null ? AccountDetails.INTERPRET_NOT_REPORTED + "." : " ");
+                creditMissing[k].setVisible(usage != null && b == null);
+            }
             resetLine.setText(usage == null ? " " : UiText.inert(resetText(usage)));
             setAll(deviceValues, deviceRows(connected.credentialId(), thisDeviceName()));
         }
         if (isDisplayable()) {
             revalidate();
+            grew |= getPreferredSize().width > getWidth();   // a device's longer name widens the view: never cut it
             if (grew || getPreferredSize().height > getHeight()) {   // the sign-in rows must not push the buttons off
                 Dimension pref = getPreferredSize();
                 setSize(Math.max(getWidth(), pref.width), Math.max(getHeight(), pref.height));
             } else if (shrank && !signingIn) {   // disconnected: no empty two-thirds; never while a sign-in is showing
                 setSize(getWidth(), Math.max(getMinimumSize().height, getPreferredSize().height));
             }
+            validate();   // lay out now: the devices' columns take their widths before anyone reads or paints them
             repaint();
         }
     }
@@ -697,6 +777,7 @@ public final class CompilerAccountDialog extends JDialog {
         deviceModel.setRowCount(0);
         String own = connected == null ? null : connected.credentialId();
         for (Device d : devices) deviceModel.addRow(deviceRow(d, d.credentialId().equals(own)));
+        fitNames();
     }
 
     private String thisDeviceName() {
@@ -861,16 +942,16 @@ public final class CompilerAccountDialog extends JDialog {
         List<String> out = new ArrayList<>(List.of(account, me == null ? "Not read" : me.type(),
                 me == null || me.role() == null ? "Unknown" : me.role()));
         if (u != null) {
-            out.add(u.plan());
+            out.add(u.planName());
             out.add(u.active() ? "Active" : "Inactive");
         }
         return out;
     }
 
-    /** The Credits figures, in {@link #CREDIT_CAPTIONS} order. */
-    static List<String> creditFigures(Usage u) {
-        return List.of(String.valueOf(u.available()), String.valueOf(u.consumed()), String.valueOf(u.reserved()),
-                String.valueOf(u.generations()), String.valueOf(u.failures()));
+    /** One kind's Credits figures, in {@link #CREDIT_CAPTIONS} order. */
+    static List<String> creditFigures(Balance b) {
+        return List.of(String.valueOf(b.available()), String.valueOf(b.consumed()), String.valueOf(b.reserved()),
+                String.valueOf(b.completed()), String.valueOf(b.failures()));
     }
 
     /** A plan without a next reset is a one-time allowance: said as such, never a guessed date. */
