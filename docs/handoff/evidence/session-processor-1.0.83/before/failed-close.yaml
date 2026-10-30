@@ -1,0 +1,23 @@
+---
+eventLogRecord: 
+    eventTime: 1793399589934
+    logTime: 1793399589934
+    groupingId: null
+    event: AssistantProfileObserved
+    eventToString: AssistantProfileObserved[profile=NONE]
+    thread: main
+    nodeLogs: 
+        - aiSetup: { thread: main, method: onProfileObserved, assistantProfile: NONE}
+        - startPagePrompt: { thread: main, method: onProfileObserved}
+    endTime: 1793399589935
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1793399589935
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=telamin.fluxtion.audit.analyser.analyser.session.SessionProcessorCompatibilityTest$$Lambda/0x000000700115a5e0@6e15fe2, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+    endTime: 1793399589935
+---

@@ -1,0 +1,4 @@
+audit-compare: docs/handoff/evidence/session-processor-1.0.83/after/failed-close.yaml: record structure breaks at line 13 of document 3: the field 'endTime' a second time. A value was written with a line break in it; the analyser reads such a record without its node logs, so no comparison of it can be trusted
+verdict: NOTHING TO COMPARE - a log could not be read, so no conclusion follows
+
+exit status: 2
