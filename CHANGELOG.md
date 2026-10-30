@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Offer Bash and PowerShell zero-install launch commands in the illustrated Claude quickstart, with Java 21 and the onboarding preview pinned; keep the plain JBang alternative.
+
 - Keep **Build with Claude Code**, **Explore a demo**, and **Connect another AI client** on the start page so setup can be resumed after installing or signing in.
 - Combine the Build path's Claude checks and Full-mode consent in one screen, then open the existing assistant composer. One **Send** starts the conversation; existing drafts and Full-mode settings are preserved.
 - Add a three-step illustrated Claude quickstart with a pinned onboarding-preview download and a real first-reply screenshot.

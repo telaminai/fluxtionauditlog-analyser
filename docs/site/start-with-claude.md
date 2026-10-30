@@ -2,14 +2,28 @@
 
 Open the analyser, enable Claude, then describe what you want to build.
 
-**Before you start:** install [JBang](https://www.jbang.dev/download/).
-The analyser will guide you through installing and signing in to Claude Code if needed.
+You can start without installing Java or JBang first. The launcher downloads what it needs;
+the analyser then guides you through installing and signing in to Claude Code if needed.
 
-**Preview:** the command below downloads the onboarding preview shown here. It is separate from the normal release.
+**Preview:** these commands download the onboarding preview shown here. It is separate from the normal release.
 
 ## 1. Open the analyser
 
-Paste this into your terminal:
+Choose one command for your terminal. Each starts the analyser with Java 21.
+
+**macOS / Linux (Bash), or Windows with a Bash shell:**
+
+```bash
+curl -fsSL https://sh.jbang.dev | bash -s - --java 21 https://github.com/telaminai/fluxtionauditlog-analyser/releases/download/v1.41.0-onboarding.1/fluxtion-auditlog-analyser.jar
+```
+
+**Windows PowerShell:**
+
+```powershell
+iex "& { $(iwr -useb https://ps.jbang.dev) } --java 21 https://github.com/telaminai/fluxtionauditlog-analyser/releases/download/v1.41.0-onboarding.1/fluxtion-auditlog-analyser.jar"
+```
+
+**Already have JBang, or prefer to [install it separately](https://www.jbang.dev/download/)?**
 
 ```bash
 jbang --java 21 https://github.com/telaminai/fluxtionauditlog-analyser/releases/download/v1.41.0-onboarding.1/fluxtion-auditlog-analyser.jar
@@ -17,6 +31,10 @@ jbang --java 21 https://github.com/telaminai/fluxtionauditlog-analyser/releases/
 
 Review JBang's trust prompt if it appears. In the analyser, click **Build with Claude Code**.
 This button stays on the start page when you return later.
+
+You can reuse the same command next time. The [zero-install launcher](https://www.jbang.dev/documentation/jbang/latest/installation.html#zero-install-curlbash-and-powershell)
+caches JBang under your home folder's `.jbang` directory; it does not add `jbang` to your PATH.
+Permanent command setup is optional; see [JBang installation](https://www.jbang.dev/documentation/jbang/latest/installation.html).
 
 ![The welcome screen with Build with Claude Code](assets/start-with-claude.png)
 

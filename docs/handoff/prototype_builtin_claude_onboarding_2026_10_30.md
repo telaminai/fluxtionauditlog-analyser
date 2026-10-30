@@ -11,8 +11,8 @@ The [illustrated quickstart](../site/start-with-claude.md) has three stages:
 2. Read the installation/authentication checks and Full-mode consent, then choose **Enable Claude Code**.
 3. Describe the application in the existing assistant composer and press **Send** once. Claude replies there.
 
-Only JBang is needed to open the analyser; its checks guide Claude Code installation and authentication before a
-conversation. JBang may ask to trust the download; an existing project may require folder trust. Creating a starter
+The guide offers JBang's zero-install launcher, which downloads JBang and Java as needed; its checks guide Claude
+Code installation and authentication before a conversation. JBang may ask to trust the download; an existing project may require folder trust. Creating a starter
 still requires review and a destination folder.
 The preview is an entry point to a conversation, not an unattended project build.
 
@@ -94,7 +94,8 @@ tests, 383 headless skips and zero failures/errors; strict MkDocs, the public-da
 At normal-release promotion, replace the quickstart's pinned preview URL with
 `jbang --fresh analyser@telaminai/fluxtionauditlog-analyser` only after the catalog's normal-release jar contains the
 illustrated flow. Verify its version and first-run path, recheck external setup links, and remove the preview notice
-with that change. Keep the pinned command while this remains a prerelease.
+with that change. Update the target in all three launch variants together, retaining Java 21.
+Keep the pinned commands while this remains a prerelease.
 
 A complete project created and built by a live Full-mode session still needs its authoring acceptance run, including
 template acquisition, bundled skills and the first evidence check. Starter proposal/review UI is covered by fixture
@@ -140,8 +141,8 @@ that change. This is an open release gate for the expansion, not implemented ver
 The current inline consent and illustrated guide already explain access beyond the
 working folder and `acceptEdits`. The guide explains the temporary working folder,
 project-folder trust, account usage charges, persistent choice and Off, and the
-review/open/restart/Send handoff after starter creation. JBang alone is required up
-front. The catalog alias replaces the pinned jar only at normal release.
+review/open/restart/Send handoff after starter creation. Zero-install commands remove the
+separate JBang prerequisite. The catalog alias replaces the pinned jar only at normal release.
 
 ### Desktop coverage map
 
@@ -175,3 +176,44 @@ Post-split validation (Java 21, generated processor restored to main):
 - Independent read-only agent review found no further defect in the split or new test;
   the regeneration audit-close blocker and remaining live/cross-platform/release gates
   stay open. Global consent versioning remains the future-expansion gate above.
+
+
+## Zero-install entry point (2026-10-30)
+
+The quickstart now starts with the documented Bash or PowerShell bootstrap command,
+with plain JBang alongside it for existing installations or a separately managed install.
+All three commands retain `--java 21` and the pinned preview URL. The normal-release
+catalog already declares `"java": "21+"`; it still points at the normal release, so
+switching this preview guide to the short alias would open the wrong flow.
+
+Sources checked: [JBang zero install](https://www.jbang.dev/documentation/jbang/latest/installation.html#zero-install-curlbash-and-powershell),
+[download page](https://www.jbang.dev/download/), and the launchers reached through
+[sh.jbang.dev](https://sh.jbang.dev) and [ps.jbang.dev](https://ps.jbang.dev).
+The guide explains download trust, caching under the home directory and optional
+permanent command setup. No PATH installation is performed by the documented launch.
+
+Measured smoke: the Bash pipeline on macOS, using a fresh temporary `JBANG_DIR` and
+an existing Java 21 installation, downloaded JBang **0.143.0**, displayed its trust
+prompt, accepted **Trust once**, and printed the preview's `--help` output identifying
+**1.41.0-onboarding.1**. The application help path returns before configuration or
+Swing initialization. This checks bootstrap, argument forwarding, trust interaction
+and artifact identity; it is **not** a no-Java clean-machine or first-window test.
+PowerShell syntax was checked against the official launcher but was not executed.
+
+The bootstrap currently defaults to Java 17 if no JDK exists; application selection
+with `--java 21` can require another JDK download. Include that in real first-run timing.
+The guide makes no under-five-minutes claim. Before normal release, complete this matrix
+on graphical machines with no Java/JBang installation or caches, recording OS/architecture,
+network conditions, trust interaction, elapsed time to first window and to first Claude reply:
+
+| Platform | Clean first-window / first-reply timing |
+|---|---|
+| macOS | Open; the existing-Java CLI smoke above does not satisfy this. |
+| Linux desktop | Open. |
+| Windows PowerShell; Windows Bash where supported | Open. |
+
+Validation: Java 21 `mvn -q test` passed with 4,100 executed tests, 384 display-dependent
+skips and zero failures/errors. Strict MkDocs passed; rendered HTML retains three stages
+and all three launcher blocks, with the preview target, Java option and PowerShell
+subexpression intact. Public-data and whitespace checks passed. This is documentation
+only; the previous 25-test desktop result is not presented as a new zero-install run.
