@@ -22,8 +22,9 @@ the checks screen, with Cancel as the default. Setup never starts Claude or send
 authentication retain the existing informational, unverified-key disclosure.
 
 The existing session processor owns the decisions; the UI renders the snapshot and performs requested effects.
-The processor was regenerated, with no graph-topology change in this correction. The route neither registers an
-external client nor enables external access. Existing external-access settings are preserved.
+The generated processor is unchanged from main in this PR. Regeneration with compiler 1.0.83 is isolated in a
+[separate draft PR #214](https://github.com/telaminai/fluxtionauditlog-analyser/pull/214) with its own compatibility evidence and revert path. The route neither registers an external
+client nor enables external access. Existing external-access settings are preserved.
 
 ## Review dispositions
 
@@ -36,12 +37,12 @@ external client nor enables external access. Existing external-access settings a
 | Authentication methods excluded by a new gate during revision | Removed that gate; `onboardingPreservesApiKeyAndHelperAuthenticationWithoutCallingItVerified` covers both key methods without claiming they were validated. |
 | Late apply acknowledgement could reopen a cancelled Build flow | `cancellingBuildBeforeItsApplyAcknowledgementDoesNotReopenTheComposer` holds the completion, cancels, then delivers it. |
 
-The independent follow-up review found no remaining runtime blocker. Its suggested late-acknowledgement coverage was
+The earlier independent follow-up review found no remaining onboarding runtime blocker. Its suggested late-acknowledgement coverage was
 added. Generic setup retains its separate Full confirmation; the dedicated inline-consent event is rejected outside
 the Build screen. A wrong-result witness deleted that origin guard: `inlineBuildConsentIsRefusedOutsideItsOwnScreen`
 failed at the assertion that no profile had been applied. The guard was restored before passing validation. A second witness removed the `wizardOpen` guard; the late-acknowledgement test failed at “must not reopen the composer”, then passed after restoration.
 
-## Validation
+## Validation before the review split
 
 - Java 21 versioned `mvn -q package`: 4,483 total, 4,100 executed passes, zero failures/errors, 383 headless skips.
 - Related display suites: 18 distinct tests passed with zero skips (`AiSetupWizardFrameTest` 6,
@@ -50,7 +51,7 @@ failed at the assertion that no profile had been applied. The guard was restored
   its expectation was updated to the persistent-entry contract, and all six tests in that suite passed on rerun.
 - Strict MkDocs build passed; the rendered guide has three stages and three screenshots. Documentation links,
   capture/asset checks and public-data checks are included in the passing package suite.
-- Processor regeneration succeeded; no generated-source diff in this correction.
+- The published preview included 1.0.83 regeneration. The current PR removes that regeneration; see the split below.
 - Repository public-data sweep and whitespace checks passed. The preview jar has the stamped manifest version
   and contains no capture helper. Its checksum is supplied as `SHA256SUMS`.
 
@@ -100,3 +101,77 @@ template acquisition, bundled skills and the first evidence check. Starter propo
 suites. Cross-platform first-time installation and the full normal-release CI/acceptance gates remain open. The preview
 does not claim those gates have passed. Publishing the guide to the main documentation site belongs with promotion;
 the branch-rendered GitHub guide is available from another machine now.
+
+
+## Review follow-up: isolated processor and cancellation during checks
+
+The generated Java and resource files are restored byte-for-byte to main (`6d51aa16`).
+The separate regeneration branch is `fix/session-processor-1.0.83` ([PR #214](https://github.com/telaminai/fluxtionauditlog-analyser/pull/214)), also based on main.
+The existing immutable `v1.41.0-onboarding.1` jar remains built from `b355d8dd` and
+therefore includes **both** the onboarding and regeneration changes. Its live reply
+and screenshots are preview evidence, not an execution of the newly isolated PR tree.
+Do not infer that the preview resolves the regeneration's audit-close issue.
+
+`cancelDuringChecksThenReturnThroughBuildPreservesDraftAndSettings` holds the real
+background auth-probe boundary, cancels while it is pending, reopens Build, lets the
+new check succeed, then delivers the old negative result. The displayed result stays
+signed in, the old result is recorded as stale, the draft/model/permission settings
+survive, and only explicit consent changes the permission mode. No AI session starts.
+
+Wrong-result witness: temporarily remove the auth probe identity guard. The old negative
+result replaces the new result with `NOT_SIGNED_IN`, and this test fails. The guard
+was restored before final validation. Initial runs with only an `argLine` override
+were skipped by Maven; they are excluded from desktop evidence. The verified display
+command uses `-Djava.awt.headless=false`, and report XML must show zero skips.
+
+### Consent scope and future changes
+
+Saved Full-mode permission has **no global consent version today**. Returning users
+keep their existing choice; editing the global consent text alone will not re-prompt.
+Folder trust separately fingerprints the working folder's trust inputs and rechecks
+changed inputs. These mechanisms must not be described as equivalent.
+
+This PR uses the existing Full scope. Before any future material expansion of access,
+add a persisted consent version and require a fresh explicit click for older or missing
+versions before launching Full. Ordinary wording fixes should not reset consent.
+Include migration, cancellation, returning-user and no-launch-before-consent tests in
+that change. This is an open release gate for the expansion, not implemented versioning.
+
+The current inline consent and illustrated guide already explain access beyond the
+working folder and `acceptEdits`. The guide explains the temporary working folder,
+project-folder trust, account usage charges, persistent choice and Off, and the
+review/open/restart/Send handoff after starter creation. JBang alone is required up
+front. The catalog alias replaces the pinned jar only at normal release.
+
+### Desktop coverage map
+
+The earlier 383 headless skips were display-dependent tests across the application;
+they were not 383 failed onboarding tests. The previous 18-test display selection
+covered these onboarding routes; the new cancellation test and existing folder/tool
+consent suites extend it:
+
+| Display suite | What it checks |
+|---|---|
+| `AiSetupWizardFrameTest` | Build inline Full consent with Cancel default, one Send, draft preservation; cancel/restart; cancel during checks and stale result; generic setup and responsive layouts. |
+| `AiSetupClientFrameTest` | Existing external-client path, registration and external-access confirmation/cancellation. |
+| `QuickSwitchFrameTest` | Separate Full confirmation, Cancel default and unchanged settings on cancel; profile settings and Off. |
+| `SafeChoiceFrameTest` | Real Full folder-trust, Safe folder and tool-approval dialogs share safe defaults and button order. |
+| `LocalAgentPermissionFrameTest` | Real tool-approval dialog default/keyboard behavior, delayed Allow, missing wording, deny/allow/Stop in the frame. |
+| `StarterProposalFrameTest`, `StarterProposalVisibleFrameTest` | Starter review, safe destination validation and visible proposal flow. |
+
+State-machine witnesses for origin guards and late acknowledgements remain headless
+by design, alongside actual desktop consent checks. This coverage is not a claim that
+all skipped desktop tests have run, or that a live first project has been built.
+
+Post-split validation (Java 21, generated processor restored to main):
+
+- `mvn -q test`: 4,484 total; 4,100 executed passes, 384 display-dependent skips,
+  zero failures/errors. The added display test accounts for the extra headless skip.
+- Display command: `mvn -q -Djava.awt.headless=false -Dtest=AiSetupWizardFrameTest,AiSetupClientFrameTest,QuickSwitchFrameTest,StarterProposalFrameTest,StarterProposalVisibleFrameTest,SafeChoiceFrameTest,LocalAgentPermissionFrameTest test` under the shared display lock and isolated fixture homes.
+  **25 tests passed, zero failures/errors/skips**: 7 + 4 + 2 + 5 + 1 + 2 + 4 respectively.
+  The XML reports, not only Maven's exit code, were checked for skips.
+- The stale-probe wrong-result witness failed with `NOT_SIGNED_IN`; restored checks pass.
+- Strict MkDocs, the public-data sweep and whitespace checks passed.
+- Independent read-only agent review found no further defect in the split or new test;
+  the regeneration audit-close blocker and remaining live/cross-platform/release gates
+  stay open. Global consent versioning remains the future-expansion gate above.

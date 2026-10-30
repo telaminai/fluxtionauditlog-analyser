@@ -4,6 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FixtureAgent;
+import telamin.fluxtion.audit.analyser.analyser.assistant.setup.ClaudeProbes;
+import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice;
@@ -36,6 +38,8 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -269,6 +273,76 @@ class AiSetupWizardFrameTest {
             r.await(s -> !s.open(), "composer after setup");
             r.await(s -> r.assistant().composerArea().isShowing(), "composer visible");
             assertTrue(r.agent.processes.isEmpty());
+        }
+    }
+
+    @Test
+    void cancelDuringChecksThenReturnThroughBuildPreservesDraftAndSettings(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        CountDownLatch checking = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger authCalls = new AtomicInteger();
+        try (Robot r = new Robot(tmp, 1200, 800)) {
+            r.await(AiSetupState::firstRun, "first welcome");
+            AppConfig config = (AppConfig) field(r.frame, "config");
+            onEdt(() -> {
+                r.assistant().composerArea().setText("DEMO draft to keep");
+                config.claudeCodeModel = "opus";
+                config.claudeCodeFullMode = "default";
+                r.frame.setupRunnerForTest = (command, extra, removed, dir, timeout) -> {
+                    if (command.contains("--version")) return new ClaudeProbes.Ran(0, "2.1.282 (Claude Code)", false);
+                    if (authCalls.incrementAndGet() == 1) {
+                        checking.countDown();
+                        try {
+                            if (!release.await(20, TimeUnit.SECONDS)) throw new java.io.IOException("DEMO probe not released");
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new java.io.IOException(e);
+                        }
+                        // A late, negative answer from the cancelled visit must not replace the new result.
+                        return new ClaudeProbes.Ran(0, "{\"loggedIn\":false}", false);
+                    }
+                    return new ClaudeProbes.Ran(0, "{\"loggedIn\":true,\"authMethod\":\"claude.ai\"}", false);
+                };
+            });
+            try {
+                r.act(() -> button(r.start(), AiSetupLines.ONBOARD_BUILD).doClick());
+                assertTrue(checking.await(10, TimeUnit.SECONDS), "the auth check is actually in flight");
+                assertEquals(AiSetupState.SignedIn.RUNNING, r.setup().signedIn().verdict(), "cancel while checking");
+                r.act(() -> r.window().cancelButton().doClick());
+                r.await(s -> !s.open(), "cancel during checks");
+                onEdt(() -> {
+                    assertEquals("DEMO draft to keep", r.assistant().draftText());
+                    assertEquals("opus", config.claudeCodeModel);
+                    assertEquals("default", config.claudeCodeFullMode);
+                    assertFalse(config.claudeCodeAllowed || config.claudeCodeFull || config.assistantActionsRest);
+                    assertTrue(button(r.start(), AiSetupLines.ONBOARD_BUILD).isShowing());
+                });
+                r.act(() -> button(r.start(), AiSetupLines.ONBOARD_BUILD).doClick());
+                r.await(s -> s.buildOnboarding() && s.signedIn().verdict() == AiSetupState.SignedIn.SIGNED_IN,
+                        "new checks complete after returning");
+                release.countDown();
+                r.await(s -> r.session().auditSink().matching("staleFact: ClaudeAuthObserved").size() == 1,
+                        "the cancelled check arrives and is rejected");
+                assertEquals(AiSetupState.SignedIn.SIGNED_IN, r.setup().signedIn().verdict());
+                onEdt(() -> {
+                    assertEquals("DEMO draft to keep", r.assistant().draftText());
+                    assertEquals("opus", config.claudeCodeModel);
+                    assertEquals("default", config.claudeCodeFullMode);
+                    assertFalse(config.claudeCodeAllowed || config.claudeCodeFull || config.assistantActionsRest);
+                    assertSame(r.window().cancelButton(), r.window().getRootPane().getDefaultButton());
+                });
+                r.act(() -> r.window().primaryButton().doClick());
+                r.await(s -> !s.open(), "explicit consent opens the composer");
+                onEdt(() -> {
+                    assertEquals("DEMO draft to keep", r.assistant().draftText());
+                    assertEquals("opus", config.claudeCodeModel);
+                    assertEquals("acceptEdits", config.claudeCodeFullMode, "only consent changes the mode");
+                });
+                assertTrue(r.agent.processes.isEmpty(), "returning and consenting never send the draft");
+            } finally {
+                release.countDown();
+            }
         }
     }
 
