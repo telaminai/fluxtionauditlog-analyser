@@ -11,8 +11,9 @@ The [illustrated quickstart](../site/start-with-claude.md) has three stages:
 2. Read the installation/authentication checks and Full-mode consent, then choose **Enable Claude Code**.
 3. Describe the application in the existing assistant composer and press **Send** once. Claude replies there.
 
-JBang and an authenticated Claude Code installation are prerequisites. JBang may ask to trust the download; an
-existing project may require folder trust. Creating a starter still requires review and a destination folder.
+Only JBang is needed to open the analyser; its checks guide Claude Code installation and authentication before a
+conversation. JBang may ask to trust the download; an existing project may require folder trust. Creating a starter
+still requires review and a destination folder.
 The preview is an entry point to a conversation, not an unattended project build.
 
 Build, Demo and Connect remain on the start page after dismissal or restart. A returning Full-mode user goes directly
@@ -79,6 +80,20 @@ an output directory and optionally `--live`. Never add the capture class to a di
 inventory with `python3 tools/docs_assets_inventory.py` after updating images.
 
 ## Remaining before promotion to the normal release
+
+A documentation review follow-up keeps the three stages and explains the existing install/sign-in controls,
+`acceptEdits` versus `default`, access beyond the working folder, usage on the person's own Claude/API account,
+persistent settings and the Off switch. It identifies the initial temporary working folder and the later project
+folder, and retains the review, restart and Send steps after starter creation. No automatic build is promised.
+The Claude quickstart and the application's legacy installation-help URL were checked on 2026-10-30: both returned
+HTTP 200, with the latter redirecting to the current setup page. This follow-up changes documentation only;
+the published preview binary remains built from `b355d8dd`. Java 21 `mvn -q test` passed again with 4,100 executed
+tests, 383 headless skips and zero failures/errors; strict MkDocs, the public-data sweep and whitespace checks passed.
+
+At normal-release promotion, replace the quickstart's pinned preview URL with
+`jbang --fresh analyser@telaminai/fluxtionauditlog-analyser` only after the catalog's normal-release jar contains the
+illustrated flow. Verify its version and first-run path, recheck external setup links, and remove the preview notice
+with that change. Keep the pinned command while this remains a prerelease.
 
 A complete project created and built by a live Full-mode session still needs its authoring acceptance run, including
 template acquisition, bundled skills and the first evidence check. Starter proposal/review UI is covered by fixture
