@@ -4,6 +4,9 @@ Requires **JDK 21+**. The app is a single self-contained jar (FlatLaf is bundled
 
 ## JBang (recommended)
 
+No JBang yet? `curl -Ls https://sh.jbang.dev | bash -s - app setup` (or `brew install jbangdev/tap/jbang`;
+Windows: [jbang.dev/download](https://www.jbang.dev/download/)). It fetches a JDK if you have none.
+
 ```bash
 # run the latest release
 jbang analyser@telaminai/fluxtionauditlog-analyser
