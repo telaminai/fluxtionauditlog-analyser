@@ -68,7 +68,7 @@ planned and not built.
 !!! info "Simplified first-run welcome: prototype"
     On a fresh profile, the onboarding prototype shows **Build with Claude Code**, **Explore a demo** and
     **Connect another AI client** in place of the numbered prompt list until setup is chosen or dismissed.
-    [Build your first application](../start-with-claude.md) walks through it. The published release still uses the
+    [Start with Claude](../start-with-claude.md) walks through it with screenshots. The published release still uses the
     first-run AI question described below.
 
 The page asks the assistant you last chose on the Assistant tab (remembered on this machine only). **Claude Code can

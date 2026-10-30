@@ -2,8 +2,8 @@
 
 Requires **JDK 21+**. The app is a single self-contained jar (FlatLaf is bundled) — no installer.
 
-**Building your first application?** Follow [Build your first application with Claude](start-with-claude.md) for
-the launch command, Claude setup and the first project. The built-in session connects automatically.
+**Building your first application?** Follow [Start with Claude](start-with-claude.md) for
+the launch command and six illustrated steps. The built-in session connects automatically.
 
 ## JBang (recommended)
 

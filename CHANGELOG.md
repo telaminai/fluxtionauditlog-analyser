@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Simplify the built-in Claude quickstart to six steps, each illustrated with a screenshot of the control to use.
+
 - Add a website quickstart for building with Claude inside the analyser, covering JBang, setup, starter review and the first evidence check; label the new welcome screen as a prototype.
 
 - Prototype first-run choices: build with the built-in Claude Code session, explore a demo, or connect another client. The build path checks Claude directly, retains Full-mode consent, and returns to the application prompt without enabling external access.

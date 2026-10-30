@@ -95,3 +95,20 @@ The recommended audience is a developer with Claude Code installed and signed in
 for everyone else. Before promoting this as the default entry point, complete the live Full-mode first-project
 acceptance, simplify the draft-and-send transitions, and remove the preview notice only with a release that includes
 the new screen. A one-line launch is not a claim that prerequisites, consent or project review disappear.
+
+
+## Simplified illustrated guide
+
+The quickstart now covers one path in six short steps: launch and choose Build, check Claude, confirm Full mode,
+choose Describe, enter an idea, and Send. Advanced setup details and the alternate release workflow are linked
+rather than interleaved with the instructions. The preview notice remains until the new welcome screen is released.
+
+Six fresh screenshots were captured against the existing built jar by `tools/OnboardingDocCapture.java`, using a
+fresh isolated analyser home and a DEMO-only executable for the install/sign-in checks. No Claude session was started
+and no message was sent. The capture follows the real setup actions and paints the relevant Swing components with
+their parent backgrounds, without image editing. The example text matches the guide. Every image was visually
+inspected; the input action and Send button are legible. The capture tool can regenerate them.
+
+Validation: the strict MkDocs build passed; the rendered page contains six step headings and six screenshots.
+All 32 focused documentation, asset and capture-harness checks passed with no skips. The public-data
+sweep and staged whitespace check passed. Application code and the runnable jar are unchanged.

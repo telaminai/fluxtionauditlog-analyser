@@ -136,7 +136,7 @@ nav:
           - The Project panel: user-guide/project-panel.md
   - Build with Claude:
       - build/index.md
-      - Build your first application: start-with-claude.md
+      - Start with Claude: start-with-claude.md
       - Set up a project with Claude: build/set-up-with-claude.md
       - Check your criteria against the evidence: build/validate-intent.md
       - Spring authoring: spring-authoring.md
