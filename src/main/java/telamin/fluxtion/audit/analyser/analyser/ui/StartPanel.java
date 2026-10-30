@@ -122,6 +122,9 @@ public final class StartPanel extends JPanel {
         /** The AI line's Set up AI… / Change…. */
         default void openSetUpAi() { }
 
+        default void onboardBuild() { openSetUpAi(); }
+        default void onboardClient() { openClientSetUp(); }
+
         /**
          * M77-4 (§14.4, OD-77.12): a door about your own AI client — a no-AI fallback's <i>Connect</i> button. It opens
          * Set up AI (at Your own AI client when one is set up); the client dialog is behind its More options….
@@ -196,13 +199,11 @@ public final class StartPanel extends JPanel {
         };
         this.prompt = new StartPromptView(promptHost);
         this.aiSetup = new AiSetupBlock(new AiSetupBlock.Host() {
-            @Override public void choose(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice c) {
-                actions.setUpAiChoose(c);
-            }
-            @Override public void proceed() { actions.setUpAiContinue(); }
+            @Override public void build() { actions.onboardBuild(); }
+            @Override public void demo() { actions.openGuidedTour(); }
+            @Override public void client() { actions.onboardClient(); }
             @Override public void notNow() { actions.setUpAiNotNow(); }
             @Override public void open() { actions.openSetUpAi(); }
-            @Override public void alsoTurnOff(boolean on) { actions.setUpAiAlsoTurnOff(on); }
             @Override public void turnOffAccess() { actions.setUpAiTurnOffAccess(); }
         });
         setOpaque(true);
@@ -303,6 +304,12 @@ public final class StartPanel extends JPanel {
     public void renderAiSetup(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState state) {
         aiSetup.render(state);
         prompt.setAiLineSaysIt(aiSetup.isVisible());
+        prompt.setVisible(state == null || !state.firstRun());
+    }
+
+    /** Reveal the existing Build prompt without sending or replacing the person's draft. */
+    void describeApplication() {
+        prompt.chooseBuild();
     }
 
     AiSetupBlock aiSetupBlock() {

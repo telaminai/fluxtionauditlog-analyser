@@ -217,6 +217,51 @@ class AiSetupWizardFrameTest {
         ImageIO.write(img, "png", out.toFile());
     }
 
+    @Test
+    void onboardBuildReachesTheComposerWithoutExternalRegistration(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (Robot r = new Robot(tmp, 1200, 800)) {
+            r.await(AiSetupState::firstRun, "onboarding");
+            onEdt(() -> r.frame.fullProfileConfirmModal = false);
+            shot(r.frame, "onboarding-1-start");
+            r.act(() -> button(r.start(), AiSetupLines.ONBOARD_BUILD).doClick());
+            r.await(s -> s.signedIn().verdict() == AiSetupState.SignedIn.SIGNED_IN, "Claude checks");
+            assertEquals(Step.INSIDE, r.setup().step());
+            assertEquals(AiSetupState.Posture.FULL, r.setup().posture());
+            assertTrue(r.agent.processes.isEmpty(), "setup has not started an AI session");
+            shot(r.window(), "onboarding-2-checked");
+            r.act(() -> r.window().primaryButton().doClick());
+            SafeChoice.Asked consent = QuickSwitchFrameTest.awaitConfirmation(r.frame);
+            assertTrue(r.agent.processes.isEmpty(), "consent must precede any AI session");
+            shot(consent.dialog(), "onboarding-3-consent");
+            r.act(() -> consent.riskyButton().doClick());
+            r.await(s -> s.step() == Step.SUMMARY, "build ready");
+            assertEquals(AiSetupState.Suggested.BUILD, r.setup().suggested());
+            shot(r.window(), "onboarding-4-ready");
+            r.act(() -> r.window().suggestedButton().doClick());
+            r.await(s -> !s.open(), "describe application");
+            onEdt(() -> {
+                assertEquals("S7", r.start().prompt().chosen().id());
+                assertTrue(r.start().prompt().box().isShowing());
+                r.start().prompt().box().setText("Help me create a small order-alert application. Ask what events and rules I need first.");
+            });
+            shot(r.frame, "onboarding-5-describe");
+            r.act(() -> r.start().prompt().actionButton().doClick());
+            UnifiedAssistantFrameTest.awaitMode(r.frame, AssistantMode.LOCAL_AGENT);
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            String[] draft = new String[1];
+            do {
+                onEdt(() -> draft[0] = r.assistant().draftText());
+                if (draft[0].contains("order-alert")) break;
+                Thread.sleep(40);
+            } while (System.nanoTime() < until);
+            assertTrue(draft[0].contains("order-alert"), "the user's requirements reach the assistant");
+            assertTrue(r.agent.processes.isEmpty(), "placing the question is not sending it");
+            assertFalse(((telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(r.frame, "config")).assistantActionsRest);
+            shot((Component) SwingUtilities.getWindowAncestor(r.assistant()), "onboarding-6-composer");
+        }
+    }
+
     // ---- ★ T19: the robot walkthrough ----------------------------------------------------------------------------
 
     /**
@@ -363,7 +408,7 @@ class AiSetupWizardFrameTest {
             shot(r.frame, "start-first-run");
             onEdt(() -> { r.frame.setSize(640, 800); r.frame.validate(); });
             onEdt(() -> { });
-            onEdt(() -> assertTrue(r.start().aiSetupBlock().proceedButton().isShowing(), "the block's Continue at 640 px"));
+            onEdt(() -> assertTrue(r.start().aiSetupBlock().proceedButton().isShowing(), "the build button at 640 px"));
             shot(r.frame, "start-first-run-narrow");
             onEdt(() -> { r.frame.setSize(1200, 800); r.frame.validate(); });
             onEdt(() -> r.start().aiSetupBlock().notNowButton().doClick());

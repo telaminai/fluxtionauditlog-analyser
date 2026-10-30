@@ -552,6 +552,7 @@ final class AiSetupWindow extends JDialog {
         }
         content.add(text("• " + AiSetupLines.SUMMARY_CHANGE));
         content.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+        if (s.suggested() == AiSetupState.Suggested.BUILD) content.add(text(AiSetupLines.BUILD_NEXT));
         if (s.suggested() == AiSetupState.Suggested.RIGHT_CLICK) {
             content.add(text(AiSetupLines.RIGHT_CLICK_TO_ASK));
         }
@@ -848,6 +849,7 @@ final class AiSetupWindow extends JDialog {
         if (suggestedButton != null) right.remove(suggestedButton);
         suggestedButton = null;
         String suggested = switch (s.suggested()) {
+            case BUILD -> AiSetupLines.DESCRIBE_APPLICATION;
             case OPEN_SAMPLE -> AiSetupLines.SUGGEST_SAMPLE;
             case TOUR -> AiSetupLines.SUGGEST_TOUR;
             case COPY_QUESTION -> AiSetupLines.SUGGEST_COPY_QUESTION;

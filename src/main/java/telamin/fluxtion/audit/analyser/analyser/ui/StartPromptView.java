@@ -690,6 +690,16 @@ public final class StartPromptView extends JPanel {
         repaint();
     }
 
+    void chooseBuild() {
+        for (int i = 0; i < model.size(); i++) {
+            if ("S7".equals(model.get(i).id())) {
+                choose(i);
+                box.requestFocusInWindow();
+                return;
+            }
+        }
+    }
+
     void unchoose() {
         chosen = null;
         renderChip();

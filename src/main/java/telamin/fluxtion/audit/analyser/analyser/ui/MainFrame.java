@@ -4993,6 +4993,14 @@ public final class MainFrame extends JFrame {
             @Override public void setUpAiNotNow() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupFirstRunDismissed());
             }
+            @Override public void onboardBuild() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(
+                        telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.ONBOARD_BUILD));
+            }
+            @Override public void onboardClient() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(
+                        telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.ONBOARD_CLIENT));
+            }
             @Override public void openSetUpAi() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.START_LINE));
             }
@@ -12721,6 +12729,10 @@ public final class MainFrame extends JFrame {
         switch (e.suggested()) {
             case OPEN_SAMPLE -> SwingUtilities.invokeLater(() -> openSampleProject());
             case TOUR -> SwingUtilities.invokeLater(() -> openSampleProject(true));
+            case BUILD -> SwingUtilities.invokeLater(() -> {
+                showStartPage();
+                startPanel.describeApplication();
+            });
             default -> { }
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(), "suggested");

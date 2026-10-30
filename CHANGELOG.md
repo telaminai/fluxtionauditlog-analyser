@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Prototype first-run choices: build with the built-in Claude Code session, explore a demo, or connect another client. The build path checks Claude directly, retains Full-mode consent, and returns to the application prompt without enabling external access.
+
 ## [1.40.0] - 2026-10-27
 
 ### Added

@@ -43,14 +43,14 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
      * The Summary's one suggested first action (§6.4). Nothing it does sends anything: it opens the sample, starts the
      * guided tour, or only says where to ask.
      */
-    public enum Suggested { NONE, OPEN_SAMPLE, RIGHT_CLICK, TOUR, COPY_QUESTION }
+    public enum Suggested { NONE, OPEN_SAMPLE, RIGHT_CLICK, TOUR, COPY_QUESTION, BUILD }
 
     /**
      * Why the wizard opened (§8.2). {@link #CONNECT} (M77-4, §14.4) is a door about your own client — AI ▸ Set up AI…,
      * the panel's <i>Connect a CLI assistant</i>, a start-page <i>Connect</i> fallback: it opens at Screen 2b when the
      * choice in force includes a client.
      */
-    public enum Origin { NONE, FIRST_RUN, MENU, START_LINE, SEND, ASK, SETTINGS, CONNECT }
+    public enum Origin { NONE, FIRST_RUN, MENU, START_LINE, SEND, ASK, SETTINGS, CONNECT, ONBOARD_BUILD, ONBOARD_CLIENT }
 
     /** The screen (§6). */
     public enum Step { CHOICE, INSIDE, CLIENT, OTHER, SUMMARY }

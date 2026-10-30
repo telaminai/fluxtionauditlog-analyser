@@ -667,6 +667,18 @@ public class AiSetup implements EventLogSource {
     public boolean onSetupRequested(SessionEvents.AiSetupRequested e) {
         Origin why = e.origin() == null ? Origin.MENU : e.origin();
         Choice inForce = inForce();
+        if (!wizardOpen && why == Origin.ONBOARD_BUILD) {
+            firstRunDismissed = true;
+            openWizard(why, Choice.INSIDE, Step.INSIDE);
+            startInstalledProbe();
+            return changed();
+        }
+        if (!wizardOpen && why == Origin.ONBOARD_CLIENT) {
+            firstRunDismissed = true;
+            openWizard(why, inForce == Choice.INSIDE || inForce == Choice.BOTH ? Choice.BOTH : Choice.CLIENT, Step.CLIENT);
+            enterClient();
+            return changed();
+        }
         if (why == Origin.CONNECT && !wizardOpen && (inForce == Choice.CLIENT || inForce == Choice.BOTH)) {
             openWizard(why, inForce, Step.CLIENT);
             enterClient();
@@ -694,7 +706,7 @@ public class AiSetup implements EventLogSource {
         // confirmation is still asked at Finish (apply's ConfirmFullProfileEffect), nothing is applied before it.
         // Owner follow-up (2026-10-18): in Claude Code's own acceptEdits mode, so an authoring run does not ask for every
         // edit (the live walk: 14 approvals under default); command approvals follow the CLI's rules and mode
-        if (authoringWaiting) {
+        if (authoringWaiting || why == Origin.ONBOARD_BUILD) {
             posture = Posture.FULL;
             fullMode = AiSetupLines.BUILD_FULL_MODE;
             buildModePreselected = true;
@@ -983,6 +995,9 @@ public class AiSetup implements EventLogSource {
     /** §7.3: the suggested first action, from the choice in force and whether a log is open. */
     private AiSetupState.Suggested suggested() {
         if (!wizardOpen || step != Step.SUMMARY) return AiSetupState.Suggested.NONE;
+        if (origin == Origin.ONBOARD_BUILD && AssistantProfile.valueOf(profile) == AssistantProfile.FULL) {
+            return AiSetupState.Suggested.BUILD;
+        }
         return switch (inForce()) {
             case INSIDE, BOTH, IN_APP -> openLog != null && openLog.isOpen() ? AiSetupState.Suggested.RIGHT_CLICK
                     : AiSetupState.Suggested.OPEN_SAMPLE;

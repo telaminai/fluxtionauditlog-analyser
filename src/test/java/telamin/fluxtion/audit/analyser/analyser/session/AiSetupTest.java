@@ -55,6 +55,62 @@ class AiSetupTest {
                 AiSetupState.Method.CLAUDE_AI, AiSetupState.Plan.MAX, AiSetupState.KeySource.NONE));
     }
 
+    @Test
+    void onboardingBuildRequiresConsentAndNeverRegistersAnExternalClient() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        d.post(new SessionEvents.AiSetupRequested(Origin.ONBOARD_BUILD));
+        assertEquals(Step.INSIDE, setup(d).step());
+        assertEquals(Choice.INSIDE, setup(d).choice());
+        assertEquals(Posture.FULL, setup(d).posture());
+        assertFalse(setup(d).firstRun());
+        assertTrue(a.claudeProbes.getLast().full());
+        assertTrue(a.profileApplies.isEmpty(), "opening setup does not enable Claude");
+        found(d, a);
+        signedIn(d, a);
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
+        assertEquals(1, a.fullConfirms.size());
+        assertTrue(a.profileApplies.isEmpty(), "Full still requires its explicit confirmation");
+        d.post(new SessionEvents.AssistantFullProfileAnswered(a.fullConfirms.getLast().request(), true));
+        assertEquals(AssistantProfile.FULL, d.snapshot().profiles().profile());
+        assertEquals(AiSetupState.Suggested.BUILD, setup(d).suggested());
+        d.post(new SessionEvents.AiSetupSuggestedTaken(AiSetupState.Suggested.BUILD));
+        assertEquals(AiSetupState.Suggested.BUILD, a.suggestedRuns.getLast().suggested());
+        assertFalse(setup(d).open());
+        assertTrue(a.accessAsks.isEmpty());
+        assertTrue(a.accessWrites.isEmpty());
+        assertTrue(a.registerRuns.isEmpty());
+        assertTrue(a.agentStarts.isEmpty(), "setup and navigation must never start Claude");
+    }
+
+    @Test
+    void onboardingCancelAndMissingClaudeLeavePermissionsAlone() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, false);
+        d.post(new SessionEvents.AiSetupRequested(Origin.ONBOARD_BUILD));
+        var probe = a.claudeProbes.getLast();
+        d.post(new SessionEvents.ClaudeObserved(probe.probe(), SessionEvents.ProbeOutcome.NOT_FOUND, "", 0));
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
+        assertTrue(a.profileApplies.isEmpty());
+        assertTrue(a.fullConfirms.isEmpty());
+        d.post(new SessionEvents.AiSetupCancelled("onboarding"));
+        assertFalse(setup(d).open());
+        assertTrue(a.accessAsks.isEmpty());
+        assertTrue(a.registerRuns.isEmpty());
+    }
+
+    @Test
+    void onboardingExternalChoiceOpensClientScreenWithoutEnablingAccess() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        d.post(new SessionEvents.AiSetupRequested(Origin.ONBOARD_CLIENT));
+        assertEquals(Step.CLIENT, setup(d).step());
+        assertEquals(Choice.CLIENT, setup(d).choice());
+        assertTrue(a.accessAsks.isEmpty());
+        assertTrue(a.registerRuns.isEmpty());
+        assertTrue(a.profileApplies.isEmpty());
+    }
+
     // ---- ★ T1: each choice writes the right settings, and the derived choice round-trips ----------------------------
 
     /**
