@@ -9,9 +9,10 @@ the chip reads **Set up AI…**.
 
 **Set up AI…** is the one place to choose how AI works with the analyser. It is the last item of the mode chip's quick switch,
 first in the **AI** menu (which opens it at *Your own AI client* when one is set up), at the top of *Settings ▸
-Assistant*, and on the start page's AI line. On a first run the start page asks the same question inline, as part of
-the page: **How do you want AI to work with the analyser?** It is offered once — to a new installation and to one
-upgraded with nothing set up alike; after that the page shows the one AI line, which keeps the same door.
+Assistant*, and on the start page's AI line. The start page keeps **Build with Claude Code**, **Explore a demo** and
+**Connect another AI client** available after setup or dismissal. **More AI options…** opens the full setup choices
+below. The [Build quickstart](../start-with-claude.md) combines Claude checks and Full-mode consent, then opens the
+composer; the general setup route retains its Safe/Full choice and separate Full confirmation.
 
 - **No AI**: everything works without AI — records, topology, charts, reports, walks and the tour.
 - **Your own AI client connects**: Claude Code, Codex or another AI app that can connect to the analyser, in your

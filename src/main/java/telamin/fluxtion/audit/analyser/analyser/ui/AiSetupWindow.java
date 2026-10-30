@@ -60,6 +60,8 @@ final class AiSetupWindow extends JDialog {
 
         void proceed(Step step, boolean keyEntered);
 
+        default void enableBuild() { proceed(Step.INSIDE, false); }
+
         void back(Step step);
 
         void cancel();
@@ -239,7 +241,10 @@ final class AiSetupWindow extends JDialog {
 
         back.addActionListener(e -> host.back(state.step()));
         cancel.addActionListener(e -> host.cancel());
-        primary.addActionListener(e -> host.proceed(state.step(), inApp.keyEntered()));
+        primary.addActionListener(e -> {
+            if (state.buildOnboarding()) host.enableBuild();
+            else host.proceed(state.step(), inApp.keyEntered());
+        });
 
         JRootPane root = getRootPane();
         root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "setup-cancel");
@@ -483,6 +488,16 @@ final class AiSetupWindow extends JDialog {
         content.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
 
         // the sub-question
+        if (s.buildOnboarding()) {
+            content.add(bold(AiSetupLines.BUILD_CONSENT_TITLE));
+            content.add(text(ConfigPanel.FULL_POSTURE_WARNING));
+            content.add(Box.createVerticalStrut(UiTheme.SPACE_SM));
+            content.add(text(AiSetupLines.ACCEPT_EDITS_NOTE));
+            content.add(muted(AiSetupLines.SENDS));
+            content.add(muted("Nothing starts until you enter a message and press Send."));
+            focusFirst = cancel;
+            return;
+        }
         content.add(bold(AiSetupLines.POSTURE_QUESTION));
         ButtonGroup g = new ButtonGroup();
         JRadioButton safe = UiText.radio(AiSetupLines.SAFE_TITLE);
@@ -552,6 +567,7 @@ final class AiSetupWindow extends JDialog {
         }
         content.add(text("• " + AiSetupLines.SUMMARY_CHANGE));
         content.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+        if (s.suggested() == AiSetupState.Suggested.BUILD) content.add(text(AiSetupLines.BUILD_NEXT));
         if (s.suggested() == AiSetupState.Suggested.RIGHT_CLICK) {
             content.add(text(AiSetupLines.RIGHT_CLICK_TO_ASK));
         }
@@ -831,9 +847,9 @@ final class AiSetupWindow extends JDialog {
     private JButton suggestedButton;
 
     private void buttons(AiSetupState s) {
-        back.setVisible(s.step() == Step.INSIDE || s.step() == Step.OTHER || s.step() == Step.CLIENT);
+        back.setVisible(!s.buildOnboarding() && (s.step() == Step.INSIDE || s.step() == Step.OTHER || s.step() == Step.CLIENT));
         cancel.setVisible(s.step() != Step.SUMMARY);
-        String label = AiSetupLines.primaryLabel(s);
+        String label = s.buildOnboarding() ? AiSetupLines.ENABLE_BUILD : AiSetupLines.primaryLabel(s);
         primary.setText(label);
         primary.getAccessibleContext().setAccessibleName(label);
         boolean enabled = switch (s.step()) {
@@ -846,8 +862,18 @@ final class AiSetupWindow extends JDialog {
         // the Summary's one suggested action is the default; Done closes
         JPanel right = (JPanel) primary.getParent();
         if (suggestedButton != null) right.remove(suggestedButton);
+        right.remove(primary);
+        right.remove(cancel);
+        if (s.buildOnboarding()) {
+            right.add(primary);
+            right.add(cancel); // Consent: Cancel is the default and the rightmost action.
+        } else {
+            right.add(cancel);
+            right.add(primary);
+        }
         suggestedButton = null;
         String suggested = switch (s.suggested()) {
+            case BUILD -> AiSetupLines.DESCRIBE_APPLICATION;
             case OPEN_SAMPLE -> AiSetupLines.SUGGEST_SAMPLE;
             case TOUR -> AiSetupLines.SUGGEST_TOUR;
             case COPY_QUESTION -> AiSetupLines.SUGGEST_COPY_QUESTION;
@@ -860,7 +886,7 @@ final class AiSetupWindow extends JDialog {
             getRootPane().setDefaultButton(suggestedButton);
             focusFirst = suggestedButton;
         } else {
-            getRootPane().setDefaultButton(primary);
+            getRootPane().setDefaultButton(s.buildOnboarding() ? cancel : primary);
         }
         right.revalidate();
     }

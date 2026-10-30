@@ -1,5 +1,8 @@
 # Build with Claude
 
+**Ready to try it?** [Start with Claude](../start-with-claude.md) shows the preview launch command and three illustrated
+steps, from opening the analyser to receiving your first reply.
+
 Building a Fluxtion application with an AI divides the work four ways:
 
 1. **You state the intent and the acceptance criteria**: what the application is for, and the observable results
@@ -29,6 +32,7 @@ flowchart LR
 
 | Page | What it covers |
 |---|---|
+| [Start with Claude](../start-with-claude.md) | Six illustrated steps from launch to your first message |
 | [Set up a project with Claude](set-up-with-claude.md) | Point Claude Code in the analyser at your code's folder. It proposes the set-up, and you answer each item |
 | [Check your criteria against the evidence](validate-intent.md) | What exists today to check a criterion on a recorded run, and what is planned |
 | [Spring authoring](../spring-authoring.md) | Agree a design in conversation, turn it into a Spring XML project, then inspect the run |

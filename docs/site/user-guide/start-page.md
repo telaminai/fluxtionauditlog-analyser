@@ -65,6 +65,12 @@ planned and not built.
 
 ## Which assistant answers
 
+!!! info "Simplified first-run welcome: prototype"
+    On a fresh profile, the onboarding prototype shows **Build with Claude Code**, **Explore a demo** and
+    **Connect another AI client** in place of the numbered prompt list until setup is chosen or dismissed.
+    [Start with Claude](../start-with-claude.md) walks through it with screenshots. The published release still uses the
+    first-run AI question described below.
+
 The page asks the assistant you last chose on the Assistant tab (remembered on this machine only). **Claude Code can
 answer** when *Allow the analyser to start Claude Code* is on and `claude` is installed (a file check, nothing is run);
 **the in-app assistant can answer** with a provider and key. If the one in force cannot and the other can, the button

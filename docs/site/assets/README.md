@@ -31,6 +31,7 @@ removing or moving an image. *Used on* names each page by its nav title; **unuse
 | `ask-menu.png` | Ask the assistant | `M74DocCapture.java`, `capture-docs.py` |
 | `assistant-claude-code.png` | The assistant panel | `M74DocCapture.java`, `capture-docs.py` |
 | `assistant-in-app.png` | The assistant panel | `M74DocCapture.java`, `capture-docs.py` |
+| `assistant-quick-switch.png` | **unused** | `M74DocCapture.java`, `capture-docs.py` |
 | `audit-log-menu.png` | Open your own log, step by step | `capture-docs.py` |
 | `audit-loop.svg` | Home | no harness |
 | `chart-delete-confirmation.png` | Graphs | `ChartDeleteDocCapture.java`, `capture-docs.py` |
@@ -69,6 +70,10 @@ removing or moving an image. *Used on* names each page by its nav title; **unuse
 | `screenshot-dark.png` | Home | `capture-docs.py` |
 | `screenshot-light.png` | **unused** | `capture-docs.py` |
 | `settings-assistant.png` | Settings reference | `M74DocCapture.java`, `capture-docs.py` |
+| `setup-ai-choice.png` | **unused** | `AiSetupDocCapture.java`, `capture-docs.py` |
+| `setup-ai-client.png` | **unused** | `AiSetupDocCapture.java`, `capture-docs.py` |
+| `setup-ai-first-run.png` | **unused** | `AiSetupDocCapture.java`, `capture-docs.py` |
+| `setup-ai-inside.png` | **unused** | `AiSetupDocCapture.java`, `capture-docs.py` |
 | `source-navigation.png` | Source navigation | `capture-docs.py` |
 | `sources-menu.png` | Open your own log, step by step | `capture-docs.py` |
 | `spotlight-dark.png` | Spotlights, walks and reels | `capture-docs.py` |
@@ -83,6 +88,9 @@ removing or moving an image. *Used on* names each page by its nav title; **unuse
 | `spring-validation-clean.png` | Spring authoring step by step | `capture-spring-authoring.py` |
 | `spring-validation-finding.png` | Spring authoring step by step | `capture-spring-authoring.py` |
 | `start-page.png` | Guided start with an external assistant, Guided tour and sample project, Start here, The start page | `capture-docs.py` |
+| `start-with-claude-reply.png` | Start with Claude | `OnboardingDocCapture.java` |
+| `start-with-claude-setup.png` | Start with Claude | `OnboardingDocCapture.java` |
+| `start-with-claude.png` | Start with Claude | `OnboardingDocCapture.java` |
 | `template-picker.png` | **unused** | `TemplatePickerDocCapture.java`, `capture-docs.py` |
 | `topology-explore.png` | Topology & step-through | `capture-docs.py` |
 | `topology-step-through.png` | Topology & step-through | `capture-docs.py` |

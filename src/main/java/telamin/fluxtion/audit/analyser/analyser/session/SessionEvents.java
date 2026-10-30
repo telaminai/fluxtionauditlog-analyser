@@ -918,7 +918,11 @@ public final class SessionEvents {
      * Continue (or Finish) pressed on {@code step}. {@code keyEntered}: on Other options, whether the key field holds
      * text — never the text; the details reach the settings through the Apply performer, as the cards' do.
      */
-    public record AiSetupContinue(AiSetupState.Step step, boolean keyEntered) {
+    public record AiSetupContinue(AiSetupState.Step step, boolean keyEntered, boolean fullConfirmed) {
+        /** Ordinary setup still uses the separate Full confirmation. */
+        public AiSetupContinue(AiSetupState.Step step, boolean keyEntered) {
+            this(step, keyEntered, false);
+        }
         public AiSetupContinue(AiSetupState.Step step) {
             this(step, false);
         }
