@@ -36,8 +36,8 @@ Code in a terminal, works under its own rules, as it always does.
 
     ---
 
-    1. [Install and run the analyser](install.md)
-    2. [Set up a project with Claude](build/set-up-with-claude.md)
+    1. [Launch the analyser and set up Claude](start-with-claude.md)
+    2. [Describe your first application and review its starter](start-with-claude.md#3-describe-one-small-application)
     3. [Check your criteria against the evidence](build/validate-intent.md)
 
     [:octicons-arrow-right-24: Build with Claude](build/index.md)

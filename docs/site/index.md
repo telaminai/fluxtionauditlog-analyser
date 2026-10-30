@@ -35,7 +35,8 @@ cycle shaded](assets/screenshot-dark.png)
     mechanics, and you check your criteria against the recorded evidence of your runs. Whether the criteria
     capture what you meant stays your judgement.
 
-    [:octicons-arrow-right-24: Build with Claude](build/index.md)
+    [:octicons-arrow-right-24: Build your first application](start-with-claude.md) ·
+    [:octicons-arrow-right-24: How building with Claude works](build/index.md)
 
 -   :material-rocket-launch-outline: **Get started**
 

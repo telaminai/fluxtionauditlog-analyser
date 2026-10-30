@@ -33,7 +33,10 @@ A future `start-with-ai.md` should tell the outside assistant to:
 3. Hand the developer to **Build with Claude Code** inside the analyser. Do not register an external MCP server.
 4. If requirements were already discussed, provide a short handoff the developer can paste into the built-in session.
 
-The proposed website URL is not live as part of this prototype. Missing Claude or a missing login uses the existing
+The website quickstart is now prepared at `docs/site/start-with-claude.md`, linked from Home, Start here, Install & run,
+and Build with Claude. It includes a captured prototype welcome screen and an explicit published-release fallback.
+Its intended URL is `https://telaminai.github.io/fluxtionauditlog-analyser/start-with-claude/`; it is not published yet.
+The earlier proposed `start-with-ai.md` handoff URL is not live as part of this prototype. Missing Claude or a missing login uses the existing
 setup explanation rather than claiming the application is connected.
 
 ## Acceptance and remaining work
@@ -71,5 +74,24 @@ can simplify that transition without hiding which action starts Claude or which 
 A complete project created by a live **Full Claude Code** session has not been demonstrated in this prototype. Starter
 proposal/review behavior is covered by the fixture-backed display suites; real template acquisition, installation of
 the bundled skills and the first build need an end-to-end authoring acceptance run. The public JBang catalog still
-launches the released analyser, not this local prototype. The proposed website handoff page and release validation
+launches the released analyser, not this local prototype. Publishing the prepared website quickstart, any outside-assistant handoff page, and release validation
 remain open. No external client configuration, website, release or deployment was changed.
+
+
+## Website quickstart follow-up
+
+The prepared page uses the existing JBang release alias and separates the unreleased welcome screen from the
+published Set up AI route. It is linked from the home page, Start here, Install & run, the Build overview and its
+navigation. The screenshot is the previously inspected built-jar capture under an isolated analyser home.
+
+Validation: `mkdocs build --strict` passed, including local links and anchors; the rendered page contains all five
+steps and the preview notice. The first full test run had one failure: `DocsUrlResolutionTest` requires navigation
+pages to be tracked by Git, and the new page was not yet staged. After staging it, all 19 tests in
+`DocsUrlResolutionTest`, `SpecLinksResolveTest` and `DemoAssetsTest` passed. The other tests in that full run passed
+(382 headless skips). The public-data sweep and `git diff --check` passed. No application code changed in this
+follow-up. The site remains unpublished.
+
+The recommended audience is a developer with Claude Code installed and signed in. Keep the demo route available
+for everyone else. Before promoting this as the default entry point, complete the live Full-mode first-project
+acceptance, simplify the draft-and-send transitions, and remove the preview notice only with a release that includes
+the new screen. A one-line launch is not a claim that prerequisites, consent or project review disappear.
