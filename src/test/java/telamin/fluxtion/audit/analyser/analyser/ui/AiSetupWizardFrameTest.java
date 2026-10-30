@@ -222,43 +222,53 @@ class AiSetupWizardFrameTest {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         try (Robot r = new Robot(tmp, 1200, 800)) {
             r.await(AiSetupState::firstRun, "onboarding");
-            onEdt(() -> r.frame.fullProfileConfirmModal = false);
-            shot(r.frame, "onboarding-1-start");
+            onEdt(() -> r.assistant().composerArea().setText("My existing idea"));
             r.act(() -> button(r.start(), AiSetupLines.ONBOARD_BUILD).doClick());
             r.await(s -> s.signedIn().verdict() == AiSetupState.SignedIn.SIGNED_IN, "Claude checks");
             assertEquals(Step.INSIDE, r.setup().step());
             assertEquals(AiSetupState.Posture.FULL, r.setup().posture());
             assertTrue(r.agent.processes.isEmpty(), "setup has not started an AI session");
-            shot(r.window(), "onboarding-2-checked");
-            r.act(() -> r.window().primaryButton().doClick());
-            SafeChoice.Asked consent = QuickSwitchFrameTest.awaitConfirmation(r.frame);
-            assertTrue(r.agent.processes.isEmpty(), "consent must precede any AI session");
-            shot(consent.dialog(), "onboarding-3-consent");
-            r.act(() -> consent.riskyButton().doClick());
-            r.await(s -> s.step() == Step.SUMMARY, "build ready");
-            assertEquals(AiSetupState.Suggested.BUILD, r.setup().suggested());
-            shot(r.window(), "onboarding-4-ready");
-            r.act(() -> r.window().suggestedButton().doClick());
-            r.await(s -> !s.open(), "describe application");
             onEdt(() -> {
-                assertEquals("S7", r.start().prompt().chosen().id());
-                assertTrue(r.start().prompt().box().isShowing());
-                r.start().prompt().box().setText("Help me create a small order-alert application. Ask what events and rules I need first.");
+                assertEquals(AiSetupLines.ENABLE_BUILD, r.window().primaryButton().getText());
+                assertSame(r.window().cancelButton(), r.window().getRootPane().getDefaultButton());
             });
-            shot(r.frame, "onboarding-5-describe");
-            r.act(() -> r.start().prompt().actionButton().doClick());
+            r.act(() -> r.window().primaryButton().doClick());
+            r.await(s -> !s.open(), "inline consent opens the composer without a summary");
             UnifiedAssistantFrameTest.awaitMode(r.frame, AssistantMode.LOCAL_AGENT);
-            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-            String[] draft = new String[1];
-            do {
-                onEdt(() -> draft[0] = r.assistant().draftText());
-                if (draft[0].contains("order-alert")) break;
-                Thread.sleep(40);
-            } while (System.nanoTime() < until);
-            assertTrue(draft[0].contains("order-alert"), "the user's requirements reach the assistant");
-            assertTrue(r.agent.processes.isEmpty(), "placing the question is not sending it");
+            r.await(s -> r.assistant().composerArea().isShowing(), "the one composer is visible");
+            onEdt(() -> {
+                assertNull(r.frame.fullProfileAsked, "no second confirmation dialog after inline consent");
+                assertEquals("My existing idea", r.assistant().draftText(), "setup preserves a draft");
+                r.assistant().composerArea().setText("Help me build a temperature alert application. Ask what it should do first.");
+            });
+            assertTrue(r.agent.processes.isEmpty(), "enabling and typing never start Claude");
+            r.act(() -> r.claude().sendButton().doClick());
+            r.await(s -> !r.agent.processes.isEmpty(), "one Send starts the session");
+            assertEquals(1, r.agent.processes.size());
             assertFalse(((telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(r.frame, "config")).assistantActionsRest);
-            shot((Component) SwingUtilities.getWindowAncestor(r.assistant()), "onboarding-6-composer");
+        }
+    }
+
+    @Test
+    void buildEntrySurvivesLeavingSetupAndRestarting(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (Robot r = new Robot(tmp, 1200, 800)) {
+            r.await(AiSetupState::firstRun, "first welcome");
+            r.act(() -> button(r.start(), AiSetupLines.ONBOARD_BUILD).doClick());
+            r.await(s -> s.signedIn().verdict() == AiSetupState.SignedIn.SIGNED_IN, "checks");
+            r.act(() -> r.window().cancelButton().doClick());
+            r.await(s -> !s.open(), "cancel setup");
+            assertTrue(r.agent.processes.isEmpty());
+        }
+        try (Robot r = new Robot(tmp, 1200, 800)) {
+            r.await(s -> !s.firstRun(), "returning profile");
+            onEdt(() -> assertTrue(button(r.start(), AiSetupLines.ONBOARD_BUILD).isShowing()));
+            r.act(() -> button(r.start(), AiSetupLines.ONBOARD_BUILD).doClick());
+            r.await(s -> s.buildOnboarding() && s.insideMayProceed(), "same Build route after returning");
+            r.act(() -> r.window().primaryButton().doClick());
+            r.await(s -> !s.open(), "composer after setup");
+            r.await(s -> r.assistant().composerArea().isShowing(), "composer visible");
+            assertTrue(r.agent.processes.isEmpty());
         }
     }
 
@@ -393,7 +403,7 @@ class AiSetupWizardFrameTest {
     // ---- T15 and the entry points --------------------------------------------------------------------------------
 
     /**
-     * ★ T15 (frame): the start page shows the first-run block, then — after Not now — exactly one AI line with its
+     * ★ T15 (frame): the start page keeps the Build entries after Not now, alongside exactly one AI line with its
      * link, and the link opens the wizard; the panel shows one line and Set up AI…; the AI menu's first item is Set up
      * AI…; Settings ▸ Assistant's button opens it too. Witness: drop {@code renderAiSetup} from the snapshot render — the
      * block never shows.
@@ -415,7 +425,8 @@ class AiSetupWizardFrameTest {
             r.await(s -> !s.firstRun(), "Not now");
             onEdt(() -> {
                 AiSetupBlock b = r.start().aiSetupBlock();
-                assertFalse(b.showsFirstRun());
+                assertTrue(b.showsFirstRun(), "the Build, demo and client entries remain available");
+                assertFalse(b.notNowButton().isShowing(), "only the first-visit dismissal disappears");
                 assertEquals("AI: not set up · Claude Code found", b.lineLabel().getText(), "★ the one AI line");
                 assertEquals(AiSetupLines.SET_UP_LINK, b.linkButton().getText());
                 String page = String.join("\n", all(r.start(), JComponent.class).stream()

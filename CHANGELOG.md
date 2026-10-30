@@ -6,11 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-- Simplify the built-in Claude quickstart to six steps, each illustrated with a screenshot of the control to use.
-
-- Add a website quickstart for building with Claude inside the analyser, covering JBang, setup, starter review and the first evidence check; label the new welcome screen as a prototype.
-
-- Prototype first-run choices: build with the built-in Claude Code session, explore a demo, or connect another client. The build path checks Claude directly, retains Full-mode consent, and returns to the application prompt without enabling external access.
+- Keep **Build with Claude Code**, **Explore a demo**, and **Connect another AI client** on the start page so setup can be resumed after installing or signing in.
+- Combine the Build path's Claude checks and Full-mode consent in one screen, then open the existing assistant composer. One **Send** starts the conversation; existing drafts and Full-mode settings are preserved.
+- Add a three-step illustrated Claude quickstart with a pinned onboarding-preview download and a real first-reply screenshot.
+- Tell the built-in Full Claude session to ask questions in the conversation instead of trying its unavailable terminal question widget.
 
 ## [1.40.0] - 2026-10-27
 

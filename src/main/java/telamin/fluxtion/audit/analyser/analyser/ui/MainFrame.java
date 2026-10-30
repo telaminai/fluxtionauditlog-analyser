@@ -12642,6 +12642,10 @@ public final class MainFrame extends JFrame {
                 @Override public void proceed(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step step, boolean keyEntered) {
                     session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue(step, keyEntered));
                 }
+                @Override public void enableBuild() {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue(
+                            telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step.INSIDE, false, true));
+                }
                 @Override public void back(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step step) {
                     session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack(step));
                 }
@@ -12730,8 +12734,10 @@ public final class MainFrame extends JFrame {
             case OPEN_SAMPLE -> SwingUtilities.invokeLater(() -> openSampleProject());
             case TOUR -> SwingUtilities.invokeLater(() -> openSampleProject(true));
             case BUILD -> SwingUtilities.invokeLater(() -> {
-                showStartPage();
-                startPanel.describeApplication();
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(
+                        false, "build onboarding"));
+                revealAssistant();
+                assistantPanel.focusComposer();
             });
             default -> { }
         }

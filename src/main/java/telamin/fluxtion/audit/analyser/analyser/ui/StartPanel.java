@@ -307,11 +307,6 @@ public final class StartPanel extends JPanel {
         prompt.setVisible(state == null || !state.firstRun());
     }
 
-    /** Reveal the existing Build prompt without sending or replacing the person's draft. */
-    void describeApplication() {
-        prompt.chooseBuild();
-    }
-
     AiSetupBlock aiSetupBlock() {
         return aiSetup;
     }

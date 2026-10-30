@@ -3,7 +3,7 @@
 Requires **JDK 21+**. The app is a single self-contained jar (FlatLaf is bundled) — no installer.
 
 **Building your first application?** Follow [Start with Claude](start-with-claude.md) for
-the launch command and six illustrated steps. The built-in session connects automatically.
+the preview launch command and three illustrated steps. The built-in session connects automatically.
 
 ## JBang (recommended)
 
@@ -44,8 +44,8 @@ After installation, run `analyser [optional-log-file]` from your PATH.
 
 ## Starting it for an agent
 
-This section is for an **external** assistant or automation. For Claude Code inside the analyser, use the normal
-launch command above and follow [the built-in workflow](start-with-claude.md).
+This section is for an **external** assistant or automation. For Claude Code inside the analyser, follow
+[the built-in workflow and its preview launch command](start-with-claude.md).
 
 ```bash
 java -jar fluxtion-auditlog-analyser.jar --rest        # or: jbang analyser@telaminai/fluxtionauditlog-analyser --rest

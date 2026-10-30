@@ -67,14 +67,12 @@ class AiSetupTest {
         assertTrue(a.claudeProbes.getLast().full());
         assertTrue(a.profileApplies.isEmpty(), "opening setup does not enable Claude");
         found(d, a);
+        assertTrue(setup(d).insideMayProceed(), "authentication keeps its existing informational contract");
         signedIn(d, a);
-        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
-        assertEquals(1, a.fullConfirms.size());
-        assertTrue(a.profileApplies.isEmpty(), "Full still requires its explicit confirmation");
-        d.post(new SessionEvents.AssistantFullProfileAnswered(a.fullConfirms.getLast().request(), true));
+        assertTrue(a.profileApplies.isEmpty(), "checks alone are not Full consent");
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE, false, true));
+        assertTrue(a.fullConfirms.isEmpty(), "the Build screen itself contained the explicit Full confirmation");
         assertEquals(AssistantProfile.FULL, d.snapshot().profiles().profile());
-        assertEquals(AiSetupState.Suggested.BUILD, setup(d).suggested());
-        d.post(new SessionEvents.AiSetupSuggestedTaken(AiSetupState.Suggested.BUILD));
         assertEquals(AiSetupState.Suggested.BUILD, a.suggestedRuns.getLast().suggested());
         assertFalse(setup(d).open());
         assertTrue(a.accessAsks.isEmpty());
@@ -90,13 +88,94 @@ class AiSetupTest {
         d.post(new SessionEvents.AiSetupRequested(Origin.ONBOARD_BUILD));
         var probe = a.claudeProbes.getLast();
         d.post(new SessionEvents.ClaudeObserved(probe.probe(), SessionEvents.ProbeOutcome.NOT_FOUND, "", 0));
-        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE, false, true));
         assertTrue(a.profileApplies.isEmpty());
         assertTrue(a.fullConfirms.isEmpty());
         d.post(new SessionEvents.AiSetupCancelled("onboarding"));
         assertFalse(setup(d).open());
         assertTrue(a.accessAsks.isEmpty());
         assertTrue(a.registerRuns.isEmpty());
+    }
+
+    @Test
+    void onboardingCanResumeAfterFirstVisitAndKeepsAnExistingFullProfile() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        d.post(new SessionEvents.AiSetupStartupObserved(true, Client.NONE, false));
+        assertFalse(setup(d).firstRun());
+        d.post(new SessionEvents.AiSetupRequested(Origin.ONBOARD_BUILD));
+        found(d, a);
+        signedIn(d, a);
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE, false, true));
+        assertFalse(setup(d).open());
+        assertEquals(1, a.profileApplies.size());
+        int probes = a.claudeProbes.size();
+        d.post(new SessionEvents.AiSetupRequested(Origin.ONBOARD_BUILD));
+        assertFalse(setup(d).open(), "a configured builder goes directly to the composer");
+        assertEquals(1, a.profileApplies.size(), "returning must not overwrite the chosen permission mode");
+        assertEquals(probes, a.claudeProbes.size());
+        assertEquals(2, a.suggestedRuns.size());
+        assertTrue(a.agentStarts.isEmpty());
+    }
+
+    @Test
+    void cancellingBuildBeforeItsApplyAcknowledgementDoesNotReopenTheComposer() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        var held = new java.util.ArrayList<SessionEvents.Result>();
+        SessionDriver d = new SessionDriver(effect -> {
+            var result = a.perform(effect);
+            if (effect instanceof SessionEffects.ApplyAssistantProfileEffect apply) {
+                held.add(result);
+                return new SessionEvents.AiSetupEffectStarted(apply.opId(), "apply pending");
+            }
+            return result;
+        });
+        d.post(new SessionEvents.AiSetupStartupObserved(false, Client.NONE, false));
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.NONE));
+        d.post(new SessionEvents.StartPageAvailability(false, true, false, false));
+        d.post(new SessionEvents.AiSetupRequested(Origin.ONBOARD_BUILD));
+        found(d, a);
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE, false, true));
+        assertTrue(setup(d).applying());
+        assertEquals(1, held.size());
+        d.post(new SessionEvents.AiSetupCancelled("leave while applying"));
+        d.post(held.getFirst());
+        assertFalse(setup(d).open());
+        assertTrue(a.suggestedRuns.isEmpty(), "a late acknowledgement must not reopen the composer");
+        assertTrue(a.agentStarts.isEmpty());
+    }
+
+    @Test
+    void inlineBuildConsentIsRefusedOutsideItsOwnScreen() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        toInside(d, a, Choice.INSIDE);
+        d.post(new SessionEvents.AiSetupPostureChosen(Posture.FULL, "acceptEdits"));
+        found(d, a);
+        signedIn(d, a);
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE, false, true));
+        assertTrue(a.profileApplies.isEmpty());
+        assertTrue(a.fullConfirms.isEmpty());
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
+        assertEquals(1, a.fullConfirms.size(), "ordinary setup still requires its separate Full consent");
+    }
+
+    @Test
+    void onboardingPreservesApiKeyAndHelperAuthenticationWithoutCallingItVerified() {
+        for (var method : List.of(AiSetupState.Method.API_KEY, AiSetupState.Method.API_KEY_HELPER)) {
+            FakeSessionAdapter a = new FakeSessionAdapter();
+            SessionDriver d = fresh(a, true);
+            d.post(new SessionEvents.AiSetupRequested(Origin.ONBOARD_BUILD));
+            found(d, a);
+            d.post(new SessionEvents.ClaudeAuthObserved(a.authProbes.getLast().probe(), SessionEvents.AuthOutcome.READ,
+                    true, method, AiSetupState.Plan.NONE, AiSetupState.KeySource.NONE));
+            assertEquals(AiSetupState.SignedIn.KEY, setup(d).signedIn().verdict());
+            assertTrue(setup(d).insideMayProceed());
+            d.post(new SessionEvents.AiSetupContinue(Step.INSIDE, false, true));
+            assertEquals(AssistantProfile.FULL, d.snapshot().profiles().profile());
+            assertFalse(setup(d).open());
+            assertTrue(a.agentStarts.isEmpty(), "only a later Send may validate the key or start Claude");
+        }
     }
 
     @Test

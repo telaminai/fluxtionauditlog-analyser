@@ -32,6 +32,8 @@ public final class AiSetupLines {
     public static final String FOOTER = "Nothing is sent to an AI model from this window.";
     public static final String ONBOARD_TITLE = "Start with Fluxtion";
     public static final String ONBOARD_BUILD = "Build with Claude Code";
+    public static final String ENABLE_BUILD = "Enable Claude Code";
+    public static final String BUILD_CONSENT_TITLE = "Enable Claude Code to build";
     public static final String ONBOARD_DEMO = "Explore a demo";
     public static final String ONBOARD_CLIENT = "Connect another AI client";
     public static final String ONBOARD_DETAILS = "More AI options…";

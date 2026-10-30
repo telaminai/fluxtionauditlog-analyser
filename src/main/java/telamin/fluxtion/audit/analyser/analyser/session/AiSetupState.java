@@ -261,6 +261,11 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
         return installed.verdict() == Installed.FOUND;
     }
 
+    /** The Build door presents its Full consent inline with the installation checks. */
+    public boolean buildOnboarding() {
+        return origin == Origin.ONBOARD_BUILD && step == Step.INSIDE;
+    }
+
     /** Screen 2b's Finish may be pressed: part 2 is on, or this copy cannot be registered (Finish without a client). */
     public boolean clientMayFinish() {
         return !applying && confirming == Confirming.NONE && (external.access() != Access.OFF

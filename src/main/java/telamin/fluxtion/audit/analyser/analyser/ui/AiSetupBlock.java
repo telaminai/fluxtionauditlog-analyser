@@ -14,9 +14,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 
 /**
- * M77-2 (spec-ai-setup-wizard.md §6.0, OD-77.1): the start page's AI block. On first run it offers the three onboarding paths INLINE on the
- * page — a state of the page, never a window that opens by itself (M36 D-S1 stays). Every other time it is ONE line,
- * <i>"AI: … — Set up AI…"</i> or <i>"… — Change…"</i>. It renders {@link AiSetupState} and reports acts through
+ * The start page's persistent Build / Demo / Connect entry points, with the current AI status below them.
+ * Nothing opens by itself (M36 D-S1 stays). It renders {@link AiSetupState} and reports acts through
  * {@link Host}; the node composes every word ({@link AiSetupLines}) and decides everything.
  */
 final class AiSetupBlock extends JPanel {
@@ -126,9 +125,10 @@ final class AiSetupBlock extends JPanel {
     /** Render the node's decision: the first-run block, the one line, or nothing (before the session has said). */
     void render(AiSetupState s) {
         AiSetupState st = s == null ? AiSetupState.IDLE : s;
-        boolean any = (st.firstRun() || !st.aiLine().isBlank() || st.external().offerTurnOff());
-        setVisible(any);
-        firstRun.setVisible(st.firstRun());
+        setVisible(true);
+        firstRun.setVisible(true);
+        notNow.setVisible(st.firstRun());
+        footer.setVisible(st.firstRun());
         lineRow.setVisible(!st.firstRun() && !st.aiLine().isBlank());
         line.setText(st.aiLine().isBlank() ? " " : st.aiLine());
         link.setText(st.aiLineLink().isBlank() ? AiSetupLines.SET_UP_LINK : st.aiLineLink());

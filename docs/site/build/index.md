@@ -1,7 +1,7 @@
 # Build with Claude
 
-**Ready to try it?** [Start with Claude](../start-with-claude.md) shows the launch command and six screenshots
-to follow, from opening the analyser to sending your first message.
+**Ready to try it?** [Start with Claude](../start-with-claude.md) shows the preview launch command and three illustrated
+steps, from opening the analyser to receiving your first reply.
 
 Building a Fluxtion application with an AI divides the work four ways:
 
