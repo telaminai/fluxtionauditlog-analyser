@@ -320,6 +320,10 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - ☐ **Windows first-run records for skill placeholders:** FIX-10's filled-marker approach (flag 22) was built and
   checked on the owner's Mac; confirm the same first-run record answers the markers on Windows (with M74 §11).
 
+### Playground link — show a locally built design in the browser (cross-repo, fluxtion-web)
+- [PG-LINK] ◐ [fluxtion-web#32](https://github.com/telaminai/fluxtion-web/pull/32): the agent builds locally, then hands over one `/playground#…` link (`playground-link.py` + `playground-link/skill.md`, linked from `llms.txt`); links now show `generated/` source and topology. Open: review, merge, deploy; owner check on live that a script-built link shows GENERATED **and** a signed-out run's audit log.
+- [PG-LINK.2] ☐ Follow-ups: a playground "Download audit log" button so a browser run opens in the Analyser; point the Spring authoring skill at the link step once its pin can move.
+
 ### M67 · The extension tour ([spec](spec-extension-tour.md)) — unblocked
 - [M67.1] ☐ The catalogue (cross-repo) · [M67.2] ☐ the tour's project (playground) · [M67.3] ☐ the skill and
   verifier · [M67.4] ☐ the held-out record and docs page · [M67.5] ☐ beat 3 lights the declaration ·
