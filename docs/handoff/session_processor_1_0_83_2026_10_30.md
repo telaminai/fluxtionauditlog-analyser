@@ -191,3 +191,30 @@ The unchanged production-pin suite was also rerun after adding this evidence: 4,
 executed passes, 381 display-dependent skips, zero failures/errors. The stronger close
 assertion is supplied as the patch above and is not silently counted as passing on that
 pin. Strict MkDocs, public-data and whitespace checks pass.
+
+
+## Review follow-up (2026-10-31)
+
+[Review of this PR](https://github.com/telaminai/fluxtionauditlog-analyser/pull/214#issuecomment-6540751674),
+finding G1: the recovery cases counted two new records with one `endTime` each, which an
+end-marker-only record or a record with another cycle's entries prefixed to it would also satisfy.
+The [assertion patch](evidence/session-processor-1.0.83/runtime-fix/integration-assertion.patch)
+now also requires the first new record to be the failed cycle's own (by its `eventToString`:
+the FULL observation, `BatchEnd` or the host-cycle name), the second to be the SAFE event's, and
+every captured record to start with its own `eventLogRecord:` header. A sixth test is a negative
+witness: the check rejects an end-marker-only record, a merged record and a doubled `endTime`.
+
+The runtime PR's review finding D1 (entries written after a mid-cycle `publishLastRecord()`
+were carried into the next record) is fixed on the runtime branch in
+`3128bf7950e17ed29063605378706e3824c5d8c7`; the candidate below is that commit.
+
+| Run (Java 21) | Result |
+|---|---|
+| Strengthened patch, production pin 1.1.0 | 5 of 6 fail, each on the doubled `endTime`; the negative witness passes |
+| Strengthened patch, runtime candidate `3128bf79` (local 1.1.4-SNAPSHOT) | 6 of 6 pass |
+| Fresh candidate captures vs the committed `runtime-fix/after` captures | healthy and failed-close both MATCH (exit 0), so the committed evidence still stands |
+| Fresh candidate failed-close vs the original 1.0.79 baseline | exit 1, adding only the FULL and SAFE observations, as before |
+
+Still open for adoption: a case where a queued callback throws after the cycle's record was
+already published (the empty end-marker path the runtime PR describes), which this fixture does
+not reach.

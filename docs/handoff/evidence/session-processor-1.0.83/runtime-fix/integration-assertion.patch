@@ -1,19 +1,27 @@
 diff --git a/src/test/java/telamin/fluxtion/audit/analyser/analyser/session/SessionProcessorCompatibilityTest.java b/src/test/java/telamin/fluxtion/audit/analyser/analyser/session/SessionProcessorCompatibilityTest.java
-index 5f311fbc..909cb478 100644
+index 5f311fbc..8f0a013f 100644
 --- a/src/test/java/telamin/fluxtion/audit/analyser/analyser/session/SessionProcessorCompatibilityTest.java
 +++ b/src/test/java/telamin/fluxtion/audit/analyser/analyser/session/SessionProcessorCompatibilityTest.java
-@@ -42,6 +42,10 @@ class SessionProcessorCompatibilityTest {
+@@ -8,6 +8,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.generated.SessionProcess
+ 
+ import java.nio.file.Files;
+ import java.nio.file.Path;
++import java.util.List;
+ import java.util.concurrent.atomic.AtomicBoolean;
+ 
+ import static org.junit.jupiter.api.Assertions.*;
+@@ -42,6 +43,10 @@ class SessionProcessorCompatibilityTest {
          fault.auditSink().export(out.resolve("failed-close.yaml"));
          Files.writeString(out.resolve("outcome.txt"), "profile after next event: "
                  + fault.processor().aiSetup.profile() + "\noriginal exception preserved: true\n");
 +        assertEquals(4, fault.auditSink().records().size(), "prelude, control, failed cycle and next event");
 +        assertEquals(1, fault.auditSink().matching("eventToString: AssistantProfileObserved[profile=FULL]").size());
 +        assertEquals(1, fault.auditSink().matching("eventToString: AssistantProfileObserved[profile=SAFE]").size());
-+        assertSingleEndTime(fault);
++        assertWellFormed(fault.auditSink().records());
      }
  
      @ParameterizedTest
-@@ -49,10 +53,20 @@ class SessionProcessorCompatibilityTest {
+@@ -49,10 +54,46 @@ class SessionProcessorCompatibilityTest {
      void nextEventRunsAfterAuditCloseFails(Entry entry) {
          SessionDriver driver = new SessionDriver(new FakeSessionAdapter());
          RuntimeException expected = failNextClose(driver);
@@ -22,15 +30,41 @@ index 5f311fbc..909cb478 100644
          driver.processor().onEvent((Object) new SessionEvents.AssistantProfileObserved(AssistantProfile.SAFE));
          assertEquals(AssistantProfile.SAFE, driver.processor().aiSetup.profile(),
                  "the next event must be dispatched, not silently queued behind a failed cycle: " + entry);
-+        assertEquals(beforeFailure + 2, driver.auditSink().records().size(), "retain both failed and next cycle");
-+        assertSingleEndTime(driver);
++        List<String> records = driver.auditSink().records();
++        assertEquals(beforeFailure + 2, records.size(), "retain both failed and next cycle");
++        assertTrue(records.get(beforeFailure).contains("\n    eventToString: " + failedEvent(entry) + "\n"),
++                "the first new record is the failed cycle's own:\n" + records.get(beforeFailure));
++        assertTrue(records.get(beforeFailure + 1).contains("\n    eventToString: AssistantProfileObserved[profile=SAFE]\n"),
++                "the second new record is the next event's own:\n" + records.get(beforeFailure + 1));
++        assertWellFormed(records);
 +    }
 +
-+    private static void assertSingleEndTime(SessionDriver driver) {
-+        for (String record : driver.auditSink().records()) {
++    @Test
++    void wellFormedCheckRejectsAnOrphanEndMarkerAndAMergedRecord() {
++        String good = "eventLogRecord: \n    event: String\n    nodeLogs: \n    endTime: 1";
++        assertWellFormed(List.of(good));
++        assertThrows(AssertionError.class, () -> assertWellFormed(List.of(good, "\n    endTime: 2")));
++        assertThrows(AssertionError.class, () -> assertWellFormed(List.of(
++                "\n        - source: { after: 2" + good)));
++        assertThrows(AssertionError.class, () -> assertWellFormed(List.of(good + "\n    endTime: 2")));
++    }
++
++    /** Each record carries its own header and closes exactly once. */
++    private static void assertWellFormed(List<String> records) {
++        for (String record : records) {
++            assertTrue(record.startsWith("eventLogRecord: "),
++                    "each actual captured record must start with its own header:\n" + record);
 +            assertEquals(1L, record.lines().filter(line -> line.startsWith("    endTime:")).count(),
 +                    "each actual captured record must close exactly once:\n" + record);
 +        }
++    }
++
++    private static String failedEvent(Entry entry) {
++        return switch (entry) {
++            case OBJECT, TYPED -> "AssistantProfileObserved[profile=FULL]";
++            case BATCH_END -> "BatchEnd";
++            case HOST_CYCLE -> "DEMO host cycle";
++        };
      }
  
      private static RuntimeException failNextClose(SessionDriver driver) {
