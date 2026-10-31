@@ -7,8 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 - Regenerate the session processor with compiler 1.0.83 so failed event and batch cycles clear their processing
-  state before the next event. Runtime 1.1.0 still retains queued callbacks; audit-close failure compatibility
-  remains under review before release (see the session processor handoff).
+  state before the next event. Runtime 1.1.0 still retains queued callbacks; release awaits adoption of the
+  reviewed runtime audit-close fix (see the session processor handoff).
 
 ## [1.40.0] - 2026-10-27
 

@@ -1,0 +1,36 @@
+diff --git a/src/test/java/telamin/fluxtion/audit/analyser/analyser/session/SessionProcessorCompatibilityTest.java b/src/test/java/telamin/fluxtion/audit/analyser/analyser/session/SessionProcessorCompatibilityTest.java
+index 5f311fbc..909cb478 100644
+--- a/src/test/java/telamin/fluxtion/audit/analyser/analyser/session/SessionProcessorCompatibilityTest.java
++++ b/src/test/java/telamin/fluxtion/audit/analyser/analyser/session/SessionProcessorCompatibilityTest.java
+@@ -42,6 +42,10 @@ class SessionProcessorCompatibilityTest {
+         fault.auditSink().export(out.resolve("failed-close.yaml"));
+         Files.writeString(out.resolve("outcome.txt"), "profile after next event: "
+                 + fault.processor().aiSetup.profile() + "\noriginal exception preserved: true\n");
++        assertEquals(4, fault.auditSink().records().size(), "prelude, control, failed cycle and next event");
++        assertEquals(1, fault.auditSink().matching("eventToString: AssistantProfileObserved[profile=FULL]").size());
++        assertEquals(1, fault.auditSink().matching("eventToString: AssistantProfileObserved[profile=SAFE]").size());
++        assertSingleEndTime(fault);
+     }
+ 
+     @ParameterizedTest
+@@ -49,10 +53,20 @@ class SessionProcessorCompatibilityTest {
+     void nextEventRunsAfterAuditCloseFails(Entry entry) {
+         SessionDriver driver = new SessionDriver(new FakeSessionAdapter());
+         RuntimeException expected = failNextClose(driver);
++        int beforeFailure = driver.auditSink().records().size();
+         assertSame(expected, assertThrows(RuntimeException.class, () -> invoke(driver.processor(), entry)));
+         driver.processor().onEvent((Object) new SessionEvents.AssistantProfileObserved(AssistantProfile.SAFE));
+         assertEquals(AssistantProfile.SAFE, driver.processor().aiSetup.profile(),
+                 "the next event must be dispatched, not silently queued behind a failed cycle: " + entry);
++        assertEquals(beforeFailure + 2, driver.auditSink().records().size(), "retain both failed and next cycle");
++        assertSingleEndTime(driver);
++    }
++
++    private static void assertSingleEndTime(SessionDriver driver) {
++        for (String record : driver.auditSink().records()) {
++            assertEquals(1L, record.lines().filter(line -> line.startsWith("    endTime:")).count(),
++                    "each actual captured record must close exactly once:\n" + record);
++        }
+     }
+ 
+     private static RuntimeException failNextClose(SessionDriver driver) {

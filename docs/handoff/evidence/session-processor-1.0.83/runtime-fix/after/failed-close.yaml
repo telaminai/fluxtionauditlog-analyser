@@ -1,0 +1,47 @@
+---
+eventLogRecord: 
+    eventTime: 1793401202595
+    logTime: 1793401202595
+    groupingId: null
+    event: AssistantProfileObserved
+    eventToString: AssistantProfileObserved[profile=NONE]
+    thread: main
+    nodeLogs: 
+        - aiSetup: { thread: main, method: onProfileObserved, assistantProfile: NONE}
+        - startPagePrompt: { thread: main, method: onProfileObserved}
+    endTime: 1793401202596
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1793401202596
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=telamin.fluxtion.audit.analyser.analyser.session.SessionProcessorCompatibilityTest$$Lambda/0x000000b80115a3b8@5b3f61ff, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+    endTime: 1793401202596
+---
+eventLogRecord: 
+    eventTime: 1793401202596
+    logTime: 1793401202596
+    groupingId: null
+    event: AssistantProfileObserved
+    eventToString: AssistantProfileObserved[profile=FULL]
+    thread: main
+    nodeLogs: 
+        - aiSetup: { thread: main, method: onProfileObserved, assistantProfile: FULL}
+        - startPagePrompt: { thread: main, method: onProfileObserved}
+    endTime: 1793401202596
+---
+eventLogRecord: 
+    eventTime: 1793401202596
+    logTime: 1793401202596
+    groupingId: null
+    event: AssistantProfileObserved
+    eventToString: AssistantProfileObserved[profile=SAFE]
+    thread: main
+    nodeLogs: 
+        - aiSetup: { thread: main, method: onProfileObserved, assistantProfile: SAFE}
+        - startPagePrompt: { thread: main, method: onProfileObserved}
+    endTime: 1793401202596
+---

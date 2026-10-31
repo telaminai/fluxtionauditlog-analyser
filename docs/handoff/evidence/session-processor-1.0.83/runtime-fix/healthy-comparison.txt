@@ -1,0 +1,9 @@
+before: 28 records, 17 business, 11 framework-only
+after: 28 records, 17 business, 11 framework-only
+masked: 2 identity hash(es) or lambda address(es) (--keep-identity-hashes to compare them)
+business: same
+framework (reported, does not decide the verdict): same
+note: this compares what nodes LOGGED for these captures; an output or side effect no node logged is not covered, and a change to what is logged shows as a difference
+verdict: logged business entries MATCH for these captures
+
+exit status: 0

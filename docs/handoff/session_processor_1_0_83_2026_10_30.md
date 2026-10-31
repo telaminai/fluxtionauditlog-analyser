@@ -5,7 +5,7 @@ Only the checked-in processor and its resource copy are regenerated; the graph,
 nodes and dependency versions are unchanged. Revert this PR to restore the old
 processor. No persisted data format changes.
 
-## Predictions recorded before capture
+## Predictions recorded before the initial capture
 
 Baseline: `6d51aa1671c4dbc9c3d6236c1b1e684781b7d13e` (compiler 1.0.79 output).
 Candidate: that baseline, regenerated with compiler 1.0.83 via `mvn -q -Pregen process-classes`.
@@ -36,10 +36,13 @@ which permits the generated cleanup to retry closure without another exception.
 The normal application sink counts write failures internally; this injection
 exercises the processor boundary directly.
 
-## Results
+## Initial runtime 1.1.0 results
 
-**Draft; do not promote until the failed-audit-close issue below is resolved or
-explicitly accepted.** Onboarding can proceed independently on the old processor.
+**Current gate:** the source fix is in [runtime PR #53](https://github.com/telaminai/fluxtion/pull/53)
+and passes the strengthened analyser fixture. This branch still pins runtime 1.1.0,
+which still fails that assertion. Keep this PR draft until the fixed runtime is released,
+adopted and the assertion becomes part of the normal suite. The issue is not accepted
+for release. Onboarding can proceed independently on the old processor.
 
 | Check | Observed result |
 |---|---|
@@ -95,10 +98,96 @@ python3 docs/skills/spring/add-a-node/audit-compare.py \
 ```
 
 These are bounded session fixtures, not a whole-runtime compatibility proof.
-Normal-release gates and a decision on the failed-close record remain open.
+Normal-release gates and adoption of the audit-close fix below remain open.
 Compiler cleanup does not provide transactions, node-state rollback or runtime
 1.1.3 queue-discard behavior on runtime 1.1.0. No dependency upgrade is bundled here.
 
 Java 21 `mvn -q test`: 4,479 total, 4,098 executed passes, 381 display-dependent skips,
 zero failures/errors. The five new compatibility cases execute headlessly. Public-data
 and whitespace checks pass. Desktop onboarding acceptance belongs to its separate PR.
+
+
+## Audit-close source fix: predictions before the candidate run
+
+The follow-up fixes termination in the public runtime rather than hand-editing the
+processor. A completed text/binary record retains its close result and first end time;
+failed delivery remains retryable, and the manager suppresses repeated completion after
+successful publication. The analyser production dependency is still runtime 1.1.0.
+
+The [integration assertion patch](evidence/session-processor-1.0.83/runtime-fix/integration-assertion.patch)
+adds exactly-one-`endTime` checks to the existing capture and all four recovery entry
+cases, without changing their input sequence. It also requires all four capture records,
+including FULL and SAFE, and two additional records in each recovery case, so dropping
+the failed record cannot make the test pass. It is applied in an isolated validation
+worktree. Against the production runtime pin, all five cases fail with two end markers.
+The assertion belongs in the normal test suite when the fixed runtime is released and
+adopted; this evidence patch does not make the current production pin pass.
+
+Predictions before the fixed-runtime capture:
+
+1. All five strengthened cases pass with exactly one end marker per captured record.
+2. The healthy capture still matches the original healthy capture's business entries
+   and framework trace (28 records, 17 with business entries).
+3. The failed-close capture is readable by the unchanged comparison tool. Compared
+   with the original 1.0.79 baseline, it has the expected additional FULL and SAFE
+   observations and yields a business-difference verdict (exit 1), not an unreadable
+   verdict (exit 2). The original malformed evidence is retained unchanged.
+4. Using the newer runtime without regenerating the old processor does not add its
+   missing queue-discard calls. That adoption is separately tracked in
+   [issue #215](https://github.com/telaminai/fluxtionauditlog-analyser/issues/215).
+
+
+## Fixed-runtime results and adoption gate
+
+[Runtime PR #53](https://github.com/telaminai/fluxtion/pull/53), commit
+`38134088aaaee481891bc840870c44566a1d709b`, implements idempotent record closure and
+completion after successful publication. An independent internal review found no
+blocking defect; its requested test for explicit publication after ordinary completion
+was added. A follow-up evidence review prompted the record-count/presence assertions
+above; the final strengthened fixture was rerun against the candidate. Runtime verification passed 309 normal tests; the one manifest test deferred
+on the classes path then passed against the packaged jar.
+
+The exact analyser fixture plus the assertion patch was run twice: all five cases fail
+against the pinned runtime with two end markers; all five pass against the locally built
+runtime from that commit. The input events and generated processor are unchanged.
+The full analyser headless suite also passed with that candidate: 4,479 total, 4,098
+executed passes, 381 display-dependent skips, zero failures/errors. This is local
+candidate evidence, not evidence that the branch's old dependency has been fixed.
+
+| Predicted check | Observed result |
+|---|---|
+| Exactly one end marker | All five strengthened cases pass; the object capture contains four readable records, each with one `endTime`. |
+| Healthy comparison | 28 records each, 17 with business entries; business and framework views match (exit 0). |
+| Failure comparison | Original baseline has two records; candidate has four, adding only the expected FULL and SAFE business observations (exit 1). The unchanged comparator can read it. |
+| Queue policy | Generated source remains unchanged and lacks discard calls. No queue-discard claim is made; issue #215 remains open. |
+
+Evidence: [healthy comparison](evidence/session-processor-1.0.83/runtime-fix/healthy-comparison.txt),
+[failed-close comparison](evidence/session-processor-1.0.83/runtime-fix/failed-close-comparison.txt),
+[healthy capture](evidence/session-processor-1.0.83/runtime-fix/after/healthy.yaml),
+[failed-close capture](evidence/session-processor-1.0.83/runtime-fix/after/failed-close.yaml),
+[outcome](evidence/session-processor-1.0.83/runtime-fix/after/outcome.txt).
+The original malformed capture and exit-2 result above remain unchanged.
+
+To reproduce in a throwaway worktree of this branch, build and install the runtime
+candidate from the linked commit locally, apply the assertion patch, then set
+`AUDIT_RUNTIME_VERSION` to that local build's version and run:
+
+```sh
+git apply docs/handoff/evidence/session-processor-1.0.83/runtime-fix/integration-assertion.patch
+mvn -q -Dfluxtion.version="$AUDIT_RUNTIME_VERSION" \
+  -Dtest=SessionProcessorCompatibilityTest \
+  -Dsession.compatibility.capture=/tmp/session-fixed-runtime test
+```
+
+Without the runtime override, the assertion deliberately fails against the current pin.
+For adoption, publish the reviewed runtime fix through its normal release process,
+update the analyser to that published version, incorporate the assertion directly into
+`SessionProcessorCompatibilityTest`, and repeat the normal build/acceptance gates.
+Changing the runtime alone does not implement the separately tracked queue-discard
+policy: that requires regeneration and the tests in
+[issue #215](https://github.com/telaminai/fluxtionauditlog-analyser/issues/215).
+
+The unchanged production-pin suite was also rerun after adding this evidence: 4,098
+executed passes, 381 display-dependent skips, zero failures/errors. The stronger close
+assertion is supplied as the patch above and is not silently counted as passing on that
+pin. Strict MkDocs, public-data and whitespace checks pass.
