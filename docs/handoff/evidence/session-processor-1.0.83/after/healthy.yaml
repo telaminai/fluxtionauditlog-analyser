@@ -1,0 +1,388 @@
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1793399591587
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=telamin.fluxtion.audit.analyser.analyser.session.SessionAuditSink@cecf639, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591588
+---
+eventLogRecord: 
+    eventTime: 1793399591588
+    logTime: 1793399591588
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591589
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1793399591589
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591589
+---
+eventLogRecord: 
+    eventTime: 1793399591590
+    logTime: 1793399591590
+    groupingId: null
+    event: OpenProjectRequested
+    eventToString: OpenProjectRequested[opId=1, profilePath=/projects/DEMO-alpha.properties, kind=EXPLICIT_SWITCH, source=DEMO fixture, assistantOrigin=null, audience=ProjectAudience[origin=MACHINE, offersAllowed=false], create=null, starterRequest=0]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onOpenProjectRequested, fact: request, opId: 1, kind: EXPLICIT_SWITCH}
+        - openBundle: { thread: main, method: onOpenProjectRequested}
+        - assistantLoop: { thread: main, method: onOpenProjectRequested}
+        - sessionBoundary: { thread: main, method: onOpenProjectRequested, decision: load, kind: EXPLICIT_SWITCH, source: DEMO fixture, opId: 1}
+        - projectReopenOffer: { thread: main, method: onOpenProjectRequested}
+    endTime: 1793399591602
+---
+eventLogRecord: 
+    eventTime: 1793399591602
+    logTime: 1793399591602
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: BatchEnd
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591626
+---
+eventLogRecord: 
+    eventTime: 1793399591626
+    logTime: 1793399591626
+    groupingId: null
+    event: ProfileLoaded
+    eventToString: ProfileLoaded[opId=1, profilePath=/projects/DEMO-alpha.properties, ok=true, name=DEMO-alpha, unknownKeys=0, reason=null, bundlePlan=null, contentDigest=null]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onProfileLoaded, fact: result, what: ProfileLoaded, opId: 1}
+        - effectOutcomes: { thread: main, method: onProfileLoaded, EffectOutcome: loadProfile, effect: loadProfile, success: true, opId: 1, stale: false}
+        - openBundle: { thread: main, method: onProfileLoaded}
+        - assistantLoop: { thread: main, method: onProfileLoaded}
+        - sessionBoundary: { thread: main, method: onProfileLoaded, decision: close, closingLog: false, closingGraph: false, kind: EXPLICIT_SWITCH, reason: projectChanged, opId: 1}
+    endTime: 1793399591629
+---
+eventLogRecord: 
+    eventTime: 1793399591629
+    logTime: 1793399591629
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: BatchEnd
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591629
+---
+eventLogRecord: 
+    eventTime: 1793399591629
+    logTime: 1793399591629
+    groupingId: null
+    event: ProfileApplied
+    eventToString: ProfileApplied[opId=1, profilePath=/projects/DEMO-alpha.properties, name=DEMO-alpha, droppedBindings=[]]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onProfileApplied, fact: result, what: ProfileApplied, opId: 1}
+        - activeProject: { thread: main, method: onProfileApplied, activeProject: DEMO-alpha, path: /projects/DEMO-alpha.properties}
+        - effectOutcomes: { thread: main, method: onProfileApplied, EffectOutcome: applyProfile, effect: applyProfile, success: true, opId: 1, stale: false}
+        - openBundle: { thread: main, method: onProfileApplied, fromBundle: false, bundleIdentity: null}
+        - assistantLoop: { thread: main, method: onProfileApplied}
+        - starterProject: { thread: main, method: onProfileApplied}
+        - sessionBoundary: { thread: main, method: onProfileApplied}
+        - projectOutputs: { thread: main, method: onProfileApplied, projectOutputs: OBSERVING, watch: 1, projectGeneration: 1}
+        - walkPlayback: { thread: main, method: onLogChanged}
+        - bundleAnchor: { thread: main, method: onProfileApplied}
+        - designSession: { thread: main, method: project, designSession: cleared}
+        - projectReopenOffer: { thread: main, method: onProfileApplied, offer: offerProjectReopenSkipped, reason: bundle or operation does not permit an offer}
+    endTime: 1793399591634
+---
+eventLogRecord: 
+    eventTime: 1793399591634
+    logTime: 1793399591634
+    groupingId: null
+    event: StatusShown
+    eventToString: StatusShown[opId=1, kind=showStatus]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onStatusShown, fact: result, what: StatusShown, opId: 1}
+        - effectOutcomes: { thread: main, method: onStatusShown, EffectOutcome: showStatus, effect: showStatus, success: true, opId: 1, stale: false}
+    endTime: 1793399591635
+---
+eventLogRecord: 
+    eventTime: 1793399591635
+    logTime: 1793399591635
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: BatchEnd
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591636
+---
+eventLogRecord: 
+    eventTime: 1793399591636
+    logTime: 1793399591636
+    groupingId: null
+    event: StatusShown
+    eventToString: StatusShown[opId=0, kind=discoverDesign]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onStatusShown, staleResult: StatusShown, opId: 0, expected: 1}
+        - effectOutcomes: { thread: main, method: onStatusShown, EffectOutcome: discoverDesign, effect: discoverDesign, success: true, opId: 0, stale: true}
+    endTime: 1793399591636
+---
+eventLogRecord: 
+    eventTime: 1793399591642
+    logTime: 1793399591642
+    groupingId: null
+    event: OpenLogRequested
+    eventToString: OpenLogRequested[opId=2, location=/logs/DEMO.yaml, format=null, provenance=DECLARED, fromSocket=false, assistantOrigin=null]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onOpenLogRequested, fact: request, opId: 2, what: openLog}
+        - logOpening: { thread: main, method: onOpenLogRequested, decision: openLog, location: /logs/DEMO.yaml, fromSocket: false, opId: 2}
+        - logArrival: { thread: main, method: onOpenLogRequested}
+        - assistantLoop: { thread: main, method: onOpenLogRequested}
+        - projectReopenOffer: { thread: main, method: onOpenLogRequested}
+    endTime: 1793399591645
+---
+eventLogRecord: 
+    eventTime: 1793399591645
+    logTime: 1793399591645
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: BatchEnd
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591645
+---
+eventLogRecord: 
+    eventTime: 1793399591645
+    logTime: 1793399591645
+    groupingId: null
+    event: Pending
+    eventToString: Pending[opId=2, what=opening /logs/DEMO.yaml]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onPending, fact: result, what: Pending, opId: 2, pending: opening /logs/DEMO.yaml}
+        - effectOutcomes: { thread: main, method: onPending, EffectOutcome: opening /logs/DEMO.yaml, effect: opening /logs/DEMO.yaml, success: true, opId: 2, stale: false, reason: pending}
+    endTime: 1793399591645
+---
+eventLogRecord: 
+    eventTime: 1793399591652
+    logTime: 1793399591652
+    groupingId: null
+    event: LogOpened
+    eventToString: LogOpened[opId=2, logPath=/logs/DEMO.yaml, provenance=DECLARED, loggedNodeIds=[], sampled=0, total=0, mostVerboseLevel=null, provenanceSource=declared by the opener, followable=false, nodeLogsWithheld=0, openedAtMillis=0]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onLogOpened, fact: result, what: LogOpened, opId: 2}
+        - effectOutcomes: { thread: main, method: onLogOpened, EffectOutcome: openLog, effect: openLog, success: true, opId: 2, stale: false}
+        - openLog: { thread: main, method: onLogOpened, openLog: /logs/DEMO.yaml, via: LogOpened, sampled: 0, total: 0, generation: 1}
+        - logEvidence: { thread: main, method: onOpenLogChanged, decision: scanLogEvidence, generation: 1, why: opened}
+        - onboardingProposal: { thread: main, method: onLogOpened}
+        - pairing: { thread: main, method: recomputeOnStateChange, pairing: cannotSay, haveGraph: false, haveLog: true}
+        - coverageClaim: { thread: main, method: recomputeOnStateChange, coverageClaim: REFUSED, claim: REFUSED, whyNot: no graph is open — coverage compares a graph against a log, so it needs one, provenance: null, auditInstallation: UNKNOWN, level: null}
+        - logArrival: { thread: main, method: onLogOpened, decision: noGraph, reason: nothingToJudge}
+        - pairingQualifier: { thread: main, method: onPairChanged}
+        - recordsView: { thread: main, method: onOpenLogChanged}
+        - assistantLoop: { thread: main, method: onLogOpened}
+        - startPageNoLogHint: { thread: main, method: onLogOpened}
+        - statusLine: { thread: main, method: decide, statusLine: WAITING, generation: 1}
+        - walkPlayback: { thread: main, method: onLogChanged}
+    endTime: 1793399591658
+---
+eventLogRecord: 
+    eventTime: 1793399591658
+    logTime: 1793399591658
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: BatchEnd
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591658
+---
+eventLogRecord: 
+    eventTime: 1793399591658
+    logTime: 1793399591658
+    groupingId: null
+    event: ScanScheduled
+    eventToString: ScanScheduled[opId=0, generation=1]
+    thread: main
+    nodeLogs: 
+        - logEvidence: { thread: main, method: onScanScheduled, scanScheduled: 1}
+    endTime: 1793399591659
+---
+eventLogRecord: 
+    eventTime: 1793399591659
+    logTime: 1793399591659
+    groupingId: null
+    event: GraphOpened
+    eventToString: GraphOpened[graphPath=/graphs/DEMO.graphml, source=OPENED, declaredNodeIds=[], nodeTypes=[], assistantOrigin=null]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onGraphOpened, fact: fact, what: GraphOpened}
+        - openGraph: { thread: main, method: onGraphOpened, openGraph: /graphs/DEMO.graphml, via: GraphOpened, source: OPENED}
+        - auditInstallation: { thread: main, method: recomputeOnStateChange, auditInstallation: UNKNOWN, nodeCount: 0}
+        - onboardingProposal: { thread: main, method: onGraphOpened}
+        - pairing: { thread: main, method: recomputeOnStateChange, pairing: doesNotApply, applies: false, declared: 0, logged: 0, matched: 0, sampled: 0, total: 0, nodeLogsWithheld: 0}
+        - coverageClaim: { thread: main, method: recomputeOnStateChange, coverageClaim: REFUSED, claim: REFUSED, whyNot: the graph and this log disagree about which nodes exist (the loaded graph declares no nodes), so a denominator taken from the graph would score nodes this log may not contain. It was kept because it was opened deliberately; scoring against it would still be wrong, provenance: OPENED, auditInstallation: UNKNOWN, level: null}
+        - pairingQualifier: { thread: main, method: onPairChanged}
+        - assistantLoop: { thread: main, method: onGraphOpened}
+        - statusLine: { thread: main, method: decide}
+        - walkPlayback: { thread: main, method: onLogChanged}
+        - projectReopenOffer: { thread: main, method: onGraphOpened}
+    endTime: 1793399591660
+---
+eventLogRecord: 
+    eventTime: 1793399591661
+    logTime: 1793399591661
+    groupingId: null
+    event: OpenProjectRequested
+    eventToString: OpenProjectRequested[opId=3, profilePath=/projects/DEMO-beta.properties, kind=EXPLICIT_SWITCH, source=DEMO fixture, assistantOrigin=null, audience=ProjectAudience[origin=MACHINE, offersAllowed=false], create=null, starterRequest=0]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onOpenProjectRequested, fact: request, opId: 3, kind: EXPLICIT_SWITCH}
+        - openBundle: { thread: main, method: onOpenProjectRequested}
+        - assistantLoop: { thread: main, method: onOpenProjectRequested}
+        - sessionBoundary: { thread: main, method: onOpenProjectRequested, decision: load, kind: EXPLICIT_SWITCH, source: DEMO fixture, opId: 3}
+        - projectReopenOffer: { thread: main, method: onOpenProjectRequested}
+    endTime: 1793399591661
+---
+eventLogRecord: 
+    eventTime: 1793399591661
+    logTime: 1793399591661
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: BatchEnd
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591662
+---
+eventLogRecord: 
+    eventTime: 1793399591662
+    logTime: 1793399591662
+    groupingId: null
+    event: ProfileLoaded
+    eventToString: ProfileLoaded[opId=3, profilePath=/projects/DEMO-beta.properties, ok=true, name=DEMO-beta, unknownKeys=0, reason=null, bundlePlan=null, contentDigest=null]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onProfileLoaded, fact: result, what: ProfileLoaded, opId: 3}
+        - effectOutcomes: { thread: main, method: onProfileLoaded, EffectOutcome: loadProfile, effect: loadProfile, success: true, opId: 3, stale: false}
+        - openBundle: { thread: main, method: onProfileLoaded}
+        - assistantLoop: { thread: main, method: onProfileLoaded}
+        - sessionBoundary: { thread: main, method: onProfileLoaded, decision: close, closingLog: true, closingGraph: true, kind: EXPLICIT_SWITCH, reason: projectChanged, opId: 3}
+    endTime: 1793399591662
+---
+eventLogRecord: 
+    eventTime: 1793399591662
+    logTime: 1793399591662
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: BatchEnd
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591662
+---
+eventLogRecord: 
+    eventTime: 1793399591662
+    logTime: 1793399591662
+    groupingId: null
+    event: LogClosed
+    eventToString: LogClosed[opId=3]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onLogClosed, fact: result, what: LogClosed, opId: 3}
+        - effectOutcomes: { thread: main, method: onLogClosed, EffectOutcome: closeLog, effect: closeLog, success: true, opId: 3, stale: false}
+        - openLog: { thread: main, method: onLogClosed, openLog: none, via: LogClosed}
+        - logEvidence: { thread: main, method: onOpenLogChanged}
+        - pairing: { thread: main, method: recomputeOnStateChange, pairing: cannotSay, haveGraph: true, haveLog: false}
+        - coverageClaim: { thread: main, method: recomputeOnStateChange, coverageClaim: REFUSED, claim: REFUSED, whyNot: no log is open — coverage scores what a log recorded against what the graph declares, so it needs both, provenance: OPENED, auditInstallation: UNKNOWN, level: null}
+        - pairingQualifier: { thread: main, method: onPairChanged}
+        - recordsView: { thread: main, method: onOpenLogChanged}
+        - assistantLoop: { thread: main, method: onLogClosed}
+        - statusLine: { thread: main, method: decide, statusLine: NO_LOG, generation: -1}
+        - walkPlayback: { thread: main, method: onLogChanged}
+    endTime: 1793399591662
+---
+eventLogRecord: 
+    eventTime: 1793399591663
+    logTime: 1793399591663
+    groupingId: null
+    event: GraphClosed
+    eventToString: GraphClosed[opId=3]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onGraphClosed, fact: result, what: GraphClosed, opId: 3}
+        - effectOutcomes: { thread: main, method: onGraphClosed, EffectOutcome: closeGraph, effect: closeGraph, success: true, opId: 3, stale: false}
+        - openGraph: { thread: main, method: onGraphClosed, openGraph: none, via: GraphClosed}
+        - auditInstallation: { thread: main, method: recomputeOnStateChange, auditInstallation: UNKNOWN, nodeCount: 0}
+        - pairing: { thread: main, method: recomputeOnStateChange, pairing: cannotSay, haveGraph: false, haveLog: false}
+        - coverageClaim: { thread: main, method: recomputeOnStateChange, coverageClaim: REFUSED, claim: REFUSED, whyNot: no graph is open — coverage compares a graph against a log, so it needs one, provenance: null, auditInstallation: UNKNOWN, level: null}
+        - pairingQualifier: { thread: main, method: onPairChanged}
+        - assistantLoop: { thread: main, method: onGraphClosed}
+        - statusLine: { thread: main, method: decide}
+        - walkPlayback: { thread: main, method: onLogChanged}
+    endTime: 1793399591663
+---
+eventLogRecord: 
+    eventTime: 1793399591663
+    logTime: 1793399591663
+    groupingId: null
+    event: ProfileApplied
+    eventToString: ProfileApplied[opId=3, profilePath=/projects/DEMO-beta.properties, name=DEMO-beta, droppedBindings=[]]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onProfileApplied, fact: result, what: ProfileApplied, opId: 3}
+        - activeProject: { thread: main, method: onProfileApplied, activeProject: DEMO-beta, path: /projects/DEMO-beta.properties}
+        - effectOutcomes: { thread: main, method: onProfileApplied, EffectOutcome: applyProfile, effect: applyProfile, success: true, opId: 3, stale: false}
+        - openBundle: { thread: main, method: onProfileApplied, fromBundle: false, bundleIdentity: null}
+        - assistantLoop: { thread: main, method: onProfileApplied}
+        - starterProject: { thread: main, method: onProfileApplied}
+        - sessionBoundary: { thread: main, method: onProfileApplied}
+        - projectOutputs: { thread: main, method: onProfileApplied, projectOutputs: OBSERVING, watch: 2, projectGeneration: 2}
+        - walkPlayback: { thread: main, method: onLogChanged}
+        - bundleAnchor: { thread: main, method: onProfileApplied}
+        - designSession: { thread: main, method: project, designSession: cleared}
+        - projectReopenOffer: { thread: main, method: onProfileApplied, offer: offerProjectReopenSkipped, reason: bundle or operation does not permit an offer}
+    endTime: 1793399591663
+---
+eventLogRecord: 
+    eventTime: 1793399591663
+    logTime: 1793399591663
+    groupingId: null
+    event: StatusShown
+    eventToString: StatusShown[opId=3, kind=showStatus]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onStatusShown, fact: result, what: StatusShown, opId: 3}
+        - effectOutcomes: { thread: main, method: onStatusShown, EffectOutcome: showStatus, effect: showStatus, success: true, opId: 3, stale: false}
+    endTime: 1793399591663
+---
+eventLogRecord: 
+    eventTime: 1793399591663
+    logTime: 1793399591663
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: BatchEnd
+    thread: main
+    nodeLogs: 
+    endTime: 1793399591663
+---
+eventLogRecord: 
+    eventTime: 1793399591663
+    logTime: 1793399591663
+    groupingId: null
+    event: StatusShown
+    eventToString: StatusShown[opId=0, kind=discoverDesign]
+    thread: main
+    nodeLogs: 
+        - operationGate: { thread: main, method: onStatusShown, staleResult: StatusShown, opId: 0, expected: 3}
+        - effectOutcomes: { thread: main, method: onStatusShown, EffectOutcome: discoverDesign, effect: discoverDesign, success: true, opId: 0, stale: true}
+    endTime: 1793399591663
+---

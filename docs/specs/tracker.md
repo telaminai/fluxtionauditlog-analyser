@@ -17,6 +17,9 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 
 ## Delivery order
 
+- ◧ [SESSION-REGEN] Isolated 1.0.83 regeneration: normal audit matches; runtime PR #53 fixes audit close and passes integration, adoption of its published release still blocks promotion. ▸ [predictions and evidence](../handoff/session_processor_1_0_83_2026_10_30.md)
+- ☐ [SESSION-QUEUE] Adopt failed-cycle event/callback-payload discard with a published runtime and regeneration; independent of audit close. ▸ [issue #215](https://github.com/telaminai/fluxtionauditlog-analyser/issues/215)
+
 - ◧ [INTEG-R7] Desktop acceptance remains open: complete Mac run 326/1/0/3 (T2 right-click control missing plus native skips); final ownership correction passes 21 affected cases. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
 - ☐ [INTEG-R8] Diagnose background EDT ownership exceptions in one passing grouped usability run; no proven production cause or named failing regression yet. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
 - ☐ [INTEG-R9] Owner scope needed for historical host-path redaction and stale screenshots; not introduced by this integration. Preserve evidence while planning the cleanup. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)

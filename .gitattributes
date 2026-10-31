@@ -39,3 +39,10 @@ src/test/resources/conformance/c27-whitespace-only.yaml whitespace=-blank-at-eof
 
 # UPS-1 captures, kept byte for byte as the producer wrote them.
 docs/handoff/evidence/ups1-admin-command-records-2026-10-01/*.yaml whitespace=-blank-at-eol
+
+# Actual before/after session audit exports; preserve the producer's trailing spaces.
+docs/handoff/evidence/session-processor-1.0.83/*/*.yaml whitespace=-blank-at-eol
+
+# Fixed-runtime captures and the executable assertion patch are preserved byte-for-byte.
+docs/handoff/evidence/session-processor-1.0.83/runtime-fix/after/*.yaml whitespace=-blank-at-eol
+docs/handoff/evidence/session-processor-1.0.83/runtime-fix/integration-assertion.patch whitespace=-blank-at-eol

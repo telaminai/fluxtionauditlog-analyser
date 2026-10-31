@@ -1,0 +1,12 @@
+before: 2 records, 1 business, 1 framework-only
+after: 4 records, 3 business, 1 framework-only
+masked: 2 identity hash(es) or lambda address(es) (--keep-identity-hashes to compare them)
+business: DIFFERENT (1 change(s))
+  insert business record(s) before[1:1] after[1:3]
+    + AssistantProfileObserved [AssistantProfileObserved[profile=FULL]] aiSetup {assistantProfile: FULL}
+    + AssistantProfileObserved [AssistantProfileObserved[profile=SAFE]] aiSetup {assistantProfile: SAFE}
+framework (reported, does not decide the verdict): DIFFERENT (1 change(s))
+note: this compares what nodes LOGGED for these captures; an output or side effect no node logged is not covered, and a change to what is logged shows as a difference
+verdict: logged business entries DIFFER for these captures
+
+exit status: 1

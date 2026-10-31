@@ -188,9 +188,9 @@ public final class SessionDriver {
                 processor.batchEnd();
                 RuntimeException fatal = processor.effectQueue.takeFatal();
                 if (fatal != null) {
-                    // Thrown HERE rather than out of batchEnd(): the generated batchEnd sets
-                    // processing=true with no try/finally, so a throw from inside it would leave the
-                    // processor wedged. By the time control is back here the flag is clear.
+                    // Keep the adapter's fatal result outside batchEnd: the effect queue has completed
+                    // its result protocol before the driver propagates the failure. Generated cycle
+                    // cleanup also protects direct exceptions, but does not roll back node state.
                     throw fatal;
                 }
             }
