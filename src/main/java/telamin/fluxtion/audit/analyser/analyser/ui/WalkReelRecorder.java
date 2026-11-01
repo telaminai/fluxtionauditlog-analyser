@@ -50,6 +50,9 @@ final class WalkReelRecorder {
         /** Ask for {@code step} (0-based) of {@code walk}; null, or why the request could not be made. */
         String play(String walk, int step);
 
+        /** A photograph is a fact. The session schedules any next step through the same advance effect as autoplay. */
+        void captured(long ticket, int step);
+
         void end(String reason);
 
         /** The analyser's window as the {@code screenshot} verb composes it: content, menus and the live spotlight. */
@@ -135,11 +138,7 @@ final class WalkReelRecorder {
             finish(new Recording(taken, null));
             return;
         }
-        String refused = frame.play(walk.name(), wanted);
-        if (refused != null) {
-            finish(new Recording(List.of(), refused));
-            return;
-        }
+        frame.captured(s.ticket(), s.step());
         deadline = System.currentTimeMillis() + STEP_BOUND_MS;
     }
 

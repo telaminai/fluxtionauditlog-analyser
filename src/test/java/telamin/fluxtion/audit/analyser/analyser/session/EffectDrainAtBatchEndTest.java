@@ -102,9 +102,9 @@ class EffectDrainAtBatchEndTest {
                 () -> open(driver, A, TransitionKind.EXPLICIT_SWITCH));
         assertTrue(thrown.getMessage().contains("single-in-flight"), thrown.getMessage());
 
-        // THE POINT. The generated batchEnd() sets processing=true with no try/finally, so a throw from
-        // inside the @OnBatchEnd method would leave the flag set forever: every later event would be
-        // queued as re-entrant and never dispatched, and the application would go quiet with no error.
+        // THE POINT. Before generator 1.0.80, batchEnd() set processing=true with no try/finally, so a throw
+        // from inside it left the flag set forever. 1.0.80+ ends such a cycle through failedCycle(); either
+        // way an event submitted after a violation must still be dispatched.
         // EffectQueue therefore catches it and stashes it; the driver rethrows once batchEnd has
         // returned. This asserts the processor still dispatches afterwards.
         reentrant[0] = false;

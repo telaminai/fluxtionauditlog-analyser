@@ -164,10 +164,10 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   ▸ detail: *completed/tracker.md ▸ 1.36.0*.
 
 ### M79 · The first minute ([spec](spec-first-minute.md), r7)
-- [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers; r6 the second review, OD-79.20–.25 accepted; r7 brought up to date for implementation and adds M79-7, OD-79.26–.28 open): the real-run diamond walk autoplays once, its Spring XML beside the topology, three doors, a start page under 40 words; then a recorded, composition-first teaching conversation in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, the external teacher kit, and three published philosophy packs. 9 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`. No M79 code is in the integration; the first slice to start is M79-1a-i.
-- [M79-1a-i] ☐ The first launch, generic domain: `firstMinute`, the diamond walk autoplayed once, the topology-centre layout, Spring XML beside it, three doors, no recovery offer (spec §5, §7).
+- [M79] ◐ Accepted r7; generic first-launch slice on a feature branch, not merged. Later phases remain open; OD-79.26–.28 accepted, and OD-79.29 makes the first slice startup-only (owner, 2026-10-23).
+- [M79-1a-i] ◧ PR #196: required D1/D2 and posted F1/F2 corrections implemented, plus bounded follow-ups; local validation green (4451 tests; 47 display tests; 58/58 targeted controls). CI linked from the PR; independent delta re-review pending. F5–F7 tracked as #203–#205. ▸ [handoff](../handoff/handoff_m79_1a_i_2026_10_23.md). Not merged or released.
 - [M79-1a-ii] ☐ The four other domains: runs, GraphMLs, the caption template, the five tiles (spec §6.3).
-- [M79-1b] ☐ **Next after #196** (owner, 2026-10-27). The start page under 40 words, against M77's shipped wizard/AI line, with *Learn ▸ The diamond* as the returning entry (spec §5.3–§5.4).
+- [M79-1b] ☐ **Folded into #196** (owner, 2026-10-27). The start page under 40 words, against M77's shipped wizard/AI line, with *Learn ▸ The diamond* as the returning entry (spec §5.3–§5.4); re-entry preserves an active project's selected processor, open log and graph (OD-79.29).
 - [M79-2] ☐ The teaching conversation in the onboard assistant: a shipped, recorded walk, *Continue with Claude*, the passive log (spec §11).
 - [M79-3] ☐ Quiet evidence wording: the three-state chip, accessible descriptions (spec §8).
 - [M79-4] ☐ The broken-diamond quest: works with No AI, confirmed by record digest, teacher mode (spec §9).

@@ -288,6 +288,9 @@ public final class SettingsShare {
     /** Where the export serialises — split out so the M38.7 carry-over happens before it. */
     private void carryOver(Properties p, Properties previous) {
         if (previous != null) KnownKeys.preserve(p, previous, KnownKeys.PROFILE_FAMILIES);
+        // M79 owns this family on the machine tier only. A hand-edited/older profile must not
+        // smuggle it through the otherwise deliberate preservation of future profile families.
+        p.keySet().removeIf(key -> "firstMinute".equals(KnownKeys.family(key.toString())));
     }
 
     /** The {@code #Mon Aug 25 09:00:00 BST 2026} line {@link Properties#store} always emits. */

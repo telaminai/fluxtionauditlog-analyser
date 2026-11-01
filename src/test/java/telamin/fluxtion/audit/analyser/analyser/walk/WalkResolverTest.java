@@ -46,6 +46,21 @@ class WalkResolverTest {
     }
 
     @Test
+    @DisplayName("r8: only a Java target pinned to an exact revision is compared at read; an unpinned one says so")
+    void aPinnedSourceBasisIsTheOnlyJavaCaptionNotMarkedUncompared() {
+        var pinned = t("source:java:com.acme.Node:line:3", "source", "sha256:abc");
+        var unpinned = t("source:java:com.acme.Node:line:3", "none", "");
+        assertTrue(WalkResolver.pinnedSource(pinned));
+        assertFalse(WalkResolver.pinnedSource(unpinned));
+        assertFalse(WalkResolver.pinnedSource(t("source:java:com.acme.Node:line:3", "source", "")),
+                "a source basis without a digest is not a comparison");
+        assertEquals(WalkIdentity.State.CURRENT, v(pinned, new World()).state());
+        assertEquals("cap", WalkResolver.caption("cap", WalkIdentity.State.CURRENT, !WalkResolver.pinnedSource(pinned)));
+        assertTrue(WalkResolver.caption("cap", WalkIdentity.State.CURRENT, !WalkResolver.pinnedSource(unpinned))
+                .contains("not compared"));
+    }
+
+    @Test
     @DisplayName("a record whose digest matches is current and lit")
     void aMatchingRecordIsCurrent() {
         var r = v(t("records:row:1", "record", "sha256:r1"), new World());

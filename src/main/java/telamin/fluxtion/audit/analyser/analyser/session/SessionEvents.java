@@ -256,9 +256,25 @@ public final class SessionEvents {
      */
     public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
                             int sampled, int total, String mostVerboseLevel, String provenanceSource,
-                            boolean followable, int nodeLogsWithheld, long openedAtMillis) implements Result {
+                            boolean followable, int nodeLogsWithheld, long openedAtMillis, String launch,
+                            long firstMinuteTicket) implements Result {
         public LogOpened {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+            launch = launch == null ? "NONE" : launch;
+        }
+
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel, String provenanceSource, boolean followable,
+                         int nodeLogsWithheld, long openedAtMillis, String launch) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel, provenanceSource,
+                    followable, nodeLogsWithheld, openedAtMillis, launch, 0);
+        }
+
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel, String provenanceSource, boolean followable,
+                         int nodeLogsWithheld, long openedAtMillis) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel, provenanceSource,
+                    followable, nodeLogsWithheld, openedAtMillis, "NONE");
         }
 
         /**
@@ -434,7 +450,12 @@ public final class SessionEvents {
      * @param nodeTypes       every node's simple type name, which is how audit installation is read
      */
     public record GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
-                              java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin) {
+                              java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin,
+                              long firstMinuteTicket) {
+        public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
+                           java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin) {
+            this(graphPath, source, declaredNodeIds, nodeTypes, assistantOrigin, 0);
+        }
         public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
                            java.util.List<String> nodeTypes) {
             this(graphPath, source, declaredNodeIds, nodeTypes, null);
@@ -604,6 +625,41 @@ public final class SessionEvents {
     /** ◀ ▶ or ← →: move by {@code delta} steps. */
     public record WalkNavigated(int delta) {
     }
+
+    /** A scheduled timer reports a fact; only walkPlayback may advance the matching showing. */
+    public record WalkAdvanceDue(long ticket, int step) { }
+    public record WalkReelFrameCaptured(long ticket, int step) { }
+    public record StageToggleRequested(WalkPlaybackState.Stage stage) { }
+    public record FirstMinuteDoorChosen(String door) { }
+    public record FirstMinuteCardClosed() { }
+    /** M79-1b: Learn ▸ The diamond. {@code confirmed}: the person already agreed to replace what is open. */
+    public record DiamondReplayRequested(boolean confirmed) { }
+    /** The person's answer to {@link SessionEffects.ConfirmDiamondReplayEffect}, for that ticket only. */
+    public record DiamondReplayAnswered(long ticket, boolean yes) { }
+
+    public record FirstMinuteStartupObserved(boolean firstRunAtStart, int recentProjects, int recentFiles,
+                                             int recentBundles, boolean played, boolean restLaunch, boolean launchFile,
+                                             String rememberedDomain, boolean startupSurfaceDue) {
+        public FirstMinuteStartupObserved {
+            rememberedDomain = java.util.Set.of("generic", "mathematics", "accounting", "logistics", "trading")
+                    .contains(java.util.Objects.requireNonNullElse(rememberedDomain, "")) ? rememberedDomain : "generic";
+        }
+    }
+    /** Assigned before the normal open request; arrivals are still accepted solely through OpenLog's launch/generation. */
+    public record FirstMinuteLaunchAssigned(long ticket, long operation) { }
+    public record FirstMinuteOpenFailed(long ticket, String reason) {
+        public FirstMinuteOpenFailed { reason = FactWords.withoutPaths(reason); }
+    }
+    public record FirstMinuteLogReadObserved(long ticket, long generation, String sha256, String reason) {
+        public FirstMinuteLogReadObserved { reason = FactWords.withoutPaths(reason); }
+    }
+    public record FirstMinutePresentationObserved(long ticket, long generation, String graphSha256,
+                                                   String designSha256, String reason) {
+        public FirstMinutePresentationObserved { reason = FactWords.withoutPaths(reason); }
+    }
+    public record FirstMinuteCaptureObserved(long request, long generation, long launchTicket, String readDigest,
+                                             boolean personalContent) { }
+    public record FirstMinuteEffectStarted(long opId, long ticket, String what) implements Result { }
 
     /** A native tab change; -1 means an external action, otherwise the effect's walk ticket. */
     public record WalkViewChanged(long ownerTicket) { }

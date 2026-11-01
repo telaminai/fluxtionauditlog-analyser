@@ -170,8 +170,16 @@ public final class GraphTabs extends JPanel {
     }
 
     private void fireChanged() {
-        if (!restoring) changeListener.run();
+        if (!restoring) {
+            authoredSinceBind = true;
+            changeListener.run();
+        }
     }
+
+    // An observation about this widget's edits, not a recovery decision. The initial blank tab
+    // is structural; a person-created empty chart, restored definition or later edit is not.
+    private boolean authoredSinceBind;
+    boolean hasPersonalContent() { return authoredSinceBind; }
 
     public GraphTabs() {
         super(new BorderLayout());
@@ -266,6 +274,7 @@ public final class GraphTabs extends JPanel {
 
     /** Rebind to a freshly loaded log: drop existing graphs and start with one. */
     public void bind(LogStore store, FilterState filter) {
+        authoredSinceBind = false;
         this.store = store;
         this.filter = filter;
         clearGraphs();
@@ -671,6 +680,7 @@ public final class GraphTabs extends JPanel {
     /** Rebuild graphs (names + series + formulas + pin) from saved specs (used when a profile is restored). */
     public void restore(List<GraphSpec> saved) {
         telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(saved);
+        if (saved != null && !saved.isEmpty()) authoredSinceBind = true;
         boolean resuming = definitionRefusal != null;
         definitionRefusal = null;
         showDefinitionNotice();

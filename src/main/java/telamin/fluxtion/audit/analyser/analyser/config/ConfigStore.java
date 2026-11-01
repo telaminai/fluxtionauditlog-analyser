@@ -45,6 +45,8 @@ public final class ConfigStore {
         }
         c.logFile = nz(p.getProperty("logFile"));
         c.graphmlFile = nz(p.getProperty("graphmlFile"));
+        c.firstMinutePlayed = parseBool(p.getProperty("firstMinute.played"), false);
+        c.firstMinuteDomain = p.getProperty("firstMinute.domain", "generic");
         readList(p, "sourceRoot", c.sourceRoots);
         // P5: the analyser's own settings cannot carry a tier-1 root in either (a hand edit, an older version)
         List<String> allowed = SourceRootPolicy.keepAllowed(c.sourceRoots, SourceRootPolicy.home(), null);
@@ -219,6 +221,8 @@ public final class ConfigStore {
         writeList(p, "hiddenColumn", globalTier == null ? c.hiddenColumns : globalTier.hiddenColumns());
         writeList(p, "searchHistory", c.searchHistory);
         put(p, "lastRunVersion", c.lastRunVersion);
+        put(p, "firstMinute.played", Boolean.toString(c.firstMinutePlayed));
+        put(p, "firstMinute.domain", c.firstMinuteDomain);
         writeGraphs(p, globalTier == null ? c.savedGraphs : globalTier.savedGraphs());
         writeFocuses(p, globalTier == null ? c.namedFocuses : globalTier.namedFocuses());
         writeReports(p, globalTier == null ? c.reports : globalTier.reports());

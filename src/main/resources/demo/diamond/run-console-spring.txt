@@ -1,0 +1,5 @@
+x=2  d.value=106  d ran 1 time(s) for this event
+x=3  d.value=109  d ran 1 time(s) for this event
+x=3  d.value=109  d ran 0 time(s) for this event
+x=4  d.value=212  d ran 1 time(s) for this event
+6 audit records -> sample/diamond-spring-audit.yaml

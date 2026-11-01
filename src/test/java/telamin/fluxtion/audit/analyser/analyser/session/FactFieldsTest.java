@@ -62,6 +62,15 @@ class FactFieldsTest {
     static final Map<String, Holds> M74 = new LinkedHashMap<>();
 
     static {
+        for (String c : List.of("LogOpened.launch", "FirstMinuteDoorChosen.door",
+                "FirstMinuteStartupObserved.rememberedDomain", "FirstMinuteEffectStarted.what"))
+            M74.put(c, Holds.VOCABULARY); // request launch, catalogue domain/door, or performer acknowledgement
+        for (String c : List.of("FirstMinuteCaptureObserved.readDigest", "FirstMinuteLogReadObserved.sha256",
+                "FirstMinutePresentationObserved.graphSha256", "FirstMinutePresentationObserved.designSha256"))
+            M74.put(c, Holds.DIGEST); // actual read/displayed bytes, never pathname identity
+        for (String c : List.of("FirstMinuteOpenFailed.reason", "FirstMinuteLogReadObserved.reason",
+                "FirstMinutePresentationObserved.reason"))
+            M74.put(c, Holds.ANALYSER_WORDS); // compact constructors strip paths from I/O failure reasons
         for (String c : List.of("AssistantModeChosen.origin", "LocalAgentSendRequested.command",
                 "LocalAgentStopRequested.origin", "LocalAgentNewChatRequested.origin", "LocalAgentCallAdmissionRequested.verb",
                 "HostedCallRefusedByServer.verb", "HostedCallRefusedByServer.reason", "LocalAgentEffectStarted.what",

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The same diamond as DiamondBuilder, declared as Spring beans: a constructor-arg ref is a graph edge. -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="fluxtionSpringConfig"
+          class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
+        <property name="logLevel" value="INFO"/>
+        <property name="eventTypes">
+            <list>
+                <value>com.acme.diamond.event.X</value>
+            </list>
+        </property>
+        <property name="nodeBeans">
+            <list>
+                <value>a</value>
+                <value>b</value>
+                <value>c</value>
+                <value>d</value>
+            </list>
+        </property>
+        <property name="eventHandlers">
+            <list>
+                <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.EventHandlerBinding">
+                    <property name="event" value="com.acme.diamond.event.X"/>
+                    <property name="nodeBeans">
+                        <list>
+                            <value>a</value>
+                        </list>
+                    </property>
+                </bean>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="a" class="com.acme.diamond.node.A"/>
+    <bean id="b" class="com.acme.diamond.node.B">
+        <constructor-arg ref="a"/>
+    </bean>
+    <bean id="c" class="com.acme.diamond.node.C">
+        <constructor-arg ref="a"/>
+    </bean>
+    <bean id="d" class="com.acme.diamond.node.D">
+        <constructor-arg ref="b"/>
+        <constructor-arg ref="c"/>
+    </bean>
+</beans>

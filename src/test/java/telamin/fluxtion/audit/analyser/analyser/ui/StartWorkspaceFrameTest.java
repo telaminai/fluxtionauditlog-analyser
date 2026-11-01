@@ -57,8 +57,10 @@ class StartWorkspaceFrameTest {
                     StartPanel start = (StartPanel) field(frame.get(), "startPanel");
                     JSplitPane west = (JSplitPane) field(frame.get(), "westOuter");
                     assertSame(cards, start.getParent(), "the start page owns the complete content area");
-                    assertEquals(2, cards.getComponentCount(), "start and investigation are alternative workspaces");
+                    assertEquals(3, cards.getComponentCount(), "start, records investigation and topology stage are alternative workspaces");
                     assertSame(west, cards.getComponent(1), "the left rail is inside the investigation only");
+                    assertSame(field(frame.get(), "firstMinuteStage"), cards.getComponent(2), "the extra card is exactly the node-rendered topology stage");
+                    assertFalse(cards.getComponent(2).isVisible(), "the topology stage never stacks over the start page");
                     assertInstanceOf(JSplitPane.class, west.getRightComponent(),
                             "the records and output tabs remain together in an investigation");
                     assertFalse(((JPanel) field(frame.get(), "workspaceChrome")).isVisible(),

@@ -24,6 +24,57 @@ import static org.junit.jupiter.api.Assertions.*;
 class SessionRecoveryControllerTest {
     @TempDir Path dir;
 
+    @Test void missingAdmissionTimesOutPreservingPersonalRecoveryAndFinishingShutdown() throws Exception {
+        Path log = Files.writeString(dir.resolve("DEMO.yaml"), "DEMO");
+        var files = new SessionResumeStore(dir.resolve("sessions"));
+        var finished = new java.util.concurrent.CountDownLatch(1);
+        var controller = new SessionRecoveryController(files, new SessionRecoveryController.Host() {
+            public SessionDriver driver() { throw new AssertionError("no restore"); }
+            public SessionRecoveryController.Capture capture() {
+                return new SessionRecoveryController.Capture(null, null,
+                        List.of(new SessionResumeStore.Input("log", log.toString())), Map.of("note", "DEMO personal finding"));
+            }
+            public void admit(SessionRecoveryController.Capture capture, Consumer<Boolean> completion) { /* lost reply */ }
+            public void render() { }
+            public void apply(long generation, SessionRecovery.Plan plan, Consumer<ResumeEvents.Outcome> completion) { fail("no restore"); }
+            public void failed(String message) { fail(message); }
+        });
+        javax.swing.SwingUtilities.invokeAndWait(() -> controller.closeThen(finished::countDown));
+        assertTrue(finished.await(8, java.util.concurrent.TimeUnit.SECONDS), "a missing admission must not strand shutdown");
+        assertTrue(files.load(SessionResumeStore.NO_PROJECT).isPresent(), "timeout fails open to preserve personal recovery");
+    }
+
+    @Test void closeWaitsForDelayedCaptureAdmissionBeforeFinishing() throws Exception {
+        for (boolean accepted : List.of(true, false)) {
+            Path folder = Files.createDirectories(dir.resolve("admission-" + accepted));
+            Path log = Files.writeString(folder.resolve("DEMO.yaml"), "DEMO");
+            var files = new SessionResumeStore(folder.resolve("sessions"));
+            var answer = new java.util.concurrent.atomic.AtomicReference<Consumer<Boolean>>();
+            var finished = new java.util.concurrent.CountDownLatch(1);
+            var controller = new SessionRecoveryController(files, new SessionRecoveryController.Host() {
+                public SessionDriver driver() { throw new AssertionError("no restore in this fixture"); }
+                public SessionRecoveryController.Capture capture() {
+                    return new SessionRecoveryController.Capture(null, null,
+                            List.of(new SessionResumeStore.Input("log", log.toString())), Map.of());
+                }
+                public void admit(SessionRecoveryController.Capture capture, Consumer<Boolean> completion) { answer.set(completion); }
+                public void render() { }
+                public void apply(long generation, SessionRecovery.Plan plan, Consumer<ResumeEvents.Outcome> completion) {
+                    throw new AssertionError("no restore in this fixture");
+                }
+                public void failed(String message) { fail(message); }
+            });
+            javax.swing.SwingUtilities.invokeAndWait(() -> controller.closeThen(finished::countDown));
+            assertNotNull(answer.get(), "the admission request was observed");
+            assertFalse(finished.await(250, java.util.concurrent.TimeUnit.MILLISECONDS),
+                    "shutdown must not pass a capture whose node admission is still outstanding");
+            javax.swing.SwingUtilities.invokeAndWait(() -> answer.get().accept(accepted));
+            assertTrue(finished.await(5, java.util.concurrent.TimeUnit.SECONDS), "the node answer releases shutdown");
+            assertEquals(accepted, files.load(SessionResumeStore.NO_PROJECT).isPresent(),
+                    "shutdown saves admitted personal content but not the untouched first minute");
+        }
+    }
+
     /**
      * PR #28 review finding 4: the capturing profile's identity is taken when the capture is BUILT, with its
      * inputs, not when the queued background save runs. Here the project is deleted and a new profile created

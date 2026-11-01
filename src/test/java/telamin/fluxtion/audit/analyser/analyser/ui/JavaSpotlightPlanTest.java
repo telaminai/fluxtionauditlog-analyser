@@ -14,6 +14,19 @@ class JavaSpotlightPlanTest {
         for(String s:List.of("source:node:child","source:java:","source:java:../Foo","source:java:a..B","source:java:a.B:line:0","source:java:a.B:line:-1","source:java:a.B:line:2147483648","source:java:a.B:method:f"))
             assertFalse(SpotlightTarget.parse(s).ok(),s);
     }
+    @Test void aPinnedSourceRevisionIsComparedWithTheDocumentActuallyRead(@TempDir Path tmp) throws Exception {
+        Path file=tmp.resolve("demo/Node.java");Files.createDirectories(file.getParent());
+        String text="package demo;\npublic class Node { }\n";Files.writeString(file,text);
+        var service=new SourceService();service.configure(List.of(tmp.toString()),null);var lookup=service.captureLookup();
+        var requests=SpotlightTarget.requests(Map.of("target","source:java:demo.Node:line:2"));
+        String shipped="sha256:"+SourceDocument.digest(text);
+        assertEquals(1,JavaSpotlightPlan.read(lookup,requests.requests(),List.of(),Map.of("source:java:demo.Node:line:2",shipped)).targets().size(),
+                "the shipped revision is pointed at");
+        Files.writeString(file,"package demo;\npublic class Node { int edited; }\n");
+        var refused=assertThrows(IllegalArgumentException.class,()->JavaSpotlightPlan.read(lookup,requests.requests(),List.of(),
+                Map.of("source:java:demo.Node:line:2",shipped)),"an edited file is never captioned with the shipped words");
+        assertTrue(refused.getMessage().contains("not the source revision"),refused.getMessage());
+    }
     @Test void preparesOncePerFqnAndRefusesAbsentOrOutOfRangeBeforeAnyViewWork(@TempDir Path tmp) throws Exception {
         Path file=tmp.resolve("demo/Outer.java");Files.createDirectories(file.getParent());Files.writeString(file,"package demo;\npublic class Outer { class Inner {} }\n");
         var service=new SourceService();service.configure(List.of(tmp.toString()),null);var lookup=service.captureLookup();

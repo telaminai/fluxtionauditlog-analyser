@@ -10,6 +10,16 @@ record JavaSpotlightPlan(SourceService.Lookup lookup, Map<String, Prepared> targ
 
     static JavaSpotlightPlan read(SourceService.Lookup lookup, List<SpotlightTarget.Request> requests,
                                   List<SourceDocument> retained) {
+        return read(lookup, requests, retained, Map.of());
+    }
+
+    /**
+     * {@code expected}: target name to a pinned {@code sha256:} revision (a shipped walk's {@code source} basis). A target
+     * whose document is any other revision is refused whole, so its caption is never drawn over code it was not written
+     * against.
+     */
+    static JavaSpotlightPlan read(SourceService.Lookup lookup, List<SpotlightTarget.Request> requests,
+                                  List<SourceDocument> retained, Map<String, String> expected) {
         Map<String, SourceDocument> documents = new LinkedHashMap<>();
         Map<String, Prepared> targets = new LinkedHashMap<>();
         Set<String> identities = new HashSet<>();
@@ -27,6 +37,10 @@ record JavaSpotlightPlan(SourceService.Lookup lookup, Map<String, Prepared> targ
                 // same policy a single out-of-range line already had, said for the range it was asked for.
                 throw new IllegalArgumentException("Line " + (target.lineFrom() == target.lineTo() ? String.valueOf(target.lineFrom())
                         : target.lineFrom() + "-" + target.lineTo()) + " is outside " + document.identity());
+            String pinned = expected.get(target.name());
+            if (pinned != null && !pinned.equals("sha256:" + document.revision()))
+                throw new IllegalArgumentException(document.identity() + " is not the source revision this caption was written"
+                        + " against, so it is not pointed at");
             identities.add(document.identity());
             if (identities.size() > 1) throw new IllegalArgumentException("Java spotlights must name one document; use separate calls");
             targets.put(target.name(), new Prepared(target, document, EventProcessorModel.parse(target.sourceFqn(), document.text())));

@@ -31,6 +31,8 @@ public final class StartPanel extends JPanel {
         void openDemo(Path log, boolean withGraph);
         default void openSampleProject() { openDemo(DemoAssets.log(), true); }
         default void openGuidedTour() { openSampleProject(); }
+        /** M79-1b, Learn ▸ The diamond: ask the session to replay the bundled diamond (it decides what that replaces). */
+        default void replayDiamond() { }
 
         /** Bring a tab forward — the page hands over, it does not drive. */
         void showTab(String name);
@@ -145,6 +147,12 @@ public final class StartPanel extends JPanel {
      * accessible name). Every action is the same {@link Actions} method it always was.
      */
     private final JPanel directStrip = new Fluid.Panel();
+    /** M79-1b (§5.4): everything beyond the three doors, collapsed behind "Or open directly ▸". */
+    private final JPanel direct = new Fluid.Panel();
+    private JButton directToggle;
+    private JComponent recentSection;
+    /** The prompt box opens from Ask… or from typing on the page (§5.4); it is one act away, not always visible. */
+    private JButton askLink;
     /** The recent projects and bundles, side by side when wide, stacked when narrow. */
     private final JPanel recents = new Fluid.Panel();
     private final JComponent[] recentColumns = new JComponent[2];
@@ -223,7 +231,20 @@ public final class StartPanel extends JPanel {
         // r8 F19 / M74 UX: the cards' actions stay, after the prompt — the no-typing path M71 accepted — as small titled
         // blocks in a responsive grid (owner UI feedback, 2026-10-17: each group's heading ABOVE its buttons, 5 columns
         // wide wrapping to 3, 2 and 1). A configured list can lead with a journey; it cannot hide these
-        col.add(heading(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.or")));
+        directToggle = link(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.OPEN_DIRECTLY + " ▸",
+                () -> setDirectOpen(!direct.isVisible()));
+        directToggle.setAlignmentX(LEFT_ALIGNMENT);
+        direct.setLayout(new BoxLayout(direct, BoxLayout.Y_AXIS));
+        direct.setOpaque(false);
+        direct.setAlignmentX(LEFT_ALIGNMENT);
+        direct.setVisible(false);    // TODO(M79-1b fast mode): remember the expansion per machine (§5.4)
+        direct.add(body(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.lede")));
+        direct.add(Box.createVerticalStrut(6));
+        direct.add(body("Open evidence, return to a project, or learn with DEMO. An assistant can drive the same views through the local bridge."));
+        direct.add(Box.createVerticalStrut(6));
+        direct.add(body("Drop an .fexp bundle, audit log, GraphML, Spring XML or a prompt pack (.md) anywhere on this page. "
+                + "Return here from Help."));
+        direct.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
         directStrip.setLayout(new BlockGrid());
         directStrip.setOpaque(false);
         directStrip.setAlignmentX(LEFT_ALIGNMENT);
@@ -256,14 +277,15 @@ public final class StartPanel extends JPanel {
                         "Source settings apply to the open project, or to global defaults when no project is open.",
                         actions::openSettings),
                 fluxtionKeyCard));
-        col.add(directStrip);
-        col.add(Box.createVerticalStrut(UiTheme.SPACE_XL));
+        direct.add(directStrip);
 
         recentProjects.setAlignmentX(LEFT_ALIGNMENT);
         setRecentProjects(List.of());
         recentBundles.setAlignmentX(LEFT_ALIGNMENT);
         setRecentBundles(List.of());
-        col.add(heading("Recent"));
+        Box recentBox = Box.createVerticalBox();
+        recentBox.setAlignmentX(LEFT_ALIGNMENT);
+        recentBox.add(heading("Recent"));
         recentColumns[0] = recentColumn("Recent projects", recentProjects);
         recentColumns[1] = recentColumn("Recent evidence bundles", recentBundles);
         recents.setOpaque(false);
@@ -274,7 +296,14 @@ public final class StartPanel extends JPanel {
                 arrangeRecents(recents.getWidth() >= 900);
             }
         });
-        col.add(recents);
+        recentBox.add(recents);
+        recentBox.add(Box.createVerticalStrut(UiTheme.SPACE_XL));
+        recentSection = recentBox;
+        recentSection.setVisible(false);    // shown only when there is something recent (§5.4's budget)
+        col.add(recentSection);
+        col.add(directToggle);
+        col.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+        col.add(direct);
 
         col.add(Box.createVerticalStrut(18));
         col.add(Box.createVerticalGlue());
@@ -303,6 +332,9 @@ public final class StartPanel extends JPanel {
     public void renderAiSetup(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState state) {
         aiSetup.render(state);
         prompt.setAiLineSaysIt(aiSetup.isVisible());
+        var inForce = state == null ? null : state.inForce();
+        askLink.setVisible(inForce != null && inForce != telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice.NONE
+                && inForce != telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice.NO_AI);
     }
 
     AiSetupBlock aiSetupBlock() {
@@ -448,6 +480,13 @@ public final class StartPanel extends JPanel {
         }
         recentProjects.revalidate();
         recentProjects.repaint();
+        refreshRecentSection();
+    }
+
+    private void refreshRecentSection() {
+        if (recentSection == null) return;
+        boolean any = lastRecents != null && !lastRecents.isEmpty() || lastBundleRecents != null && !lastBundleRecents.isEmpty();
+        recentSection.setVisible(any);
     }
 
     /**
@@ -489,6 +528,7 @@ public final class StartPanel extends JPanel {
         }
         recentBundles.revalidate();
         recentBundles.repaint();
+        refreshRecentSection();
     }
 
     /**
@@ -545,6 +585,8 @@ public final class StartPanel extends JPanel {
      */
     @Override
     public void addNotify() {
+        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(typing);
+        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(typing);
         super.addNotify();
         SwingUtilities.invokeLater(() -> scroll.getViewport().setViewPosition(new Point(0, 0)));
     }
@@ -573,7 +615,7 @@ public final class StartPanel extends JPanel {
         // WRAPS rather than ellipsising: a JLabel would render this as "…see what the system act…",
         // and the one sentence on the page that says what the app is for is the worst possible thing
         // to truncate
-        JTextArea title = wrapping(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.title"));
+        JTextArea title = wrapping(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.START_TITLE);
         // M74 P2b visual fix: the title's size and weight are re-derived on every theme application, as its colour is.
         // Styled once at construction, it kept the size of whatever theme was in force then, so a page built before (or
         // across) a theme application showed it inconsistently (two P2a captures differed).
@@ -583,21 +625,107 @@ public final class StartPanel extends JPanel {
         heroTitle = title;
         recolour.add(() -> title.setForeground(UIManager.getColor("Label.foreground")));
         inner.add(title);
-        inner.add(Box.createVerticalStrut(6));
-        inner.add(body(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.lede")));
+        inner.add(Box.createVerticalStrut(10));
+        inner.add(doors());
+        inner.add(Box.createVerticalStrut(10));
+        JPanel aiRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        aiRow.setOpaque(false);
+        aiRow.setAlignmentX(LEFT_ALIGNMENT);
+        aiSetup.setAlignmentX(LEFT_ALIGNMENT);
+        aiSetup.compact(true);
+        aiRow.add(aiSetup);
+        askLink = link(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.ASK, () -> showPrompt(true));
+        aiRow.add(askLink);
+        inner.add(aiRow);
         inner.add(Box.createVerticalStrut(8));
         prompt.setAlignmentX(LEFT_ALIGNMENT);
+        prompt.setVisible(false);
         inner.add(prompt);
-        inner.add(Box.createVerticalStrut(8));
-        aiSetup.setAlignmentX(LEFT_ALIGNMENT);
-        inner.add(aiSetup);
-        inner.add(Box.createVerticalStrut(8));
-        inner.add(body("Open evidence, return to a project, or learn with DEMO. An assistant can drive the same views through the local bridge."));
-        inner.add(Box.createVerticalStrut(6));
-        inner.add(body("Drop an .fexp bundle, audit log, GraphML, Spring XML or a prompt pack (.md) anywhere on this page. "
-                + "Return here from Help."));
         band.add(inner, BorderLayout.CENTER);
         return band;      // Fluid: as wide as offered, as tall as its content currently needs
+    }
+
+    /** M79-1b (§5.4): the three doors, each one act. Later phases add their links here, absent until they ship. */
+    private JComponent doors() {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(LEFT_ALIGNMENT);
+        JButton diamond = UiText.button(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.THE_DIAMOND);
+        diamond.addActionListener(e -> actions.replayDiamond());
+        JButton tour = UiText.button(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.GUIDED_TOUR);
+        tour.addActionListener(e -> actions.openGuidedTour());
+        JButton log = UiText.button(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.OPEN_LOG);
+        log.addActionListener(e -> actions.openOwnLog());
+        JButton template = UiText.button(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.TEMPLATE);
+        template.addActionListener(e -> actions.newProjectFromTemplate());
+        doorButtons = List.of(diamond, tour, log, template);
+        Dimension same = new Dimension(0, 0);
+        for (JButton b : doorButtons) {
+            Dimension d = b.getPreferredSize();
+            same = new Dimension(Math.max(same.width, d.width), Math.max(same.height, d.height));
+        }
+        for (JButton b : doorButtons) b.setPreferredSize(same);
+        row.add(door(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.LEARN, diamond, tour));
+        row.add(door(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.INVESTIGATE, log));
+        row.add(door(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.BUILD, template));
+        return row;
+    }
+
+    private List<JButton> doorButtons = List.of();
+    List<JButton> doorButtons() { return doorButtons; }
+
+    private JComponent door(String name, JButton... buttons) {
+        JPanel p = new JPanel();
+        p.setOpaque(false);
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 22));
+        JLabel heading = UiText.label(name);
+        heading.setFont(heading.getFont().deriveFont(Font.BOLD));
+        heading.setAlignmentX(LEFT_ALIGNMENT);
+        p.add(heading);
+        p.add(Box.createVerticalStrut(4));
+        JPanel buttonsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        buttonsRow.setOpaque(false);
+        buttonsRow.setAlignmentX(LEFT_ALIGNMENT);
+        for (int i = 0; i < buttons.length; i++) {
+            if (i > 0) buttonsRow.add(Box.createHorizontalStrut(6));
+            buttonsRow.add(buttons[i]);
+        }
+        p.add(buttonsRow);
+        return p;
+    }
+
+    /** "Or open directly ▸": one act expands everything beyond the doors. */
+    void setDirectOpen(boolean open) {
+        direct.setVisible(open);
+        directToggle.setText(telamin.fluxtion.audit.analyser.analyser.firstminute.FirstMinuteLines.OPEN_DIRECTLY + (open ? " ▾" : " ▸"));
+        revalidate(); repaint();
+    }
+
+    /** The prompt box: opened from Ask… or from typing on the page. */
+    void showPrompt(boolean open) {
+        prompt.setVisible(open);
+        revalidate(); repaint();
+        if (open) prompt.focusBox();
+    }
+
+    /** §5.4: any letter, digit or number key typed on the page (not into a field) opens the prompt with it. */
+    private final java.awt.KeyEventDispatcher typing = this::typed;
+    private boolean typed(java.awt.event.KeyEvent e) {
+        if (e.getID() != java.awt.event.KeyEvent.KEY_TYPED || !isShowing() || prompt.isVisible()) return false;
+        char c = e.getKeyChar();
+        if (!Character.isLetterOrDigit(c) || (e.getModifiersEx() & (java.awt.event.InputEvent.CTRL_DOWN_MASK
+                | java.awt.event.InputEvent.META_DOWN_MASK | java.awt.event.InputEvent.ALT_DOWN_MASK)) != 0) return false;
+        java.awt.Component owner = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        if (owner instanceof javax.swing.text.JTextComponent || owner == null || !SwingUtilities.isDescendingFrom(owner, this)) return false;
+        showPrompt(true);
+        prompt.typeIntoBox(c);
+        return true;
+    }
+
+    @Override public void removeNotify() {
+        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(typing);
+        super.removeNotify();
     }
 
     /** The hero title's font: the look and feel's label font, bold, 5 points larger — the same in every theme. */

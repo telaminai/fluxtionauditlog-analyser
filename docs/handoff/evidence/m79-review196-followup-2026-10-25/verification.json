@@ -1,0 +1,711 @@
+{
+  "startingHead": "422a05befb17d926c273ef0431b53ba63862b862",
+  "scope": "final local working tree, including attribution follow-up; targeted feedback; post-push CI is separate",
+  "productionSourceDiffSha256": "4f63300745edfe286ff56966eff969d02dc4bff75214c76df8d3d0b0cb7aa933",
+  "fullSuite": {
+    "tests": 4451,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 379,
+    "reports": 624,
+    "orphans": []
+  },
+  "displaySuites": [
+    {
+      "suite": "DesignSpotlightFrameTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "M79FirstMinuteFrameTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SessionRecoveryFrameTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "StartWorkspaceFrameTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WalkPlaybackFrameTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WalkReelFrameTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "requestedNames": [
+    "m79-autoplay-ticket",
+    "m79-cancelled-bundle-does-not-reset-startup-choice",
+    "m79-captions-one-record-claim",
+    "m79-capture-admission-before-shutdown",
+    "m79-capture-has-launch-ownership",
+    "m79-capture-preserves-personal-content",
+    "m79-chart-edits-observed",
+    "m79-close-restores-records",
+    "m79-deferred-door-owned-operation",
+    "m79-deferred-door-rechecks-inside-callback",
+    "m79-door-after-explicit-topology",
+    "m79-extraction-failure-names-cause",
+    "m79-extraction-heals-edits",
+    "m79-follow-does-not-own-next-generation",
+    "m79-graph-choice-supersedes-opening",
+    "m79-graph-load-reports-its-receipt",
+    "m79-machine-family-never-shared",
+    "m79-manual-pace-stays-manual",
+    "m79-mark-not-at-startup",
+    "m79-mark-only-fully-shown",
+    "m79-no-hand-placed-open",
+    "m79-own-graph-receipt-preserves-preparation",
+    "m79-person-graph-ends-first-contact",
+    "m79-placeholder-is-not-an-addition",
+    "m79-project-during-recovery-defers-startup",
+    "m79-real-read-manifest",
+    "m79-recovery-owned-design-read-epoch",
+    "m79-reel-takes-over-public-recording",
+    "m79-reel-takes-over-showing-walk",
+    "m79-review196-accepted-result-is-personal",
+    "m79-review196-bundled-callout-renders-qualification",
+    "m79-review196-bundled-snapshot-is-not-author-text",
+    "m79-review196-callout-accessibility-resets",
+    "m79-review196-callout-is-bundled",
+    "m79-review196-capture-admission-bounded",
+    "m79-review196-design-adapter-receipt",
+    "m79-review196-design-after-cancelled-investigate",
+    "m79-review196-design-after-close",
+    "m79-review196-design-during-recovery",
+    "m79-review196-design-ends-first-contact",
+    "m79-review196-design-identity-is-not-its-path",
+    "m79-review196-done-choice-retires-door",
+    "m79-review196-failed-landing-is-dismissible",
+    "m79-review196-failed-launch-is-not-ordinary-recovery",
+    "m79-review196-graph-after-cancelled-investigate",
+    "m79-review196-graph-after-close",
+    "m79-review196-graph-input-is-transient",
+    "m79-review196-imported-author-stays-declared",
+    "m79-review196-log-input-is-transient",
+    "m79-review196-owned-design-receipt",
+    "m79-review196-processor-is-transient",
+    "m79-review196-readonly-design-keeps-doors",
+    "m79-review196-readonly-design-keeps-stage",
+    "m79-review196-reel-retains-shipped-e5",
+    "m79-review196-shipped-author-is-bundled",
+    "m79-review196-stale-design-is-not-content",
+    "m79-review196-stale-result-is-not-personal",
+    "m79-startup-rest-never-autoplays"
+  ],
+  "caughtNames": [
+    "m79-autoplay-ticket",
+    "m79-cancelled-bundle-does-not-reset-startup-choice",
+    "m79-captions-one-record-claim",
+    "m79-capture-admission-before-shutdown",
+    "m79-capture-has-launch-ownership",
+    "m79-capture-preserves-personal-content",
+    "m79-chart-edits-observed",
+    "m79-close-restores-records",
+    "m79-deferred-door-owned-operation",
+    "m79-deferred-door-rechecks-inside-callback",
+    "m79-door-after-explicit-topology",
+    "m79-extraction-failure-names-cause",
+    "m79-extraction-heals-edits",
+    "m79-follow-does-not-own-next-generation",
+    "m79-graph-choice-supersedes-opening",
+    "m79-graph-load-reports-its-receipt",
+    "m79-machine-family-never-shared",
+    "m79-manual-pace-stays-manual",
+    "m79-mark-not-at-startup",
+    "m79-mark-only-fully-shown",
+    "m79-no-hand-placed-open",
+    "m79-own-graph-receipt-preserves-preparation",
+    "m79-person-graph-ends-first-contact",
+    "m79-placeholder-is-not-an-addition",
+    "m79-project-during-recovery-defers-startup",
+    "m79-real-read-manifest",
+    "m79-recovery-owned-design-read-epoch",
+    "m79-reel-takes-over-public-recording",
+    "m79-reel-takes-over-showing-walk",
+    "m79-review196-accepted-result-is-personal",
+    "m79-review196-bundled-callout-renders-qualification",
+    "m79-review196-bundled-snapshot-is-not-author-text",
+    "m79-review196-callout-accessibility-resets",
+    "m79-review196-callout-is-bundled",
+    "m79-review196-capture-admission-bounded",
+    "m79-review196-design-adapter-receipt",
+    "m79-review196-design-after-cancelled-investigate",
+    "m79-review196-design-after-close",
+    "m79-review196-design-during-recovery",
+    "m79-review196-design-ends-first-contact",
+    "m79-review196-design-identity-is-not-its-path",
+    "m79-review196-done-choice-retires-door",
+    "m79-review196-failed-landing-is-dismissible",
+    "m79-review196-failed-launch-is-not-ordinary-recovery",
+    "m79-review196-graph-after-cancelled-investigate",
+    "m79-review196-graph-after-close",
+    "m79-review196-graph-input-is-transient",
+    "m79-review196-imported-author-stays-declared",
+    "m79-review196-log-input-is-transient",
+    "m79-review196-owned-design-receipt",
+    "m79-review196-processor-is-transient",
+    "m79-review196-readonly-design-keeps-doors",
+    "m79-review196-readonly-design-keeps-stage",
+    "m79-review196-reel-retains-shipped-e5",
+    "m79-review196-shipped-author-is-bundled",
+    "m79-review196-stale-design-is-not-content",
+    "m79-review196-stale-result-is-not-personal",
+    "m79-startup-rest-never-autoplays"
+  ],
+  "controls": [
+    {
+      "name": "m79-review196-callout-accessibility-resets",
+      "test": "SpotlightOverlayTest#shippedCalloutsRenderBundledThenReturnToTheLiveLabel",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-imported-author-stays-declared",
+      "test": "FirstMinuteTest#anImportedAuthorWordCannotClaimBundledCommentary",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-bundled-snapshot-is-not-author-text",
+      "test": "WalkPlaybackFrameTest#anImportedBundledAuthorCannotLabelTheStripOrCalloutsAsShipped",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-bundled-callout-renders-qualification",
+      "test": "WalkPlaybackFrameTest#anImportedBundledAuthorCannotLabelTheStripOrCalloutsAsShipped",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-callout-is-bundled",
+      "test": "SpotlightOverlayTest#shippedCalloutsRenderBundledThenReturnToTheLiveLabel",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-readonly-design-keeps-doors",
+      "test": "FirstMinuteTest#readOnlyDesignNavigationPreservesFirstContactAndStartupAdmission",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-readonly-design-keeps-stage",
+      "test": "FirstMinuteTest#readOnlyDesignNavigationPreservesFirstContactAndStartupAdmission",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-accepted-result-is-personal",
+      "test": "FirstMinuteTest#anAcceptedProducerResultAfterCloseOrCancelledInvestigateRemainsRecoverable",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-stale-result-is-not-personal",
+      "test": "FirstMinuteTest#anAcceptedProducerResultAfterCloseOrCancelledInvestigateRemainsRecoverable",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-failed-landing-is-dismissible",
+      "test": "FirstMinuteTest#graphAndDesignChoicesLeaveTheFailedLanding",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-failed-launch-is-not-ordinary-recovery",
+      "test": "FirstMinuteTest#anUnverifiedFirstMinuteNeverBecomesAnOrdinaryRecoveryByFailing",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-processor-is-transient",
+      "test": "M79FirstMinuteFrameTest#firstMinuteInputsAndProcessorNeverBecomeMachineSettings",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-log-input-is-transient",
+      "test": "M79FirstMinuteFrameTest#firstMinuteInputsAndProcessorNeverBecomeMachineSettings",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-graph-input-is-transient",
+      "test": "M79FirstMinuteFrameTest#firstMinuteInputsAndProcessorNeverBecomeMachineSettings",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-reel-retains-shipped-e5",
+      "test": "FirstMinuteTest#aReelCannotWeakenTheShippedWalksWholeRecordClaim",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-capture-admission-bounded",
+      "test": "SessionRecoveryControllerTest#missingAdmissionTimesOutPreservingPersonalRecoveryAndFinishingShutdown",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-shipped-author-is-bundled",
+      "test": "FirstMinuteTest#shippedCommentaryIsLabelledBundledRatherThanPersonOrLiveAssistant",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-design-during-recovery",
+      "test": "FirstMinuteTest#aDesignChosenBeforeRecoverySettlesNeverQualifiesForStartupAutoplay",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-graph-after-close",
+      "test": "FirstMinuteTest#aReplacementGraphAfterCloseRemainsRecoverable",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-graph-after-cancelled-investigate",
+      "test": "FirstMinuteTest#aReplacementGraphAfterCancelledInvestigateRemainsRecoverable",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-design-after-close",
+      "test": "FirstMinuteTest#aReplacementDesignAfterCloseRemainsRecoverable",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-design-after-cancelled-investigate",
+      "test": "FirstMinuteTest#aReplacementDesignAfterCancelledInvestigateRemainsRecoverable",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-owned-design-receipt",
+      "test": "FirstMinuteTest#theOwnedDesignReadDoesNotCancelPreparationOrInventPersonalContent",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-stale-design-is-not-content",
+      "test": "FirstMinuteTest#aStaleDesignCompletionDoesNotInventPersonalContent",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-design-identity-is-not-its-path",
+      "test": "FirstMinuteTest#aPlainOpenOfTheSameDesignIsPersonalContent",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-design-ends-first-contact",
+      "test": "FirstMinuteTest#aDesignChoiceSupersedesPreparationAndTheShowingWalk",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-design-adapter-receipt",
+      "test": "M79FirstMinuteFrameTest#firstLaunchPlaysThePinnedDiamondAndRelaunchOffersNeitherPlaybackNorRecovery",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-review196-done-choice-retires-door",
+      "test": "FirstMinuteTest#aReplacementGraphAfterCancelledInvestigateRemainsRecoverable",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-project-during-recovery-defers-startup",
+      "test": "FirstMinuteTest#aProjectChosenBeforeRecoverySettlesNeverQualifiesForStartupAutoplay",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-graph-choice-supersedes-opening",
+      "test": "FirstMinuteTest#aGraphChoiceSupersedesExtractionReadingAndPresentationButNotTheOwnedGraph",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-own-graph-receipt-preserves-preparation",
+      "test": "FirstMinuteTest#aGraphChoiceSupersedesExtractionReadingAndPresentationButNotTheOwnedGraph",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-person-graph-ends-first-contact",
+      "test": "FirstMinuteTest#aGraphOpenedDuringFirstContactRestoresTheInvestigationStage",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-graph-load-reports-its-receipt",
+      "test": "FirstMinuteTopologyOwnershipTest#everySuccessfulLoadReportsItsOwnReceiptAndOrdinaryLoadsClearIt",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-cancelled-bundle-does-not-reset-startup-choice",
+      "test": "FirstMinuteTest#cancellingBundlePreparationCannotMakeAnActiveProjectLookLikeFreshStartup",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-reel-takes-over-showing-walk",
+      "test": "WalkPlaybackTest#aReelTakesOverTheShowingWalkAndAdvancesOnlyAfterCapture",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-reel-takes-over-public-recording",
+      "test": "WalkReelFrameTest#anAlreadyShowingWalkCanBeRecordedAsATwoFrameReel",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-startup-rest-never-autoplays",
+      "test": "FirstMinuteTest#admissionRequiresEveryInputAndWaitsForRecovery",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-mark-only-fully-shown",
+      "test": "FirstMinuteTest#aPartlyShownStepNeverAutoplaysPastItsRefusal",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-mark-not-at-startup",
+      "test": "FirstMinuteTest#admissionRequiresEveryInputAndWaitsForRecovery",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-autoplay-ticket",
+      "test": "FirstMinuteTest#firstShownMarksOnceAndAutoplayRejectsOldTicketsAndStepsThenEndsAtTheDoors",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-manual-pace-stays-manual",
+      "test": "FirstMinuteTest#navigationMakesTheShowingManualAndEscapeStillOffersTheDoors",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-close-restores-records",
+      "test": "FirstMinuteTest#firstShownMarksOnceAndAutoplayRejectsOldTicketsAndStepsThenEndsAtTheDoors",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-door-after-explicit-topology",
+      "test": "FirstMinuteTest#aDoorRestoresRecordsEvenAfterThePersonExplicitlyChoseTopology",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-follow-does-not-own-next-generation",
+      "test": "FirstMinuteTest#aFollowRotationCannotBorrowTheOwnedGenerationStage",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-captions-one-record-claim",
+      "test": "M79FirstMinuteFrameTest#aSubstitutedStepThreeRecordWithholdsTheWholeClaimOnTheRealOverlay",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-real-read-manifest",
+      "test": "FirstMinuteTest#ownedLaunchAndMatchingReadGraphAndDesignAreAllRequired",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-extraction-heals-edits",
+      "test": "DiamondAssetsTest#aSameSizeEditedExtractionIsReplacedNotReusedByPath",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-extraction-failure-names-cause",
+      "test": "M79FirstMinuteFrameTest#aFailedExtractionShowsOneReasonAndNeverStartsAHiddenWalkOrDialog",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-capture-has-launch-ownership",
+      "test": "FirstMinuteTest#onlyTheCausallyOwnedUntouchedReadIsOmittedFromRecovery",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-capture-preserves-personal-content",
+      "test": "FirstMinuteTest#onlyTheCausallyOwnedUntouchedReadIsOmittedFromRecovery",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-placeholder-is-not-an-addition",
+      "test": "M79FirstMinuteFrameTest#firstLaunchPlaysThePinnedDiamondAndRelaunchOffersNeitherPlaybackNorRecovery",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-chart-edits-observed",
+      "test": "FirstMinuteChartsTest#theStructuralBlankTabIsNotPersonalButEveryRealChartEditIs",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-capture-admission-before-shutdown",
+      "test": "SessionRecoveryControllerTest#closeWaitsForDelayedCaptureAdmissionBeforeFinishing",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-recovery-owned-design-read-epoch",
+      "test": "SessionRecoveryFrameTest#closeReopenOffersThenRestoresLogDesignDiagnosticsAndGraph",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-machine-family-never-shared",
+      "test": "FirstMinuteConfigTest#aPreviousProfileCannotCarryTheMachineFamilyAsUnknownKeys",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-no-hand-placed-open",
+      "test": "OneDispatchModelTest#firstMinuteSurfacesOnlyRenderAndOnlyEffectsOpenMarkOrChangeStage",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-deferred-door-owned-operation",
+      "test": "FirstMinuteTest#aLaterOpenSupersedesTheDeferredDoorBeforeItsReaderCompletes",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    },
+    {
+      "name": "m79-deferred-door-rechecks-inside-callback",
+      "test": "OneDispatchModelTest#firstMinuteSurfacesOnlyRenderAndOnlyEffectsOpenMarkOrChangeStage",
+      "verdict": "caught",
+      "namedAssertion": true,
+      "sourceByteIdentical": true,
+      "classesByteIdentical": true,
+      "restoredGreen": true
+    }
+  ],
+  "preflight": {
+    "frameSuites": 79,
+    "anchors": 794
+  },
+  "regenerationByteIdentical": true,
+  "generatedSha256": {
+    "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.java": "e47dbab133e473a6ce1db2f93d3c96c8b39922d73ea17c0a99796f4dd5e14dd1",
+    "src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.java": "e47dbab133e473a6ce1db2f93d3c96c8b39922d73ea17c0a99796f4dd5e14dd1",
+    "src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml": "6e28a8f9ebb9389694670b3d2fca5438ac503105483182dd6dba13be32b3b819"
+  }
+}

@@ -144,7 +144,28 @@ offer to recover the diamond. A session whose only content is a manifest-matched
 for recovery. Anything the person added makes it an ordinary session (A1.9). **First run only, never again**
 (OD-79.2): `firstMinute.played=true` is written when the walk's first step is shown, so skipping counts as played. A
 launch that defers leaves the key unset. Once any project is recent, the first minute never qualifies again. The
-diamond stays one act away: *Learn ▸ The diamond*.
+diamond stays one act away: *Learn ▸ The diamond*, once M79-1b provides that returning entry.
+
+**Review clarification, 2026-10-25 (PR #196):** source/declaration navigation and diagnostic-location navigation
+are read-only and do not dismiss first contact; an explicit design open does. Accepted producer results,
+replacement graphs and accepted designs remain personal content after Close or a cancelled Investigate.
+A failed first-minute generation retains only its causal omission receipt, never bundled standing:
+without personal additions it is omitted from recovery, even when verification failed. A subsequent
+ordinary open cannot inherit that omission. Graph/design choices leave the failure landing.
+The shipped log, graph, processor selection and source roots are session-scoped; none enters machine
+input fields, recents or the configured processor list. The played key remains machine-tier.
+A missing capture-admission reply times out after two seconds and preserves recovery rather than
+hanging shutdown. Reel takeover changes pacing, never the verified shipped definition's E5 guard.
+Shipped commentary is labelled bundled only when the frozen definition matches the verified catalogue;
+imported author text remains a declaration. Deferred review follow-ups are [#203](https://github.com/telaminai/fluxtionauditlog-analyser/issues/203)
+(structural coverage), [#204](https://github.com/telaminai/fluxtionauditlog-analyser/issues/204)
+(skipped-step wording) and [#205](https://github.com/telaminai/fluxtionauditlog-analyser/issues/205)
+(independent evidence pins).
+
+**Owner decision, 2026-10-23 (OD-79.29): M79-1a-i is startup-only.** It plays only on a genuinely
+fresh, no-project startup under the admission rules above. It adds no *Help ▸ The diamond* action
+and no other manual re-entry. M79-1b owns the returning *Learn ▸ The diamond* entry and must design
+re-entry so it never disturbs an active project's `selectedEventProcessor`, open log or graph.
 
 ### 5.2 What the person sees
 
@@ -161,10 +182,39 @@ diamond stays one act away: *Learn ▸ The diamond*.
    picture of its own diamond with its own node names (lead's decision, creative round 2: tiles, not a dropdown), the
    current one marked.
    Choosing one opens that domain's own run (§6, §7.1). It does not autoplay again; ▶ replays the walk.
-4. The four-step walk plays once, advancing by itself (§7.3). The strip reads *"Step n of 4 · Esc skips"*. ← and →
-   take over the pace, and Esc skips to the end state.
+4. The walk plays once, advancing by itself (§7.3). **r8 (owner, 2026-10-27): nine steps**, and the strip reads
+   *"Step n of 9 · {role} · Esc skips"*, the role being the step's own caption (§5.2a). ← and → take over the pace,
+   and Esc skips to the end state.
 
-**The walk** (generic copy; each domain's walk carries its own nouns, §6.3):
+### 5.2a The r8 walk (owner, 2026-10-27; supersedes the four-step table below for the generic domain)
+
+The owner found four steps not enough and set the order: intent, then what the LLM writes, then what Fluxtion
+generates, then the evidence. Each step's caption is a **role with its time**, not a claim about who wrote these pinned
+files (the pinned README says the XML and the nodes were written by hand; nothing records LLM authorship): *Your LLM ·
+design time* (the Spring XML and the node classes), *Fluxtion · build time* (the graph and the dispatcher), *Audit log ·
+run time* (the evidence). The definition is `src/main/resources/demo/diamond/diamond.fluxtion-settings`, in this repo.
+
+| # | Role | Targets and captions |
+|---|---|---|
+| 1 | Your LLM · design time | `source:design:bean:a` *You state the intent; your LLM writes this XML. This bean is node a.* · `topology:node:a` *This box is the bean a. Each box is one node class.* · `source:design:bean:d` *d's constructor-arg refs name its parents, b and c.* · `topology:node:d` *Those refs are the arrows into d: an arrow points from parent to child.* |
+| 2 | Fluxtion · build time | `topology:node:X` *Events enter here: X goes to a's event handler first.* · `topology:node:b` *Top to bottom is dispatch order: a, then b and c, then d.* · `topology:node:d` *At build time Fluxtion compiled the XML into this graph and its dispatcher.* |
+| 3 | Your LLM · design time | `D.java:13-16` *d names its two parents, b and c, in its constructor.* · `D.java:18-19` *@OnTrigger: Fluxtion calls d.recalculate() when b or c changed.* |
+| 4 | Your LLM · design time | `A.java:11-12` *@OnEventHandler: a.onX runs for every X event.* · `A.java:13-16` *It returns true only when x differs from the value a held.* |
+| 5 | Your LLM · design time | `B.java:17-19` *b recomputes floor(a / 2) and compares it with its last value.* · `B.java:21` *Its return value is b's dirty flag: true tells b's children to run.* |
+| 6 | Fluxtion · build time | `DiamondSpringProcessor.java:307` *a.onX's result becomes a's dirty flag, isDirty_a.* · `:308-311` *b is called only if a is dirty: guardCheck_b returns isDirty_a; c is guarded the same way.* · `:316-319` *d is called if b or c is dirty (isDirty_b \| isDirty_c); afterEvent() then clears the flags.* |
+| 7 | Audit log · run time | record [2]: `records:row:2` *An X event arrives, X[value=2].* · `topology:node:a` *a changed, so its dirty flag let b and c run.* · `topology:node:d` *A green-edged box ran in this event; a faded box did not.* · `detail:node:d` *d ran with b: 1 and c: 6, both changed.* |
+| 8 | Audit log · run time | record [4], unchanged: *same input — nothing changed* · *a saw the same value…* · ***d did not run*** (E5 withholding kept) |
+| 9 | Audit log · run time | record [4]: `detail:node:a` *Only a logged here. Every node that runs logs, so b, c and d did not run.* |
+
+Record [2] is walked, not record [3]: records [3] and [5] are SC-C1's held-out cycles. Arrows and the legend have no
+spotlight target kind, so their captions sit on the node boxes. **Code captions are bound to the shipped source:** each
+Java target carries `basis=source` with the shipped file's SHA-256 from the manifest; the displayed document is compared
+when it is read, and any other revision is refused (the step says why), never captioned. `DiamondAssetsTest` checks each
+pinned line range still holds the code its caption names, and each record caption against its record. While the owner
+iterates on the captions (fast mode, 2026-10-27), the walk file's own digest pin is a warning rather than a refusal;
+the pin returns with the gates.
+
+**The walk** (r7, generic copy; each domain's walk carries its own nouns, §6.3):
 
 | Step | View | Targets and captions |
 |---|---|---|
@@ -216,6 +266,16 @@ state, not the view's. The stage stays `graph` for **first contact**, until the 
 **Topology | Records** toggle (§7.2). Then the investigation layout returns: the records table is the main view (OD-79.7).
 
 ### 5.4 The start page: under 40 words
+
+**Built in r8 (M79-1b, folded into PR #196):** the hero *See what your code did.*, the three doors (*Learn*: The
+diamond, Guided tour; *Investigate*: Open audit log; *Build*: Start from a template), the AI line's short form with the
+long form as its tooltip, *Recent* only when something is recent, and *Or open directly ▸* holding the lede, the drop
+hint and the four groups. 29 words on a returning machine with nothing set up. **Learn ▸ The diamond** is a
+`DiamondReplayRequested` fact decided by `firstMinute`: on an empty window it opens the verified diamond at once; with a
+log, graph, design or project open it first asks (`ConfirmDiamondReplayEffect`, *FirstMinuteLines.REPLACES*) and opens
+only on OK. The replay keeps the first minute's rules: no recents, no machine log/graph/processor, the project's own
+settings (its selected processor) never written, and no recovery capture unless the person adds something. Open
+follow-ups: the expansion is not yet remembered per machine; A1.6's count is taken in one AI state, not all six.
 
 The start page is what a returning person sees, and it is one door away for a newcomer. Its always-visible text drops
 from about 225 words to **at most 39**. The budget is pinned by A1.6.
@@ -1305,6 +1365,12 @@ full reasoning each recommendation rests on):
 | **OD-79.27** | Which pack (if any) gets the first `teach:` entry once M79-2 ships the *The diamond* teaching conversation, and does that land as part of M79-2's own PR or a small follow-up after it? | 04 (*Audit logs and evidence*) is the closest fit — the teaching conversation's content is composition-and-silence, which 04's entries already probe — as a small follow-up PR after M79-2, not inside it, so M79-2 is not gated on a packs edit. | **Accepted** (owner, 2026-10-19) |
 | **OD-79.28** | Should the Python lint harness (`tools/m74_onboarding_runner.py lint-pack`, cross-checked against the Java parser by `tools/m74_record_pack_crosscheck.py`) also gain fixture rows for 01, 02 and 04 at their new published paths, duplicating A7.1 in the existing dual-check pattern? | Yes, for parity: the existing 89-input cross-check would otherwise cover every pack except the three that actually ship. | **Accepted** (owner, 2026-10-19) |
 
+**Implementation scope decision, owner, 2026-10-23:**
+
+| # | Decision | Owner |
+|---|---|---|
+| **OD-79.29** | M79-1a-i is **startup-only**, for a genuinely fresh, no-project startup. No temporary Help action or manual re-entry. The returning *Learn ▸ The diamond* entry belongs to M79-1b, designed not to disturb an active project's selected processor, open log or graph. | **Accepted** (owner, 2026-10-23) |
+
 ## 17. Phasing and size — one PR each, under about 5,000 hand-written lines
 
 Generated `SessionProcessor` lines are not counted. Each PR is a reviewed feature branch with its CHANGELOG lines
@@ -1314,7 +1380,7 @@ Generated `SessionProcessor` lines are not counted. Each PR is a reviewed featur
 |---|---|---|---|
 | **M79-1a-i — the first minute, generic domain** | `firstMinute` (with `sessionRecovery` as a parent); `Launch.FIRST_MINUTE` and `LogOpened.launch`; `stage`, `origin`, autoplay advance, the record-basis caption rule and first contact in `walkPlayback`; the **new topology-centre layout** (the canvas moves out of the right-hand tabs), with the generic design beside it (OD-79.21); `WalkReelRecorder` onto the advance effect; the generic Spring-authored run, its XML and GraphML, the manifest and digest-checked extraction; **one hand-written generic walk** (§5.2), played through the generalised journey effect; the end card; no recovery offer for a first-minute session; A1.1–A1.3, A1.5 and A1.7–A1.10 for the generic domain | D-1, D-6, D-7 | **L** |
 | **M79-1a-ii — the four other domains** | the mathematics, accounting, logistics and trading runs and GraphMLs; the caption template filled from each GraphML's structure (§6.3); the five tiles and `firstMinute.domain`; A1.4, and A1.5 per domain | M79-1a-i | **M** |
-| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,358 lines, re-confirmed on `main` at 1.37.0), the collapse, the visible-label changes and constants, the short AI line against the real six-state `aiLine()` (D-3, satisfied); A1.6 | M79-1a-i; M77-2 and M77-4 have already shipped (1.36.0), so this PR edits the page as it stands, not a moving target | **M** |
+| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,358 lines, re-confirmed on `main` at 1.37.0), the collapse, the visible-label changes and constants, the short AI line against the real six-state `aiLine()` (D-3, satisfied); the returning *Learn ▸ The diamond* entry, preserving an active project's selected processor, open log and graph (OD-79.29); A1.6 | M79-1a-i; M77-2 and M77-4 have already shipped (1.36.0), so this PR edits the page as it stands, not a moving target | **M** |
 | **M79-2 — the teaching conversation in the onboard assistant** (phase 2, owner) | the teaching conversation as a shipped walk with a recorded conversation, its real capture (the `capture-conversations` extension) and its re-derivation test; the pack's `teach:` entry; *Continue with Claude* (`AssistantHandoffRequested(origin=TEACHING)` for in-app and Claude Code, the wizard branch); `TeachingLog` and its read-only band; the basis sentence; A2.1–A2.7 | M79-1a-i; M77-2 for the wizard branch (D-4) | **L** |
 | **M79-3 — quiet evidence wording** | the three-state chip, `EvidenceChipLines`, the details popover; **the metadata observation moved into the session** (§8.1, rule 9); the accessible descriptions (tooltips cut); A3.1–A3.4 | — | **M** |
 | **M79-4 — the broken-diamond quest** | the teaching bundle and quest manifest; **flags routed through the session** (a fact, a node, both entrances; §9.2); the `quest` node with teacher mode (OD-79.17); the quest card; A4.1–A4.6 | D-2 (published at `6bff0d67`), M79-1a-i | **L** |
@@ -1447,6 +1513,11 @@ copy question, which pack gets the first `teach:` entry, and whether the Python 
 match).
 
 ## Revision history
+
+- **r8, 2026-10-27 (owner, testing PR #196)** — the walk grows to nine steps in the owner's order, with role-and-time
+  labels on the strip and pinned source bases for code captions (§5.2a); the stage gives the diamond room; the doors
+  card is one row of equal buttons; M79-1b is folded in (§5.4, *Learn ▸ The diamond*). Review clarification wording:
+  *diagnostic-location navigation*.
 
 - **r1, 2026-10-18** — **ACCEPTED.** Written from the insider and stranger reviews of 2026-10-18 and the owner's
   decisions OD-79.1–.6 of the same day, read against `docs/m77-ai-setup-wizard` (M77 r4), the M69 walk contract and

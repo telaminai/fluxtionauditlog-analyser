@@ -182,6 +182,20 @@ public sealed interface SessionEffects {
     record EndWalkEffect(long opId, long ticket, String reason) implements SessionEffects {
     }
 
+    /** A non-blocking adapter timer posts WalkAdvanceDue, never a play/navigation request. */
+    record ScheduleWalkAdvanceEffect(long opId, long ticket, int step, int dwellMs) implements SessionEffects { }
+
+    record OpenDiamondEffect(long opId, long ticket) implements SessionEffects { }
+    record VerifyDiamondReadEffect(long opId, long ticket, long generation) implements SessionEffects { }
+    record PrepareDiamondPresentationEffect(long opId, long ticket, long generation) implements SessionEffects { }
+    record PlayBundledWalkEffect(long opId, long ticket, String resource, String walkName, String origin,
+                                 String digest, WalkPlaybackState.Stage stage) implements SessionEffects { }
+    record MarkFirstMinutePlayedEffect(long opId, long ticket) implements SessionEffects { }
+    /** M79-1b: something is open, so say what the diamond replaces before it does (FirstMinuteLines.REPLACES). */
+    record ConfirmDiamondReplayEffect(long opId, long ticket) implements SessionEffects { }
+    record RunFirstMinuteDoorEffect(long opId, long ticket, String door) implements SessionEffects { }
+    record AdmitSessionCaptureEffect(long opId, long request, boolean capture) implements SessionEffects { }
+
     // ---- evidence bundle capture: decided by the evidenceCapture node, performed by the frame -------------------
 
     /** Turn Follow on or off, then answer {@link SessionEvents.FollowSet}: capture pauses it and restores it. */

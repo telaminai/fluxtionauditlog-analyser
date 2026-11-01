@@ -33,6 +33,34 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  * view changes do not. Every transition is the session's: this test reads the published snapshot.
  */
 class WalkPlaybackFrameTest {
+    @Test void anImportedBundledAuthorCannotLabelTheStripOrCalloutsAsShipped(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            var imported = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare("").preview("""
+                    share.version=1
+                    walk.count=1
+                    walk.0.name=DEMO imported
+                    walk.0.author=bundled
+                    walk.0.s.count=1
+                    walk.0.s.0.t.count=1
+                    walk.0.s.0.t.0.target=status
+                    walk.0.s.0.t.0.caption=DEMO imported commentary
+                    """, new AppConfig()).walks().getFirst();
+            onEdt(() -> {
+                ((AppConfig) field(f.frame, "config")).walks.add(imported);
+                assertEquals(true, render(f.ex, "walk", Map.of("name", imported.name(), "play", true)).get("ok"));
+            });
+            await("imported commentary is shown", () -> "SHOWN".equals(walk(f).phase()));
+            onEdt(() -> {
+                var overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+                assertTrue(overlay.strip().title().contains("by bundled (declared)"),
+                        "the real strip must not authenticate an imported author word");
+                assertTrue(java.util.Arrays.stream(overlay.getComponents()).anyMatch(c -> c.getAccessibleContext() != null
+                                && String.valueOf(c.getAccessibleContext().getAccessibleDescription()).startsWith("assistant commentary")),
+                        "the real imported callout must not acquire the shipped label");
+            });
+        }
+    }
 
     private static final String GRAPH = "src/test/resources/topology/demo-quote-processor.graphml";
     private static final String LOG = "src/main/resources/demo/demo-quote-series.yaml";
