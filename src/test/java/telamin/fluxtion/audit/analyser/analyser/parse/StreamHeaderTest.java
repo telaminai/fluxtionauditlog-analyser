@@ -95,10 +95,10 @@ class StreamHeaderTest {
         assertEquals("a, b: {c} 'd'", read.host().get("note"), "quotes, commas and colons inside a value split nothing");
         assertEquals("true", read.host().get("yes"));
         assertEquals("", read.host().get("empty"), "an empty value is empty, not absent");
-        assertTrue(read.host().containsKey("nothing"));
-        assertNull(read.host().get("nothing"));
+        assertFalse(read.host().containsKey("nothing"), "the runtime drops a null host value (1.1.4)");
         assertEquals("x#y", read.host().get("it's"));
-        assertEquals("one two", read.host().get("line"), "the writer folds a line break, so the header stays one document");
+        assertEquals("one\uFFFDtwo", read.host().get("line"),
+                "the writer replaces a control character with U+FFFD, so the header stays one document (1.1.4)");
     }
 
     @Test
