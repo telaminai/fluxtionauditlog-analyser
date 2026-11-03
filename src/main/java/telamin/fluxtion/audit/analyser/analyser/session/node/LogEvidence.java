@@ -92,7 +92,9 @@ public class LogEvidence implements EventLogSource {
         boolean failureMoved = !java.util.Objects.equals(readFailure, event.readFailure());
         readFailure = event.readFailure();
         String next = event.total() + "/" + event.pendingChars() + "/" + event.streamEnd() + "/" + event.damage()
-                + "/" + (event.readFailure() != null);
+                + "/" + (event.readFailure() != null)
+                // evidence-set key: a stream header appended under Follow is content (owner, 2026-11-03)
+                + (event.streamHeaders() == 0 ? "" : "/h" + event.streamHeaders());
         if (next.equals(signature)) {
             return failureMoved;                           // nothing moved: the evidence held still describes the log
         }

@@ -34,6 +34,8 @@ public class OpenGraph implements EventLogSource {
     /** Held here for the same reason as {@code OpenLog}'s: derivation reads state, once per cycle. */
     private java.util.Set<String> declaredNodeIds = java.util.Set.of();
     private java.util.List<String> nodeTypes = java.util.List.of();
+    /** Evidence-set key: the graph's shape fingerprint, or null when it states none. */
+    private String sourceFingerprint;
 
     public OpenGraph(OperationGate gate) {
         this.gate = gate;
@@ -64,7 +66,8 @@ public class OpenGraph implements EventLogSource {
     public boolean onGraphOpened(SessionEvents.GraphOpened event) {
         boolean moved = !open || !java.util.Objects.equals(graphPath, event.graphPath())
                 || !java.util.Objects.equals(source, event.source())
-                || !declaredNodeIds.equals(event.declaredNodeIds()) || !nodeTypes.equals(event.nodeTypes());
+                || !declaredNodeIds.equals(event.declaredNodeIds()) || !nodeTypes.equals(event.nodeTypes())
+                || !java.util.Objects.equals(sourceFingerprint, event.sourceFingerprint());
         if (moved) revision++;
         openings++;
         // A reader-supplied graph has no file, and is still a graph: GraphObserved carried a null path for it, so
@@ -74,7 +77,9 @@ public class OpenGraph implements EventLogSource {
         source = event.source();
         declaredNodeIds = event.declaredNodeIds();
         nodeTypes = event.nodeTypes();
-        auditLog.info("openGraph", graphPath == null ? "(no file)" : graphPath).info("via", "GraphOpened").info("source", source);
+        sourceFingerprint = event.sourceFingerprint();
+        auditLog.info("openGraph", graphPath == null ? "(no file)" : graphPath).info("via", "GraphOpened").info("source", source)
+                .info("sourceFingerprint", sourceFingerprint == null ? "none" : sourceFingerprint);
         return moved;
     }
 
@@ -90,8 +95,14 @@ public class OpenGraph implements EventLogSource {
         source = null;
         declaredNodeIds = java.util.Set.of();
         nodeTypes = java.util.List.of();
+        sourceFingerprint = null;
         auditLog.info("openGraph", "none").info("via", "GraphCleared");
         return true;
+    }
+
+    /** The open graph's {@code fluxtion.sourceFingerprint} — its shape — or null when none is open or it states none. */
+    public String sourceFingerprint() {
+        return open ? sourceFingerprint : null;
     }
 
     public long openings() {

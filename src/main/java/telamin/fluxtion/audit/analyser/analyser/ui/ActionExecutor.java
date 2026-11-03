@@ -416,6 +416,10 @@ public final class ActionExecutor implements RenderExecutor {
             out.put("claim", claim.claim().name().toLowerCase(java.util.Locale.ROOT));
             out.put("claimNote", claim.reason());
         }
+        // evidence-set key (spec §4.5): a result over a pair carries the graph-SHAPE verdict with both fingerprints, as
+        // the session decided it for the captured pair. A MISMATCH warns and never refuses (D2): "never logged" may then
+        // name nodes of a graph that did not write this log.
+        if (snap != null && snap.evidenceSet().verdict() != null) out.putAll(snap.evidenceSet().toMap());
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> allNever = (List<Map<String, Object>>) out.get("neverLogged");
         Integer askedLimit = intOrNull(p.get("limit"));
@@ -1557,7 +1561,10 @@ public final class ActionExecutor implements RenderExecutor {
 
     /** The keys openGraphml's echo uses for a verdict; removed when that verdict was about another log. */
     private static final java.util.List<String> PAIRING_KEYS = java.util.List.of(
-            "pairing", "appliesToOpenLog", "loggedNodes", "declaredByGraph", "verdict");
+            "pairing", "appliesToOpenLog", "loggedNodes", "declaredByGraph", "verdict",
+            // evidence-set key: graph shape against the log — about the previous log too, while the new one loads
+            "evidenceSet", "evidenceSetStatus", "logSourceFingerprint", "logSourceFingerprints", "graphSourceFingerprint",
+            "evidenceSetNote", "evidenceSetMeaning");
 
     private ActionResult doSourceRoot(Map<String, Object> params,
                                       telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller caller) {

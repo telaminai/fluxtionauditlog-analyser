@@ -168,8 +168,54 @@ public class Main {
                         ? "; the log holds " + n.longValue() + " exported-service call(s) the replay does not carry, so a"
                           + " replay diverges from the first cycle that depends on one"
                         : ""));
+        evidenceKeys(v, out);
         limits(v, out);
         return 0;
+    }
+
+    /**
+     * Evidence-set key: what the manifest records about each log and graph member — the graph SHAPE that wrote each log
+     * (its stream headers' sourceFingerprint) and its runs, and each graph's shape — and whether the bundled graph has
+     * the shape of each bundled log. Recorded at capture from the members' own bytes, which this verification has just
+     * held to their digests.
+     */
+    static void evidenceKeys(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Verification v, java.io.PrintStream out) {
+        if (v.evidenceKeys() == null) return;
+        java.util.Set<Object> graphKeys = new java.util.LinkedHashSet<>();
+        for (var k : v.evidenceKeys()) if ("graph".equals(k.get("kind"))) graphKeys.add(k.get("graphKey"));
+        for (var k : v.evidenceKeys()) {
+            String member = String.valueOf(k.get("member"));
+            if ("graph".equals(k.get("kind"))) {
+                out.println("graph key: " + member + " · graph shape " + orNone(k.get("graphKey")));
+                continue;
+            }
+            Object headers = k.get("streamHeaders");
+            if (headers == null) {
+                out.println("graph key: " + member + " · not read" + (k.get("note") == null ? "" : " (" + k.get("note") + ")"));
+                continue;
+            }
+            java.util.List<?> keys = k.get("graphKeys") instanceof java.util.List<?> l ? l : java.util.List.of();
+            String shape = ((Number) headers).intValue() == 0 ? "no stream header: graph not verified"
+                    : "graph shape " + String.join(", ", keys.stream().map(Main::orNone).toList());
+            if (((Number) headers).intValue() > 0 && !graphKeys.isEmpty()) {
+                boolean match = !keys.isEmpty() && keys.stream().allMatch(x -> x != null && graphKeys.contains(x));
+                boolean mismatch = keys.stream().anyMatch(x -> x != null && graphKeys.stream().allMatch(g -> g != null && !g.equals(x)));
+                shape += mismatch ? " — the bundled graph's shape does not match" : match ? " — the bundled graph's shape matches"
+                        : " — not verified against the bundled graph";
+            }
+            out.println("graph key: " + member + " · " + shape);
+            if (k.get("runKeys") instanceof java.util.List<?> runs) {
+                for (Object r : runs) {
+                    if (r instanceof java.util.Map<?, ?> run) {
+                        out.println("run key: " + member + " · " + run.get("label") + " · " + whole(run.get("records")) + " records");
+                    }
+                }
+            }
+        }
+    }
+
+    private static String orNone(Object fingerprint) {
+        return fingerprint == null ? "none stated" : fingerprint.toString();
     }
 
     /** Logs at or above this size are memory-mapped while compared; below it they are read into memory. */

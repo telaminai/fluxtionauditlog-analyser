@@ -89,6 +89,9 @@ public record ProjectModel(List<Section> sections) {
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
             "graphPairing.auditLogging", "graphPairing.auditLoggingNote",
+            "graphPairing.evidenceSet", "graphPairing.evidenceSetStatus", "graphPairing.evidenceSetNote",
+            "graphPairing.logSourceFingerprint", "graphPairing.graphSourceFingerprint",
+            "log.segments.label", "log.segments.firstRecord", "log.segments.lastRecord", "log.segments.records",
             "processorDeclarations.name", "processorDeclarations.kind", "processorDeclarations.status",
             "savedGraphs.name", "savedGraphs.open", "savedGraphs.input",
             "processors.class", "processors.selected", "processors.source", "processors.from",
@@ -284,6 +287,21 @@ public record ProjectModel(List<Section> sections) {
             Map<String,Object> freshness = map(log.get("freshness"));
             if (!freshness.isEmpty()) rows.add(new Row("File observation",str(freshness.get("state")),
                     null,str(freshness.get("basis")),"changed-on-disk".equals(freshness.get("state")) ? Tone.WARN : Tone.MUTED,Target.NONE));
+            // evidence-set key: the log's runs by run key (serverId · runId · group/name#generation). Only when the
+            // log holds more than one: a single run is the log, and a row restating it says nothing.
+            List<Object> segments = list(log.get("segments"));
+            if (segments.size() > 1) {
+                for (Object o : segments) {
+                    Map<String, Object> seg = map(o);
+                    Object n = seg.get("records");
+                    Object first = seg.get("firstRecord");
+                    Object last = seg.get("lastRecord");
+                    String span = n == null || Integer.valueOf(0).equals(n) ? "no records"
+                            : "records " + (((Number) first).intValue() + 1) + "–" + (((Number) last).intValue() + 1);
+                    rows.add(new Row("Run " + str(seg.get("label")), span, null, "from the log's stream headers",
+                            Tone.MUTED, Target.NONE));
+                }
+            }
             List<Object> files = list(ctx.get("files"));
             if (files.size() > 1) {
                 // members are display names, in load order — the set's directory is the row above
@@ -321,6 +339,17 @@ public record ProjectModel(List<Section> sections) {
                 tone = Tone.WARN;
             }
             rows.add(new Row(str(pair.get("graph")), verdict, str(pair.get("graphPath")), prov, tone, Target.TOPOLOGY));
+            // evidence-set key (spec §4.5): graph SHAPE against the log's stream header — one of three, the reason
+            // beside it. A mismatch warns and stays; it never closes the graph (D2). Never "same build" (D4).
+            if (pair.get("evidenceSet") != null) {
+                String status = str(pair.get("evidenceSetStatus"));
+                boolean mismatch = "MISMATCH".equals(pair.get("evidenceSet"));
+                rows.add(new Row(mismatch ? "⚠ " + status : status, str(pair.get("evidenceSetNote")), null,
+                        "log " + shortPrint(pair.get("logSourceFingerprint")) + " · graph "
+                                + shortPrint(pair.get("graphSourceFingerprint")),
+                        mismatch ? Tone.WARN : "MATCH".equals(pair.get("evidenceSet")) ? Tone.NORMAL : Tone.MUTED,
+                        Target.TOPOLOGY));
+            }
             Map<String,Object> freshness = map(pair.get("freshness"));
             if (!freshness.isEmpty()) rows.add(new Row("File observation",str(freshness.get("state")),
                     null,str(freshness.get("basis")),"changed-on-disk".equals(freshness.get("state")) ? Tone.WARN : Tone.MUTED,Target.TOPOLOGY));
@@ -666,5 +695,12 @@ public record ProjectModel(List<Section> sections) {
         if (path == null) return "?";
         int i = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
         return i >= 0 && i < path.length() - 1 ? path.substring(i + 1) : path;
+    }
+
+    /** A fingerprint as a row shows it: its first 12 characters, or "none". */
+    static String shortPrint(Object fingerprint) {
+        if (fingerprint == null) return "none";
+        String f = fingerprint.toString();
+        return f.length() > 12 ? f.substring(0, 12) + "…" : f;
     }
 }

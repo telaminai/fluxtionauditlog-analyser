@@ -70,7 +70,12 @@ public final class EvidenceBundle {
 
     /** A verification: the identity, and either every member verified or the first refusal naming the member. */
     public record Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt,
-                               Map<String, Object> replay, String processor) {
+                               Map<String, Object> replay, String processor, List<Map<String, Object>> evidenceKeys) {
+        public Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt,
+                            Map<String, Object> replay, String processor) {
+            this(identity, members, refusal, excerpt, replay, processor, null);
+        }
+
         public Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt,
                             Map<String, Object> replay) {
             this(identity, members, refusal, excerpt, replay, null);
@@ -128,6 +133,17 @@ public final class EvidenceBundle {
     public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion,
                               Map<String, Object> excerpt, Map<String, Object> replay, String processor)
             throws IOException {
+        return pack(folder, out, createdAt, analyserVersion, excerpt, replay, processor, null);
+    }
+
+    /**
+     * As above, recording the evidence-set keys of the log and graph members ({@link EvidenceKeys}): each log's graph
+     * keys and run keys, each graph's graph key. Null leaves the manifest's bytes as they were.
+     */
+    public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion,
+                              Map<String, Object> excerpt, Map<String, Object> replay, String processor,
+                              List<Map<String, Object>> evidenceKeys)
+            throws IOException {
         if (!Files.isDirectory(folder)) throw new IOException("not a folder: " + folder);
         if (Files.exists(out)) throw new IOException("will not overwrite " + out);
         TreeMap<String, Path> files = new TreeMap<>();
@@ -154,7 +170,7 @@ public final class EvidenceBundle {
         long replays = members.stream().filter(x -> x.path().startsWith(REPLAY_DIR)).count();
         if (replay != null && replays != 1) throw new IOException("a replay bundle holds one " + REPLAY_DIR + " member, not " + replays);
         if (replay == null && replays != 0) throw new IOException("a " + REPLAY_DIR + " member with no replay stated");
-        byte[] manifest = manifestBytes(members, createdAt, analyserVersion, excerpt, replay, processor);
+        byte[] manifest = manifestBytes(members, createdAt, analyserVersion, excerpt, replay, processor, evidenceKeys);
         try (OutputStream os = Files.newOutputStream(out, java.nio.file.StandardOpenOption.CREATE_NEW);
              ZipOutputStream zip = new ZipOutputStream(os)) {
             put(zip, MANIFEST, manifest);
@@ -196,6 +212,11 @@ public final class EvidenceBundle {
      */
     static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion, Map<String, Object> excerpt,
                                 Map<String, Object> replay, String processor) {
+        return manifestBytes(members, createdAt, analyserVersion, excerpt, replay, processor, null);
+    }
+
+    static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion, Map<String, Object> excerpt,
+                                Map<String, Object> replay, String processor, List<Map<String, Object>> evidenceKeys) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("format", replay == null ? FORMAT : FORMAT_REPLAY);
         m.put("createdAt", createdAt.toString());
@@ -221,6 +242,9 @@ public final class EvidenceBundle {
             list.add(one);
         }
         m.put("members", list);
+        // evidence-set key: which graph shape wrote each log, which runs it holds, and each graph's shape — read from
+        // the members' own bytes. Additive: a reader before it ignores the key, and it does not change the format.
+        if (evidenceKeys != null && !evidenceKeys.isEmpty()) m.put("evidenceKeys", evidenceKeys);
         m.put("limits", replay == null ? LIMITS : LIMITS_REPLAY);
         return (Json.write(m) + "\n").getBytes(StandardCharsets.UTF_8);
     }
@@ -260,6 +284,7 @@ public final class EvidenceBundle {
         Map<String, Object> excerpt = null;
         Map<String, Object> replay = null;
         String processor = null;
+        List<Map<String, Object>> evidenceKeys = null;
         Map<String, Member> listed = null;
         Set<String> seen = new LinkedHashSet<>();
         try (InputStream in = Files.newInputStream(bundle); ZipInputStream zip = new ZipInputStream(in)) {
@@ -285,6 +310,7 @@ public final class EvidenceBundle {
                         excerpt = excerptOf(manifest);
                         replay = replayOf(manifest, members);
                         processor = processorOf(manifest);
+                        evidenceKeys = evidenceKeysOf(manifest);
                     } catch (RuntimeException ex) {
                         return refused(identity, MANIFEST + " cannot be read: " + ex.getMessage());
                     }
@@ -329,7 +355,8 @@ public final class EvidenceBundle {
         for (String path : listed.keySet()) {
             if (!seen.contains(path)) return refused(identity, "missing member: " + path);
         }
-        return new Pass(new Verification(identity, List.copyOf(listed.values()), null, excerpt, replay, processor), listed);
+        return new Pass(new Verification(identity, List.copyOf(listed.values()), null, excerpt, replay, processor,
+                evidenceKeys), listed);
     }
 
     private static Pass refused(String identity, String why) {
@@ -363,6 +390,21 @@ public final class EvidenceBundle {
         if (x == null) return null;
         if (!(x instanceof Map<?, ?> m)) throw new IllegalArgumentException("excerpt is not an object");
         return Map.copyOf((Map<String, Object>) m);
+    }
+
+    /** The evidence-set keys a manifest records, or null when it records none. */
+    @SuppressWarnings("unchecked")
+    static List<Map<String, Object>> evidenceKeysOf(byte[] manifest) {
+        Map<String, Object> m = (Map<String, Object>) Json.parse(new String(manifest, StandardCharsets.UTF_8));
+        Object x = m.get("evidenceKeys");
+        if (x == null) return null;
+        if (!(x instanceof List<?> list)) throw new IllegalArgumentException("evidenceKeys is not a list");
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Object o : list) {
+            if (!(o instanceof Map<?, ?> one)) throw new IllegalArgumentException("an evidenceKeys entry is not an object");
+            out.add(java.util.Collections.unmodifiableMap(new LinkedHashMap<>((Map<String, Object>) one)));
+        }
+        return List.copyOf(out);
     }
 
     /** The event processor a manifest names, or null. A class name, so nothing to validate against members. */

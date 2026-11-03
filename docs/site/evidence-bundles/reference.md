@@ -26,7 +26,7 @@ An installed analyser is `analyser …`; from a jar, `java -jar fluxtion-auditlo
 
 | command | what it does | exit code |
 |---|---|---|
-| `--verify <bundle.fexp>` | checks every member against the manifest without extracting anything. Prints the identity, `verified: N members…`, `excerpt: …` for an excerpt, `replay: …` for a bundle with replay records, and the limits | 0 · 1 refused, naming the member · 2 usage |
+| `--verify <bundle.fexp>` | checks every member against the manifest without extracting anything. Prints the identity, `verified: N members…`, `excerpt: …` for an excerpt, `replay: …` for a bundle with replay records, `graph key: …` and `run key: …` for each log and graph it carries (the graph shape that wrote each log, its runs, and whether the bundled graph has that shape), and the limits | 0 · 1 refused, naming the member · 2 usage |
 | `--unpack <bundle.fexp> [--into <dir>]` | verifies, then extracts into a **new** directory named for the identity. Prints `working copy:` | 0 · 1 refused, nothing extracted · 2 usage |
 | `--replay-compare <bundle.fexp> <replayed-audit.yaml>` | verifies, then compares the bundle's log with an audit log written by replaying its `replay/` records into your own build of the processor. Prints `replay: AGREES, N of N records`, or `replay: DIVERGES at …` naming the first difference, and the limits | 0 agrees · 1 diverges, or refused · 2 usage |
 

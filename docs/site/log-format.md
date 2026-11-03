@@ -140,3 +140,36 @@ The marker a writer emits to make this claim is defined in the
 [format specification §1a](format-spec.md). It is never shown as a record: it is a fact about the
 file, so it is absent from the table, from counts, from series and from the time range.
 
+
+## Does the graph match the log?
+
+From Fluxtion runtime 1.1.4 a log begins with a **stream header** ([format specification §1b](format-spec.md#1b-the-stream-header-format-12-additive))
+that states the `sourceFingerprint` of the graph that wrote it: a digest of the graph's **shape**, meaning its node
+names, classes, callbacks and edges. The graph's `.graphml` carries the same digest as `fluxtion.sourceFingerprint`. When
+a log and a graph are both open, the analyser compares the two and states exactly one of three things:
+
+| status | when | what it means |
+|---|---|---|
+| **graph shape matches** | every header's fingerprint equals the graph's | the graph on screen has the shape of the graph that wrote the log. It does not say the code or the configuration is the same: method bodies and configured values are not in the fingerprint |
+| **⚠ graph shape does not match** | a header and the graph state different fingerprints | the graph on screen is not the shape that wrote this log, so a node that "never logged", and coverage, may describe the wrong graph. It is a warning that stays on screen for as long as the pair does; the graph is never closed or refused, including one you opened by hand |
+| **graph not verified** | the log has no header (a runtime before 1.1.4), a header is malformed, a header or the graph states no fingerprint, or records come before the first header | nothing proves either answer. Missing evidence is never reported as a mismatch |
+
+Where you see it: on the **status bar** after the record count, with the reason when you hover; and in the **Project
+panel**, as a row under the graph with both fingerprints. An agent reads it from `context.graphPairing.evidenceSet`
+(`MATCH`, `MISMATCH` or `UNVERIFIED`), with `logSourceFingerprint`, `graphSourceFingerprint` and `evidenceSetNote`; the
+`open {graphml}` echo and `coverage` carry the same keys. **Sources ▸ Find GraphML in source roots…** (`open {discover: "graphml"}`) offers
+a graph whose fingerprint equals the log's first, ahead of one that merely declares the same node names; it still opens
+nothing for you.
+
+## Runs
+
+A stream header also names the **run** that wrote the records after it, when a host such as a Mongoose server
+supplies one: the server, a per-process `runId`, and the processor's `group/name#generation`. The analyser divides a
+log into runs by that **run key**, and starts a new run only when the key changes. A header re-sent with the same key
+(after a sink change, or at each daily roll of a Mongoose capture) continues the run, so a capture rolled across two
+files is one run. A static deployment that restarts is still `#1` each time, and is told apart by its `runId`.
+
+When a log holds more than one run, the **Project panel** lists them under the log, each labelled
+`server · runId (first 8) · group/name#generation` with the records it covers. An agent reads them from
+`context.log.segments`. A log with no header has no runs to list. An evidence bundle records each log's runs and graph
+shape, and `--verify` prints them ([reference](evidence-bundles/reference.md)).

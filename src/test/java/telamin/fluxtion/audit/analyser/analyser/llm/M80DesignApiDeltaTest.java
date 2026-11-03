@@ -55,11 +55,12 @@ class M80DesignApiDeltaTest {
         for (var surface : WorkModeKeepsTheApiTest.surfaces().entrySet()) {
             // the trial's first-move sentence (FirstMoveApiDeltaTest) is in disjoint text of the instructions: peel it too
             Object withoutPR1 = SpotlightLineRangeApiDeltaTest.withoutLineRange(
-                    FirstMoveApiDeltaTest.withoutFirstMove(surface.getValue()));
+                    FirstMoveApiDeltaTest.withoutFirstMove(EvidenceSetApiDeltaTest.withoutEvidenceSet(surface.getValue())));
             assertEquals(BEFORE.get(surface.getKey()), WorkModeKeepsTheApiTest.sha(withoutM80(withoutPR1)),
                     "only the approved M80 delta may change: " + surface.getKey());
             if (!BEFORE.get(surface.getKey()).equals(WorkModeKeepsTheApiTest.sha(
-                    FirstMoveApiDeltaTest.withoutFirstMove(surface.getValue())))) changed.add(surface.getKey());
+                    FirstMoveApiDeltaTest.withoutFirstMove(EvidenceSetApiDeltaTest.withoutEvidenceSet(surface.getValue())))))
+                changed.add(surface.getKey());
         }
         assertEquals(Set.of("VerbSchemas.all", "VerbSchemas.hosted", "McpTools.list", "McpTools.hostedList",
                 "PromptBuilder.inProcessActionManifest"), changed, "no unrelated API surface moves");

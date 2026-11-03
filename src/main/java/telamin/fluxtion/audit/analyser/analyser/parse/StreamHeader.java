@@ -50,10 +50,12 @@ import java.util.Map;
  * @param startedAt         when the stream started, as written (an ISO-8601 instant); or null
  * @param host              the host's run identity, insertion-ordered and unmodifiable; empty outside a host
  * @param problem           why this header is not well formed, in words; null when it is
+ * @param text              the document as the log holds it, from its first content line (a leading separator and
+ *                          blank lines removed) — so an excerpt of the log can carry the header in force, byte for byte
  */
 public record StreamHeader(int firstRecord, Integer schema, String processor, String sourceFingerprint,
                            String toolchainVersion, String runtimeVersion, String startedAt,
-                           Map<String, String> host, String problem) {
+                           Map<String, String> host, String problem, String text) {
 
     /** The document key, as the runtime's {@code AuditStreamHeader.DOCUMENT_KEY} spells it. */
     public static final String DOCUMENT_KEY = "auditStreamHeader";
@@ -76,7 +78,7 @@ public record StreamHeader(int firstRecord, Integer schema, String processor, St
     /** The same header, placed at a different row — a rolled set re-bases each member's rows. */
     public StreamHeader atRecord(int row) {
         return new StreamHeader(row, schema, processor, sourceFingerprint, toolchainVersion, runtimeVersion,
-                startedAt, host, problem);
+                startedAt, host, problem, text);
     }
 
     /**
@@ -170,7 +172,7 @@ public record StreamHeader(int firstRecord, Integer schema, String processor, St
         return new StreamHeader(firstRecord, schema,
                 scalar(values.get("processor")), scalar(values.get("sourceFingerprint")),
                 scalar(values.get("toolchainVersion")), scalar(values.get("runtimeVersion")),
-                scalar(values.get("startedAt")), host, problem);
+                scalar(values.get("startedAt")), host, problem, documentText(lines));
     }
 
     /**
@@ -193,6 +195,25 @@ public record StreamHeader(int firstRecord, Integer schema, String processor, St
     }
 
     // ---- the small YAML subset the writer produces --------------------------------------------------------
+
+    /** The document from its first non-blank, non-separator line, trailing line breaks removed. */
+    private static String documentText(String[] lines) {
+        int from = 0;
+        while (from < lines.length && (AuditText.strip(lines[from]).isEmpty() || AuditText.strip(lines[from]).equals("---"))) {
+            from++;
+        }
+        String t = String.join("\n", java.util.Arrays.asList(lines).subList(from, lines.length));
+        int end = t.length();
+        while (end > 0 && (t.charAt(end - 1) == '\n' || t.charAt(end - 1) == '\r')) end--;
+        return t.substring(0, end);
+    }
+
+    /** A record's string form names the header without repeating its document. */
+    @Override
+    public String toString() {
+        return "StreamHeader[firstRecord=" + firstRecord + ", processor=" + processor + ", sourceFingerprint="
+                + sourceFingerprint + ", host=" + host + (problem == null ? "" : ", problem=" + problem) + "]";
+    }
 
     /** The first line that is not blank, a comment, or a plain separator; -1 when there is none. */
     private static int firstContentLine(String[] lines) {

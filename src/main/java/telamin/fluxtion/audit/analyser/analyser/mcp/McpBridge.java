@@ -86,6 +86,9 @@ public final class McpBridge {
             + "change what the desktop app shows (filter, graph, goto, flag) and are all reversible. "
             + "The analyser must be running with External MCP/REST access on (Settings > Assistant). "
             + FIRST_MOVE
+            // evidence-set key: the graph-shape verdict is said before any explanation (owner, 2026-11-03)
+            + telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.EVIDENCE_SET
+                    .replace("context.graphPairing", "analyser_context.graphPairing")
             // M64.6: server instructions are the one text EVERY MCP client is handed before it picks a tool,
             // so this is where "when to point" has to be for it to be general rather than a skill's habit
             + telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.GUIDANCE

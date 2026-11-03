@@ -54,14 +54,25 @@ public final class GraphmlDiscovery {
      */
     public record Candidate(Path file, int nodes, GraphPairing pairing, Set<String> declaredIds,
                             String fingerprint, String processorClass, String modifiedTime,
-                            Set<String> loggedButNotDeclared, boolean readable) {
+                            Set<String> loggedButNotDeclared, boolean readable, String logFingerprint) {
         public Candidate {
             declaredIds = Set.copyOf(declaredIds);
             loggedButNotDeclared = Set.copyOf(loggedButNotDeclared);
         }
 
         private Candidate(Path file, int nodes, GraphPairing pairing) {
-            this(file, nodes, pairing, Set.of(), null, null, null, Set.of(), false);
+            this(file, nodes, pairing, Set.of(), null, null, null, Set.of(), false, null);
+        }
+
+        /**
+         * Evidence-set key: this graph's SHAPE against the open log's stream header — {@code MATCH} when the two
+         * fingerprints are equal, {@code MISMATCH} when both are stated and differ, {@code UNVERIFIED} when either is
+         * missing; null with no log, or a log with no header to compare (then name fit alone ranks).
+         */
+        public String evidenceSet() {
+            if (logFingerprint == null) return null;
+            if (fingerprint == null) return "UNVERIFIED";
+            return logFingerprint.equals(fingerprint) ? "MATCH" : "MISMATCH";
         }
 
         public Map<String, Object> toMap() {
@@ -73,6 +84,11 @@ public final class GraphmlDiscovery {
             out.put("sourceFingerprint", fingerprint);
             out.put("processorClass", processorClass);
             out.put("modifiedTime", modifiedTime);
+            if (evidenceSet() != null) {
+                out.put("evidenceSet", evidenceSet());
+                out.put("logSourceFingerprint", logFingerprint);
+                out.put("graphSourceFingerprint", fingerprint);
+            }
             if (pairing != null) {
                 out.put("appliesToOpenLog", pairing.applies());
                 out.put("declaredByGraph", pairing.matched());
@@ -86,17 +102,36 @@ public final class GraphmlDiscovery {
             return out;
         }
 
-        /** Best first: fits, then how much of the log it explains, then the bigger graph. */
+        /**
+         * Best first. Evidence-set key: a graph whose shape fingerprint equals the log's stream header comes first —
+         * pairing by fingerprint — then one that cannot be compared, then a proven mismatch; name fit (does the graph
+         * declare the nodes the log names) orders within each, and alone when the log states no fingerprint.
+         */
         static final Comparator<Candidate> RANK = Comparator
-                .comparing((Candidate c) -> c.pairing != null && c.pairing.applies()).reversed()
+                .comparing((Candidate c) -> shapeRank(c.evidenceSet()))
+                .thenComparing((Candidate c) -> c.pairing != null && c.pairing.applies(), Comparator.reverseOrder())
                 .thenComparing(c -> c.pairing == null ? 0 : -c.pairing.matched())
                 .thenComparing(c -> -c.nodes)
                 .thenComparing(c -> c.file.toString());
 
+        private static int shapeRank(String evidenceSet) {
+            if (evidenceSet == null) return 1;
+            return switch (evidenceSet) {
+                case "MATCH" -> 0;
+                case "UNVERIFIED" -> 1;
+                default -> 2;
+            };
+        }
+
         public String describe() {
             String base = file + " · " + (readable ? declaredIds.size() : "unknown") + " node(s)"
                     + " · fingerprint " + (fingerprint == null ? "unknown" : fingerprint)
-                    + " · modified " + (modifiedTime == null ? "unknown" : modifiedTime);
+                    + " · modified " + (modifiedTime == null ? "unknown" : modifiedTime)
+                    + (evidenceSet() == null ? "" : " · " + switch (evidenceSet()) {
+                        case "MATCH" -> "graph shape matches the log";
+                        case "MISMATCH" -> "graph shape does not match the log";
+                        default -> "graph shape not verified";
+                    });
             return pairing == null ? base : base + " · " + pairing.reason()
                     + (loggedButNotDeclared.isEmpty() ? "" : " · not declared: "
                     + String.join(", ", loggedButNotDeclared.stream().sorted().toList()));
@@ -168,7 +203,7 @@ public final class GraphmlDiscovery {
         String modified = null;
         try { modified = Files.getLastModifiedTime(file).toInstant().toString(); }
         catch (IOException ignored) { /* unknown, rather than an invented timestamp */ }
-        copies.add(candidate(file, loaded, Set.of(), modified, -1, -1));   // no log compared: no pairing, no scope
+        copies.add(candidate(file, loaded, Set.of(), modified, -1, -1, null));   // no log compared: no pairing, no scope
         return new Result(copies, scan.truncated(), scan.notes());
     }
 
@@ -199,6 +234,18 @@ public final class GraphmlDiscovery {
      */
     public static Result scan(List<String> roots, Set<String> loggedIds, int recordsScanned, int recordsTotal,
                               Path within) {
+        return scan(roots, loggedIds, recordsScanned, recordsTotal, within, null);
+    }
+
+    /**
+     * Evidence-set key (spec §4.5): as above, ranking by the log's stream-header {@code sourceFingerprint} first. With
+     * two builds of different shape in one folder, the one whose fingerprint equals the log's is offered first and
+     * carries {@code evidenceSet: MATCH}. Still an offer: nothing is selected (M35.4).
+     *
+     * @param logFingerprint the open log's graph-shape fingerprint, or null when it has none — name fit alone then ranks
+     */
+    public static Result scan(List<String> roots, Set<String> loggedIds, int recordsScanned, int recordsTotal,
+                              Path within, String logFingerprint) {
         Path fence = null;
         if (within != null) {
             try {
@@ -238,7 +285,7 @@ public final class GraphmlDiscovery {
                         truncated = true;
                         break;
                     }
-                    out.add(judge(p, loggedIds, notes, recordsScanned, recordsTotal));
+                    out.add(judge(p, loggedIds, notes, recordsScanned, recordsTotal, logFingerprint));
                 }
             } catch (IOException | RuntimeException e) {
                 notes.add("could not scan '" + root + "': " + e.getMessage());
@@ -286,7 +333,7 @@ public final class GraphmlDiscovery {
     }
 
     private static Candidate judge(Path file, Set<String> loggedIds, List<String> notes,
-                                   int recordsScanned, int recordsTotal) {
+                                   int recordsScanned, int recordsTotal, String logFingerprint) {
         try {
             if (Files.size(file) > MAX_BYTES) {
                 notes.add(file.getFileName() + ": larger than " + (MAX_BYTES / 1024 / 1024)
@@ -302,14 +349,14 @@ public final class GraphmlDiscovery {
                 return new Candidate(file, 0, null);
             }
             return candidate(file, topology, loggedIds, Files.getLastModifiedTime(file).toInstant().toString(),
-                    recordsScanned, recordsTotal);
+                    recordsScanned, recordsTotal, logFingerprint);
         } catch (RuntimeException | IOException e) {
             notes.add(file.getFileName() + ": did not parse as a Fluxtion .graphml");
             return new Candidate(file, 0, null);
         }
     }
     private static Candidate candidate(Path file, ProcessorTopology topology, Set<String> loggedIds,
-                                       String modifiedTime, int recordsScanned, int recordsTotal) {
+                                       String modifiedTime, int recordsScanned, int recordsTotal, String logFingerprint) {
         Set<String> declared = GraphPairing.declaredNodeIds(topology);
         GraphPairing pairing = loggedIds == null || loggedIds.isEmpty()
                 ? null : GraphPairing.of(declared, loggedIds);
@@ -319,7 +366,7 @@ public final class GraphmlDiscovery {
         var facts = topology.vocabulary().graphFacts();
         return new Candidate(file, Scaffolding.authoredNodes(topology).size(), pairing, declared,
                 nonBlank(facts.get("fluxtion.sourceFingerprint")), nonBlank(facts.get("fluxtion.processorClass")),
-                modifiedTime, missing, true);
+                modifiedTime, missing, true, logFingerprint);
     }
 
     private static String nonBlank(String value) {

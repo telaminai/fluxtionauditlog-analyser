@@ -7302,9 +7302,12 @@ public final class MainFrame extends JFrame {
         // the same scope as the frame's and the session's — one verdict, one scope, every surface (and, round 3
         // O-c, one sampling method)
         LoggedSample sample = sampleLoggedIds(store);
+        // evidence-set key: the log's own graph-shape fingerprint ranks first; name fit is used only without one
+        var evidence = sessionSnapshot().evidenceSet();
+        String logFingerprint = store == null || evidence.headers() <= 0 ? null : evidence.logFingerprint();
         return telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
                 config.sourceRoots, sample.ids(), store == null ? -1 : sample.scanned(),
-                store == null ? -1 : sample.total());
+                store == null ? -1 : sample.total(), null, logFingerprint);
     }
 
     /**
@@ -7571,6 +7574,10 @@ public final class MainFrame extends JFrame {
                 s.sourceDiagnostics(), s.completenessDiagnostics(), s.completenessIsNote(), s.pendingFrameText(),
                 s.emptyLogClaim());
         var order = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator.validate(s);   // with its cross-file part
+        // evidence-set key: the log's stream headers, read in the same scan and reported FIRST, so the line the findings
+        // release already knows the graph shape (evidenceSet decides; this only reports what the store holds)
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StreamHeadersObserved(generation,
+                s.streamHeaders(), s.size()));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved(generation, findings));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved(generation, order));
     }
@@ -7714,6 +7721,7 @@ public final class MainFrame extends JFrame {
                 : statusLine(next.following(), next.total(), rangeOf(s),
                         next.provenance() != null ? next.provenance() + "  (" + name + ")" : name,
                         s.streamEnd().isKnownComplete(), orderWarning(order), producerWarning(findings), trailingPendingNote());
+        line += evidenceSetLine(next.evidenceSet());
         if (next.followReadFailure() != null) line += "  ·  ⚠ Follow read failed: " + next.followReadFailure();
         // M68.5: a log reopened because its file was replaced says so on its line; the reason is the session's (OpenLog)
         if ("REOPENED".equals(next.logIdentity())) line += "  ·  ⚠ " + next.logIdentityReason();
@@ -7722,7 +7730,9 @@ public final class MainFrame extends JFrame {
             status.setText(line);
         }
         // the full sentence, where there is room for it — the status bar has none
-        status.setToolTipText(findings.isClean() ? null : UiText.tooltip(String.join("\n\n", findings.messages())));
+        String tip = evidenceTooltip(findings.isClean() ? null : String.join("\n\n", findings.messages()),
+                next.evidenceSet());
+        status.setToolTipText(tip == null ? null : UiText.tooltip(tip));
         boolean findingsMoved = renderedEvidence == null || renderedEvidence.producerFindings() != findings;
         renderedEvidence = next;
         if (findingsMoved && reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
@@ -7835,7 +7845,8 @@ public final class MainFrame extends JFrame {
         String pending = store.pendingFrameText();
         var end = store.streamEnd();
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogContentObserved(sessionLogGeneration, store.size(),
-                pending == null ? 0 : pending.length(), streamEndKey(end), store.sourceDiagnostics().size(), readFailure));
+                pending == null ? 0 : pending.length(), streamEndKey(end), store.sourceDiagnostics().size(), readFailure,
+                store.streamHeaders().size()));
     }
 
     /**
@@ -7988,6 +7999,28 @@ public final class MainFrame extends JFrame {
                         : " — kept, the source supplied it with this log");
         return records + " records · graph " + graphName + verdict + orderWarning
                 + producerWarning;   // the graph line keeps the log's warnings
+    }
+
+    /**
+     * Evidence-set key: the graph-shape part of the status line, rendered from the snapshot's {@code evidenceSet} and
+     * nothing else (rule 9). Exactly one of three, or nothing when there is no pair. A mismatch is a WARNING that stays
+     * on the line for as long as the pair does; it never closes or refuses the graph (D2). Never "same build" (D4).
+     */
+    static String evidenceSetLine(telamin.fluxtion.audit.analyser.analyser.session.EvidenceSetState evidence) {
+        if (evidence == null || evidence.verdict() == null) return "";
+        return switch (evidence.verdict()) {
+            case MATCH -> "  ·  " + evidence.line();
+            case MISMATCH -> "  ·  ⚠ " + evidence.line();
+            case UNVERIFIED -> "  ·  " + evidence.line();
+        };
+    }
+
+    /** The status bar's tooltip text (plain words; the door makes it a tooltip): the log's findings, then the graph shape. */
+    static String evidenceTooltip(String findings, telamin.fluxtion.audit.analyser.analyser.session.EvidenceSetState evidence) {
+        String why = evidence == null || evidence.verdict() == null ? null
+                : "Graph shape: " + evidence.line() + " — " + evidence.reason() + ".";
+        if (findings == null && why == null) return null;
+        return findings == null ? why : why == null ? findings : findings + "\n\n" + why;
     }
 
     private static String displayName(String location) {
@@ -9529,7 +9562,14 @@ public final class MainFrame extends JFrame {
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened(graphFile == null ? null : graphFile.toString(),
                 topologyPanel.graphSource().name(),
                 telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(full), types,
-                ActionExecutor.assistantOrigin());
+                ActionExecutor.assistantOrigin(), graphSourceFingerprint(full));
+    }
+
+    /** Evidence-set key: the graph's own {@code fluxtion.sourceFingerprint} — its shape — or null when it states none. */
+    static String graphSourceFingerprint(telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology topology) {
+        if (topology == null) return null;
+        String f = topology.vocabulary().graphFacts().get("fluxtion.sourceFingerprint");
+        return f == null || f.isBlank() ? null : f;
     }
 
     /** The processor's generation of the log that is open here, stated on every fact about it (M44.4a). */
@@ -10761,6 +10801,8 @@ public final class MainFrame extends JFrame {
                 echo.put("loggedNodes", pairing.logged());
                 echo.put("declaredByGraph", pairing.matched());
                 echo.putAll(pairing.facts());
+                var evidence = sessionSnapshot().evidenceSet();
+                if (evidence.verdict() != null) echo.putAll(evidence.toMap());   // evidence-set key: graph shape, both prints
                 echo.put("verdict", pairing.reason() + (pairing.applies() ? ""
                         : " — kept anyway, because you opened it deliberately (M35.3). A stale "
                                 + "graph is only closed when a LOG arrives and finds it there."));
@@ -11155,6 +11197,28 @@ public final class MainFrame extends JFrame {
             if (!log.isEmpty() && store != null) {
                 log.put("streamEnd", streamEndFacts(store.streamEnd(), store.size()));
             }
+            // evidence-set key: the log's runs by run key, as evidenceSet decided them. Human surface: the Project panel's
+            // "Runs" rows under the log; docs: log-format.md ▸ "Runs". Absent for a log with no stream header.
+            if (!log.isEmpty() && store != null) {
+                var runs = sessionSnapshot().evidenceSet();
+                if (runs.logGeneration() == sessionSnapshot().logGeneration() && !runs.segments().isEmpty()) {
+                    // put literally (M37 parity): the Project panel reads label, firstRecord, lastRecord and records
+                    java.util.List<Map<String, Object>> segments = new java.util.ArrayList<>();
+                    for (var seg : runs.segments()) {
+                        Map<String, Object> one = new java.util.LinkedHashMap<>();
+                        one.put("segment", seg.ordinal());
+                        one.put("label", seg.label());
+                        one.put("firstRecord", seg.firstRecord());
+                        one.put("lastRecord", seg.records() == 0 ? null : seg.endRecord() - 1);
+                        one.put("records", seg.records());
+                        one.put("runKey", seg.headed() ? seg.runKey().toMap() : null);
+                        one.put("sourceFingerprints", seg.fingerprints());
+                        segments.add(one);
+                    }
+                    log.put("segments", segments);
+                }
+                if (runs.headers() >= 0) log.put("streamHeaders", runs.headers());
+            }
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
             if (logProvenance() != null) out.put("provenance", logProvenance());
@@ -11298,6 +11362,19 @@ public final class MainFrame extends JFrame {
                     var held = snap.qualifications();
                     if (held != null) pair.put("qualifiedBy", held.toMap(snap.total(), snap.filterKey()));
                     pair.put("verdict", published.reason());
+                }
+                // evidence-set key (spec §4.5): graph SHAPE against the log's stream headers, from the snapshot, ABOVE the
+                // fresh-start return. Human surface: the status bar's graph-shape words (reason on hover) and the Project
+                // panel's "Graph shape" row; docs: log-format.md ▸ "Does the graph match the log?". Keys put literally
+                // for the M37 parity test.
+                var evidence = snap.pending() ? null : snap.evidenceSet();
+                if (gf && evidence != null && evidence.verdict() != null) {
+                    pair.put("evidenceSet", evidence.verdict().name());
+                    pair.put("evidenceSetStatus", evidence.line());
+                    pair.put("logSourceFingerprint", evidence.logFingerprint());
+                    if (evidence.logFingerprints().size() > 1) pair.put("logSourceFingerprints", evidence.logFingerprints());
+                    pair.put("graphSourceFingerprint", evidence.graphFingerprint());
+                    pair.put("evidenceSetNote", evidence.reason());
                 }
                 // M40 (review F1): the audit verdict is a fact about the loaded GRAPH, so it belongs
                 // beside the pairing, not inside the topology block — that block sits below a

@@ -432,12 +432,20 @@ public final class SessionEvents {
      * @param source          {@code OPENED} / {@code READER_DECLARED} / {@code READER_INFERRED} — the graph's provenance
      * @param declaredNodeIds every node id the graph declares, raw, so the processor computes the pairing
      * @param nodeTypes       every node's simple type name, which is how audit installation is read
+     * @param sourceFingerprint the graph's {@code fluxtion.sourceFingerprint} (its SHAPE), or null when it states none —
+     *                        what the evidence set compares with the log's stream headers (spec-evidence-set-key §4.5)
      */
     public record GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
-                              java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin) {
+                              java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin,
+                              String sourceFingerprint) {
         public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
                            java.util.List<String> nodeTypes) {
-            this(graphPath, source, declaredNodeIds, nodeTypes, null);
+            this(graphPath, source, declaredNodeIds, nodeTypes, null, null);
+        }
+
+        public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
+                           java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin) {
+            this(graphPath, source, declaredNodeIds, nodeTypes, assistantOrigin, null);
         }
         public GraphOpened {
             declaredNodeIds = declaredNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(declaredNodeIds);
@@ -551,7 +559,15 @@ public final class SessionEvents {
      * stale.
      */
     public record LogContentObserved(long generation, int total, int pendingChars, String streamEnd, int damage,
-                                     String readFailure) {
+                                     String readFailure, int streamHeaders) {
+        /**
+         * Before the evidence-set key: no header count. Evidence-set key (spec §4.5): a header appended under Follow
+         * with no record after it moves nothing else, so the count is part of the content, and moving it asks for a scan.
+         */
+        public LogContentObserved(long generation, int total, int pendingChars, String streamEnd, int damage,
+                                  String readFailure) {
+            this(generation, total, pendingChars, streamEnd, damage, readFailure, 0);
+        }
     }
 
     /** M44.5: the log's producer findings, computed by the adapter for the generation it names. */
@@ -2093,4 +2109,22 @@ public final class SessionEvents {
     public record HostedProjectOutputOpened(long watch, long projectGeneration, long generation, long ticket,
                                             ProjectOutputsState.File file) { }
 
+    // ---- Evidence-set key (spec-evidence-set-key.md §4.5) ---------------------------------------------------------
+
+    /**
+     * The open log's stream headers, read by the adapter for the generation it names, in the same scan as its producer
+     * findings ({@link SessionEffects.ScanLogEvidenceEffect}) and posted before them, so the line the findings release
+     * already knows the log's graph shape. {@code evidenceSet} pairs them with the open graph's fingerprint and divides
+     * the log into runs. The headers are the log's own statements (processor, fingerprint, host run identity) — the
+     * same names a {@code LogOpened} carries as node ids — never anyone's typed words.
+     *
+     * @param records how many records the log held when its headers were read, so a run's span is the log's
+     */
+    public record StreamHeadersObserved(long generation,
+                                        java.util.List<telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader> headers,
+                                        int records) {
+        public StreamHeadersObserved {
+            headers = headers == null ? java.util.List.of() : java.util.List.copyOf(headers);
+        }
+    }
 }

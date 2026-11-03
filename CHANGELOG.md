@@ -15,7 +15,22 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   key*. A file holding only a header (a processor that has published nothing yet) opens as an empty log instead of
   being refused, a header a sink ran into the next record is split off it, and a malformed header is reported as
   damage beside the records. Binary (FLXA) logs of versions 1 and 2 both open. The format specification's new §1b
-  documents the header for text and binary. The header's contents are not shown anywhere yet.
+  documents the header for text and binary.
+- **The analyser now says whether the graph on screen is the shape of the graph that wrote the log.** With a log
+  from Fluxtion runtime 1.1.4 or later and a graph open, the status bar states **graph shape matches**,
+  **⚠ graph shape does not match** or **graph not verified**, with the reason on hover, and the Project panel shows the
+  same beside the graph with both fingerprints. A match means the same nodes, classes, callbacks and edges, not the same
+  code or configuration. A mismatch is a warning that stays on screen, never a refusal, including for a graph you open
+  by hand. A log with no stream header, or a fingerprint missing on either side, reads **graph not verified**.
+  **Find GraphML in source roots** offers the graph whose fingerprint equals the log's first. For agents,
+  `context.graphPairing`, the `open {graphml}` echo, `coverage` and discovered graphs carry
+  `evidenceSet: MATCH | MISMATCH | UNVERIFIED` with both fingerprints, and the MCP instructions and the
+  `load-audit-log` skill say to state it before explaining anything.
+- **A log is divided into runs by its stream headers' run key** (server, run id, `group/name#generation`). A restart
+  starts a new run and a header re-sent within one run does not, so a capture rolled across two files is one run. The
+  Project panel lists the runs of a log that has more than one; agents read `context.log.segments`.
+- **Evidence bundles record the graph shape and runs of every log and graph they carry,** and `--verify` prints them,
+  saying whether the bundled graph has each log's shape. An excerpt keeps the stream headers that describe its records.
 
 ## [1.40.2] - 2026-11-03
 

@@ -157,6 +157,11 @@ class FactFieldsTest {
         // the Records view's counts (usability review 2026-10-18): numbers, flags, the log's event-type names, and the
         // search text by reference only (RecordsViewCounts.textRef) — an assistant may have typed it
         M74.put("RecordsViewMeasured.counts", Holds.LOG_COUNTS);
+        // evidence-set key (spec-evidence-set-key §4.5): the log's own stream headers — the processor's class name, its
+        // graph-shape fingerprint, versions, startedAt and the host's run identity, as the producer wrote them
+        M74.put("StreamHeadersObserved.headers", Holds.LOG_COUNTS);
+        // the graph's own fluxtion.sourceFingerprint, a digest of its shape
+        M74.put("GraphOpened.sourceFingerprint", Holds.DIGEST);
         M74.put("ProjectOutputsBasisObserved.logDirRefs", Holds.REFERENCES);
         M74.put("ProjectOutputsScanned.files", Holds.OUTPUT_METADATA);
         M74.put("ProjectOutputChanged.file", Holds.OUTPUT_METADATA);

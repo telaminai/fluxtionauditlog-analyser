@@ -50,6 +50,18 @@ public final class SpotlightVocabulary {
                     // owner, 2026-10-17: a callout shows three lines of about 40 characters until it is pointed at
                     + CAPTION_LENGTH;
 
+    /**
+     * Evidence-set key (spec-evidence-set-key.md §4.5): every entrance tells the assistant to say whether the graph is the
+     * shape of the graph that wrote the log BEFORE explaining anything from the pair, and in the analyser's words — "graph
+     * shape", never "same build" (D4); a mismatch is a warning to state, never a reason to refuse (D2).
+     */
+    public static final String EVIDENCE_SET =
+            "STATE THE GRAPH SHAPE FIRST. Before explaining anything from a log and its graph, read "
+                    + "context.graphPairing.evidenceSet and say it: MATCH — \"the graph shape matches\" (the same nodes, "
+                    + "classes, callbacks and edges; never say \"the same build\"); MISMATCH — \"the graph shape does not "
+                    + "match\", so an absence or coverage may describe a graph that did not write this log; UNVERIFIED — "
+                    + "\"the graph is not verified\" (no stream header, or no fingerprint), with evidenceSetNote's reason. ";
+
     public static final String TEXT =
             "tab:<summary|source|graph|topology|reports|assistant> · source:design · source:design:bean:<id>|source:design:node:<id> · source:design:line:<n|from-to> · source:java:<fqn> · source:java:<fqn>:line:<n|from-to> · records · records:row:<recordIndex> · "
                     + "detail · detail:node:<instanceId> · topology · topology:node:<instanceId> · topology:verdict · "

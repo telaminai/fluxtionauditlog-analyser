@@ -42,7 +42,9 @@ class FirstMoveApiDeltaTest {
     @Test
     @DisplayName("★ the instructions gain only the first-move sentence: removed, they hash to the earlier pin")
     void removingTheSentenceGivesTheEarlierPinBack() throws Exception {
-        assertEquals(INSTRUCTIONS_BEFORE, WorkModeKeepsTheApiTest.sha(withoutFirstMove(McpBridge.INSTRUCTIONS)));
+        // the evidence-set sentence (EvidenceSetApiDeltaTest) is later, disjoint text: peel it too
+        assertEquals(INSTRUCTIONS_BEFORE, WorkModeKeepsTheApiTest.sha(withoutFirstMove(
+                EvidenceSetApiDeltaTest.withoutEvidenceSet(McpBridge.INSTRUCTIONS))));
         assertEquals(WorkModeKeepsTheApiTest.PINNED.get("McpBridge.INSTRUCTIONS"),
                 WorkModeKeepsTheApiTest.sha(McpBridge.INSTRUCTIONS), "the pin now");
     }

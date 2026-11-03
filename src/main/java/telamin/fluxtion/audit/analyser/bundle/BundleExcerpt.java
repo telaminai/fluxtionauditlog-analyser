@@ -73,10 +73,24 @@ public final class BundleExcerpt {
         return new Taken(r, text(store, r), List.copyOf(digests));
     }
 
-    /** The excerpt's text: each record as its exact raw text, framed as Format 1 frames it, every record closed. */
+    /**
+     * The excerpt's text: each record as its exact raw text, framed as Format 1 frames it, every record closed.
+     * Evidence-set key: the stream header in force at the first chosen record, and every header re-sent inside the range,
+     * go with it, each before the record it describes, so the excerpt states the graph shape and run its records came
+     * from. A header is not a record: the record count and digests are unchanged.
+     */
     public static String text(LogStore store, Range r) {
         StringBuilder b = new StringBuilder();
-        for (int i = r.first(); i <= r.last(); i++) b.append("---\n").append(store.rawText(i)).append('\n');
+        java.util.List<telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader> headers = store.streamHeaders();
+        telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader inForce = null;
+        for (var h : headers) if (h.firstRecord() <= r.first()) inForce = h;
+        if (inForce != null) b.append("---\n").append(inForce.text()).append('\n');
+        for (int i = r.first(); i <= r.last(); i++) {
+            for (var h : headers) {
+                if (h.firstRecord() == i && i > r.first()) b.append("---\n").append(h.text()).append('\n');
+            }
+            b.append("---\n").append(store.rawText(i)).append('\n');
+        }
         return b.append("---\n").toString();
     }
 

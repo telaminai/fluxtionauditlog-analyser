@@ -128,6 +128,11 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // writer and the line is the same whichever of the log and the graph arrived first (rule 9)
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine(openLog, openGraph, pairing,
                 logEvidence), "statusLine");
+        // Evidence-set key (spec-evidence-set-key.md §4.5): whether the graph on screen has the SHAPE of the graph that
+        // wrote the log (its stream headers' sourceFingerprint against the graph's), and the log's runs by run key.
+        // Fed by StreamHeadersObserved, which the evidence scan reports; re-decided when the log or graph moves.
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceSet(openLog, openGraph),
+                "evidenceSet");
         // the Records view: what it shows and what each filter hides — measured on the node's request, published in
         // the snapshot, rendered by the "showing" label, the Records title, the Event types toggle and the empty table
         telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView recordsView =

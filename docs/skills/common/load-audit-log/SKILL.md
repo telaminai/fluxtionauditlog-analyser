@@ -60,9 +60,15 @@ the person. If no analyser is connected, cite the record by file and line instea
    Declare `provenance` when you know it. It is how a report written from this log later says which
    system it described — nothing infers it for you.
 
-4. **Check the pairing before concluding anything.** `context.graphPairing` states whether the graph
-   applies to this log. If it does not, a node's absence is not evidence of anything, and neither is
-   coverage.
+4. **Check the pairing before concluding anything, and say the graph shape first.** `context.graphPairing`
+   states whether the graph applies to this log, and `context.graphPairing.evidenceSet` whether the graph
+   has the SHAPE of the graph that wrote it (the log's stream-header `sourceFingerprint` against the
+   graph's). Say it before any explanation: `MATCH` is "the graph shape matches" — never "the same build",
+   because method bodies and configured values are not in the fingerprint; `MISMATCH` is "the graph shape
+   does not match", so a node's absence or coverage may describe a graph that did not write this log;
+   `UNVERIFIED` is "the graph is not verified" (a log with no stream header, or no fingerprint), with
+   `evidenceSetNote`'s reason. If the pairing does not apply, a node's absence is not evidence of
+   anything, and neither is coverage.
 
    The log loads in the background, so the `open` echo cannot judge the graph against it: from analyser
    1.13.1 the echo says `pairing: pending`; earlier versions echoed a verdict about the PREVIOUS log, or

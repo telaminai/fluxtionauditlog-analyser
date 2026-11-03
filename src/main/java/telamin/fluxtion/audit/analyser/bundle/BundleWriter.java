@@ -186,8 +186,9 @@ public final class BundleWriter {
                 replay.put("records", job.replayRecords());
                 replay.put("serviceCalls", job.serviceCalls());
             }
+            // evidence-set key: each log's graph keys and run keys, each graph's graph key, read from the bytes packed
             String identity = EvidenceBundle.pack(payload, job.out(), job.createdAt(), job.version(), cut, replay,
-                    job.processor());
+                    job.processor(), EvidenceKeys.of(payload));
             return new Written(identity, List.copyOf(lines));
         } catch (IOException | RuntimeException e) {
             Files.deleteIfExists(job.out());

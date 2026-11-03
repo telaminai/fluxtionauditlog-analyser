@@ -105,6 +105,11 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - ☐ #56 general graph/context/spotlight drawn-state reporting remains open; walk playback already uses the drawn fact.
 - #84's review and all ten corrections are complete; see [the 1.31.0 archive](completed/tracker.md).
 
+### Evidence-set key — #211 ([spec](spec-evidence-set-key.md), r3)
+- ◧ [ESK] Pair a log with its graph by `sourceFingerprint` (graph shape), state MATCH / MISMATCH / UNVERIFIED on the
+  status bar, Project panel and `context`, divide runs by run key, record both keys in bundles. Slices 1 and 5 on branch
+  `feature/evidence-set-key`, unreviewed; the runtime pin returns to a released 1.1.4 before release. ▸ `docs/handoff/handoff_2026_11_03_esk_*`
+
 ### M68 · Evidence integrity — analyser side shipped ([spec](spec-evidence-integrity.md))
 - The producer half (D-E9) is tracked under MA-2 / MA-7 below. ▸ detail: *M68*.
 
