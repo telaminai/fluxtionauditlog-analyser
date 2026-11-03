@@ -43,8 +43,9 @@ or GUI-host acceptance. The verbatim report and internal review are retained on 
 
 C0 must include these corrections before another acceptance trial:
 
-- A JBang launcher invokes `jbang` by name. On macOS/Linux the host entry needs the resolved install `bin` on
-  its own PATH, plus resolved JBANG_DIR and custom cache configuration where applicable. Do not assume the
+- A JBang launcher invokes `jbang` by name. On macOS/Linux resolve the JBang executable independently of the
+  app directory: package managers may place them separately. The host entry needs both verified directories
+  on its own PATH, plus resolved JBANG_DIR and custom cache configuration where applicable. Do not assume the
   host reads shell profiles. 1.40.2's automatic registration omits this environment; use external-access consent
   in the app, then Generic MCP and the documented host registration flow with the reviewed environment.
   Preserve other entries; explicitly approve any replacement. Check the actual target when JBANG_DIR is custom.
@@ -61,8 +62,15 @@ C0 must include these corrections before another acceptance trial:
 
 C1 must remove the manual environment correction by generating the same verified launch environment/vector
 for Generic MCP, CLI registrations and probes. Test minimal GUI PATH and custom installation/cache paths.
-This specification changes no released implementation. End-to-end consent, host reload, same-name conflicts,
-Desktop/Codex and clean-machine tests remain release gates rather than inferred passes.
+Round 2 at web commit `4a4289c` subsequently reported actual UI consent, app-written registration and a native
+Claude Code context call in a new terminal session on macOS, with owner profiles unchanged. Its 13 checks were
+10 PASS, 2 FAIL and one PASS with an initial embedded-Claude misroute. The corrected skill must name the
+in-window menu/start-screen entry points, distinguish embedded from external assistants, check registration
+before reload and provide targeted corrupt-cache recovery. This advances terminal-host evidence only.
+
+This specification changes no released implementation. The revised registration/recovery recipes, GUI hosts,
+mid-session reload, UI cancellation/conflicts, Desktop/Codex and clean-machine behavior remain acceptance
+work rather than inferred passes.
 
 ### 2.2 Full one-command setup contract
 

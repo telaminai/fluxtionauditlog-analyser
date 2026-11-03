@@ -38,3 +38,10 @@ environment itself. No Analyser runtime source was changed.
 Executed targeted SpecLinksResolveTest and TrailingWhitespaceTest: 5 passed, no skips or failures.
 Tracked-file public sweep passed excluding only the two rule-definition files. Full suite results above remain
 prior evidence; the full runtime suite was not repeated for this specification-only correction.
+
+Round 2 received during corrections: external report at web branch
+docs/handoff/handoff_2026_11_03_analyser_setup_report_round2.txt records a real macOS/Claude Code terminal
+UI-consent/registration/context pass on 4a4289c. The updated spec distinguishes this from round 1 and retains
+untested GUI, clean-account, UI-cancel/conflict and targeted corrupted-cache recovery gates. Independent
+review also required resolving the JBang executable separately from its app directory for package-manager
+layouts; the corrected skill's isolated recipe suite now has 13 passing tests.
