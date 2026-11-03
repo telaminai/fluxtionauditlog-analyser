@@ -2775,6 +2775,15 @@ CONTROLS += [
 # argv controls are the "never on a command line" rule; the rest keep the credential inside the account package.
 ACCOUNT = J + 'account/'
 CONTROLS += [
+    # Owner, 2026-11-03: the address drop-down offers the hosted services, and picking one fills the field.
+    ('ca1-hosted-services-offered', UI + 'CompilerAccountDialog.java',
+     '        for (var known : telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.ALL) out.add(known.address());\n',
+     '',
+     'CompilerAccountWordsTest#theAddressSuggestionsAreTheHostedServicesThenTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes'),
+    ('ca1-selection-follows-the-field', UI + 'CompilerAccountDialog.java',
+     '        addressBox.setSelectedIndex(items.indexOf(text));\n',
+     '',
+     'CompilerAccountFrameTest#theAddressIsAnEditableDropDownOfTheHostedServicesAndAddressesThisMachineConnectedWith'),
     ('ca1-slow-down-lengthens-interval', ACCOUNT + 'CompilerAccountClient.java',
      'case "slow_down" -> interval += SLOW_DOWN_SECONDS;', 'case "slow_down" -> { }',
      'CompilerAccountClientTest#pendingThenSlowDownThenApproved_honoursTheIntervalAndLengthensItOnSlowDown'),

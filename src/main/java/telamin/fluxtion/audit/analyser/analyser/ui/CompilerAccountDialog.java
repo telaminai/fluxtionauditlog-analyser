@@ -239,10 +239,17 @@ public final class CompilerAccountDialog extends JDialog {
             }
         });
         UiText.plainCells(addressBox);
+        // the list names the hosted services ("Production — https://…"); choosing one fills the field with the address
+        javax.swing.ListCellRenderer<? super String> plain = addressBox.getRenderer();
+        addressBox.setRenderer(UiText.plainRenderer((list, value, index, selected, focus) -> plain
+                .getListCellRendererComponent(list, telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices
+                        .describe(value), index, selected, focus)));
         offer(suggestions(config, null));
         address.setText(config.compilerServiceUrl == null ? "" : config.compilerServiceUrl);
-        address.putClientProperty("JTextField.placeholderText", "https://compiler.example.com");
-        address.setToolTipText("The compiler service's base address; the list offers the addresses this machine connected with");
+        address.putClientProperty("JTextField.placeholderText",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.PRODUCTION);
+        address.setToolTipText("The compiler service's base address: pick Production or Staging from the list, an address"
+                + " this machine connected with before, or type your own");
         addressRow.add(addressBox, BorderLayout.CENTER);
         addressRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, addressBox.getPreferredSize().height));
         north.add(addressRow);
@@ -607,6 +614,9 @@ public final class CompilerAccountDialog extends JDialog {
         String text = address.getText();
         addressBox.removeAllItems();
         for (String item : items) addressBox.addItem(item);
+        // Swing selects the first item it is given; leave it selected and choosing that item changes nothing, so the
+        // field stays empty while the list shows Production picked. The selection follows the field instead.
+        addressBox.setSelectedIndex(items.indexOf(text));
         address.setText(text);
     }
 
@@ -888,11 +898,14 @@ public final class CompilerAccountDialog extends JDialog {
     // ---- words: pure, so they are tested without a screen ----------------------------------------------------------
 
     /**
-     * The address field's suggestions, most useful first and each once: the connected credential's issuer, the
-     * addresses this machine connected with, then the configured one. Only usable addresses are offered.
+     * The address field's suggestions, each once: the hosted services ({@code KnownCompilerServices}, Production then
+     * Staging), the connected credential's issuer, the addresses this machine connected with, then the configured one.
+     * Only usable addresses are offered.
      */
     static List<String> suggestions(AppConfig config, CompilerCredential connected) {
         java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+        // the hosted services first, so a fresh install is never an empty list; offering one chooses nothing
+        for (var known : telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.ALL) out.add(known.address());
         if (connected != null) out.add(connected.service());
         out.addAll(config.recentCompilerServices);
         if (config.compilerServiceUrl != null) out.add(config.compilerServiceUrl);

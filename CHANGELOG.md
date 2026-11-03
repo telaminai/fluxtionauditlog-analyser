@@ -6,6 +6,19 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- **AI ▸ Compiler account… now offers the hosted compiler services by name.** The service address drop-down lists
+  **Production** (`https://compiler.fluxtion-playground.dev`) and **Staging**
+  (`https://compiler-staging.fluxtion-playground.dev`) on a fresh install, ahead of any address you have connected with
+  before; it was empty until you had connected once, with only a placeholder to go on. Nothing is chosen for you, and
+  any address can still be typed.
+
+### Fixed
+
+- **Choosing the first address in that drop-down now fills the field.** The list started with its first entry already
+  selected while the field was empty, so picking that entry did nothing.
+
 ## [1.40.0] - 2026-10-27
 
 ### Added
