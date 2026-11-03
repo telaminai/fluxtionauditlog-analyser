@@ -27,6 +27,13 @@ public final class TemplatePickerDocCapture {
         FlatLightLaf.setup();
         SwingUtilities.invokeLater(() -> TemplateProjectDialog.chooseTemplate(null, selection));
         Window chooser = awaitWindow("New project from template");
+        // the catalogue grew past the list's height, and the recommended row sat below it: the shot hid the row the
+        // tutorial rings, and its mark landed off the window (2026-11-03). Scroll the selection into view first.
+        SwingUtilities.invokeAndWait(() -> {
+            javax.swing.JList<?> list = find(chooser, javax.swing.JList.class, c -> true);
+            if (list != null && list.getSelectedIndex() >= 0) list.ensureIndexIsVisible(list.getSelectedIndex());
+        });
+        Thread.sleep(300);
         capture(chooser, assets.resolve("template-picker.png"));
         // WHERE the two things a reader clicks are, in the captured image's own coordinates (the capture is of the
         // window's bounds, so window-relative IS image-relative). Printed for tools/capture-docs.py, which draws

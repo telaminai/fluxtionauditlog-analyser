@@ -621,7 +621,9 @@ def capture_template_picker():
     stage_mcp_setup_launchers()
     classes = CAPTURE_ROOT / "classes"
     source = REPO / "tools" / "TemplatePickerDocCapture.java"
-    result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(source)],
+    # DocShot too: the program calls DocShot.requireRealHome(), and compiling it alone failed (found 2026-11-03)
+    result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(REPO / "tools" / "DocShot.java"),
+                             str(source)],
                             capture_output=True, text=True)
     name = "template-picker.png"
     _attempted.append(name)
