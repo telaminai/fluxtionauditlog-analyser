@@ -1,0 +1,33 @@
+Independent review brief — option C specification, 2026-11-03
+
+Repository: telaminai/fluxtionauditlog-analyser (PUBLIC)
+Branch: spec/analyser-context-canvas
+Read CLAUDE.md, docs/ONBOARDING.md and docs/handoff/REVIEWER-ORIENTATION.md first.
+Review only. Do not merge, release, change production, install into a real user profile or alter credentials.
+
+Read:
+- docs/specs/spec-analyser-context-canvas.md (the new implementation specification)
+- docs/handoff/review_option_c_2026_11_03.md (review of original f4e96ba2)
+- docs/proposals/browser-run-canvas-via-analyser.md (historical proposal, now superseded)
+- docs/specs/decisions.md and tracker.md
+- paired web branch feat/analyser-setup-skill, docs/handoff/handoff_2026_11_03_analyser_setup.txt
+
+Settled owner requirements: assistant-owned local author/build/generate/run; Analyser-owned context and display;
+no project execution in the Analyser; broad registration with consent; one-request setup backed by a public
+playground skill. A released-app skill prototype should precede the larger canvas implementation.
+
+Check every technical assertion against origin/main. Pay particular attention to private hosted permissions,
+external registration, propose, Safe/Full mode and the separate prototype/builtin-claude-onboarding branch.
+Judge whether R1–R8 are addressed by the spec without suggesting those implementation tests already exist.
+Check bootstrap durability and consent/retry/undo; single request versus single shell command is explicit.
+Check rule-9 effect/fact ownership, exact revision/run identity, file/render boundaries and browser pairing.
+Confirm the prototype is useful without pretending the consolidated installer or presentation view is shipped.
+Recommend any narrower first delivery that preserves the owner's outcome. Do not resurrect the Node canvas.
+
+Write severity, file:line, evidence and suggested fix to:
+  docs/handoff/handoff_2026_11_03_option_c_report.txt
+Use the actual reviewed commit SHA. Distinguish source inspection, executed tests and design inference.
+Finish: ready / ready after named changes / not ready. No self-approval or release on a source-only review.
+
+Author validation: see docs/handoff/option_c_author_checks_2026_11_03.md.
+The branch should be pushed under a personal identity after the required checks, so another machine can review.

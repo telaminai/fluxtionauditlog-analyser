@@ -2,6 +2,8 @@
 
 Moved verbatim from the live tracker on 2026-10-01. Cited as *tracker ▸ Decisions*; this file is that section.
 
+- **2026-11-03 (owner direction; implementation choices recorded in the reviewed-spec branch).** The assistant authors, builds, generates and runs projects with its own tools. The Analyser provides context, runbook pointers, evidence and display-only presentation. It gains no project execution/generation logic. Setup should be achievable from one LLM request with explicit consent; a public setup skill using the released app is the first prototype. The optional browser mirror has a separate security contract and leaves the action socket's Origin refusal unchanged. The implementation spec preserves hosted/external permission boundaries and rule 9; it does not claim these new features are shipped. See [the spec](spec-analyser-context-canvas.md).
+
 - **The LLM operates the application toolchain through documentation and runbooks; the analyser
   renders evidence** _(owner, 2026-09-19, staged-feedback review)_. Bootstrap the LLM's understanding
   of Fluxtion, the analyser, audit logs, Mongoose and Mongoose plugins, then point it to project/task

@@ -1,6 +1,9 @@
 # Proposal: the Analyser as context and display for an AI assistant (option C)
 
-**Status:** proposal for independent review. Nothing has been built. Raised 2026-11-03.
+**Status:** historical proposal, reviewed at `f4e96ba2`; superseded by
+[the implementation spec](../specs/spec-analyser-context-canvas.md) on 2026-11-03.
+The new spec resolves the questions below and adds the owner-requested setup-skill journey.
+Nothing in this proposal is a shipped canvas capability.
 
 **Decided already.**
 - **Owner, 2026-11-02:** developers connect an AI assistant to Fluxtion **through the Analyser** (option C). The

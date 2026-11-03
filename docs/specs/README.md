@@ -32,6 +32,8 @@ line, and update this index in the same change.
 
 ## Assistant
 
+- [Context, presentation and assisted setup](spec-analyser-context-canvas.md) — r1, 2026-11-03; review handoff pending; C0 skill prototype first, C1–C3 unimplemented.
+
 | Spec | Status | Tracker |
 |---|---|---|
 | [spec-onboard-assistant-journeys.md](spec-onboard-assistant-journeys.md) | released in 1.29.0; acceptance open | Onboard assistant and conversation journeys |
