@@ -6,6 +6,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- Assistant setup preview guidance distinguishes Manual-mode approvals, plugin declaration and optional setup sign-in from build requirements; explains marketplace reload and day-two recovery.
+
+### Added
+
+- **Set up with your AI assistant (preview).** A docs page for the one-question install: the Claude Code plugin
+  or the published setup instructions install, open and connect the analyser, with optional compiler sign-in,
+  day-2 recovery and building without a system JDK. macOS and the Claude Code terminal only for now.
+  Publication, the shared Java 21 download and starter-export prerequisites, consent exceptions,
+  existing plugin connections and setup privacy are explicit.
+
 ## [1.40.2] - 2026-11-03
 
 ### Changed

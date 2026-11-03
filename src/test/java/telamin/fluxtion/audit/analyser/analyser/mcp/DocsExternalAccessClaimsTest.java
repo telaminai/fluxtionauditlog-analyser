@@ -30,6 +30,30 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class DocsExternalAccessClaimsTest {
 
+    @Test
+    void assistantInstallDoesNotPromiseUnsupportedHostsOrUnconditionalChanges() throws Exception {
+        String page = flat(read(SITE.resolve("start/set-up-with-an-assistant.md")));
+        for (String wrong : List.of("Any assistant:", "it only reopens the window",
+                "nothing is written to your Claude Code MCP configuration",
+                "Setup does not edit your shell profile")) {
+            assertFalse(page.contains(wrong), wrong);
+        }
+        for (String boundary : List.of("Publication pending", "starter audit-export fix",
+                "may refresh", "Installation may also add PATH", "private fields", "ok: true")) {
+            assertTrue(page.contains(boundary), boundary);
+        }
+        assertTrue(page.contains("/plugin install fluxtion-analyser@telamin"));
+        assertTrue(page.contains("/reload-plugins --force"));
+        assertTrue(page.contains("Manual mode"));
+        assertTrue(page.contains("needed to build a project"));
+        assertTrue(page.contains("Plugin declared"));
+        assertTrue(page.contains("analyser-setup plan *"));
+        assertTrue(page.contains("analyser-setup apply *"));
+        assertFalse(page.contains("Shift+Tab"));
+        assertFalse(page.contains("386beef"));
+        assertTrue(page.contains("/mcp reconnect plugin:fluxtion-analyser:fluxtion-analyser"));
+    }
+
     static final Path SITE = Path.of("docs/site");
     static final Path SRC = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser");
 
