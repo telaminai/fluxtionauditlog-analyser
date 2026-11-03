@@ -1,41 +1,45 @@
-# Proposal: the Analyser serves the AI canvas and brokers runs (option C)
+# Proposal: the Analyser runs projects locally and drives a display-only AI canvas (option C)
 
 **Status:** proposal for independent review. Nothing has been built. Raised 2026-11-03.
 
-**Decided already (owner, 2026-11-02):** developers connect an AI assistant to Fluxtion **through the Analyser**
-(option C). The Node canvas spike is retired. This document is the Analyser-side detail for that decision. It
-carries the decision record in §1, because the web-repo document that first recorded it
-(`docs/proposals/canvas-install-and-connection.md` on fluxtion-web branch `fix/canvas-worker-isolation`) is
-retiring with the spike.
+**Decided already.**
+- **Owner, 2026-11-02:** developers connect an AI assistant to Fluxtion **through the Analyser** (option C). The
+  Node canvas spike is retired.
+- **Owner, 2026-11-03:**
+  - the project runs **locally, inside the Analyser's own JVM**, with no second JVM;
+  - the canvas is **display-only** and shows what the Analyser tells it;
+  - registration covers **as much as possible**, with the person's consent.
+
+This document is the Analyser-side detail for those decisions. §1 carries the 2026-11-02 record, because the
+web-repo document that first held it retired with the spike.
 
 **Naming.** In this repo "canvas" already means the *shared evidence canvas*
 ([`spec-shared-evidence-canvas.md`](../specs/spec-shared-evidence-canvas.md), `CanvasHandoff`). This document
-calls the new feature the **AI canvas**: a local surface where a person and their assistant see a project
-snapshot, run it, send inputs, regenerate it, and stop it. It renders results. It is not the shared evidence
-canvas and does not replace it.
+calls the new browser page the **AI canvas**: a display of a project snapshot and its runs, driven by the Analyser.
+It is not the shared evidence canvas and does not replace it.
 
-## 1. The decision and what it changes
+## 1. The decisions and what they change
 
 ### 1.1 Options considered (fluxtion-web, 2026-11-02)
 
-The options were compared after the first end-to-end test of the Node canvas with Claude Code. That test worked:
+The options were compared after the first end-to-end test of the Node canvas with Claude Code. The loop worked:
 an assistant authored a change, a generation was approved in the browser, and the run was checked against the
-audit trail. The install did not work well. Users needed Node 22, had to download and unzip a file, hand-edit MCP
-config with absolute paths, and open a single-use five-minute link. Each step failed at least once in the test.
-The owner's requirement from it: **a user must not need Node.**
+audit trail. The install did not work well. Users needed Node 22, a ZIP download, hand-edited MCP config with
+absolute paths, and a single-use five-minute link, and each step failed at least once. The owner's requirement:
+**a user must not need Node.**
 
 | Option | Summary | Outcome |
 |---|---|---|
-| A. Hosted relay | Claude → HTTPS MCP on the playground site → canvas tab. Zero install, but project source passes through Telamin and it is an operated service. | Dropped |
+| A. Hosted relay | Claude → HTTPS MCP on the playground site → canvas tab. Project source passes through Telamin; an operated service. | Dropped |
 | B. Native binary | The Node bridge compiled per platform (Bun, 57 MB). Per-platform signing; Bun's LGPL WebKit needs legal review. | Dropped |
 | **C. The Analyser** | JBang install (JDK provisioned), already an MCP server with built-in registration. Runs and regenerates locally, with the Analyser's evidence views. | **Developers** |
-| D. Assistant inside the playground | The person's own Anthropic API key in the page; tools are page functions. Nothing to install. | **Built first, for evaluators** (web repo, not this proposal) |
+| D. Assistant inside the playground | The person's own Anthropic API key in the page. Nothing to install. | **Built first, for evaluators** (web repo, not this proposal) |
 
-### 1.2 Owner decisions, 2026-11-02 (quoted from the retiring web document)
+### 1.2 Owner decisions, 2026-11-02 (quoted from the retired web document)
 
 1. **Direction:** C for developers; D built first, for evaluation. A and B are dropped.
-2. **PR #39** (the Node canvas) was to ship as a preview. **Superseded on 2026-11-03:** the owner retired the whole
-   Node spike instead.
+2. **PR #39** (the Node canvas) was to ship as a preview. **Superseded on 2026-11-03:** the owner retired the
+   whole spike (§7).
 3. **The Analyser decision of 2026-09-19 is revised.** Draft entry for `docs/specs/decisions.md`, to be recorded
    with the spec:
    > **2026-11-02 (owner).** Revises the 2026-09-19 decision. The Analyser may serve a loopback browser canvas and
@@ -43,200 +47,261 @@ The owner's requirement from it: **a user must not need Node.**
    > browser-facing server is a second security contract, separate from the action socket, whose Origin refusal
    > (F2) is unchanged. State follows rule 9.
 
+The 2026-11-02 wording allowed Java to run "in the browser or through the compiler". The 2026-11-03 decision
+settles it: **locally, in the Analyser's own JVM**. The entry above should be amended to say so when it is
+recorded.
+
 ### 1.3 What the revision overturns
 
 The 2026-09-19 decision ([`decisions.md`](../specs/decisions.md), first entry) says application processing,
 generation and hosting execute in their owning tools, and that the Analyser *"must not acquire application
-execution or orchestration logic … it authorizes no new execution verb."* Option C deliberately adds brokered run
-and generation. Every new capability below must stay inside the revised wording: **broker** a run or generation the
-person approved. Do not interpret runbooks, implement domain behaviour, or mutate a server.
+execution or orchestration logic … it authorizes no new execution verb."* Option C deliberately adds brokered,
+locally executed runs and generation.
+
+Every new capability must stay inside the revised wording: **broker** a run or generation the person approved.
+Do not interpret runbooks, implement domain behaviour, or mutate a server.
 
 ## 2. Why C, and what friction remains
 
-**Why it suits developers.** It is one command they can trust (JBang, which they may already use). Registration
-already exists. Their real project folder is used. Generation uses the same device credential as
-`mvn fluxtion:login`. The results land in views the Analyser already has: topology and step-through, audit logs,
-spotlight, Design and reports. Fluxtion authors are Java developers, so a JDK is not an extra burden.
+**Why it suits developers.**
+- One trusted command (JBang), and registration already exists.
+- Their real project folder is used.
+- Generation uses the same device credential as `mvn fluxtion:login`.
+- The run lands in views the Analyser already has: topology and step-through, audit logs, spotlight, Design and
+  reports.
+- Fluxtion authors are Java developers, so a JDK is no extra burden.
+- With a local JVM, there is no 35 MB browser runtime, no CheerpJ limits and no third-party runtime host.
 
-**Friction that remains, and the mitigation for each:**
-
-| Friction | Mitigation |
+| Friction that remains | Mitigation |
 |---|---|
-| First JBang run downloads a JDK and the jar, so it is slow | Make install or setup fetch everything, so the first `--mcp` launch is fast (§7.1) |
+| First JBang run downloads a JDK and the jar | Install or setup prefetches everything (§8.1) |
 | A desktop app, not a web page | Evaluators use D; C is for developers |
-| Does not reach claude.ai | Accepted; Claude Code, Codex and Claude Desktop are covered by M42 |
-| Registration is still a step | One setup command or the existing AI menu wraps it (§3) |
+| Does not reach claude.ai | Accepted; Claude Code, Codex and Claude Desktop are covered |
+| Registration is a step | Done during install, as broadly as the person allows (§4) |
 | Development-Use licence | Fine for authoring; production use already needs an agreement |
 
 ## 3. Proposed user experience
 
-```
-jbang app install analyser@telaminai/fluxtionauditlog-analyser   # once: JDK if absent, jar, `analyser` on PATH
-analyser --setup-assistant                                       # once: wraps the M42 registration
-```
-
-(The setup flag name is illustrative; the AI menu already offers the same registration.)
-
-**For someone with no JBang or Java yet**, branch `prototype/builtin-claude-onboarding` already has a one-line
-zero-install launch. JBang's own installer fetches JBang and Java 21, then starts the jar:
+**First time**, for someone with no JBang or Java, using the one-line zero-install launch already on branch
+`prototype/builtin-claude-onboarding`:
 
 ```
 curl -fsSL https://sh.jbang.dev | bash -s - --java 21 <analyser jar URL>        # macOS / Linux
 iex "& { $(iwr -useb https://ps.jbang.dev) } --java 21 <analyser jar URL>"     # Windows PowerShell
 ```
 
-That prototype runs Claude Code *inside* the Analyser. Its test asserts it never registers an external MCP client.
-Option C needs the opposite: register the bridge with the person's own assistant. The launch line carries over; the
-registration step is new (§10, open question).
+People who already have JBang can use `jbang app install analyser@telaminai/fluxtionauditlog-analyser`.
 
-Then:
+On first start, the Analyser offers **one consent screen** that registers everything it can (§4). Then, from the
+person's own assistant inside their project folder:
 
-1. In Claude Code, inside the project folder, the person asks to see or change the project.
-2. The assistant launches `analyser --mcp`. No window appears. **The project root defaults to the folder the
-   assistant runs in** (Claude Code passes `CLAUDE_PROJECT_DIR`), so no paths are hand-edited. The spike proved this
-   default (commit `e0af7a2`).
-3. The assistant presents a snapshot of explicitly named files. The canvas opens in the browser directly
-   (`--open-browser` in the spike), so the person does not have to open a five-minute link.
-4. When asked, the assistant runs `Main`, sends inputs and stops it. When generation is needed, the person approves
-   each one. Generated files are written by the Analyser, never retyped by the model.
-5. When the assistant needs to explain a run, the Analyser window opens or attaches, and the existing `analyser_*`
-   verbs (open the export, spotlight, flag) take over.
+1. The person asks to see or change the project.
+2. The assistant calls the canvas tools through the registered bridge. The project root defaults to the folder the
+   assistant runs in (`CLAUDE_PROJECT_DIR` for Claude Code; the retired spike proved this in commit `e0af7a2`).
+3. The Analyser opens the AI canvas in the browser directly, so there is no five-minute link to open. It shows the
+   snapshot it was told to show.
+4. On request, and after the person approves, the Analyser loads the project's generated processor **in its own
+   JVM** and drives it (§6.2). It streams output, results, audit records and status to the canvas, and stops the
+   run on request.
+5. When generation is needed, the person approves each one. The Analyser writes the generated files; the model never
+   retypes them.
+6. To explain a run, the assistant uses the existing `analyser_*` verbs on the same session: open the export,
+   spotlight, flag.
 
-Skills ship as a small plugin, so the assistant has Fluxtion authoring guidance. The web test showed an assistant
-without it improvises.
+## 4. Registration: as much as possible, with consent
 
-## 4. What the Analyser already provides (checked on `origin/main`, 1.40.2)
+M42 registers the bridge with **one** client, when the person chooses one. The new behaviour is a single consent
+screen at first start (and in **Set up AI**) that lists everything it can register, all pre-selected, each with what
+it changes and how to undo it:
 
-| Need | Already in the Analyser |
+| Item | What it does |
 |---|---|
-| One-line install including the JVM | JBang alias in `jbang-catalog.json` |
-| A headless, dual-era MCP server | `analyser --mcp` → `McpBridge`. It answers both MCP eras (`2026-07-28` and the handshake revisions), sets `java.awt.headless`, touches no Swing/AWT class (`McpBridgeHeadlessTest`), and writes only MCP messages to stdout. |
-| Registration with assistants | M42: `ClaudeMcpClient`, `CodexMcpClient`, `GenericMcpConfiguration`, connection probe |
-| Driving the window | Bridge forwards `analyser_*` verbs to the running app's REST `/action` |
-| Evidence views for a run | Topology, step-through, audit records, spotlight, Design, reports |
+| Claude Code | `claude mcp add --scope user …` (existing `ClaudeMcpClient`) |
+| Codex | Existing `CodexMcpClient` |
+| Claude Desktop | Generic `mcpServers` entry (existing `GenericMcpConfiguration`); write it only where the config location is known |
+| Fluxtion skills | A small plugin or skills folder for each assistant that supports one, so it has authoring guidance (the web test showed an assistant without it improvises) |
+| External MCP/REST access | Switch on for this machine (today off by default, with its own confirmation) |
 
-What it does **not** have:
+Rules:
+- **Consent is explicit.** One screen, items visible and untickable, nothing written before **Register**.
+- **Detected hosts only.** Never register with a client that is not installed.
+- **Never overwrite** an existing entry with the same name; report it instead.
+- **Reversible.** Every registration has a listed undo, and **Set up AI** can remove them all.
+- **Re-runnable.** After installing a new assistant, run setup again.
 
-- tools to present, run, send input to, stop or generate a project;
-- a browser-facing server;
-- a device-credential client;
-- a way for the bridge to start the window.
+## 5. The launch-model conflict, and the recommended resolution
 
-## 5. Design
+**The conflict.** The current connect guide (`docs/site/connect-an-llm.md`, M42) is explicit:
 
-### 5.1 One MCP server, two tool families
+> **Your client does not launch the analyser.** You start the analyser yourself and leave it open … A freshly
+> started analyser would have none of it: no log, no charts, no flags.
 
-`McpBridge` publishes the canvas tools (`playground_present`, `_status`, `_focus`, `_run`, `_input`, `_stop`,
-`_result`, `_close`, `_generate`) beside the existing `analyser_*` verbs. One registration covers both. Canvas
-tools are handled in the bridge process and do not need the window. `analyser_*` keeps forwarding to `/action`.
+The bridge is a thin forwarder; the running app owns the session. The first draft of this proposal moved canvas
+state into the headless bridge and opened the window on demand. That contradicts the guide and splits state across
+two processes.
 
-### 5.2 Where the Java runs: decide this first
+**Recommended resolution** (given the 2026-11-03 decisions):
 
-The owner's wording allows either: *"with the Java executing in the browser or through the compiler"*. Option C's
-description also promised a real local JVM. These are different products:
+1. **The running Analyser owns everything.** It owns the snapshots, the local JVM runs, generation, the canvas
+   server and the run state. The bridge stays what it is: a stateless forwarder to `/action`. Rule 9 is then
+   satisfied naturally, because canvas state lives in the existing session processor (§6.4).
+2. **The rule stays for `analyser_*` verbs.** They drive *your* open session.
+3. **One narrow exception for canvas tools.** When a canvas tool arrives and no Analyser is running, the bridge may
+   start it, after consent the first time (§6.5). The guide's reason for the rule, that a fresh Analyser has none of
+   your session, does not apply: a canvas run brings its own project snapshot. The guide must then be updated to say
+   so.
 
-| | In the browser (CheerpJ worker, as the spike) | Local child JVM |
-|---|---|---|
-| First run | About 35 MB of libraries plus the CheerpJ runtime | None beyond the jar |
-| Stop | Terminate the worker (proven in the spike) | `Process.destroy`, then force kill |
-| Isolation | Browser process, but it can use browser services | **None.** Native process with the person's file and network access |
-| Java limits | CheerpJ compatibility | Full JVM |
-| Matches "reviewed code only" | Yes | Yes, but the consequence of running unreviewed code is larger |
+Reviewers should decide whether to accept this, or keep the rule absolute and require the person to open the
+Analyser first.
 
-**Recommendation:** a local child JVM for developers, launched from the person's own project with an explicit
-approval per run, its working directory set to the project, and stdout and stderr captured. Keep the browser page
-for inputs and output. Record the choice in the spec. Neither option is a sandbox, so say so in the UI.
+## 6. Design
 
-### 5.3 Generation
+### 6.1 Tools
+
+The bridge publishes canvas tools beside the existing `analyser_*` verbs, all forwarded to the running app:
+
+| Tool | Purpose |
+|---|---|
+| `canvas_present` | Show a snapshot of explicitly named files |
+| `canvas_status` | Report what the canvas is showing |
+| `canvas_focus` | Point the canvas at a file or the graph |
+| `canvas_run` | Load and start the project's processor in the Analyser's JVM |
+| `canvas_input` | Send one event to the running processor |
+| `canvas_stop` | Stop the run |
+| `canvas_result` | Read output, results and status |
+| `canvas_close` | Close the snapshot |
+| `canvas_generate` | Regenerate the processor, after approval |
+
+(The names are illustrative. Whether they become `analyser_*` verbs is a review question, since the verb count is
+documented and guarded.)
+
+### 6.2 Runs inside the Analyser's JVM
+
+**Decision (owner, 2026-11-03):** the Analyser is already a running JVM, so no second JVM is started.
+
+**Drive the processor, not `Main`.** For a Fluxtion project, the Analyser loads the generated processor class and
+drives its lifecycle directly: `init`, `start`, `onEvent` for each input, then `stop` and `tearDown`.
+- **Inputs are events.** `canvas_input` delivers a typed event to `onEvent`, so no input adapter is needed in the
+  application. Graph lab's mailbox file and its markers become unnecessary.
+- **Stop is clean.** Stop feeding events, then `stop` and `tearDown`. No thread has to be killed.
+- **Audit records come straight in.** The run's audit log processor can feed the Analyser's own log reader, so the
+  run appears in the evidence views without an export step.
+
+**Isolation inside one JVM:**
+- **A disposable class loader per run.** The project's compiled classes and its dependencies load in a child class
+  loader that is dropped after the run, so the next run starts with fresh classes and static state, and two
+  snapshots never share classes.
+- **Compile in process** with the JDK's compiler API (`javax.tools`), from the snapshot's sources into that run's
+  private output folder.
+- **Calls run on a worker thread, never the EDT.** Each `onEvent` call has a time limit.
+
+**Costs that come with one JVM** (no sandbox in either design, but these are new):
+- **A program cannot be force-stopped.** Java 21 removed `Thread.stop`. A handler stuck in a loop keeps running until
+  the Analyser restarts. The worker is marked lost, the run is reported as `stuck`, and no further events are sent.
+- **`System.exit` in project code would close the Analyser.** There is no supported way to block it in Java 21
+  (the Security Manager is gone). Running only the processor, rather than `Main`, avoids the usual caller, but the
+  project's own handler code can still call it.
+- **Shared memory.** A leak or a large allocation in project code affects the Analyser itself.
+- **Arbitrary `Main` programs are out of scope.** Only the generated processor is driven. Projects that need their
+  own `Main` run in the person's own tools, as today.
+
+**Unchanged:**
+- One run at a time per snapshot, with a time limit that is set and shown.
+- Output is labelled **application-reported**, never a verified result.
+- **No sandbox.** Project code runs with the person's file and network access. Approval text, UI and docs must say
+  so plainly.
+
+### 6.3 The canvas: display only
+
+The browser page holds **no logic and no state**. It renders a display model the Analyser pushes:
+- the snapshot's files and graph;
+- the run's status, output and results;
+- the approval prompts the Analyser asks it to show.
+
+Any control on the page (Run, Stop, an input field, Approve) only **sends a request**; the Analyser decides. No Java
+runs in the browser, so the page needs no CheerpJ, no runtime download and no third-party hosts. The page and its
+assets ship inside the jar.
+
+The browser-facing server is the second security contract the 2026-11-02 decision names, separate from the action
+socket (F2 unchanged):
+- loopback only, port allocated automatically, Host and Origin checks, and a custom header on every call;
+- a pairing step, then an HttpOnly session cookie (the spike's single-use invitation is only needed if the page can
+  be opened by something other than the Analyser; review this);
+- one selected project root, only explicitly named files, no symlinks, size and count caps;
+- snapshot revision = SHA-256 over the sorted path and digest list; a local edit needs a new snapshot, and
+  idempotency must cover file **contents**, not just arguments (review bug 2);
+- output paged by cursor to the end (review bug 6).
+
+### 6.4 State and rule 9
+
+Previews, runs, approvals, generation and canvas display state are session state. They are nodes in the generated
+session processor, with effects (compile, load, deliver event, stop, write files, push display) and facts (event
+handled, handler timed out, output arrived, approval given). The canvas and the window both render the published snapshot. Nothing is hand-dispatched.
+
+### 6.5 Starting the Analyser for a canvas tool
+
+Settle in the spec:
+- **Consent.** Confirm the first time, then remember the choice.
+- **External access.** Should a launch from the bridge enable external access for that session only?
+- **Single instance.** Attach to an open Analyser; never start a second.
+- **Readiness.** The bridge waits for `/action`, or returns a clear error saying how to start the Analyser.
+
+### 6.6 Generation
 
 - Use the builder with the same device credential as `mvn fluxtion:login`.
-- The person approves each generation; credits belong to the person.
+- The person approves each generation; credits are theirs.
 - The credential never reaches the browser or the model's context.
-- Generated files are written by the Analyser into the project and presented as a new snapshot revision.
+- Generated files are written by the Analyser and presented as a new snapshot revision.
 - The spike's generation-source rule (leave out the code that *uses* the processor; commit `8fffa95`) carries over.
 
-### 5.4 The browser-facing server: a second security contract
+## 7. The retired Node spike as reference
 
-Separate from the action socket, whose Origin refusal (F2) is unchanged.
-
-- **Network:** loopback only, port allocated automatically, Host and Origin checks, and a custom header on every
-  call.
-- **Pairing:** a single-use invitation, then an HttpOnly session cookie scoped to the preview. A valid cookie must
-  not be re-paired.
-- **Files:** one selected project root, only explicitly named files, no symlinks, size and count caps.
-- **Snapshots:** revision = SHA-256 over the sorted path and digest list. A local edit needs a new snapshot. The
-  idempotency key must cover file **contents**, not just arguments. That was review bug 2.
-- **Commands:** IDs are idempotent; conflicting reuse is refused; Stop has reserved capacity.
-- **Output:** application-reported, labelled as such; paged by cursor to the end. That was review bug 6.
-
-### 5.5 State and rule 9
-
-The decision says *"State follows rule 9."* Previews, runs, jobs, approvals and expiry are session state. They go
-through the generated session processor as nodes, with effects and facts, and the canvas and window render the
-snapshot. Nothing is hand-dispatched. This is the largest design task, and the reason the port is not a
-transliteration of the spike's `core.mjs`.
-
-### 5.6 Window on demand
-
-When an `analyser_*` verb arrives and no app is listening, the bridge starts the app (same jar, GUI mode). It
-waits for `/action`, then forwards the call. If it cannot, it returns a clear error. Settle:
-
-- **Consent.** Does the first launch need confirmation?
-- **External access.** Should a launch from the bridge enable external access for that session only?
-- **Single instance.** Attach to an open window; never open a second one.
-- **Handover.** Opening a run's export should need no new pairing step.
-
-## 6. The retired Node spike as reference
-
-The spike is retired, but it is a working reference and a test suite. **Archived 2026-11-03** as fluxtion-web tag
-`archive/node-canvas-spike-2026-11-03` (commit `848f330`, the head of the deleted branch
-`fix/canvas-worker-isolation`; PR #39 closed). Read files from it with
+Archived 2026-11-03 as fluxtion-web tag `archive/node-canvas-spike-2026-11-03` (commit `848f330`, the head of the
+deleted branch `fix/canvas-worker-isolation`; PR #39 closed). Read files with
 `git show archive/node-canvas-spike-2026-11-03:<path>`.
 
-Port, adapting to §5:
-- the session protocol (`scripts/canvas/core.mjs`, the HTTP layer in `canvas.mjs`);
+**Port, adapting to §6:**
+- the snapshot, revision and command-idempotency rules (`scripts/canvas/core.mjs`);
 - the device sign-in and gated proxy (`scripts/canvas/account.mjs`);
 - `playground_generate` with per-generation approval and follow-the-tab;
 - the generation source selection (`src/lib/canvas/generation.ts`);
-- the standalone canvas page build (`scripts/canvas/standalone/`), if the browser page is kept;
-- the static asset server with SHA-256-checked runtime downloads (`distribution-http.mjs`), if Java runs in the
-  browser.
+- the canvas page's layout, as a starting point for the display-only page.
 
-Tests to turn into this repo's acceptance cases:
-- `core.node-test.mjs`;
-- `review-regressions.mjs`;
-- the isolation, recovery and browser smokes;
-- `native-host-smoke.mjs`, which runs the real Claude Code host.
+**Turn into this repo's acceptance cases:** `core.node-test.mjs`, `review-regressions.mjs`, and
+`native-host-smoke.mjs` (the real Claude Code host).
 
-Not carried over: the downloadable ZIP, the public `/connect-ai` page and its sidebar link, and the Node path in
-MCP settings.
+**Not carried over** (running in the Analyser's JVM and a display-only page make them unnecessary): the CheerpJ worker runtime, the
+runtime library download and its SHA-256 manifest, the ZIP distribution, the public `/connect-ai` page, and the Node
+bridge.
 
-## 7. Risks and points to get right
+## 8. Risks and points to get right
 
 1. **Slow first start.** MCP hosts time out slow server starts; Claude Code's limit is configurable but short by
-   default. Prefetch during install or setup.
-2. **stdout stays clean.** Already enforced for the bridge; the new HTTP server, child JVM and builder must log to
-   stderr only.
-3. **One bridge per assistant session**, so ports must be allocated automatically. The spike originally pinned 5173,
-   and a second bridge died with only `Connection closed`.
-4. **Third-party hosts.** Document every host for corporate proxies: the compiler, the JBang and Maven hosts, and,
-   if the browser runtime is kept, `cjrtnc.leaningtech.com`. Bundle icons rather than calling `api.iconify.design`.
-5. **Local JVM execution** (if chosen) is native execution. The approval wording, the UI and the docs must say so.
+   default. Prefetch during install or setup. The bridge stays thin, so its own start is fast.
+2. **stdout stays clean.** Already enforced for the bridge. Project code runs in the app, not the bridge, so its
+   output can never reach the bridge's stdout. Capture the project's `System.out` per run without disturbing the
+   Analyser's own output.
+3. **Project code shares the Analyser's JVM.** A stuck handler, `System.exit` or a leak affects the Analyser
+   (§6.2). The approval wording, UI and docs must say so.
+4. **One Analyser, several assistants.** Two assistant sessions may drive the same Analyser. Canvas state must be
+   keyed so they do not collide, or a second session is refused with a clear message.
+5. **Broad registration must not surprise.** One consent screen, undo for every item, no overwrites (§4).
 6. **Scope creep against the revised decision.** Brokered run and generation only: no runbook interpretation, no
    domain logic, no server mutation.
 
-## 8. Repo rules this work must satisfy
+## 9. Repo rules this work must satisfy
 
 - **Rule 6.** Read the live MCP specification (currently `2026-07-28`) before adding tools. `McpBridge` already
-  answers both eras; keep it that way.
-- **Rule 9.** See §5.5.
-- **Rule 8, regression closure.** Each defect found in the spike reviews (§9) that the port could reintroduce needs
-  a static or executable check in this repo's suite, not just a passing trial.
-- **Rule 1, public repo.** Fixtures use demo content only. Canvas screenshots need the same generated, isolated
-  capture as other docs images.
-- **Decision record.** Add the §1.2 entry to `docs/specs/decisions.md` with the spec.
+  answers both eras.
+- **Rule 9.** §6.4.
+- **Rule 8, regression closure.** Each defect found in the spike reviews (§10) that the port could reintroduce needs
+  a static or executable check here, not just a passing trial.
+- **Rule 1, public repo.** Fixtures use demo content only. Canvas screenshots need the generated, isolated capture
+  used for other docs images.
+- **Decision record.** Add the §1.2 entry to `docs/specs/decisions.md`, amended for the local JVM (§1.2).
+- **Verb count.** If canvas tools become verbs, update the documented count and its guards.
 
-## 9. Evidence behind this proposal
+## 10. Evidence behind this proposal
 
 **Tested by the reviewer (2026-11-01 and 2026-11-03).** These runs used the official MCP SDK client over stdio,
 real Chromium and the real CheerpJ runtime. No assistant host was registered, because the reviewing session's
@@ -250,33 +315,59 @@ config change was blocked.
   5. expired previews still counting towards the cap of five;
   6. output truncated at 60,000 characters;
   7. "Running" shown after a program crashed.
-- **Fix commit `6262920`.** All eight steps of the supplied end-to-end script passed. That covers present without
-  execution, focus, run, four inputs with correct boundary results, cached retry, negative input refused, Stop,
-  and a fresh JVM restoring the original limit. The seven defects were not retested.
+
+  Bugs 1, 2, 4 and 6 are relevant to this design. Bugs 3, 5 and 7 mostly disappear, because the Analyser owns
+  process state and opens the page itself.
+- **Fix commit `6262920`.** All eight steps of the supplied end-to-end script passed. The seven defects were not
+  retested.
 
 **Reported by the spike's author, not verified by this reviewer.** Native Claude Code 2.1.316 completed the MCP
-workflow twice, including from the extracted ZIP. A full generation loop on the owner's account also passed.
+workflow twice, and a full generation loop passed on the owner's account.
 
-## 10. Suggested steps
+## 11. Suggested steps
 
-1. ~~Archive and retire the spike~~ **Done 2026-11-03** (§6).
-2. **Decide where the Java runs** (§5.2), and write the spec. Include the rule 9 design (§5.5) and the
-   `decisions.md` entry.
-3. **Spike in the Analyser:** `playground_present` and `_status` served from `--mcp`, with the project root
-   defaulting to the assistant's folder. Measure cold-start time and jar growth.
-4. **Port run, input, stop and result**, against the archived regression cases.
-5. **Port generation:** device credential, approval and written files.
-6. **Window on demand** (§5.6) and the skills plugin.
-7. **First-user trial** on a clean machine: JBang install, one setup step, then the demo, observed rather than
-   scripted.
+1. ~~Archive and retire the spike~~ **Done 2026-11-03** (§7).
+2. **Review this proposal**, settle §5 and §12, and write the spec with the rule 9 design and the `decisions.md`
+   entry.
+3. **Registration first** (§4). It is useful on its own, today, for the existing `analyser_*` tools.
+4. **Present and display:** `canvas_present`, `canvas_status` and the display-only page, served by the running
+   Analyser.
+5. **Local runs:** compile, load, drive and stop the processor in the Analyser's JVM, against the archived
+   regression cases. Include witnesses for a stuck handler and for a class-loader leak.
+6. **Generation:** device credential, approval and written files.
+7. **First-user trial** on a clean machine: zero-install launch, one consent screen, then the demo, observed rather
+   than scripted.
 
-## Open questions for the reviewer
+## 12. Open questions for the reviewer
 
-- Local child JVM or browser runtime (§5.2)? The recommendation is the local JVM, but the owner's wording leaves
-  both open.
-- `--setup-assistant` as a new CLI flag, or only the existing AI menu? Should the zero-install launch register the
-  bridge with the person's assistant **by default** (with consent), so install and connection are one step?
-- How do option C (an external assistant drives the Analyser) and the onboarding prototype (Claude Code runs inside
-  the Analyser) coexist? Are they two doors to one setup, or does one replace the other?
-- Consent model for opening the window (§5.6)?
-- Is the browser page still needed if Java runs locally, or can the Analyser window host the inputs and output?
+- **Launch model (§5).** Accept the narrow exception for canvas tools, or keep "your client does not launch the
+  analyser" absolute?
+- **One route or two.** Built-in Claude Code inside the Analyser (M74/M77) and an external assistant through the
+  bridge (M42) are two setups today. Can they become one? See §13.
+- **Tool names.** Separate `canvas_*` tools, or new `analyser_*` verbs?
+- **Typed inputs.** How does the canvas learn which event types a processor accepts, and their fields? (The GraphML
+  lists event types; the fields need a source.)
+- **Stuck handlers.** Is "report `stuck` and refuse further events until restart" acceptable?
+- **Pairing.** Is a single-use invitation needed if only the Analyser opens the page?
+
+## 13. One route or two
+
+**Today there are two routes:**
+- the built-in Claude Code panel (M74, M77, M78), where the Analyser launches Claude Code as a child and the
+  session gets the `propose` verb;
+- your own assistant (M42), registered once, driving your open Analyser through the bridge.
+
+**Recommendation: one setup, one registration and one tool set, with two places to talk.**
+- The consent screen in §4 registers the bridge and skills with the person's assistants. The built-in panel then uses
+  that **same** registration, rather than a configuration of its own.
+- Whether the person types in the Analyser's panel or in their own terminal, it is the same Claude Code, the same
+  tools and the same session. The panel is a convenience view, not a separate route.
+- The remaining difference is `propose`, which only the built-in session sees today. Either expose it to external
+  clients, or keep it as the one panel-only capability and document why.
+
+**Why not drop the panel entirely.** It shipped across M74, M77 and M78, with consent, folder trust and the
+data-flow diagram. Removing it is an owner decision with its own cost. Keeping it as a view over one setup removes
+the duplication without discarding that work.
+
+This needs a reviewer who knows how the built-in session is configured today. This proposal has not checked whether
+the panel can reuse a user-scope registration as it stands.
