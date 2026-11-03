@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.40.1] - 2026-11-03
+
 ### Changed
 
 - **AI ▸ Compiler account… now offers the hosted compiler services by name.** The service address drop-down lists
