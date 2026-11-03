@@ -2,10 +2,30 @@
 
 Requires **JDK 21+**. The app is a single self-contained jar (FlatLaf is bundled) — no installer.
 
-## JBang (recommended)
+## 1. Install JBang
 
-No JBang yet? `curl -Ls https://sh.jbang.dev | bash -s - app setup` (or `brew install jbangdev/tap/jbang`;
-Windows: [jbang.dev/download](https://www.jbang.dev/download/)). It fetches a JDK if you have none.
+[JBang](https://www.jbang.dev) runs the analyser and fetches a JDK if you have none. Install it once, then open a new
+terminal so `jbang` is on your PATH (`jbang --version` checks it):
+
+=== "macOS / Linux"
+
+    ```bash
+    curl -Ls https://sh.jbang.dev | bash -s - app setup
+    ```
+
+    or, on macOS with Homebrew: `brew install jbangdev/tap/jbang`
+
+=== "Windows (PowerShell)"
+
+    ```powershell
+    iex "& { $(iwr https://ps.jbang.dev) } app setup"
+    ```
+
+    or `choco install jbang`, or `scoop install jbang`
+
+More options: [jbang.dev/download](https://www.jbang.dev/download/).
+
+## 2. Run the analyser with JBang (recommended)
 
 ```bash
 # run the latest release

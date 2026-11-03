@@ -583,6 +583,33 @@ def capture_setup_ai():
                      cwd=CAPTURE_ROOT)
 
 
+COMPILER_ACCOUNT_NAMES = ["compiler-account-services.png"]
+
+
+def capture_compiler_account():
+    """Getting started: *AI ▸ Compiler account…* as a first-time user meets it, its service list open on the hosted
+    Production and Staging services. An empty in-memory credential store, never the keychain; nothing is connected."""
+    print("compiler account")
+    stop_capture_app()
+    shutil.rmtree(CAPTURE_ROOT, ignore_errors=True)
+    HOME.mkdir(parents=True)
+    if EXPORT_DIR.exists():
+        shutil.rmtree(EXPORT_DIR)
+    EXPORT_DIR.mkdir(parents=True)
+    stage_mcp_setup_launchers()
+    classes = CAPTURE_ROOT / "classes"
+    result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(REPO / "tools" / "DocShot.java"),
+                             str(REPO / "tools" / "CompilerAccountDocCapture.java")], capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"  ! could not compile the Compiler account capture: {result.stderr.strip()}")
+        _attempted.extend(COMPILER_ACCOUNT_NAMES)
+        _failed.extend(COMPILER_ACCOUNT_NAMES)
+        return
+    run_shot_program(["java", home_arg(), "-cp", str(classes) + os.pathsep + str(CAPTURE_JAR),
+                      "telamin.fluxtion.audit.analyser.analyser.ui.CompilerAccountDocCapture"], COMPILER_ACCOUNT_NAMES,
+                     cwd=CAPTURE_ROOT)
+
+
 def capture_template_picker():
     """M19.5's real catalogue chooser, generated under the same isolated home as every docs image."""
     print("template picker")
@@ -1071,6 +1098,11 @@ def main():
 
     if "--projects-menu" in sys.argv:
         capture_projects_menu()
+        return
+
+    if "--compiler-account" in sys.argv:
+        capture_compiler_account()
+        finish_capture()
         return
 
     if "--template-picker" in sys.argv:
