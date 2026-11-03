@@ -61,9 +61,11 @@ demo run without this key.
 
 ## Connect a compiler account
 
-If your compiler service uses accounts, **AI ▸ Compiler account…** connects this analyser to yours. Enter the service's
-address (for example `https://compiler.example.com`; plain `http` is accepted only for this machine), or pick one
-this machine has connected with before from the drop-down, and press
+If your compiler service uses accounts, **AI ▸ Compiler account…** connects this analyser to yours. Pick the service
+from the drop-down: **Production** (`https://compiler.fluxtion-playground.dev`), the hosted compiler most people want,
+or **Staging** (`https://compiler-staging.fluxtion-playground.dev`), for trying a release before it reaches production.
+The list also offers any address this machine has connected with before, and you can type your own (plain `http` is
+accepted only for this machine). Then press
 **Connect compiler account**. The analyser asks the service for a sign-in code, opens your browser at the service's
 sign-in page and shows the code to enter there. While you approve it, it checks back only as often as the service
 asks, slows down when told to, and stops when the code expires; **Cancel sign-in**, or closing the dialog, stops it

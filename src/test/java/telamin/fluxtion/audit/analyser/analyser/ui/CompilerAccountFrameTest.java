@@ -357,7 +357,7 @@ class CompilerAccountFrameTest {
     }
 
     @Test
-    void theAddressIsAnEditableDropDownOfAddressesThisMachineConnectedWith() throws Exception {
+    void theAddressIsAnEditableDropDownOfTheHostedServicesAndAddressesThisMachineConnectedWith() throws Exception {
         AppConfig config = new AppConfig();
         config.recentCompilerServices.addAll(List.of(service.base(), "https://other.example.com", "http://plain.example.com"));
         open(config);
@@ -365,10 +365,20 @@ class CompilerAccountFrameTest {
         onEdt(() -> {
             javax.swing.JComboBox<?> box = combo();
             assertTrue(box.isEditable() && box.isEnabled());
-            assertEquals(List.of(service.base(), "https://other.example.com"),
+            String prod = telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.PRODUCTION;
+            String staging = telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.STAGING;
+            assertEquals(List.of(prod, staging, service.base(), "https://other.example.com"),
                     java.util.stream.IntStream.range(0, box.getItemCount()).mapToObj(box::getItemAt).toList());
             assertEquals("", address().getText(), "nothing is chosen for the person");
-            box.setSelectedIndex(1);
+            // the list names the hosted services; the field gets the address alone
+            @SuppressWarnings("unchecked")
+            javax.swing.JComboBox<String> named = (javax.swing.JComboBox<String>) box;
+            java.awt.Component cell = named.getRenderer().getListCellRendererComponent(new javax.swing.JList<>(), prod, 0,
+                    false, false);
+            assertEquals("Production — " + prod, ((javax.swing.JLabel) cell).getText(), "the cell names the service");
+            box.setSelectedIndex(0);
+            assertEquals(prod, address().getText(), "choosing Production fills the field with its address alone");
+            box.setSelectedIndex(3);
             assertEquals("https://other.example.com", address().getText(), "a suggestion fills the field");
             address().setText("https://typed.example.com");
             assertEquals("https://typed.example.com", address().getText(), "and any address can be typed");

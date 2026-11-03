@@ -62,16 +62,47 @@ class CompilerAccountWordsTest {
     }
 
     @Test
-    void theAddressSuggestionsAreTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes() {
+    void theAddressSuggestionsAreTheHostedServicesThenTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes() {
         telamin.fluxtion.audit.analyser.analyser.config.AppConfig config = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
-        assertEquals(List.of(), CompilerAccountDialog.suggestions(config, null), "nothing remembered: nothing invented");
+        String prod = telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.PRODUCTION;
+        String staging = telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.STAGING;
+        // owner, 2026-11-03: a fresh install offers the hosted services rather than an empty list
+        assertEquals(List.of(prod, staging), CompilerAccountDialog.suggestions(config, null),
+                "nothing remembered: the hosted services, production first");
         config.recentCompilerServices.addAll(List.of("https://b.example.com", "http://plain.example.com", "https://a.example.com"));
         config.compilerServiceUrl = "https://a.example.com";
-        assertEquals(List.of("https://b.example.com", "https://a.example.com"), CompilerAccountDialog.suggestions(config, null),
-                "an address the analyser would refuse is never offered");
+        assertEquals(List.of(prod, staging, "https://b.example.com", "https://a.example.com"),
+                CompilerAccountDialog.suggestions(config, null), "an address the analyser would refuse is never offered");
         config.compilerServiceUrl = "https://set.example.com";
-        assertEquals(List.of("https://b.example.com", "https://a.example.com", "https://set.example.com"),
+        assertEquals(List.of(prod, staging, "https://b.example.com", "https://a.example.com", "https://set.example.com"),
                 CompilerAccountDialog.suggestions(config, null));
+        config.recentCompilerServices.add(0, staging);
+        assertEquals(List.of(prod, staging, "https://b.example.com", "https://a.example.com", "https://set.example.com"),
+                CompilerAccountDialog.suggestions(config, null), "a hosted service used before is still offered once");
+    }
+
+    @Test
+    void theHostedServicesAreThePublicEdgeAddressesAndAreNamedInTheList() {
+        assertEquals("https://compiler.fluxtion-playground.dev",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.PRODUCTION);
+        assertEquals("https://compiler-staging.fluxtion-playground.dev",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.STAGING);
+        for (var k : telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.ALL) {
+            assertNull(telamin.fluxtion.audit.analyser.analyser.account.ServiceAddress.refusal(k.address()),
+                    "a hosted service is an address the analyser accepts: " + k.address());
+            assertFalse(k.address().contains("railway.app"), "the public edge, never the Railway origin: " + k.address());
+        }
+        assertEquals("Production — https://compiler.fluxtion-playground.dev",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices
+                        .describe("https://compiler.fluxtion-playground.dev"));
+        assertEquals("Production", telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices
+                .name("https://compiler.fluxtion-playground.dev/"), "a trailing slash is the same service");
+        assertEquals("Staging — https://compiler-staging.fluxtion-playground.dev",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices
+                        .describe("https://compiler-staging.fluxtion-playground.dev"));
+        assertEquals("https://other.example.com",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.describe("https://other.example.com"),
+                "any other address is shown as it is");
     }
 
     @Test
