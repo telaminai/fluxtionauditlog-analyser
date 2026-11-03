@@ -20,6 +20,7 @@ validation:
 # assets/README.md is a contributor note about the screenshots, not a site page.
 exclude_docs: |
   assets/README.md
+  snippets/
 
 # Theme matches the org look (telaminai/mongoose-plugins mkdocs.yml).
 theme:

@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- **Getting started now opens with installing the analyser.** The guide starts with installing JBang (macOS, Linux
+  and Windows) and the analyser, with screenshots of the start page and of *AI ▸ Compiler account…*'s service list;
+  *Install & run* and the home page lead with the JBang install too.
+
 ## [1.40.1] - 2026-11-03
 
 ### Changed

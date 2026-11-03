@@ -2895,7 +2895,7 @@ CONTROLS += [
      'CompilerAccountFrameTest#connectApproveReadUsageThenRevoke'),
     ('ca1-suggestions-only-usable', UI + 'CompilerAccountDialog.java',
      'out.removeIf(a -> a == null || ServiceAddress.refusal(a) != null);', 'out.removeIf(a -> a == null);',
-     'CompilerAccountWordsTest#theAddressSuggestionsAreTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes'),
+     'CompilerAccountWordsTest#theAddressSuggestionsAreTheHostedServicesThenTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes'),
     ('ca1-recent-services-machine-tier', J + 'config/KnownKeys.java',
      '"compilerServiceUrl", "recentCompilerService", "eventFilterCollapsed"', '"compilerServiceUrl", "eventFilterCollapsed"',
      'CompilerAccountSafetyTest#theCredentialCannotReachAProfileOrAShareExport_andTheAddressIsMachineTier'),

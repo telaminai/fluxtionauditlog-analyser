@@ -48,6 +48,16 @@ class GateTest(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'chart-adapter'):
                 gate.selected_cases(None, root)
 
+    def test_a_control_naming_a_missing_test_is_rejected_before_any_run(self):
+        # 2026-11-03: a renamed test left its control naming the old method; the shard's baseline failed on main
+        renamed = ('x', 'site', 'old', 'new',
+                   'CompilerAccountWordsTest#theAddressSuggestionsAreTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes')
+        with self.assertRaisesRegex(AssertionError, 'mutation test method'):
+            gate.require_named_tests([renamed], ROOT)
+        with self.assertRaisesRegex(AssertionError, 'mutation test class'):
+            gate.require_named_tests([('x', 'site', 'old', 'new', 'NoSuchTest#anything')], ROOT)
+        gate.require_named_tests(gate.CASES, ROOT)   # control: every registered control names a real test
+
     def test_unknown_case_cannot_report_an_empty_success(self):
         with self.assertRaisesRegex(AssertionError, 'unknown mutation'):
             gate.selected_cases(['misspelt-control'], ROOT)

@@ -5,8 +5,9 @@ workspace. It is one surface: it asks **What would you like to do?** — a short
 and one button — and the analyser's own actions follow it under **Or open directly**, with your recent
 projects and evidence bundles under **Recent**.
 
-![The start page: What would you like to do? with the eight built-in entries, the box and its Send button; under it, Or open
-directly with the Explore DEMO, Open, Create, Connect an assistant and Settings blocks, and Recent](../assets/start-page.png)
+![The start page: What would you like to do? with the eight built-in entries, the box and its Send button, and the How do
+you want AI to work with the analyser? panel; under it, Or open directly with the Explore DEMO, Open, Create and Settings
+blocks, and Recent](../assets/start-page.png)
 
 ## What would you like to do?
 

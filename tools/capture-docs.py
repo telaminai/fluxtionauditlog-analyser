@@ -23,6 +23,7 @@ Usage
     python3 tools/capture-docs.py --projects-menu     # Project, Sources, Audit log + the tutorial's ringed Project shot
     python3 tools/capture-docs.py --template-picker   # the template picker + the tutorial's ringed copy of it
     python3 tools/capture-docs.py --chart-delete      # the Graph tab's delete confirmation (its real words)
+    python3 tools/capture-docs.py --compiler-account  # AI ▸ Compiler account…, list open on Production/Staging; in-memory store, never the keychain
     python3 tools/capture-docs.py --keep     # leave the app running afterwards
 
 Runs the app under an isolated home (/tmp/analyser-docs/home, by its REAL path — /private/tmp/… on macOS) so no real
@@ -583,6 +584,34 @@ def capture_setup_ai():
                      cwd=CAPTURE_ROOT)
 
 
+COMPILER_ACCOUNT_NAMES = ["compiler-account-services.png"]
+
+
+def capture_compiler_account():
+    """Getting started: *AI ▸ Compiler account…* as a first-time user meets it, its service list open on the hosted
+    Production and Staging services. An empty in-memory credential store, never the keychain; nothing is connected."""
+    print("compiler account")
+    stop_capture_app()
+    shutil.rmtree(CAPTURE_ROOT, ignore_errors=True)
+    HOME.mkdir(parents=True)
+    if EXPORT_DIR.exists():
+        shutil.rmtree(EXPORT_DIR)
+    EXPORT_DIR.mkdir(parents=True)
+    CAPTURE_JAR.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(jar(), CAPTURE_JAR)   # the jar only: this capture needs no launcher or client stubs
+    classes = CAPTURE_ROOT / "classes"
+    result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(REPO / "tools" / "DocShot.java"),
+                             str(REPO / "tools" / "CompilerAccountDocCapture.java")], capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"  ! could not compile the Compiler account capture: {result.stderr.strip()}")
+        _attempted.extend(COMPILER_ACCOUNT_NAMES)
+        _failed.extend(COMPILER_ACCOUNT_NAMES)
+        return
+    run_shot_program(["java", home_arg(), "-cp", str(classes) + os.pathsep + str(CAPTURE_JAR),
+                      "telamin.fluxtion.audit.analyser.analyser.ui.CompilerAccountDocCapture"], COMPILER_ACCOUNT_NAMES,
+                     cwd=CAPTURE_ROOT)
+
+
 def capture_template_picker():
     """M19.5's real catalogue chooser, generated under the same isolated home as every docs image."""
     print("template picker")
@@ -592,7 +621,9 @@ def capture_template_picker():
     stage_mcp_setup_launchers()
     classes = CAPTURE_ROOT / "classes"
     source = REPO / "tools" / "TemplatePickerDocCapture.java"
-    result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(source)],
+    # DocShot too: the program calls DocShot.requireRealHome(), and compiling it alone failed (found 2026-11-03)
+    result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(REPO / "tools" / "DocShot.java"),
+                             str(source)],
                             capture_output=True, text=True)
     name = "template-picker.png"
     _attempted.append(name)
@@ -1071,6 +1102,11 @@ def main():
 
     if "--projects-menu" in sys.argv:
         capture_projects_menu()
+        return
+
+    if "--compiler-account" in sys.argv:
+        capture_compiler_account()
+        finish_capture()
         return
 
     if "--template-picker" in sys.argv:
