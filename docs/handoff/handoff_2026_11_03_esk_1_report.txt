@@ -1,0 +1,141 @@
+Handoff report — evidence-set key, analyser slice 1 ("tolerance first")
+Date: 2026-11-03 · Branch: feature/evidence-set-key (off main 10841b2a, release 1.40.2) · Not pushed.
+
+WHAT SHIPPED
+============
+
+1. Runtime bump: fluxtion.version 1.1.0 -> 1.1.4-SNAPSHOT (builder pin 1.0.76 untouched).
+
+2. Text: the audit stream header is stream metadata, never a record.
+   - Recognised by POSITION: a document whose first content line (after blank lines, # comments, a plain
+     leading ---, a BOM) is exactly `auditStreamHeader:`. A record whose value merely contains such a line
+     stays a record and is never split.
+   - Recognised at the one door every text store already shares, StreamEndTracker.accept (the precedent is
+     the stream-end marker, D-E4), so heap, memory-mapped and SPI stores, cold open and Follow, all take it
+     out of the index. It is therefore in no count, filter, series, walk, coverage, timeline or record
+     export, and NO_RECORD_KEY no longer fires on it. A stream-end marker's count does not include it.
+   - An unterminated final header (a header-only export with no `---`) is still a header (new
+     StreamEndTracker.acceptHeader, called by the heap/mapped stores' unterminated branch). Under Follow a
+     header still being written is pending, as a record is.
+   - No-separator sinks: a header run straight into the next document is split off at its first unindented
+     line, in RecordFramer.emit and ByteRecordFramer.emit (byte span computed by counting LFs, so the mapped
+     store re-reads the record's exact bytes).
+   - YamlAuditReader.canOpen also accepts `auditStreamHeader:` in the first 4 KB, so a header-only file
+     opens as an empty log (EMPTY_LOG finding, nothing else).
+   - Validation: schema present and == 1, all seven schema-1 keys present (the writer always writes all
+     seven; host is last, so a crash-truncated header is caught), every body line an indented `key: value`,
+     no key twice, host a one-line flow map. Unknown extra keys are ignored (additive within a schema).
+     A malformed header is kept in order with problem() and stated through sourceDiagnostics() ->
+     ProducerDiagnostics SOURCE_DAMAGE ("The stream header before record N is not well formed: ...").
+     Never a crash, never a record.
+
+3. Binary: BinaryAuditReader implements Visitor.onStreamHeader; each HEADER frame is handed to the store as
+   a `---`-prefixed document in file order, so ONE parser serves both formats. A HEADER frame whose text is
+   not header-shaped is skipped and stated as damage. canOpen is unchanged (magic only, so it already
+   accepts versions 1 and 2; an unknown version 3 is claimed by magic and then refused by the runtime reader
+   with "version 3, this reader understands 1 to 2" — now pinned by a test). Version-1 behaviour unchanged
+   (f29, and f01-f26 still pass).
+
+4. Model: parse/StreamHeader (record): firstRecord, schema, processor, sourceFingerprint, toolchainVersion,
+   runtimeVersion, startedAt, host (insertion-ordered, unmodifiable), problem (null = valid); valid(),
+   atRecord(row), diagnostic(records). Exposed as LogStore.streamHeaders() (default empty) — ordered list,
+   each placed at the row of the first record it precedes (== size when nothing follows). Implemented by
+   HeapLogStore, MappedLogStore, SpiLogStore, and RolledLogStore (re-based into set numbering; it also now
+   overrides sourceDiagnostics() to state member header problems in set numbering — it previously returned
+   the empty default).
+
+5. Tests: FlxaConformanceTest now asserts 31 corpus fixtures (f27-f31 through this repo's reader AND
+   SpiLogStore), plus an unknown-version case and a non-header HEADER frame. Text: conformance fixtures
+   c35 (header first + re-sent, null processor/fingerprint), c36 (header only, no separators),
+   c37 (schema 2 and a cut-short header), c38 (header run into the record, logger-prefixed), each held on
+   the built-in and SPI paths with the header lists compared; StreamHeaderTest (13): parser agreement with
+   the runtime's own AuditStreamHeader.toString() including hostile values, every malformed shape, the
+   positional recognition rule, heap/mapped/SPI agreement, exact mapped byte spans with a BOM and non-ASCII,
+   header-only, pre-header log (sample.yml) unchanged, marker count excludes the header, rolled set
+   numbering, Follow. PublishedSpecExamplesTest pins the format spec's header example as a well-formed
+   header. Rule-8 witnesses: each production change was mutated by hand (tracker accept, both framer
+   splits, both unterminated branches, canOpen, binary onStreamHeader, rolled re-base) and each mutation
+   failed at least one named test; restored and green.
+
+6. Docs: docs/site/format-spec.md §1b (revision 1.2) — the header for text and FLXA v2 for binary, the
+   key table, what the fingerprint proves, framing/recognition/validation, plugins, rolled sets,
+   compatibility; conformance table rows C35-C38. producing-a-log.md: binary versions 1 and 2 and the
+   header. src/test/resources/conformance/README.md rows. CHANGELOG under [Unreleased].
+   mkdocs build --strict passes (mkdocs installed into a scratch venv from docs-requirements.txt; the
+   §1b anchor link resolves).
+
+WHAT THE VERSION BUMP BROKE (1.1.0 -> 1.1.4-SNAPSHOT), and the fixes
+====================================================================
+- Compiles unchanged. 6 headless failures before any feature code:
+  - PomShapeTest tripwire (no snapshot): re-pinned to 1.1.4-SNAPSHOT on this branch, as M52.5 did. MUST
+    return to a released runtime before a release.
+  - FixtureGeneratorToolchainTest: examples/fixture-generator/pom.xml fluxtion.version bumped to match
+    (builder pin unchanged; nothing regenerated).
+  - ReplayRunnerEndToEndTest.theRunnerResolvesWhereTheAnalyserDoes: tools/replay/ReplayBundle.java
+    //DEPS bumped to 1.1.4-SNAPSHOT (branch-only too: a JBang user cannot resolve a snapshot from Repsy).
+  - SURPRISE: ReplayRunnerEndToEndTest.theBundlesOwnBuildAgrees and aChangedBuildDiverges. The runtime now
+    hands the header to EVERY text sink as an ordinary record (LogRecordListener.processStreamHeader's
+    default), including the replay runner's setAuditLogProcessor lambda, so the replayed log's first
+    document is a header and replay-compare misaligned every record by one. Fixed by the feature itself
+    (the comparator opens logs through LogStores, which now drop the header). ReplayBundle's printed
+    "N audit records" now excludes headers.
+  - FlxaConformanceTest corpus count 26 -> 31.
+  - SURPRISE, found only by the full suite after the feature: SessionAuditRecordTest.exportRoundTrips...
+    The analyser's OWN session audit sink (session/SessionAuditSink, a hand-written LogRecordListener, not
+    generated) received the session processor's header through the same default and held it as a
+    transition: in records()/transitions()/total()/matching(), and the exported snapshot reopened one
+    record short. Fixed by overriding processStreamHeader: the header is kept apart (streamHeader()),
+    never counted or ringed, and written once at the head of export(), where the analyser reads it back
+    as a valid header. No regeneration: the sink is an adapter, not the generated processor.
+- Anything else surprising: any downstream sink that COUNTS records (e.g. a writer of the §1a stream-end
+  marker's streamEndRecords) will count the header unless it overrides processStreamHeader. The analyser
+  counts records only; a producer that counts the header would read as "more declared than read" /
+  MISSING_RECORDS. No production marker writer exists in the sibling repos today (only tests), so this is a
+  contract note, now stated in §1b.
+
+DEFERRED, AND WHY
+=================
+- No agent `context`/`read` surface and no human surface for the headers. ONBOARDING's rule: a context key
+  ships with its panel row and docs page in the same commit, and a surface rendering session state goes
+  through the generated session processor (rule 9). That is the next slice's status line, so it belongs
+  there. The CHANGELOG says the contents are not shown anywhere yet.
+- Session processor untouched; nothing regenerated. A malformed header reaches the existing producer-
+  findings path through sourceDiagnostics(), whose count is already in the Follow content signature, so no
+  new session state was needed. Valid headers appended under Follow change no signature — fine now, but the
+  next slice must route "headers changed" as a fact if it renders them.
+- runBoundaries() unchanged: a header is NOT treated as a run boundary (it is re-sent on a sink or context
+  change inside one process). Segmenting by run key is the next slice's.
+- No tracker line added: the item is not in docs/specs/tracker.md and its spec is not in this repo.
+
+SPEC-VS-REALITY
+===============
+- Brief: header "before the first record of each stream". Reality (runtime source): also re-sent after any
+  sink, record-format or host-context change; setHeaderContext with an EQUAL context does not re-head.
+- Brief: `generation: '1'` and `mongooseVersion`; the runtime fixture host map has no mongooseVersion — the
+  analyser treats host as an open map, so either is fine.
+- Runtime flxa-format.md (other repo, not touched): §13's analyser column for f27-f31 still says "—"; this
+  branch now passes them. §14 still says a new frame type "requires formatVersion 2", which reads stale now
+  that 2 exists (should be "a new version").
+- The runtime's text form has no document separator of its own; "however the sink separates records" is
+  accurate. Both `---`-separated and unseparated layouts are handled and pinned (c35, c38).
+
+WHAT THE REVIEWER MUST STILL CHECK (Swing is not unit-tested)
+============================================================
+- Build the jar, open c36-header-only.yaml (renamed .log) and confirm: it opens, the status bar shows the
+  empty-log finding and nothing else, no "no installed reader recognises this file".
+- Open c37-malformed-header.yaml: two rows, a source-damage warning naming "before record 1" and "record 2".
+- Open a real 1.1.4 text log and an FLXA v2 file (f27/f28 from the runtime jar): rows, filters, charts and
+  record export exclude the header; Follow a text log while a header is appended.
+- No mutation-gate (MG-1) run was made; the hand mutations above are the evidence offered.
+
+TEST COUNTS
+===========
+`mvn -o test` (the repo's normal headless build) on the final tree:
+  Tests run: 4500, Failures: 0, Errors: 0, Skipped: 381 — BUILD SUCCESS.
+  Baseline after the bump alone, before any feature code: 4475 run, 6 failures, 381 skipped.
+  The 381 skips are the frame/Swing suites, which skip under the build's forced -Djava.awt.headless=true.
+  Frame suites were NOT run (no UI code changed; they need a display and the shared display lock).
+  New/extended headless suites: StreamHeaderTest 13, FlxaConformanceTest 33 (was 26 tests), FormatConformanceTest
+  42 (+4 fixtures C35-C38), PublishedSpecExamplesTest 5 (+1), SessionAuditRecordTest 6 (strengthened).
+mkdocs build --strict: passes (scratch venv from docs-requirements.txt).
+Rule-1 sweep (exemption-free form): prints nothing.

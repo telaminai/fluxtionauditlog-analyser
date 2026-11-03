@@ -1,6 +1,6 @@
 # Audit record format — specification
 
-**Format 1 · status: published, open.** *Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2. Revised the same day, before release, after review: the "stopped mid-write" state is withdrawn as unsound, a marker counts per segment, and a marker is recognised by the record's whole contents rather than by a key it mentions. §1a says what each correction cost.* This page is the normative description of the record format
+**Format 1 · status: published, open.** *Revision 1.2, 2026-11-03: §1b adds the audit stream header, a document Fluxtion runtime 1.1.4 and later writes before the first record of every stream. Additive — a file without one is unchanged; a reader without §1b sees a document with no record key. The binary FLXA format carries the same header from its version 2.* *Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2. Revised the same day, before release, after review: the "stopped mid-write" state is withdrawn as unsound, a marker counts per segment, and a marker is recognised by the record's whole contents rather than by a key it mentions. §1a says what each correction cost.* This page is the normative description of the record format
 the analyser reads. It exists so that anything that can describe a run — a Fluxtion processor, a
 Mongoose server, a workflow engine, a translator over someone else's trace — can emit records the
 analyser understands, and know *what the analyser will do with them*. The [Log format](log-format.md)
@@ -19,7 +19,8 @@ The key words MUST, SHOULD and MAY are used as in RFC 2119.
   everything between two separators, from its first non-blank line. **Blank** text before the first
   separator, after the last, or between two separators is skipped; **non-blank** text anywhere is a
   record — there is no banner or comment-block position in Format 1, and a file that starts with one
-  gets a `PARSE_ERROR` record for it (§2). The built-in reader handles this container.
+  gets a `PARSE_ERROR` record for it (§2). The two exceptions are container facts written as documents:
+  the stream-end marker (§1a) and the stream header (§1b). The built-in reader handles this container.
 - A **reader plugin** ([log-source plugins](user-guide/plugins.md)) hands records over one at a time
   as **canonical record text** — the same shape a text container holds between separators. For a
   container that is not text (a database, a columnar file, an engine's own trace store) that text is a
@@ -213,6 +214,78 @@ record carrying unknown fields, which §2 already requires it to tolerate. Verif
 1.16.0: a marked file loaded with **3 records, zero parse errors**, every record `OK`, against 2 records
 for the same file unmarked. With the marker untimed, the two files differ only by that extra record.
 Nothing about Format 1 changes for a file that carries no marker.
+
+### 1b. The stream header (Format 1.2, additive)
+
+A stream MAY begin with an **audit stream header**: a document, laid out like a record, whose first content line
+is `auditStreamHeader:` (after any blank lines, `#` comments or a leading `---`). Fluxtion runtime 1.1.4 and
+later writes one before the first record of every stream, and again whenever it re-heads the stream: after a sink,
+record-format or host-context change. It never writes one for a stream that publishes nothing, so **a file that
+holds only a header is the log of an idle processor**, and opens as an empty log of that processor.
+
+```yaml
+---
+auditStreamHeader:
+    schema: 1
+    processor: com.acme.TradeProcessor
+    sourceFingerprint: 5f3c0a9e1b7d4c2a
+    toolchainVersion: 1.0.84
+    runtimeVersion: 1.1.4
+    startedAt: '2026-11-03T09:15:02.118Z'
+    host: {serverId: pricing-1, runId: run-1, group: pricing, name: quoter, generation: '1'}
+---
+```
+
+| key | meaning |
+|---|---|
+| `schema` | the shape of this document; `1`. New keys are additive within a schema. |
+| `processor` | the processor that wrote the stream, or `null` |
+| `sourceFingerprint` | a digest of the graph's **shape** — node names, classes, callbacks and edges — or `null` when the processor has none (no descriptor, or an interpreted processor) |
+| `toolchainVersion`, `runtimeVersion` | information, never part of the key; either may be `null` |
+| `startedAt` | when the stream started, an ISO-8601 instant |
+| `host` | the host's run identity as a flow map — server, run, group, name, generation — or `{}` outside a host |
+
+A value YAML would misread (one holding `:` or a space, or spelling `null`, a boolean or a number) is
+single-quoted, with `''` for a quote. The writer replaces a line break in a value with a space, so a header is
+always one line per key.
+
+**What it proves.** Equal `sourceFingerprint`s mean the same graph **shape**, never the same build: method
+bodies and configured values are not in the digest. `null` means the producer had nothing to state; it is not a
+mismatch.
+
+**A header is stream metadata, never a record.** It is not counted, filtered, charted, walked, exported as a
+record or counted by a stream-end marker (§1a's `streamEndRecords` counts records only), and it carries no
+`logTime`. A reader MUST take the most recent header as describing the records that follow it.
+
+- **Framing.** A sink frames the header exactly as it frames records. With `---` between documents it arrives
+  alone. A sink that separates nothing runs it into the next document; the header's keys are indented and its
+  values never hold a line break, so its first unindented line is the next document, and the reader splits it
+  there. A header with no closing `---` at the end of a file is still a header (a header-only export ends so).
+  Under Follow a header still being written is pending, like a record.
+- **Recognition is positional.** Only a document whose *first* content line is `auditStreamHeader:` is a header.
+  A record whose value merely contains such a line is a record.
+- **Validation.** A header is well formed when it declares `schema: 1`, carries all seven keys, each on an indented
+  `key: value` line, and `host` is a flow map. Every key is required because the schema-1 writer always writes
+  every key: a header that lacks the last ones was cut short. A document that opens with `auditStreamHeader:` but
+  is not well formed is **still not a record**: the analyser keeps its place in the stream and states it as
+  damage beside the records ("The stream header before record 3 is not well formed: …"), rather than raising a
+  missing-record-key finding or trusting it.
+- **Reader plugins.** A plugin hands a header over as a document of its own, in container order, exactly as the
+  container holds it; the analyser recognises it by the same rule and keeps it out of the records.
+- **Rolled sets and captures.** A rolled file set, and a Mongoose capture, repeats the header at the start of
+  each file or roll cycle.
+
+**The binary format.** FLXA version 2 adds one frame, `HEADER := 0x03, length:u32, utf8[length]`, carrying this
+same text; version 1 is unchanged. The analyser reads versions 1 and 2, and hands each HEADER frame on as a
+document in file order, so both formats are parsed by one rule. A `0x03` frame in a version-1 file is an unknown
+frame; a HEADER cut short is a truncated tail and is never read half-written; a HEADER whose text is not a stream
+header is reported as damage and skipped. The binary format's own specification is published with the Fluxtion
+runtime (`reference/flxa-format.md`, §3.4).
+
+**Compatibility.** A reader written before this section sees one extra document with no `eventLogRecord:` key
+(measured on 1.40.0: counted as a record and named *does not open with the 'eventLogRecord:' key*; a header-only
+file was refused by every reader; a version-2 binary file was refused by its version number, which is the point of
+the bump). Nothing about Format 1 changes for a file that carries no header.
 
 ## 2. The record
 
@@ -539,6 +612,10 @@ order, for every fixture.
 | C30 per-node level | a control record setting a node to `WARN` annotates that node on both paths; it stays uncovered |
 | C33 trace annotation | `annotation`, written after `method` by Fluxtion 1.1.1 tracing, is framework data like `thread` and `method` — by position, in the leading trace run only; a lone `annotation`, or one after the run, is a business key and makes nothing look traced |
 | C34 merged entry | one entry is one run of writes by one node, not one callback: repeated keys are every pair in order, never an error or de-duplicated; the entry count counts entries; the last occurrence in the record is the value, so a merged entry reads as separated ones; untraced `@AfterTrigger`/`@AfterEvent` entries keep a record out of the traced regime |
+| C35 stream header | a header first and one re-sent are stream metadata on both paths: three records, two headers placed before records 1 and 3, every field read, `processor: null` and `sourceFingerprint: null` read as absent, no finding; a header is in no series and not on the timeline |
+| C36 header only | a file holding one header and no closing `---` opens on both paths as an empty log of that processor: the empty-log finding and nothing else |
+| C37 malformed header | a header declaring schema 2 and one cut short are not records and not trusted: two records, two damage findings saying where, no missing-record-key finding |
+| C38 header run together | a header the sink did not separate is split off the record after it; the record keeps its own text and comment header |
 | C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 
 To check an emitter: write its records to a file, open it in the analyser (or run the fixture

@@ -193,6 +193,11 @@ sink; that file is the one you open here.
     - A cut-off tail is reported, not refused: the records before it open, and the analyser says how many bytes
       at the end formed no whole record.
 
+    Binary format versions 1 and 2 both open. Version 2, written by Fluxtion runtime 1.1.4 and later, carries the
+    **audit stream header** (which processor wrote the log, its graph's shape fingerprint and the host's run
+    identity) in a frame of its own; a text log carries the same header as its first document. Either way it is
+    stream metadata, never a record: see the [format specification, §1b](format-spec.md#1b-the-stream-header-format-12-additive).
+
     The analyser's [format specification](format-spec.md) is the text format's; the binary format's own
     specification is published with the Fluxtion runtime.
 

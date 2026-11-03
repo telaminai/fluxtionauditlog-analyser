@@ -130,4 +130,29 @@ class PublishedSpecExamplesTest {
         assertTrue(Files.exists(Path.of("src/test/resources/conformance/c21-real-export.yaml")),
                 "and the real producer's own layout must stay pinned by its own bytes");
     }
+
+    /**
+     * §1b: every published stream-header example is one document the reader takes out of the records as a WELL-FORMED
+     * header — the same check §1a's examples get, for the same reason: it is the text an adapter author copies.
+     */
+    @Test
+    void everyPublishedStreamHeaderExampleIsAWellFormedHeader() throws IOException {
+        String text = Files.readString(SPEC, StandardCharsets.UTF_8);
+        Matcher m = Pattern.compile("```yaml\\n(.*?)```", Pattern.DOTALL).matcher(text);
+        int seen = 0;
+        while (m.find()) {
+            String block = m.group(1);
+            if (!block.contains(StreamHeader.DOCUMENT_KEY)) continue;
+            seen++;
+            List<String> docs = records(block);
+            assertEquals(1, docs.size(), () -> "the example should be one document:\n" + block);
+            assertTrue(StreamHeader.isHeader(docs.get(0)), block);
+            StreamHeader h = StreamHeader.parse(docs.get(0), 0);
+            assertTrue(h.valid(), () -> h.problem() + "\n" + block);
+            HeapLogStore store = new HeapLogStore(block);
+            assertEquals(0, store.size(), "a header is not a record");
+            assertEquals(1, store.streamHeaders().size());
+        }
+        assertTrue(seen > 0, "§1b must show a header; none found in " + SPEC);
+    }
 }
