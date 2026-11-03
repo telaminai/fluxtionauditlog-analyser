@@ -47,13 +47,33 @@ class EvidenceSetApiDeltaTest {
                 WorkModeKeepsTheApiTest.sha(McpBridge.INSTRUCTIONS), "the pin now");
     }
 
+    /**
+     * Review F10: every OTHER surface still hashes to the pin it had before this change — so a schema, a tool list or a
+     * manifest that moved alongside the sentence fails here — and none of them carries the sentence.
+     */
     @Test
     void onlyTheInstructionsMoved() throws Exception {
         for (var surface : WorkModeKeepsTheApiTest.surfaces().entrySet()) {
             if (surface.getKey().equals("McpBridge.INSTRUCTIONS")) continue;
+            assertEquals(OTHERS_BEFORE.get(surface.getKey()), WorkModeKeepsTheApiTest.sha(surface.getValue()),
+                    surface.getKey() + " moved: only the instructions may");
             assertEquals(surface.getValue(), withoutEvidenceSet(surface.getValue()), surface.getKey() + " carries no such sentence");
         }
+        assertEquals(WorkModeKeepsTheApiTest.surfaces().size() - 1, OTHERS_BEFORE.size(), "every other surface is pinned here");
     }
+
+    /** The other ten surfaces' pins at this change, copied literally (never derived from WorkModeKeepsTheApiTest). */
+    static final Map<String, String> OTHERS_BEFORE = Map.ofEntries(
+            Map.entry("VerbSchemas.all", "9c13fb070c6c6be1b20e65e1359824264d685494b6e9388fcde8d2727983aa54"),
+            Map.entry("VerbSchemas.hosted", "686b70bf0308d32fa7fe640efbe7034c768d4f6284c1ccdf9c6510e0e68c21cc"),
+            Map.entry("McpTools.list", "be6bcdfa779d941fe0f6f2ba2a62fa76040daf11bee3a36b0d230e28835488aa"),
+            Map.entry("McpTools.hostedList", "54c1cd7bbd4304dc0277584f7e1eaef1ec0c2ed2fdab209f2b32e2ecdf5be6cd"),
+            Map.entry("PromptBuilder.inProcessActionManifest", "8dae33cf340c384a1bd16508e8b4fe05c3e9a45130003c08459a675d9f782979"),
+            Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
+            Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),
+            Map.entry("context.handoff derived, none", "1623b4af915aef11455cfc7a7587804fa90504f869dde67de3f5177393a04679"),
+            Map.entry("context.handoff set research by you", "8037233aed4d5153383d60bb0e73e2924a0828785867e83a5d54be0becc493d1"),
+            Map.entry("context.handoff set authoring by socket", "6f810064351561ccd3026f4ca1f2d062e26540d4eb5d8d01dad6c05d8fedfe32"));
 
     @Test
     void theSentenceSaysStateTheShapeFirst_inGraphShapeWords_neverSameBuild() {

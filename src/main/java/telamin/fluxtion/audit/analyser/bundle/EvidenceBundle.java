@@ -401,7 +401,15 @@ public final class EvidenceBundle {
         if (!(x instanceof List<?> list)) throw new IllegalArgumentException("evidenceKeys is not a list");
         List<Map<String, Object>> out = new ArrayList<>();
         for (Object o : list) {
-            if (!(o instanceof Map<?, ?> one)) throw new IllegalArgumentException("an evidenceKeys entry is not an object");
+            // review F3: a hand-edited entry is a refusal of the manifest, never a crash of whoever reads it
+            if (!(o instanceof Map<?, ?> one) || !(one.get("member") instanceof String)
+                    || !("log".equals(one.get("kind")) || "graph".equals(one.get("kind")))
+                    || (one.get("streamHeaders") != null && !(one.get("streamHeaders") instanceof Number))
+                    || (one.get("graphKeys") != null && !(one.get("graphKeys") instanceof List<?>))
+                    || (one.get("runKeys") != null && !(one.get("runKeys") instanceof List<?>))
+                    || (one.get("graphKey") != null && !(one.get("graphKey") instanceof String))) {
+                throw new IllegalArgumentException("an evidenceKeys entry is not a log or graph key entry");
+            }
             out.add(java.util.Collections.unmodifiableMap(new LinkedHashMap<>((Map<String, Object>) one)));
         }
         return List.copyOf(out);

@@ -107,13 +107,22 @@ text. A version-1 reader refuses version 2 by its number.
   - "graph shape matches" (fingerprints equal)
   - "graph shape does not match" (fingerprints differ): a persistent warning, never a refusal (D2), including a forced or
     manual pairing
-  - "graph not verified" (no header, a malformed header, a null fingerprint on either side, or records before the
-    first header). Missing evidence is never a mismatch; a proven difference outranks missing evidence.
+  - "graph not verified" (no header, a malformed header, a null fingerprint on either side, or records no header
+    covers: before the first header, after a stream-end marker, or at the start of a rolled file, with no header
+    immediately before them). Missing evidence is never a mismatch; a proven difference outranks missing evidence.
+    When the fingerprints differ and the log's and the graph's builder versions are both known and differ, the
+    reason says the difference may be in how the shape was digested rather than in the shape.
+  - One shared judgement (`EvidenceVerdict`) decides this for the session, graph discovery and `--verify`.
 - **MCP:** results over a pair carry `evidenceSet: MATCH | MISMATCH | UNVERIFIED` with both fingerprints, worded as graph
-  shape, and the instructions tell the assistant to state the status before explaining anything.
+  shape — exactly these: `context.graphPairing`, the `open {graphml}` echo, `coverage`, and each candidate of
+  `open {discover: "graphml"}`. `topology` and `read` do not carry it; an agent reads it from `context`. The MCP
+  instructions tell the assistant to state the status before explaining anything.
 - **Segments:** a new segment starts only when the **run key changes**, never on every header: a re-sent header with an
-  equal key (a sink or context change, a daily roll) does not split the run. An empty host map gives an empty run key:
-  one segment, unless a later header has a different non-empty key. Segments are labelled
+  equal key (a sink or context change, a daily roll) does not split the run. An empty host map continues the run in
+  force and never starts or names one; a log whose headers are all empty is one segment until a header names a key. A
+  stream break (a stream-end marker, the start of a rolled file) ends the stream: records after it with no header
+  immediately before them are a segment of their own, and a header after it with the same run key continues the run.
+  A header the analyser cannot read starts a segment labelled "run identity unreadable". Segments are labelled
   `serverId · runId(first 8) · group/name#generation`.
 - **Bundles** record the graph key and run key of every file.
 

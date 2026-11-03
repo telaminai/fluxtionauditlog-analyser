@@ -29,6 +29,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **A log is divided into runs by its stream headers' run key** (server, run id, `group/name#generation`). A restart
   starts a new run and a header re-sent within one run does not, so a capture rolled across two files is one run. The
   Project panel lists the runs of a log that has more than one; agents read `context.log.segments`.
+- **The graph-shape verdict is one judgement everywhere (independent review).** Records after a stream-end marker or
+  at the start of a rolled file with no header before them read **graph not verified** and form a run of their own; a
+  log written by two shapes matches neither build in **Find GraphML**; `--verify` reads the bundle's logs and graphs
+  again and judges them as the app does, and says when the manifest's recorded keys disagree (a malformed entry is a
+  refusal, not a crash); a header with no host continues the run in force; a header the analyser cannot read starts a
+  run labelled *run identity unreadable*; a mismatch between a log and a graph digested by two builder versions says the
+  difference may be in how the shape was digested. The Project panel's graph-shape row shows every shape a log states.
+- **The session processor was regenerated (hosted generator 1.0.83).** A node that throws no longer leaves the session
+  wedged (every cycle path is wrapped and the failed cycle is cleared), an action run with `runInEventCycle` that fails
+  now discards the callbacks it queued, the batch-end audit record is written inside the cycle, and the processor needs
+  Fluxtion runtime 1.1.1 or later (the five-argument `nodeInvoked`).
 - **Evidence bundles record the graph shape and runs of every log and graph they carry,** and `--verify` prints them,
   saying whether the bundled graph has each log's shape. An excerpt keeps the stream headers that describe its records.
 

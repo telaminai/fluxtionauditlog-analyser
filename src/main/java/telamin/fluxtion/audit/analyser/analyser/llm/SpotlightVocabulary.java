@@ -51,7 +51,8 @@ public final class SpotlightVocabulary {
                     + CAPTION_LENGTH;
 
     /**
-     * Evidence-set key (spec-evidence-set-key.md §4.5): every entrance tells the assistant to say whether the graph is the
+     * Evidence-set key (spec-evidence-set-key.md §4.5): the MCP server instructions ({@code McpBridge.INSTRUCTIONS}) — and
+     * only they; the in-app assistant's manifests do not carry it — tell the assistant to say whether the graph is the
      * shape of the graph that wrote the log BEFORE explaining anything from the pair, and in the analyser's words — "graph
      * shape", never "same build" (D4); a mismatch is a warning to state, never a reason to refuse (D2).
      */

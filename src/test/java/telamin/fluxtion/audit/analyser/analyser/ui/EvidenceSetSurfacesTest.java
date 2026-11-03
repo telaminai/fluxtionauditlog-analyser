@@ -75,6 +75,11 @@ class EvidenceSetSurfacesTest {
         assertEquals(ProjectModel.Tone.WARN, shape.tone());
         assertEquals("the shapes differ", shape.secondary());
         assertEquals("log aaaaaaaaaaaa… · graph bbbbbbbbbbbb…", shape.provenance());
+        // review F11: every shape the log states has a human surface too
+        pair.put("logSourceFingerprints", java.util.Arrays.asList("aaaaaaaaaaaaaaaaaaaa", "cccccccccccccccc", null));
+        var all = ProjectModel.from(ctx).section(ProjectModel.GRAPH).rows().stream()
+                .filter(r -> r.primary().contains("graph shape")).findFirst().orElseThrow();
+        assertEquals("log aaaaaaaaaaaa…, cccccccccccc…, none · graph bbbbbbbbbbbb…", all.provenance());
         var runs = m.section(ProjectModel.LOG).rows().stream().filter(r -> r.primary().startsWith("Run ")).toList();
         assertEquals(2, runs.size());
         assertEquals("Run pricing-1 · 7d02bb00 · pricing/quoter#1", runs.get(1).primary());

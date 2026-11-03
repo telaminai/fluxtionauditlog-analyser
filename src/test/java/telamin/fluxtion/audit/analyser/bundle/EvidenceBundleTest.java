@@ -99,6 +99,9 @@ public class EvidenceBundleTest {
         String b = EvidenceBundle.pack(folder, tmp.resolve("b.fexp"), AT, VERSION);
         assertEquals(a, b, "identical content and clock must pack to an identical identity");
         assertEquals(PINNED, a, "the format changed: a recipient's recorded identity would no longer match");
+        // review F9: the evidence-set overload with no keys packs the PINNED bytes (a real capture always records keys)
+        assertEquals(PINNED, EvidenceBundle.pack(folder, tmp.resolve("c.fexp"), AT, VERSION, null, null, null, null),
+                "no evidenceKeys: the manifest is the pinned one");
         assertEquals(a, EvidenceBundle.verify(tmp.resolve("a.fexp")).identity(), "verify states the same identity");
     }
 

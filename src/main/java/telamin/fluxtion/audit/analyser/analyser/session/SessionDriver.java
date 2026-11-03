@@ -188,9 +188,10 @@ public final class SessionDriver {
                 processor.batchEnd();
                 RuntimeException fatal = processor.effectQueue.takeFatal();
                 if (fatal != null) {
-                    // Thrown HERE rather than out of batchEnd(): the generated batchEnd sets
-                    // processing=true with no try/finally, so a throw from inside it would leave the
-                    // processor wedged. By the time control is back here the flag is clear.
+                    // Thrown HERE rather than out of batchEnd(). Before the 2026-11-03 regeneration the generated
+                    // batchEnd set processing=true with no try/finally, so a throw from inside it wedged the
+                    // processor; it now runs inside try/catch(failedCycle)/finally, so it would not, but a fatal
+                    // effect is still the queue's to report and is raised here, after batchEnd returned.
                     throw fatal;
                 }
             }

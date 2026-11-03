@@ -54,25 +54,37 @@ public final class GraphmlDiscovery {
      */
     public record Candidate(Path file, int nodes, GraphPairing pairing, Set<String> declaredIds,
                             String fingerprint, String processorClass, String modifiedTime,
-                            Set<String> loggedButNotDeclared, boolean readable, String logFingerprint) {
+                            Set<String> loggedButNotDeclared, boolean readable,
+                            telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict.LogShape logShape,
+                            String toolchainVersion) {
         public Candidate {
             declaredIds = Set.copyOf(declaredIds);
             loggedButNotDeclared = Set.copyOf(loggedButNotDeclared);
         }
 
         private Candidate(Path file, int nodes, GraphPairing pairing) {
-            this(file, nodes, pairing, Set.of(), null, null, null, Set.of(), false, null);
+            this(file, nodes, pairing, Set.of(), null, null, null, Set.of(), false, null, null);
         }
 
         /**
-         * Evidence-set key: this graph's SHAPE against the open log's stream header — {@code MATCH} when the two
-         * fingerprints are equal, {@code MISMATCH} when both are stated and differ, {@code UNVERIFIED} when either is
-         * missing; null with no log, or a log with no header to compare (then name fit alone ranks).
+         * Evidence-set key: this graph's SHAPE against the open log, judged by the ONE shared judgement the session and
+         * {@code --verify} use ({@link telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict}) over every
+         * fingerprint the log states and what no header covers (review F2) — never its latest header alone. Null with no
+         * log, or a log with no header (then name fit alone ranks).
          */
         public String evidenceSet() {
-            if (logFingerprint == null) return null;
-            if (fingerprint == null) return "UNVERIFIED";
-            return logFingerprint.equals(fingerprint) ? "MATCH" : "MISMATCH";
+            var j = judgement();
+            return j == null ? null : j.verdict().name();
+        }
+
+        private telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict.Judgement judgement() {
+            if (logShape == null || logShape.headers() == 0 || !readable) return null;
+            return telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict.judge(logShape, fingerprint, toolchainVersion);
+        }
+
+        /** The log's fingerprint as discovery reports it: the latest header's. */
+        private String logFingerprint() {
+            return logShape == null ? null : logShape.latest();
         }
 
         public Map<String, Object> toMap() {
@@ -86,7 +98,9 @@ public final class GraphmlDiscovery {
             out.put("modifiedTime", modifiedTime);
             if (evidenceSet() != null) {
                 out.put("evidenceSet", evidenceSet());
-                out.put("logSourceFingerprint", logFingerprint);
+                out.put("logSourceFingerprint", logFingerprint());
+                if (logShape.fingerprints().size() > 1) out.put("logSourceFingerprints", logShape.fingerprints());
+                out.put("evidenceSetNote", judgement().reason());
                 out.put("graphSourceFingerprint", fingerprint);
             }
             if (pairing != null) {
@@ -242,10 +256,12 @@ public final class GraphmlDiscovery {
      * two builds of different shape in one folder, the one whose fingerprint equals the log's is offered first and
      * carries {@code evidenceSet: MATCH}. Still an offer: nothing is selected (M35.4).
      *
-     * @param logFingerprint the open log's graph-shape fingerprint, or null when it has none — name fit alone then ranks
+     * @param logShape what the open log states about its graph shape (every header fingerprint, what no header covers), or
+     *                 null — name fit alone then ranks
      */
     public static Result scan(List<String> roots, Set<String> loggedIds, int recordsScanned, int recordsTotal,
-                              Path within, String logFingerprint) {
+                              Path within,
+                              telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict.LogShape logShape) {
         Path fence = null;
         if (within != null) {
             try {
@@ -285,7 +301,7 @@ public final class GraphmlDiscovery {
                         truncated = true;
                         break;
                     }
-                    out.add(judge(p, loggedIds, notes, recordsScanned, recordsTotal, logFingerprint));
+                    out.add(judge(p, loggedIds, notes, recordsScanned, recordsTotal, logShape));
                 }
             } catch (IOException | RuntimeException e) {
                 notes.add("could not scan '" + root + "': " + e.getMessage());
@@ -333,7 +349,8 @@ public final class GraphmlDiscovery {
     }
 
     private static Candidate judge(Path file, Set<String> loggedIds, List<String> notes,
-                                   int recordsScanned, int recordsTotal, String logFingerprint) {
+                                   int recordsScanned, int recordsTotal,
+                                   telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict.LogShape logShape) {
         try {
             if (Files.size(file) > MAX_BYTES) {
                 notes.add(file.getFileName() + ": larger than " + (MAX_BYTES / 1024 / 1024)
@@ -349,14 +366,15 @@ public final class GraphmlDiscovery {
                 return new Candidate(file, 0, null);
             }
             return candidate(file, topology, loggedIds, Files.getLastModifiedTime(file).toInstant().toString(),
-                    recordsScanned, recordsTotal, logFingerprint);
+                    recordsScanned, recordsTotal, logShape);
         } catch (RuntimeException | IOException e) {
             notes.add(file.getFileName() + ": did not parse as a Fluxtion .graphml");
             return new Candidate(file, 0, null);
         }
     }
     private static Candidate candidate(Path file, ProcessorTopology topology, Set<String> loggedIds,
-                                       String modifiedTime, int recordsScanned, int recordsTotal, String logFingerprint) {
+                                       String modifiedTime, int recordsScanned, int recordsTotal,
+                                       telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict.LogShape logShape) {
         Set<String> declared = GraphPairing.declaredNodeIds(topology);
         GraphPairing pairing = loggedIds == null || loggedIds.isEmpty()
                 ? null : GraphPairing.of(declared, loggedIds);
@@ -366,7 +384,7 @@ public final class GraphmlDiscovery {
         var facts = topology.vocabulary().graphFacts();
         return new Candidate(file, Scaffolding.authoredNodes(topology).size(), pairing, declared,
                 nonBlank(facts.get("fluxtion.sourceFingerprint")), nonBlank(facts.get("fluxtion.processorClass")),
-                modifiedTime, missing, true, logFingerprint);
+                modifiedTime, missing, true, logShape, nonBlank(facts.get("fluxtion.toolchainVersion")));
     }
 
     private static String nonBlank(String value) {

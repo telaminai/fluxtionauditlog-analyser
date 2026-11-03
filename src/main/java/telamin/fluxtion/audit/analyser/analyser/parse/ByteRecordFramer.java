@@ -30,7 +30,7 @@ public final class ByteRecordFramer {
         }
     }
 
-    static void frame(InputStream in, Sink sink) throws IOException {
+    public static void frame(InputStream in, Sink sink) throws IOException {
         frameWithEof(in, sink);
     }
 

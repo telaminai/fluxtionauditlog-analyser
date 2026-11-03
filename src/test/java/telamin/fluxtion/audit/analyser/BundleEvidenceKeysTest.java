@@ -83,34 +83,78 @@ class BundleEvidenceKeysTest {
         assertEquals(keys.size(), v.evidenceKeys().size());
         String out = verify(bundle);
         assertTrue(out.contains("graph key: graph/quote.graphml · graph shape " + SHAPE), out);
-        assertTrue(out.contains("graph key: log/audit.yaml · graph shape " + SHAPE + " — the bundled graph's shape matches"), out);
+        assertTrue(out.contains("graph key: log/audit.yaml · graph shape " + SHAPE
+                + " — against graph/quote.graphml: graph shape matches"), out);
+        assertFalse(out.contains("evidence keys: the manifest's recorded keys differ"), "the manifest agrees with the bytes:\n" + out);
         assertTrue(out.contains("run key: log/audit.yaml · pricing-1 · 2c41aa00 · pricing/quoter#1 · 1 records"), out);
         assertTrue(out.contains("run key: log/audit.yaml · pricing-1 · 7d02bb00 · pricing/quoter#1 · 1 records"), out);
         assertFalse(out.contains("same build"), "D4");
     }
 
     @Test
-    @DisplayName("A log of another shape, and a log with no header, say so; without keys the manifest is unchanged")
+    @DisplayName("A log of another shape, and a log with no header, say so")
     void mismatchesAndMissingHeadersAreStated(@TempDir Path tmp) throws Exception {
         Path folder = payload(tmp, "---\n" + header("0000other", "r") + "---\n" + record(1) + "---\n");
         Path bundle = tmp.resolve("m.fexp");
         EvidenceBundle.pack(folder, bundle, java.time.Instant.parse("2026-11-03T10:00:00Z"), "test", null, null, null,
                 EvidenceKeys.of(folder));
-        assertTrue(verify(bundle).contains("graph shape 0000other — the bundled graph's shape does not match"));
+        assertTrue(verify(bundle).contains("graph shape 0000other — against graph/quote.graphml: graph shape does not match"));
 
         Path old = payload(tmp.resolve("old"), "---\n" + record(1) + "---\n");
         var keys = EvidenceKeys.of(old);
         assertEquals(0, keys.get(1).get("streamHeaders"));
         Path b2 = tmp.resolve("o.fexp");
         EvidenceBundle.pack(old, b2, java.time.Instant.parse("2026-11-03T10:00:00Z"), "test", null, null, null, keys);
-        assertTrue(verify(b2).contains("graph key: log/audit.yaml · no stream header: graph not verified"));
-        // no keys: byte for byte the manifest it always was
-        Path b3 = tmp.resolve("plain.fexp");
-        Path b4 = tmp.resolve("plain-null.fexp");
-        String a = EvidenceBundle.pack(old, b3, java.time.Instant.parse("2026-11-03T10:00:00Z"), "test");
-        String b = EvidenceBundle.pack(old, b4, java.time.Instant.parse("2026-11-03T10:00:00Z"), "test", null, null, null, null);
-        assertEquals(a, b);
-        assertNull(EvidenceBundle.verify(b3).evidenceKeys());
+        assertTrue(verify(b2).contains("graph key: log/audit.yaml · no stream header — against graph/quote.graphml: graph not verified"));
+    }
+
+    @Test
+    @DisplayName("Review F3, R4: --verify judges the members' bytes with the app's judgement — a record before the header is not verified")
+    void verifyJudgesLikeTheApp(@TempDir Path tmp) throws Exception {
+        String log = "---\n" + record(1) + "---\n" + header(SHAPE, "run-1") + "---\n" + record(2) + "---\n";
+        Path folder = payload(tmp, log);
+        Path bundle = tmp.resolve("r4.fexp");
+        EvidenceBundle.pack(folder, bundle, java.time.Instant.parse("2026-11-03T10:00:00Z"), "test", null, null, null,
+                EvidenceKeys.of(folder));
+        String out = verify(bundle);
+        assertTrue(out.contains("against graph/quote.graphml: graph not verified (record 1 comes before the first stream header"), out);
+        assertFalse(out.contains("graph shape matches"), out);
+        // the app's judgement of the same bytes
+        var store = new telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore(log);
+        var app = telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict.judge(
+                telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict.shape(store.streamHeaders(), store.size(),
+                        store.streamBreaks()), SHAPE, null);
+        assertEquals("UNVERIFIED", app.verdict().name());
+    }
+
+    @Test
+    @DisplayName("Review F3: keys the manifest claims but the bytes do not say are reported; a malformed entry is a refusal")
+    void theManifestsKeysAreNeverTrusted(@TempDir Path tmp) throws Exception {
+        Path folder = payload(tmp, "---\n" + header(SHAPE, "run-1") + "---\n" + record(1) + "---\n");
+        var forged = new java.util.ArrayList<Map<String, Object>>();
+        for (var k : EvidenceKeys.of(folder)) {
+            var copy = new java.util.LinkedHashMap<>(k);
+            if ("log".equals(copy.get("kind"))) copy.put("graphKeys", List.of("someone-else"));
+            forged.add(copy);
+        }
+        Path bundle = tmp.resolve("forged.fexp");
+        EvidenceBundle.pack(folder, bundle, java.time.Instant.parse("2026-11-03T10:00:00Z"), "test", null, null, null, forged);
+        String out = verify(bundle);
+        assertTrue(out.contains("evidence keys: the manifest's recorded keys differ from what the members' bytes state"), out);
+        assertTrue(out.contains("graph shape matches"), "judged from the bytes, not the claim:\n" + out);
+
+        var bad = new java.util.ArrayList<Map<String, Object>>(EvidenceKeys.of(folder));
+        var entry = new java.util.LinkedHashMap<>(bad.get(1));
+        entry.put("streamHeaders", "one");                       // the hand edit that used to throw ClassCastException
+        bad.set(1, entry);
+        Path b2 = tmp.resolve("bad.fexp");
+        EvidenceBundle.pack(folder, b2, java.time.Instant.parse("2026-11-03T10:00:00Z"), "test", null, null, null, bad);
+        var outS = new ByteArrayOutputStream();
+        var errS = new ByteArrayOutputStream();
+        int code = Main.bundle(new String[]{"--verify", b2.toString()}, new PrintStream(outS, true, StandardCharsets.UTF_8),
+                new PrintStream(errS, true, StandardCharsets.UTF_8));
+        assertEquals(1, code, "a refusal, not a crash");
+        assertTrue(errS.toString(StandardCharsets.UTF_8).contains("evidenceKeys entry"), errS.toString(StandardCharsets.UTF_8));
     }
 
     @Test

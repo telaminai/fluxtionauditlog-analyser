@@ -36,6 +36,7 @@ public class EvidenceSet implements EventLogSource {
     private long boundGeneration = -1;
     private java.util.List<telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader> headers;
     private int records;
+    private java.util.List<Integer> breaks = java.util.List.of();
     private EvidenceSetState state = EvidenceSetState.NONE;
 
     public EvidenceSet(OpenLog openLog, OpenGraph openGraph) {
@@ -54,6 +55,7 @@ public class EvidenceSet implements EventLogSource {
         if (!openLog.isOpen() || openLog.generation() != boundGeneration) {
             headers = null;
             records = 0;
+            breaks = java.util.List.of();
             boundGeneration = openLog.isOpen() ? openLog.generation() : -1;
         }
         return decide("pair changed");
@@ -74,12 +76,14 @@ public class EvidenceSet implements EventLogSource {
         boundGeneration = event.generation();
         headers = event.headers();
         records = event.records();
+        breaks = event.breaks();
         return decide("headers observed");
     }
 
     private boolean decide(String why) {
         EvidenceSetState next = EvidenceSetState.decide(openLog.isOpen(), openLog.generation(), headers, records,
-                openGraph.isOpen(), openGraph.revision(), openGraph.sourceFingerprint());
+                breaks, openGraph.isOpen(), openGraph.revision(), openGraph.sourceFingerprint(),
+                openGraph.toolchainVersion());
         if (next.equals(state)) return false;
         state = next;
         auditLog.info("evidenceSet", state.verdict() == null ? "none" : state.verdict().name())

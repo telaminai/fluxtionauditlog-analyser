@@ -26,9 +26,15 @@ An installed analyser is `analyser …`; from a jar, `java -jar fluxtion-auditlo
 
 | command | what it does | exit code |
 |---|---|---|
-| `--verify <bundle.fexp>` | checks every member against the manifest without extracting anything. Prints the identity, `verified: N members…`, `excerpt: …` for an excerpt, `replay: …` for a bundle with replay records, `graph key: …` and `run key: …` for each log and graph it carries (the graph shape that wrote each log, its runs, and whether the bundled graph has that shape), and the limits | 0 · 1 refused, naming the member · 2 usage |
+| `--verify <bundle.fexp>` | checks every member against the manifest without extracting anything. Prints the identity, `verified: N members…`, `excerpt: …` for an excerpt, `replay: …` for a bundle with replay records, `graph key: …` and `run key: …` for each log and graph it carries — read again from the members' own bytes and judged as the app judges them (the graph shape that wrote each log, its runs, and whether the bundled graph has that shape), with a line saying so when the manifest's recorded keys disagree — and the limits | 0 · 1 refused, naming the member · 2 usage |
 | `--unpack <bundle.fexp> [--into <dir>]` | verifies, then extracts into a **new** directory named for the identity. Prints `working copy:` | 0 · 1 refused, nothing extracted · 2 usage |
 | `--replay-compare <bundle.fexp> <replayed-audit.yaml>` | verifies, then compares the bundle's log with an audit log written by replaying its `replay/` records into your own build of the processor. Prints `replay: AGREES, N of N records`, or `replay: DIVERGES at …` naming the first difference, and the limits | 0 agrees · 1 diverges, or refused · 2 usage |
+
+**Excerpts of logs with a stream header.** From the evidence-set key work an excerpt of a log written by Fluxtion runtime
+1.1.4 or later carries the stream header that describes its first record, and any header re-sent inside it, each before
+the record it describes. The bundle format is unchanged. An analyser of version 1.40.x or earlier reads such a header as a record:
+it counts one more record than the excerpt holds, and every re-based row it shows after a header is one higher than the
+row this analyser shows.
 
 Verification refuses, naming the member:
 

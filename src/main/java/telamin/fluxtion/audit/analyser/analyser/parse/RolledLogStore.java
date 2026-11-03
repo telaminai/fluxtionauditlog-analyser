@@ -213,6 +213,17 @@ public final class RolledLogStore implements LogStore {
         return List.copyOf(out);
     }
 
+    /** Each member's stream breaks and every member's first row after the first: a new file is a new stream (F1). */
+    @Override
+    public List<Integer> streamBreaks() {
+        java.util.TreeSet<Integer> out = new java.util.TreeSet<>();
+        for (int i = 0; i < members.size(); i++) {
+            if (i > 0) out.add(firstRow[i]);
+            for (int b : members.get(i).streamBreaks()) out.add(firstRow[i] + b);
+        }
+        return List.copyOf(out);
+    }
+
     /** A malformed stream header in any member, placed by the set's record numbering. */
     @Override
     public List<String> sourceDiagnostics() {

@@ -102,7 +102,7 @@ public record StreamHeader(int firstRecord, Integer schema, String processor, St
      * indented and the writer never puts a line break in a value, so its first unindented line is the next
      * document — a comment header such as {@code #10:57:37.407 [main] INFO …} included.
      */
-    static int documentAfter(String documentText) {
+    public static int documentAfter(String documentText) {
         if (!isHeader(documentText)) return -1;
         String[] lines = documentText.split("\n", -1);
         int key = firstContentLine(lines);

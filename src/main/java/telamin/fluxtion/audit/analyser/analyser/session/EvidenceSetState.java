@@ -1,5 +1,6 @@
 package telamin.fluxtion.audit.analyser.analyser.session;
 
+import telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict;
 import telamin.fluxtion.audit.analyser.analyser.parse.RunSegments;
 import telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader;
 
@@ -36,17 +37,19 @@ import java.util.Map;
  * @param reason            why, in words a person reads; never "same build"
  * @param headers           how many stream headers the log carries; -1 before they are read
  * @param segments          the log's runs by run key; empty when it has no headers
+ * @param shape             what the log states, as the shared judgement read it; null before the headers are read
  * @param logGeneration     the log the verdict is about
  * @param graphRevision     the graph the verdict is about
  */
 public record EvidenceSetState(Verdict verdict, String logFingerprint, List<String> logFingerprints,
                                String graphFingerprint, String reason, int headers,
-                               List<RunSegments.Segment> segments, long logGeneration, long graphRevision) {
+                               List<RunSegments.Segment> segments, long logGeneration, long graphRevision,
+                               EvidenceVerdict.LogShape shape) {
 
     public enum Verdict { MATCH, MISMATCH, UNVERIFIED }
 
     public static final EvidenceSetState NONE =
-            new EvidenceSetState(null, null, List.of(), null, null, -1, List.of(), -1, -1);
+            new EvidenceSetState(null, null, List.of(), null, null, -1, List.of(), -1, -1, null);
 
     public EvidenceSetState {
         logFingerprints = java.util.Collections.unmodifiableList(new ArrayList<>(logFingerprints == null ? List.of() : logFingerprints));
@@ -63,68 +66,34 @@ public record EvidenceSetState(Verdict verdict, String logFingerprint, List<Stri
         };
     }
 
-    /**
-     * The decision, pure.
-     *
-     * @param headers the log's stream headers, or null when they have not been read for this generation
-     */
+    /** As {@link #decide(boolean, long, List, int, List, boolean, long, String, String)} for one stream, builder unknown. */
     public static EvidenceSetState decide(boolean logOpen, long generation, List<StreamHeader> headers, int records,
                                           boolean graphOpen, long revision, String graphFingerprint) {
+        return decide(logOpen, generation, headers, records, List.of(), graphOpen, revision, graphFingerprint, null);
+    }
+
+    /**
+     * The decision, pure: {@link EvidenceVerdict} — the one judgement discovery and {@code --verify} use too.
+     *
+     * @param headers the log's stream headers, or null when they have not been read for this generation
+     * @param breaks  rows where one stream ended and another began ({@code LogStore.streamBreaks()})
+     */
+    public static EvidenceSetState decide(boolean logOpen, long generation, List<StreamHeader> headers, int records,
+                                          List<Integer> breaks, boolean graphOpen, long revision,
+                                          String graphFingerprint, String graphToolchain) {
         if (!logOpen) return NONE;
-        List<RunSegments.Segment> segments = headers == null ? List.of() : RunSegments.of(headers, records);
-        int count = headers == null ? -1 : headers.size();
-        LinkedHashSet<String> distinct = new LinkedHashSet<>();
-        boolean unstated = false;
-        boolean malformed = false;
-        String latest = null;
-        if (headers != null) {
-            for (StreamHeader h : headers) {
-                if (!h.valid()) { malformed = true; continue; }
-                if (h.sourceFingerprint() == null) unstated = true;
-                else distinct.add(h.sourceFingerprint());
-                latest = h.sourceFingerprint();
-            }
+        if (headers == null) {
+            return new EvidenceSetState(null, null, List.of(), graphFingerprint, null, -1, List.of(), generation, revision, null);
         }
-        List<String> prints = new ArrayList<>(distinct);
-        if (unstated) prints.add(null);
-        if (!graphOpen || headers == null) {
-            // no pair, or not read yet: the runs are still the log's, and are published
-            return new EvidenceSetState(null, latest, prints, graphFingerprint, null, count, segments, generation, revision);
+        EvidenceVerdict.LogShape shape = EvidenceVerdict.shape(headers, records, breaks);
+        if (!graphOpen) {
+            // no pair: the runs and the log's own statement are still published
+            return new EvidenceSetState(null, shape.latest(), shape.fingerprints(), null, null, shape.headers(),
+                    shape.segments(), generation, revision, shape);
         }
-        Verdict verdict;
-        String reason;
-        boolean differs = graphFingerprint != null && distinct.stream().anyMatch(f -> !f.equals(graphFingerprint));
-        if (differs) {
-            verdict = Verdict.MISMATCH;
-            reason = "the log was written by a graph of shape " + abbreviate(String.join(", ", distinct))
-                    + " and the graph on screen has shape " + abbreviate(graphFingerprint)
-                    + ": the nodes, classes, callbacks or edges differ, so absences and coverage may describe the wrong graph";
-        } else if (headers.isEmpty()) {
-            verdict = Verdict.UNVERIFIED;
-            reason = "the log carries no stream header (written by Fluxtion runtime 1.1.4 and later), so nothing in it "
-                    + "states which graph shape wrote it";
-        } else if (malformed) {
-            verdict = Verdict.UNVERIFIED;
-            reason = "a stream header in the log is not well formed, so the shape of the graph that wrote it is not stated";
-        } else if (headers.get(0).firstRecord() > 0) {
-            verdict = Verdict.UNVERIFIED;
-            reason = "records 1–" + headers.get(0).firstRecord() + " come before the first stream header, so no "
-                    + "header states which graph shape wrote them";
-        } else if (unstated) {
-            verdict = Verdict.UNVERIFIED;
-            reason = "the log's stream header states no graph fingerprint (an interpreted processor, or a producer "
-                    + "with no descriptor)";
-        } else if (graphFingerprint == null) {
-            verdict = Verdict.UNVERIFIED;
-            reason = "the graph on screen states no fingerprint (fluxtion.sourceFingerprint), so it cannot be compared";
-        } else {
-            verdict = Verdict.MATCH;
-            reason = "the log's stream header" + (headers.size() == 1 ? " states" : "s state") + " graph shape "
-                    + abbreviate(graphFingerprint) + ", the shape of the graph on screen: the same nodes, classes, "
-                    + "callbacks and edges. Method bodies and configured values are not in the fingerprint, so it says "
-                    + "nothing about them";
-        }
-        return new EvidenceSetState(verdict, latest, prints, graphFingerprint, reason, count, segments, generation, revision);
+        EvidenceVerdict.Judgement j = EvidenceVerdict.judge(shape, graphFingerprint, graphToolchain);
+        return new EvidenceSetState(Verdict.valueOf(j.verdict().name()), shape.latest(), shape.fingerprints(),
+                graphFingerprint, j.reason(), shape.headers(), shape.segments(), generation, revision, shape);
     }
 
     /** What {@code context} and every result over a pair carry: the verdict and both fingerprints. */
@@ -148,8 +117,4 @@ public record EvidenceSetState(Verdict verdict, String logFingerprint, List<Stri
         return out;
     }
 
-    static String abbreviate(String fingerprint) {
-        if (fingerprint == null) return "(none)";
-        return fingerprint.length() > 12 && !fingerprint.contains(",") ? fingerprint.substring(0, 12) + "…" : fingerprint;
-    }
 }

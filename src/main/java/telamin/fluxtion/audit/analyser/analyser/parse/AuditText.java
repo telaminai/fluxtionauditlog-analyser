@@ -79,7 +79,7 @@ public final class AuditText {
     }
 
     /** True when this character is a byte-order mark. */
-    static boolean isBom(char c) {
+    public static boolean isBom(char c) {
         return c == '﻿';
     }
 

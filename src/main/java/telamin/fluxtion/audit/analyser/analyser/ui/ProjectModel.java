@@ -90,7 +90,7 @@ public record ProjectModel(List<Section> sections) {
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
             "graphPairing.auditLogging", "graphPairing.auditLoggingNote",
             "graphPairing.evidenceSet", "graphPairing.evidenceSetStatus", "graphPairing.evidenceSetNote",
-            "graphPairing.logSourceFingerprint", "graphPairing.graphSourceFingerprint",
+            "graphPairing.logSourceFingerprint", "graphPairing.logSourceFingerprints", "graphPairing.graphSourceFingerprint",
             "log.segments.label", "log.segments.firstRecord", "log.segments.lastRecord", "log.segments.records",
             "processorDeclarations.name", "processorDeclarations.kind", "processorDeclarations.status",
             "savedGraphs.name", "savedGraphs.open", "savedGraphs.input",
@@ -345,7 +345,7 @@ public record ProjectModel(List<Section> sections) {
                 String status = str(pair.get("evidenceSetStatus"));
                 boolean mismatch = "MISMATCH".equals(pair.get("evidenceSet"));
                 rows.add(new Row(mismatch ? "⚠ " + status : status, str(pair.get("evidenceSetNote")), null,
-                        "log " + shortPrint(pair.get("logSourceFingerprint")) + " · graph "
+                        "log " + logPrints(pair) + " · graph "
                                 + shortPrint(pair.get("graphSourceFingerprint")),
                         mismatch ? Tone.WARN : "MATCH".equals(pair.get("evidenceSet")) ? Tone.NORMAL : Tone.MUTED,
                         Target.TOPOLOGY));
@@ -695,6 +695,15 @@ public record ProjectModel(List<Section> sections) {
         if (path == null) return "?";
         int i = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
         return i >= 0 && i < path.length() - 1 ? path.substring(i + 1) : path;
+    }
+
+    /** Every fingerprint the log's headers state, when there is more than one; else its one. */
+    static String logPrints(Map<String, Object> pair) {
+        List<Object> all = list(pair.get("logSourceFingerprints"));
+        if (all.size() < 2) return shortPrint(pair.get("logSourceFingerprint"));
+        List<String> shown = new ArrayList<>();
+        for (Object f : all) shown.add(shortPrint(f));
+        return String.join(", ", shown);
     }
 
     /** A fingerprint as a row shows it: its first 12 characters, or "none". */

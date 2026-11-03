@@ -36,6 +36,8 @@ public class OpenGraph implements EventLogSource {
     private java.util.List<String> nodeTypes = java.util.List.of();
     /** Evidence-set key: the graph's shape fingerprint, or null when it states none. */
     private String sourceFingerprint;
+    /** The builder version that digested it, or null. */
+    private String toolchainVersion;
 
     public OpenGraph(OperationGate gate) {
         this.gate = gate;
@@ -67,7 +69,8 @@ public class OpenGraph implements EventLogSource {
         boolean moved = !open || !java.util.Objects.equals(graphPath, event.graphPath())
                 || !java.util.Objects.equals(source, event.source())
                 || !declaredNodeIds.equals(event.declaredNodeIds()) || !nodeTypes.equals(event.nodeTypes())
-                || !java.util.Objects.equals(sourceFingerprint, event.sourceFingerprint());
+                || !java.util.Objects.equals(sourceFingerprint, event.sourceFingerprint())
+                || !java.util.Objects.equals(toolchainVersion, event.toolchainVersion());
         if (moved) revision++;
         openings++;
         // A reader-supplied graph has no file, and is still a graph: GraphObserved carried a null path for it, so
@@ -78,6 +81,7 @@ public class OpenGraph implements EventLogSource {
         declaredNodeIds = event.declaredNodeIds();
         nodeTypes = event.nodeTypes();
         sourceFingerprint = event.sourceFingerprint();
+        toolchainVersion = event.toolchainVersion();
         auditLog.info("openGraph", graphPath == null ? "(no file)" : graphPath).info("via", "GraphOpened").info("source", source)
                 .info("sourceFingerprint", sourceFingerprint == null ? "none" : sourceFingerprint);
         return moved;
@@ -96,6 +100,7 @@ public class OpenGraph implements EventLogSource {
         declaredNodeIds = java.util.Set.of();
         nodeTypes = java.util.List.of();
         sourceFingerprint = null;
+        toolchainVersion = null;
         auditLog.info("openGraph", "none").info("via", "GraphCleared");
         return true;
     }
@@ -103,6 +108,11 @@ public class OpenGraph implements EventLogSource {
     /** The open graph's {@code fluxtion.sourceFingerprint} — its shape — or null when none is open or it states none. */
     public String sourceFingerprint() {
         return open ? sourceFingerprint : null;
+    }
+
+    /** The open graph's {@code fluxtion.toolchainVersion}, or null. */
+    public String toolchainVersion() {
+        return open ? toolchainVersion : null;
     }
 
     public long openings() {

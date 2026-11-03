@@ -434,18 +434,26 @@ public final class SessionEvents {
      * @param nodeTypes       every node's simple type name, which is how audit installation is read
      * @param sourceFingerprint the graph's {@code fluxtion.sourceFingerprint} (its SHAPE), or null when it states none —
      *                        what the evidence set compares with the log's stream headers (spec-evidence-set-key §4.5)
+     * @param toolchainVersion the graph's {@code fluxtion.toolchainVersion} (the builder that digested it), or null — a
+     *                        mismatch between builders may be a change in how the shape was digested (review F5)
      */
     public record GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
                               java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin,
-                              String sourceFingerprint) {
+                              String sourceFingerprint, String toolchainVersion) {
         public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
                            java.util.List<String> nodeTypes) {
-            this(graphPath, source, declaredNodeIds, nodeTypes, null, null);
+            this(graphPath, source, declaredNodeIds, nodeTypes, null, null, null);
         }
 
         public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
                            java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin) {
-            this(graphPath, source, declaredNodeIds, nodeTypes, assistantOrigin, null);
+            this(graphPath, source, declaredNodeIds, nodeTypes, assistantOrigin, null, null);
+        }
+
+        /** Evidence-set key, slice 5: a fingerprint with no builder version. */
+        public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
+                           java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin, String sourceFingerprint) {
+            this(graphPath, source, declaredNodeIds, nodeTypes, assistantOrigin, sourceFingerprint, null);
         }
         public GraphOpened {
             declaredNodeIds = declaredNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(declaredNodeIds);
@@ -2119,12 +2127,22 @@ public final class SessionEvents {
      * same names a {@code LogOpened} carries as node ids — never anyone's typed words.
      *
      * @param records how many records the log held when its headers were read, so a run's span is the log's
+     * @param breaks  rows where one stream ended and another began (a stream-end boundary, a rolled member's first row):
+     *                records after a break are covered only by a header that follows it (review F1)
      */
     public record StreamHeadersObserved(long generation,
                                         java.util.List<telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader> headers,
-                                        int records) {
+                                        int records, java.util.List<Integer> breaks) {
         public StreamHeadersObserved {
             headers = headers == null ? java.util.List.of() : java.util.List.copyOf(headers);
+            breaks = breaks == null ? java.util.List.of() : java.util.List.copyOf(breaks);
+        }
+
+        /** One stream, no breaks. */
+        public StreamHeadersObserved(long generation,
+                                     java.util.List<telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader> headers,
+                                     int records) {
+            this(generation, headers, records, java.util.List.of());
         }
     }
 }

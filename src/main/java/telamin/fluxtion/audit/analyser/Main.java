@@ -126,7 +126,7 @@ public class Main {
                 case "--verify" -> {
                     if (args.length != 2) { err.println("usage: --verify <bundle.fexp>"); return 2; }
                     var v = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.verify(Path.of(args[1]));
-                    return report(v, out, err);
+                    return report(v, Path.of(args[1]), out, err);
                 }
                 case "--replay-compare" -> {
                     if (args.length != 3) { err.println("usage: --replay-compare <bundle.fexp> <replayed-audit.yaml>"); return 2; }
@@ -139,7 +139,7 @@ public class Main {
                     if (args.length == 4 && "--into".equals(args[2])) into = Path.of(args[3]);
                     else if (args.length != 2) { err.println("usage: --unpack <bundle.fexp> [--into <dir>]"); return 2; }
                     var u = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(Path.of(args[1]), into);
-                    int code = report(u.verification(), out, err);
+                    int code = report(u.verification(), Path.of(args[1]), out, err);
                     if (code == 0) out.println("working copy: " + u.workingCopy() + "  (the received bundle is unchanged)");
                     return code;
                 }
@@ -150,7 +150,7 @@ public class Main {
         }
     }
 
-    private static int report(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Verification v,
+    private static int report(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Verification v, Path bundle,
                               java.io.PrintStream out, java.io.PrintStream err) {
         if (v.identity() != null) out.println("identity: " + v.identity());
         if (!v.ok()) {
@@ -168,50 +168,88 @@ public class Main {
                         ? "; the log holds " + n.longValue() + " exported-service call(s) the replay does not carry, so a"
                           + " replay diverges from the first cycle that depends on one"
                         : ""));
-        evidenceKeys(v, out);
+        if (bundle != null) evidenceKeys(bundle, v, out);
         limits(v, out);
         return 0;
     }
 
     /**
-     * Evidence-set key: what the manifest records about each log and graph member — the graph SHAPE that wrote each log
-     * (its stream headers' sourceFingerprint) and its runs, and each graph's shape — and whether the bundled graph has
-     * the shape of each bundled log. Recorded at capture from the members' own bytes, which this verification has just
-     * held to their digests.
+     * Evidence-set key: the graph SHAPE that wrote each log in the bundle and its runs, and each graph's shape —
+     * RECOMPUTED from the members' own bytes (which this verification has just held to their digests) and judged by the
+     * shared {@link telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict}, the same judgement the app makes
+     * (review F3). The manifest's recorded keys are the sender's statement: a disagreement is reported, never trusted.
      */
-    static void evidenceKeys(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Verification v, java.io.PrintStream out) {
-        if (v.evidenceKeys() == null) return;
-        java.util.Set<Object> graphKeys = new java.util.LinkedHashSet<>();
-        for (var k : v.evidenceKeys()) if ("graph".equals(k.get("kind"))) graphKeys.add(k.get("graphKey"));
-        for (var k : v.evidenceKeys()) {
-            String member = String.valueOf(k.get("member"));
-            if ("graph".equals(k.get("kind"))) {
-                out.println("graph key: " + member + " · graph shape " + orNone(k.get("graphKey")));
+    static void evidenceKeys(java.nio.file.Path bundle, telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Verification v,
+                             java.io.PrintStream out) {
+        java.util.List<telamin.fluxtion.audit.analyser.bundle.EvidenceKeys.Member> members;
+        try {
+            members = telamin.fluxtion.audit.analyser.bundle.EvidenceKeys.recompute(bundle);
+        } catch (java.io.IOException | RuntimeException e) {
+            out.println("graph key: the members could not be read again for their keys (" + e.getMessage() + ")");
+            return;
+        }
+        if (members.isEmpty()) return;
+        var graphs = members.stream().filter(m -> !m.isLog()).toList();
+        for (var m : members) {
+            String member = String.valueOf(m.entry().get("member"));
+            if (!m.isLog()) {
+                out.println("graph key: " + member + " · graph shape " + orNone(m.graphKey()));
                 continue;
             }
-            Object headers = k.get("streamHeaders");
-            if (headers == null) {
-                out.println("graph key: " + member + " · not read" + (k.get("note") == null ? "" : " (" + k.get("note") + ")"));
+            if (m.shape() == null) {
+                out.println("graph key: " + member + " · not read (" + m.entry().get("note") + ")");
                 continue;
             }
-            java.util.List<?> keys = k.get("graphKeys") instanceof java.util.List<?> l ? l : java.util.List.of();
-            String shape = ((Number) headers).intValue() == 0 ? "no stream header: graph not verified"
-                    : "graph shape " + String.join(", ", keys.stream().map(Main::orNone).toList());
-            if (((Number) headers).intValue() > 0 && !graphKeys.isEmpty()) {
-                boolean match = !keys.isEmpty() && keys.stream().allMatch(x -> x != null && graphKeys.contains(x));
-                boolean mismatch = keys.stream().anyMatch(x -> x != null && graphKeys.stream().allMatch(g -> g != null && !g.equals(x)));
-                shape += mismatch ? " — the bundled graph's shape does not match" : match ? " — the bundled graph's shape matches"
-                        : " — not verified against the bundled graph";
+            var shape = m.shape();
+            String line = shape.headers() == 0 ? "no stream header"
+                    : "graph shape " + String.join(", ", shape.fingerprints().stream().map(Main::orNone).toList());
+            for (var g : graphs) {
+                var j = telamin.fluxtion.audit.analyser.analyser.parse.EvidenceVerdict.judge(shape, g.graphKey(), g.graphBuilder());
+                line += " — against " + g.entry().get("member") + ": " + switch (j.verdict()) {
+                    case MATCH -> "graph shape matches";
+                    case MISMATCH -> "graph shape does not match";
+                    case UNVERIFIED -> "graph not verified";
+                } + " (" + j.reason() + ")";
             }
-            out.println("graph key: " + member + " · " + shape);
-            if (k.get("runKeys") instanceof java.util.List<?> runs) {
-                for (Object r : runs) {
-                    if (r instanceof java.util.Map<?, ?> run) {
-                        out.println("run key: " + member + " · " + run.get("label") + " · " + whole(run.get("records")) + " records");
-                    }
-                }
+            if (graphs.isEmpty() && shape.unverified() != null) line += " — " + shape.unverified();
+            out.println("graph key: " + member + " · " + line);
+            for (var s : shape.segments()) {
+                out.println("run key: " + member + " · " + s.label() + " · " + s.records() + " records");
             }
         }
+        // the manifest's copy, compared with what the bytes say
+        if (v.evidenceKeys() != null) {
+            var recorded = new java.util.LinkedHashMap<Object, Object>();
+            for (var k : v.evidenceKeys()) recorded.put(k.get("member"), comparable(k));
+            var computed = new java.util.LinkedHashMap<Object, Object>();
+            for (var m : members) computed.put(m.entry().get("member"), comparable(m.entry()));
+            if (!recorded.equals(computed)) {
+                out.println("evidence keys: the manifest's recorded keys differ from what the members' bytes state; "
+                        + "the lines above are from the bytes");
+            }
+        }
+    }
+
+    /** A key entry reduced to what it claims, numbers normalised (JSON reads them back as Long or Double). */
+    private static Object comparable(java.util.Map<String, Object> entry) {
+        var out = new java.util.LinkedHashMap<String, Object>();
+        for (String k : java.util.List.of("kind", "streamHeaders", "graphKeys", "graphKey")) {
+            Object x = entry.get(k);
+            out.put(k, x instanceof Number n ? (Object) n.longValue() : x);
+        }
+        Object runs = entry.get("runKeys");
+        if (runs instanceof java.util.List<?> list) {
+            var labels = new java.util.ArrayList<Object>();
+            for (Object r : list) {
+                if (r instanceof java.util.Map<?, ?> run) {
+                    labels.add(run.get("label") + "/" + (run.get("records") instanceof Number n ? n.longValue() : run.get("records")));
+                } else {
+                    labels.add(r);
+                }
+            }
+            out.put("runKeys", labels);
+        }
+        return out;
     }
 
     private static String orNone(Object fingerprint) {

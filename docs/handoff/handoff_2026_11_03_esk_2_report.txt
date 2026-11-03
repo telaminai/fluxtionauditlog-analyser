@@ -62,8 +62,9 @@ WHAT SHIPPED
 
 7. Bundles: EvidenceKeys reads each log/ member's headers (text: the byte framer; FLXA: the runtime reader, records
    counted not decoded) and each graph/ member's fluxtion.sourceFingerprint; BundleWriter passes them to a new pack
-   overload; the manifest gains an optional `evidenceKeys` list (absent → the manifest bytes are unchanged, the
-   PINNED identity test holds). Verification exposes them; `--verify` prints "graph key: …" (with whether the bundled
+   overload; the manifest gains an `evidenceKeys` list. CORRECTED after review (F9): every bundle a capture writes
+   carries the list, so its manifest bytes differ from before; only the pack overloads that pass no keys (tests,
+   the pinned fixture) keep the old bytes. Verification exposes them; `--verify` prints "graph key: …" (with whether the bundled
    graph has each log's shape) and "run key: …" lines. BundleExcerpt now writes the stream header in force at the
    first chosen record and any re-sent inside the range (StreamHeader keeps its document text for this); record
    count and digests are unchanged.
@@ -135,3 +136,74 @@ Note: at the feature commit alone (2cb1eff2) CanonicalSkillsTest's published-ind
 index can only name a revision that already holds the skill's bytes — and the next commit re-pins it. Same as the
 2026-10-25/26 re-pins.
 mkdocs build --strict: passes (scratch venv). Rule-1 sweep: prints nothing.
+
+
+REVIEW RESPONSE (independent review of slices 1 and 5, 2026-11-03)
+=================================================================
+Regenerations for the review: 0. No node or fact needed a new handler: the changed facts gained components
+(StreamHeadersObserved.breaks, GraphOpened.toolchainVersion) and the node's logic changed inside its existing
+handlers, none of which the generated dispatch depends on. Total regenerations for slice 5: 1.
+
+F1 HIGH — fixed. Records after a stream break with no header immediately before them are UNVERIFIED and a run of their
+   own. LogStore.streamBreaks() (runBoundaries; a rolled set adds each member's first row) travels on
+   StreamHeadersObserved.breaks into the shared judgement and RunSegments. A header after a break with the same run key
+   continues the run (acceptance 7 still one segment). Witnesses: EvidenceVerdictTest.recordsAfterAMarkerWithNoHeader-
+   AreUnverified (R3a, HeapLogStore.fromFile), .aRolledFileWithNoHeaderIsUnverified (R3b, RolledLogStore).
+F2 MED — fixed. One pure shared judgement, parse/EvidenceVerdict (shape(headers, records, breaks) then judge(shape,
+   graphFingerprint, graphBuilder)), used by the evidenceSet node (via EvidenceSetState), GraphmlDiscovery (which now
+   takes the log's whole LogShape) and --verify. Witness: GraphmlDiscoveryFingerprintTest.aLogOfTwoShapesMatches-
+   NeitherBuild (R2: headers A then B → every build MISMATCH, equal to judge()).
+F3 MED — fixed. --verify recomputes every log and graph member's keys from the archive's bytes as a stream
+   (EvidenceKeys.recompute; text read in bounded memory, 64 KiB per document), judges them with EvidenceVerdict, prints
+   a line when the manifest's recorded keys disagree, and the manifest's entries are validated: a malformed entry
+   (e.g. streamHeaders "one") is a refusal (exit 1), not a ClassCastException. Witnesses: BundleEvidenceKeysTest.
+   verifyJudgesLikeTheApp (R4), .theManifestsKeysAreNeverTrusted.
+F4 MED — fixed (rule 8). The frame's pieces are now pure helpers the frame calls — evidenceScanFacts,
+   graphOpenedFact, putEvidenceSet — tested headless, plus a source witness that the frame calls each (the frame needs a
+   display), and coverage is tested through a real ActionExecutor over a real session. Removed by hand, each fails:
+     coverage evidenceSet put (ActionExecutor)        → EvidenceSetWiringTest.coverageCarriesTheEvidenceSet
+     context.graphPairing block (putEvidenceSet call)  → EvidenceSetWiringTest.theFrameCallsEachPiece
+     StreamHeadersObserved in the scan's facts         → .theScanReportsTheHeadersFirst, .contextPutsTheEvidenceSetKeys,
+                                                         .coverageCarriesTheEvidenceSet
+     the scan's post loop in scanLogEvidence           → .theFrameCallsEachPiece
+     the fingerprint on GraphOpened                    → .theGraphFactCarriesTheGraphmlsFingerprint (+ two above)
+   The source witness is weaker than an executable one: it holds the call, not its effect. A frame test would hold the
+   effect and needs Xvfb; not added.
+F5 — fixed, wording changed from the brief's. Every MISMATCH reason now starts "the fingerprints differ"; when the log's
+   header toolchainVersion and the graphml's fluxtion.toolchainVersion are both known and differ it says "the log and
+   the graph were digested by two builder versions (X vs Y), so the difference may be in how the shape was digested
+   rather than in the shape". DISAGREEMENT, small: the reviewer's words "built by different builder versions" contain
+   "different build", which UserVisibleWordingGuardTest (M68.1) forbids on every user-visible string; "digested by two
+   builder versions" says the same without it. GraphOpened carries the builder version. Witness: EvidenceVerdictTest.
+   differentBuildersAreNamedInTheMismatch.
+F6 MED — fixed. An empty host continues the run in force and never starts or names one. Witness: EvidenceVerdictTest.
+   anEmptyHostContinuesTheRun (R1: K, {}, K → one segment).
+F7 — documented. Regeneration side effects, confirmed in the generated source: (a) every cycle path is wrapped in
+   try/catch(failedCycle)/finally, so a throwing node no longer wedges the session; (b) a failed runInEventCycle action
+   calls callbackDispatcher.discardQueuedCallbacks(); (c) batchEnd audits BatchEnd inside processing=true;
+   (d) the five-argument EventLogManager.nodeInvoked. DISAGREEMENT, small: (d) needs runtime 1.1.1 or later, not 1.1.3 —
+   javap shows the overload in 1.1.1, 1.1.2, 1.1.3 and 1.1.4-SNAPSHOT and not in 1.1.0. SessionDriver's comment about a
+   batchEnd with no try/finally is corrected. CHANGELOG states (a)–(d).
+F8 — documented in evidence-bundles/reference.md: an excerpt of a headered log carries its headers; the format is
+   unchanged; an analyser of 1.40.x or earlier counts each header as a record, so re-based rows after it are one higher.
+F9 — fixed. EvidenceBundleTest now asserts the evidence-set pack overload with no keys produces the PINNED identity;
+   the tautological comparison is gone; the handoff's "manifest bytes unchanged without keys" is corrected above.
+F10 — fixed. EvidenceSetApiDeltaTest.onlyTheInstructionsMoved now holds the other ten surfaces to literal pins copied
+   at this change, so any other surface that moves fails it. Acceptance 5 and 8 are driven through HeapLogStore.fromFile
+   (EvidenceVerdictTest.acceptanceFiveAndEightThroughAStore).
+F11 — fixed/decided. log.streamHeaders is dropped from context (no human surface); graphPairing.logSourceFingerprints is
+   shown on the Project panel's graph-shape row (all shapes, abbreviated) and read by ProjectModel (KEYS_READ;
+   EvidenceSetSurfacesTest). SpotlightVocabulary.EVIDENCE_SET's Javadoc now says it is in the MCP instructions only.
+   topology and read: I chose NOT to add evidenceSet; spec §4.5 now names exactly which results carry it
+   (context.graphPairing, the open {graphml} echo, coverage, discovery candidates).
+F12 LOW — fixed. An unreadable header starts a segment labelled "run identity unreadable" (Kind.UNREADABLE), and its
+   records read UNVERIFIED. Witnesses: EvidenceVerdictTest.anUnreadableHeaderStartsItsOwnSegment,
+   RunSegmentsTest.aMalformedHeaderStartsAnUnreadableRun.
+
+Also found by the full suite while fixing: UserVisibleWordingGuardTest (the F5 phrase, above), EvidenceBundle-
+BoundedMemoryTest (--verify's first recompute framed a 160 MiB single-document log in memory; now bounded),
+ByteOrderMarkSitesTest (the BOM rule goes through AuditText.isBom, now public), FactFieldsTest (two new components).
+Each witness above was checked by reverting its fix by hand and seeing the named test fail; all restored.
+
+Test counts after the review fixes: `mvn -o test` — Tests run: 4539, Failures: 0, Errors: 0, Skipped: 381 (frame suites,
+headless; not run). mkdocs build --strict passes. Rule-1 sweep prints nothing.

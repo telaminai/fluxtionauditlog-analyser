@@ -99,11 +99,13 @@ class RunSegmentsTest {
     }
 
     @Test
-    @DisplayName("A malformed header states no run and keeps the one in force")
-    void aMalformedHeaderKeepsTheRun() {
+    @DisplayName("Review F12: an unreadable header starts a run of its own, labelled so, never merged into the last")
+    void aMalformedHeaderStartsAnUnreadableRun() {
         String log = "---\n" + header("s", "run-1", "1") + "---\n" + record(1)
                 + "---\nauditStreamHeader:\n    schema: 9\n---\n" + record(2) + "---\n";
-        assertEquals(1, segmentsOf(log).size());
+        List<RunSegments.Segment> runs = segmentsOf(log);
+        assertEquals(2, runs.size());
+        assertEquals("run identity unreadable", runs.get(1).label());
     }
 
     @Test

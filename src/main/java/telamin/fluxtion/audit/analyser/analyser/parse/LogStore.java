@@ -216,6 +216,15 @@ public interface LogStore extends AutoCloseable {
     }
 
     /**
+     * Evidence-set key (review F1): rows at which one stream ended and another began, so records after it are covered
+     * only by a header that follows the break. The stream-end boundaries ({@link #runBoundaries()}) for one file; a rolled
+     * set adds the first row of each member after the first. Ascending.
+     */
+    default java.util.List<Integer> streamBreaks() {
+        return runBoundaries();
+    }
+
+    /**
      * Row indices at which a new run begins after a stream-end marker, ascending. Empty for a store that
      * cannot see markers. Used where a state set in one run must not be silently carried into the next.
      */

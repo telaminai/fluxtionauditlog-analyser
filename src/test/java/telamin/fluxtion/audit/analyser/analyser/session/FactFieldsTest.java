@@ -160,8 +160,10 @@ class FactFieldsTest {
         // evidence-set key (spec-evidence-set-key §4.5): the log's own stream headers — the processor's class name, its
         // graph-shape fingerprint, versions, startedAt and the host's run identity, as the producer wrote them
         M74.put("StreamHeadersObserved.headers", Holds.LOG_COUNTS);
+        M74.put("StreamHeadersObserved.breaks", Holds.LOG_COUNTS);   // row numbers where a stream ended
         // the graph's own fluxtion.sourceFingerprint, a digest of its shape
         M74.put("GraphOpened.sourceFingerprint", Holds.DIGEST);
+        M74.put("GraphOpened.toolchainVersion", Holds.VOCABULARY);   // the graphml's builder version, e.g. 1.0.84
         M74.put("ProjectOutputsBasisObserved.logDirRefs", Holds.REFERENCES);
         M74.put("ProjectOutputsScanned.files", Holds.OUTPUT_METADATA);
         M74.put("ProjectOutputChanged.file", Holds.OUTPUT_METADATA);
