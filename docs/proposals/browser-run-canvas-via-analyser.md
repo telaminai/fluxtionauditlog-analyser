@@ -70,7 +70,7 @@ Do not interpret runbooks, implement domain behaviour, or mutate a server.
 - The run lands in views the Analyser already has: topology and step-through, audit logs, spotlight, Design and
   reports.
 - Fluxtion authors are Java developers, so a JDK is no extra burden.
-- With a local JVM, there is no 35 MB browser runtime, no CheerpJ limits and no third-party runtime host.
+- Running in the Analyser's JVM means no 35 MB browser runtime, no CheerpJ limits and no third-party runtime host.
 
 | Friction that remains | Mitigation |
 |---|---|
@@ -142,7 +142,7 @@ two processes.
 
 **Recommended resolution** (given the 2026-11-03 decisions):
 
-1. **The running Analyser owns everything.** It owns the snapshots, the local JVM runs, generation, the canvas
+1. **The running Analyser owns everything.** It owns the snapshots, the runs in its own JVM, generation, the canvas
    server and the run state. The bridge stays what it is: a stateless forwarder to `/action`. Rule 9 is then
    satisfied naturally, because canvas state lives in the existing session processor (§6.4).
 2. **The rule stays for `analyser_*` verbs.** They drive *your* open session.
@@ -298,7 +298,7 @@ bridge.
   a static or executable check here, not just a passing trial.
 - **Rule 1, public repo.** Fixtures use demo content only. Canvas screenshots need the generated, isolated capture
   used for other docs images.
-- **Decision record.** Add the §1.2 entry to `docs/specs/decisions.md`, amended for the local JVM (§1.2).
+- **Decision record.** Add the §1.2 entry to `docs/specs/decisions.md`, amended for running in the Analyser's JVM (§1.2).
 - **Verb count.** If canvas tools become verbs, update the documented count and its guards.
 
 ## 10. Evidence behind this proposal
