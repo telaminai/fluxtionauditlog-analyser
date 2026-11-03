@@ -1,0 +1,40 @@
+---
+auditStreamHeader:
+    schema: 1
+    processor: com.acme.TradeProcessor
+    sourceFingerprint: 5f3c0a9e1b7d4c2a
+    toolchainVersion: 1.0.84
+    runtimeVersion: 1.1.4
+    startedAt: '2026-11-03T09:15:02.118Z'
+    host: {serverId: pricing-1, runId: run-1, group: pricing, name: quoter, generation: '1', mongooseVersion: 1.1.2}
+---
+eventLogRecord:
+    eventTime: 1000
+    logTime: 1000
+    event: Tick
+    nodeLogs:
+    - book: { mid: 17.1}
+---
+eventLogRecord:
+    eventTime: 1001
+    logTime: 1001
+    event: Tick
+    nodeLogs:
+    - book: { mid: 17.2}
+---
+auditStreamHeader:
+    schema: 1
+    processor: null
+    sourceFingerprint: null
+    toolchainVersion: null
+    runtimeVersion: 1.1.4
+    startedAt: '2026-11-03T09:20:00Z'
+    host: {serverId: pricing-1, runId: run-2, group: pricing, name: quoter, generation: '2', mongooseVersion: 1.1.2}
+---
+eventLogRecord:
+    eventTime: 1002
+    logTime: 1002
+    event: Tick
+    nodeLogs:
+    - book: { mid: 17.3}
+---

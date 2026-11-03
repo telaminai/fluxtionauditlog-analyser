@@ -206,6 +206,16 @@ public interface LogStore extends AutoCloseable {
     }
 
     /**
+     * The stream headers this log carries, in file order, each placed at the row of the first record it precedes
+     * (evidence-set key). Empty for a log written before the runtime wrote them, and for a store that cannot see
+     * them. A malformed one is in the list with its {@link StreamHeader#problem()}, so the order of the stream's
+     * re-headings is never lost; its sentence is among {@link #sourceDiagnostics()}.
+     */
+    default java.util.List<StreamHeader> streamHeaders() {
+        return java.util.List.of();
+    }
+
+    /**
      * Row indices at which a new run begins after a stream-end marker, ascending. Empty for a store that
      * cannot see markers. Used where a state set in one run must not be silently carried into the next.
      */

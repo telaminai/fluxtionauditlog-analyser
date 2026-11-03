@@ -85,7 +85,31 @@ public final class ByteRecordFramer {
         int end = bytes.length;
         while (end > 0 && (bytes[end - 1] == '\n' || bytes[end - 1] == '\r')) end--;   // trim trailing EOL
         if (end <= 0) return;
-        sink.accept(recStart, end, new String(bytes, 0, end, StandardCharsets.UTF_8));
+        emit(recStart, bytes, 0, end, sink);
+    }
+
+    /**
+     * One document, split first when it is a stream header the sink ran into the next document — the same
+     * rule as {@code RecordFramer.emit}. The split is found on the decoded text and applied in bytes by
+     * counting line feeds, which UTF-8 never places inside a character, so the record's byte span is exact.
+     */
+    private static void emit(long recStart, byte[] bytes, int from, int to, Sink sink) {
+        int end = to;
+        while (end > from && (bytes[end - 1] == '\n' || bytes[end - 1] == '\r')) end--;
+        if (end <= from) return;
+        String text = new String(bytes, from, end - from, StandardCharsets.UTF_8);
+        int after = StreamHeader.documentAfter(text);
+        if (after > 0) {
+            int cut = from;
+            for (int line = 0; line < after; line++) {
+                while (bytes[cut] != '\n') cut++;
+                cut++;
+            }
+            emit(recStart, bytes, from, cut, sink);
+            emit(recStart, bytes, cut, end, sink);
+            return;
+        }
+        sink.accept(recStart + from, end - from, text);
     }
 
     /**

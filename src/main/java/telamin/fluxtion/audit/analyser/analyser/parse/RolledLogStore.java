@@ -200,6 +200,25 @@ public final class RolledLogStore implements LogStore {
      * {@link #sourceDiagnostics()} names which file. Set-level completeness would need set-level
      * evidence — a manifest, or a marker that names its successor — which Format 1 has no room for.
      */
+    /**
+     * Each member's stream headers, moved into the set's numbering. A Mongoose capture repeats the header at the
+     * start of every roll cycle, so a set normally carries one per member.
+     */
+    @Override
+    public List<StreamHeader> streamHeaders() {
+        List<StreamHeader> out = new ArrayList<>();
+        for (int i = 0; i < members.size(); i++) {
+            for (StreamHeader h : members.get(i).streamHeaders()) out.add(h.atRecord(firstRow[i] + h.firstRecord()));
+        }
+        return List.copyOf(out);
+    }
+
+    /** A malformed stream header in any member, placed by the set's record numbering. */
+    @Override
+    public List<String> sourceDiagnostics() {
+        return StreamHeader.diagnostics(streamHeaders(), size());
+    }
+
     /** Each member's run boundaries, moved into the set's numbering. A FILE boundary is not a run boundary. */
     @Override
     public List<Integer> runBoundaries() {

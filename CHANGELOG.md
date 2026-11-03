@@ -6,6 +6,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **Logs from Fluxtion runtime 1.1.4 open cleanly, including binary format version 2.** The runtime now writes an
+  *audit stream header* — which processor wrote the log, its graph's shape fingerprint and the host's run identity —
+  before the first record of every stream. The analyser reads it as stream metadata, never as a record: it is not
+  counted, filtered, charted, walked or exported, and it no longer raises *does not open with the 'eventLogRecord:'
+  key*. A file holding only a header (a processor that has published nothing yet) opens as an empty log instead of
+  being refused, a header a sink ran into the next record is split off it, and a malformed header is reported as
+  damage beside the records. Binary (FLXA) logs of versions 1 and 2 both open. The header's contents are not shown anywhere
+  yet.
+
 ## [1.40.2] - 2026-11-03
 
 ### Changed

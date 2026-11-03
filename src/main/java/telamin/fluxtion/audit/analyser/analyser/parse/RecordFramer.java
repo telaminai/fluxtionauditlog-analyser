@@ -104,7 +104,24 @@ public final class RecordFramer {
             if (c == '\n' || c == '\r') e--; else break;
         }
         if (e <= start) return;
-        sink.accept(new RawRecord(start, e - start, file.substring(start, e)));
+        String text = file.substring(start, e);
+        // A stream header the sink did not separate from the next document is split off it here, so each
+        // arrives as a document of its own: the header to be recognised, the record with its own text.
+        int after = StreamHeader.documentAfter(text);
+        if (after > 0) {
+            int cut = start + lineOffset(text, after);
+            emit(file, start, cut, sink);
+            emit(file, cut, e, sink);
+            return;
+        }
+        sink.accept(new RawRecord(start, e - start, text));
+    }
+
+    /** The character offset of 0-based line {@code line} within {@code text}. */
+    static int lineOffset(String text, int line) {
+        int at = 0;
+        for (int i = 0; i < line; i++) at = text.indexOf('\n', at) + 1;
+        return at;
     }
 
     /**

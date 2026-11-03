@@ -32,7 +32,8 @@ public final class YamlAuditReader implements AuditLogReader {
     @Override
     public boolean canOpen(Path source) {
         // content, not extension: audit logs arrive as .yaml, .yml, .log and bare names alike.
-        // The head of a real file reaches "eventLogRecord:" within the first record.
+        // The head of a real file reaches "eventLogRecord:" within the first record, or "auditStreamHeader:"
+        // within its first document.
         try {
             byte[] head = new byte[4096];
             try (var in = Files.newInputStream(source)) {
@@ -55,7 +56,11 @@ public final class YamlAuditReader implements AuditLogReader {
                 if (telamin.fluxtion.audit.analyser.analyser.parse.AuditText.isBlankIgnoringBoms(text)) {
                     return hasAuditLogExtension(source);
                 }
-                return text.contains("eventLogRecord:");
+                // A stream header (runtime 1.1.4+) is the first document of every stream, and a processor that
+                // published nothing yet leaves a file holding only that: an idle processor's log, which opens as
+                // an empty log of that processor rather than as a file no reader recognises.
+                return text.contains("eventLogRecord:")
+                        || text.contains(telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader.DOCUMENT_KEY + ":");
             }
         } catch (IOException e) {
             return false;

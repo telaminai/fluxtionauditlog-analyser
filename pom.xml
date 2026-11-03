@@ -28,8 +28,10 @@
         <junit.version>5.10.2</junit.version>
         <!-- M44 D-S1.1: pinned, not ranged. The runtime is the ONLY Fluxtion artefact the default
              build resolves; the builder and the AOT plugin exist solely inside the `regen` profile. -->
-        <fluxtion.version>1.1.0</fluxtion.version>
-        <!-- The builder is on its OWN version line, not the runtime's — 1.0.76 against runtime 1.1.0.
+        <fluxtion.version>1.1.4-SNAPSHOT</fluxtion.version>
+        <!-- BRANCH-ONLY (feature/evidence-set-key): 1.1.4-SNAPSHOT carries the audit stream header and FLXA
+             version 2. PomShapeTest's tripwire pins it, and must return to a released runtime before a release.
+             The builder is on its OWN version line, not the runtime's — 1.0.76 against runtime 1.1.0.
              Reusing ${fluxtion.version} here resolves nothing and the failure is a download error rather
              than anything that names the mistake. examples/fixture-generator pins the same pair, and
              FixtureGeneratorToolchainTest holds it (until 2026-09-28 this comment claimed so while it did not). -->

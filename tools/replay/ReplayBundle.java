@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //REPOS mavencentral,repsy-fluxtion-public=https://repo.repsy.io/mvn/fluxtion/fluxtion-public
-//DEPS com.telamin.fluxtion:fluxtion-runtime:1.1.0
+//DEPS com.telamin.fluxtion:fluxtion-runtime:1.1.4-SNAPSHOT
 //JAVA 21
 
 import com.telamin.fluxtion.runtime.DataFlow;
@@ -181,7 +181,10 @@ public class ReplayBundle {
                 p.onEvent(e[0]);
             }
             Files.writeString(a.out(), log, StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
-            long records = log.toString().lines().filter(l -> l.equals("---")).count();
+            // From runtime 1.1.4 the log opens with a stream header document, written by every text sink: it is
+            // kept (it names the processor and its graph shape) but it is not an audit record, so it is not counted.
+            long records = log.toString().lines().filter(l -> l.equals("---")).count()
+                    - log.toString().lines().filter(l -> l.equals("auditStreamHeader:")).count();
             out.println(graphLine);
             out.println("replayed: " + entries.size() + " recorded inputs into " + a.processor() + ", on a data-driven clock");
             out.println("wrote: " + a.out() + " (" + records + " audit records)");

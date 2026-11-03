@@ -4,6 +4,7 @@ import com.telamin.fluxtion.runtime.audit.BinaryLogFile;
 import com.telamin.fluxtion.runtime.audit.BinaryLogReader;
 import com.telamin.fluxtion.runtime.audit.BinaryRecordDecoder;
 import telamin.fluxtion.audit.analyser.analyser.parse.NodeLogTokenizer;
+import telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader;
 import telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader;
 
 import java.io.IOException;
@@ -138,6 +139,13 @@ public final class BinaryAuditReader implements AuditLogReader {
                     + " did not form a whole record and were not read - a process that stopped mid-write, "
                     + "or a damaged tail. Every record before them is here; the one they belong to is not.");
         }
+        if (renderer.unreadableHeaders > 0) {
+            sourceDiagnostic.accept(renderer.unreadableHeaders + " stream header frame"
+                    + (renderer.unreadableHeaders == 1 ? "" : "s") + " in " + source.getFileName()
+                    + " did not hold a stream header and " + (renderer.unreadableHeaders == 1 ? "was" : "were")
+                    + " not read - damage, or a writer this reader does not know. The records around "
+                    + (renderer.unreadableHeaders == 1 ? "it" : "them") + " are read as usual.");
+        }
         if (result.redefinedIds > 0) {
             sourceDiagnostic.accept(result.redefinedIds + " dictionary id" + (result.redefinedIds == 1 ? " was" : "s were")
                     + " redefined in " + source.getFileName() + ". A writer never does this; a repaired or "
@@ -234,6 +242,25 @@ public final class BinaryAuditReader implements AuditLogReader {
         public void onHeader(int formatVersion, int timeUnit) {
             checkUnit(timeUnit);
         }
+
+        /**
+         * A FLXA version-2 HEADER frame: the same text a text stream carries as its first document, handed on as a
+         * document of its own, in file order between the records it separates, so the store recognises it by the
+         * one rule both formats share and it is never a record. A frame whose text is not header-shaped is not
+         * passed off as one, and not as a record either: it is stated as damage and skipped.
+         */
+        @Override
+        public void onStreamHeader(String headerText) {
+            flush();
+            if (StreamHeader.isHeader(headerText)) {
+                sink.accept("---\n" + headerText + (headerText.endsWith("\n") ? "" : "\n"));
+            } else {
+                unreadableHeaders++;
+            }
+        }
+
+        /** HEADER frames whose text was not a stream header. */
+        private int unreadableHeaders;
 
         @Override
         public void onDictionaryEntry(int id, String name) {

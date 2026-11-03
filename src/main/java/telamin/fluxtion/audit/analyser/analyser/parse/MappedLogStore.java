@@ -26,6 +26,8 @@ public final class MappedLogStore implements LogStore {
     private final LogIndex index;
     private final StreamEnd streamEnd;
     private final java.util.List<Integer> runBoundaries;
+    /** Evidence-set key: the stream headers, taken out of the records by the tracker. */
+    private final java.util.List<StreamHeader> streamHeaders;
     private final Path path;
     private final FileReadIdentity readIdentity;
     private final boolean includesEofRecord;
@@ -57,6 +59,7 @@ public final class MappedLogStore implements LogStore {
         }
         this.streamEnd = tracker.resolve();
         this.runBoundaries = tracker.runBoundaries();
+        this.streamHeaders = tracker.streamHeaders();
         this.readIdentity = capture.finish();
         this.channel = FileChannel.open(path, StandardOpenOption.READ);
     }
@@ -65,6 +68,7 @@ public final class MappedLogStore implements LogStore {
     private static boolean offer(StreamEndTracker tracker, LogIndex index, long offset, int length,
                                  String text, boolean unterminated) {
         if (unterminated) {
+            if (tracker.acceptHeader(text)) return false;     // see HeapLogStore#offer: a header, not a record
             if (StreamEndMarker.of(text).isPresent()) {      // §1a rule 1, see HeapLogStore#offer
                 tracker.unterminatedMarker();
                 return false;
@@ -85,6 +89,16 @@ public final class MappedLogStore implements LogStore {
     @Override
     public java.util.List<Integer> runBoundaries() {
         return runBoundaries;
+    }
+
+    @Override
+    public java.util.List<StreamHeader> streamHeaders() {
+        return streamHeaders;
+    }
+
+    @Override
+    public java.util.List<String> sourceDiagnostics() {
+        return StreamHeader.diagnostics(streamHeaders, index.size());
     }
 
     @Override

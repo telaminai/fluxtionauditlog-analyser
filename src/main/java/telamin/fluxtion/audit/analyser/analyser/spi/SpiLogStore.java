@@ -23,6 +23,7 @@ public final class SpiLogStore implements LogStore {
     private final AuditLogReader reader;
     private final List<String> sourceDiagnostics = new ArrayList<>();
     private java.util.List<Integer> runBoundaries = java.util.List.of();
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader> streamHeaders = java.util.List.of();
     private telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd streamEnd =
             telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.unknown(0);
 
@@ -80,6 +81,9 @@ public final class SpiLogStore implements LogStore {
         // whatever the reader chose to hand over is all there is. A marker still counts.
         store.streamEnd = tracker.resolve();
         store.runBoundaries = tracker.runBoundaries();
+        // A plugin hands its container's stream headers over as documents in container order (the binary reader
+        // does, from FLXA HEADER frames); the tracker took them out of the records, here as in the built-in stores.
+        store.streamHeaders = tracker.streamHeaders();
         return store;
     }
 
@@ -99,8 +103,16 @@ public final class SpiLogStore implements LogStore {
     }
 
     @Override
+    public List<telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader> streamHeaders() {
+        return streamHeaders;
+    }
+
+    @Override
     public List<String> sourceDiagnostics() {
-        return List.copyOf(sourceDiagnostics);          // completeness now comes from LogStore's default
+        // completeness now comes from LogStore's default; a malformed stream header is stated after the reader's own
+        List<String> out = new ArrayList<>(sourceDiagnostics);
+        out.addAll(telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader.diagnostics(streamHeaders, index.size()));
+        return List.copyOf(out);
     }
 
     /** The reader that produced this store — the capability flags live on it (D-P4). */

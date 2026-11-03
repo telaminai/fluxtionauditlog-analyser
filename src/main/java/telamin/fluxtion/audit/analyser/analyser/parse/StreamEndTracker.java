@@ -19,6 +19,12 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
  * marker as claiming 25 records in a 50-record file. Segments answer it — each marker is checked against
  * the records it actually covers, so two whole runs are COMPLETE, which is what they are.
  *
+ * <p><b>It also takes the stream header out of the records</b> (evidence-set key, tolerance slice). The header is
+ * the other container fact a producer writes as a document, and it needs exactly this guarantee — never a record,
+ * in any of the three stores, on load and under Follow alike — so it is recognised at the same door rather than
+ * by a second object each store would have to remember to consult. A header is not counted in any run: a marker
+ * counts records, and a header is not one.
+ *
  * <p>Not thread-safe; a store indexes on one thread.
  */
 public final class StreamEndTracker {
@@ -41,6 +47,8 @@ public final class StreamEndTracker {
     private boolean unterminatedMarker;
     /** The row index at which each run after a marker begins — where one run ends and another starts. */
     private final java.util.List<Integer> boundaries = new java.util.ArrayList<>();
+    /** Every stream header, in file order, each placed at the row of the first record after it. */
+    private final java.util.List<StreamHeader> headers = new java.util.ArrayList<>();
 
     /**
      * Whether this record text should be indexed.
@@ -49,6 +57,7 @@ public final class StreamEndTracker {
      * framed record, in order, and index only what it accepts.
      */
     public boolean accept(String recordText) {
+        if (acceptHeader(recordText)) return false;       // stream metadata: not a record either
         var m = StreamEndMarker.of(recordText);
         if (m.isPresent()) {
             closeSegment(m.get().records());
@@ -57,6 +66,22 @@ public final class StreamEndTracker {
         indexedTotal++;
         sinceMarker++;
         return true;
+    }
+
+    /**
+     * Whether this document is a stream header, recording it when it is. {@link #accept} asks this first; a store
+     * asks it directly for an unterminated final item, which can be a header (a header-only file whose writer puts
+     * {@code ---} only between documents ends exactly so) but never a marker.
+     */
+    public boolean acceptHeader(String documentText) {
+        if (!StreamHeader.isHeader(documentText)) return false;
+        headers.add(StreamHeader.parse(documentText, indexedTotal));
+        return true;
+    }
+
+    /** The stream headers seen so far, in file order. */
+    public java.util.List<StreamHeader> streamHeaders() {
+        return java.util.List.copyOf(headers);
     }
 
     /**
@@ -86,6 +111,7 @@ public final class StreamEndTracker {
         badRuns.clear();
         unterminatedMarker = false;
         boundaries.clear();
+        headers.clear();
     }
 
     /**

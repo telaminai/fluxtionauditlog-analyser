@@ -684,7 +684,9 @@ class FormatConformanceTest {
                     "c23-marker-values.yaml", "c24-unterminated-marker.yaml", "c25-marker-declaring-zero.yaml",
                     "c26-two-empty-segments.yaml", "c27-whitespace-only.yaml", "c28-zero-bytes.yaml",
                     "c29-no-record-key.yaml", "c30-per-node-level.yaml", "c31-broken-value.yaml",
-                    "c32-record-structure.yaml", "c33-trace-annotation.yaml", "c34-merged-entry.yaml"), names,
+                    "c32-record-structure.yaml", "c33-trace-annotation.yaml", "c34-merged-entry.yaml",
+                    "c35-stream-header.yaml", "c36-header-only.yaml", "c37-malformed-header.yaml",
+                    "c38-header-run-together.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);
@@ -752,6 +754,91 @@ class FormatConformanceTest {
      * marker and the SPI path did not, two readers of one file would disagree about how many records it
      * holds. {@code bothPathsAgree} would catch it, which is why this fixture runs through it.
      */
+    // ---- C35–C38: the audit stream header (runtime 1.1.4; evidence-set key, tolerance first) ------------------
+
+    /** The stream headers agree on both paths, field for field, and in place. */
+    private LogStore headersAgree(String name) throws IOException {
+        LogStore a = bothPathsAgree(name);
+        assertEquals(a.streamHeaders(), viaSpi(name).streamHeaders(), name + ": the stream headers");
+        return a;
+    }
+
+    private static void noRecordKeyIsNeverRaised(LogStore s, String name) {
+        assertFalse(kinds(findings(s)).contains(ProducerDiagnostics.Kind.NO_RECORD_KEY),
+                name + ": a stream header is not a record without a key: " + findings(s).messages());
+    }
+
+    @Test
+    void c35_aStreamHeaderIsStreamMetadata_firstAndReSent() throws IOException {
+        LogStore s = headersAgree("c35-stream-header.yaml");
+        assertEquals(3, s.size(), "three records; neither header is one");
+        var headers = s.streamHeaders();
+        assertEquals(2, headers.size());
+        var first = headers.get(0);
+        assertTrue(first.valid(), first.problem());
+        assertEquals(0, first.firstRecord());
+        assertEquals("com.acme.TradeProcessor", first.processor());
+        assertEquals("5f3c0a9e1b7d4c2a", first.sourceFingerprint());
+        assertEquals("1.0.84", first.toolchainVersion());
+        assertEquals("1.1.4", first.runtimeVersion());
+        assertEquals("2026-11-03T09:15:02.118Z", first.startedAt());
+        assertEquals("1", first.host().get("generation"), "a quoted number is the text the host supplied");
+        assertEquals("run-1", first.host().get("runId"));
+        var second = headers.get(1);
+        assertTrue(second.valid(), second.problem());
+        assertEquals(2, second.firstRecord(), "the re-sent header describes the records after it");
+        assertNull(second.processor(), "processor: null is no processor, not the string");
+        assertNull(second.sourceFingerprint(), "no fingerprint to state: null, never empty");
+        assertNull(second.toolchainVersion());
+        assertEquals("run-2", second.host().get("runId"));
+        assertEquals(Long.valueOf(1000), s.minLogTime(), "a header puts nothing on the timeline");
+        assertEquals(Long.valueOf(1002), s.maxLogTime());
+        assertTrue(findings(s).isClean(), findings(s).messages().toString());
+        assertEquals(3, points(s, "book.mid"), "a header is in no series");
+    }
+
+    @Test
+    void c36_aHeaderOnlyFileIsTheEmptyLogOfAnIdleProcessor() throws IOException {
+        Path f = dir.resolve("idle.txt");
+        Files.writeString(f, fixture("c36-header-only.yaml"));
+        assertTrue(new YamlAuditReader().canOpen(f), "recognised by its content, whatever it is called");
+        LogStore s = headersAgree("c36-header-only.yaml");
+        assertEquals(0, s.size());
+        assertEquals(1, s.streamHeaders().size());
+        assertTrue(s.streamHeaders().get(0).valid(), "no closing separator, as the export writes: still a whole header");
+        assertEquals("com.acme.TradeProcessor", s.streamHeaders().get(0).processor());
+        assertEquals(List.of(ProducerDiagnostics.Kind.EMPTY_LOG), kinds(findings(s)),
+                "an empty log of that processor, and nothing else is wrong with it");
+    }
+
+    @Test
+    void c37_aMalformedHeaderIsAVisibleDiagnostic_neverARecord() throws IOException {
+        LogStore s = headersAgree("c37-malformed-header.yaml");
+        assertEquals(2, s.size(), "two records; the malformed headers are still not records");
+        assertEquals(2, s.streamHeaders().size(), "kept in place, so the stream's re-headings are not lost");
+        assertTrue(s.streamHeaders().get(0).problem().contains("schema 2"), s.streamHeaders().get(0).problem());
+        assertTrue(s.streamHeaders().get(1).problem().contains("missing toolchainVersion, runtimeVersion, startedAt, host"),
+                s.streamHeaders().get(1).problem());
+        noRecordKeyIsNeverRaised(s, "c37");
+        var damage = findings(s).findings().stream()
+                .filter(f -> f.kind() == ProducerDiagnostics.Kind.SOURCE_DAMAGE).map(ProducerDiagnostics.Finding::message).toList();
+        assertEquals(2, damage.size(), damage.toString());
+        assertTrue(damage.get(0).startsWith("The stream header before record 1 is not well formed"), damage.get(0));
+        assertTrue(damage.get(1).startsWith("The stream header before record 2 is not well formed"), damage.get(1));
+    }
+
+    @Test
+    void c38_aHeaderTheSinkDidNotSeparateIsSplitOffTheRecordAfterIt() throws IOException {
+        LogStore s = headersAgree("c38-header-run-together.yaml");
+        assertEquals(2, s.size());
+        assertEquals(1, s.streamHeaders().size());
+        assertTrue(s.streamHeaders().get(0).valid(), s.streamHeaders().get(0).problem());
+        assertEquals(Map.of(), s.streamHeaders().get(0).host(), "outside a host the map is empty");
+        assertTrue(s.rawText(0).startsWith("#09:15:02.120 [main] INFO"), "the record keeps its own text: " + s.rawText(0));
+        assertEquals("main", s.record(0).thread(), "and its own comment header");
+        assertTrue(findings(s).isClean(), findings(s).messages().toString());
+    }
+
     @Test
     void c18_streamEndMarkerIsNotARecordInEitherPath() throws IOException {
         LogStore s = bothPathsAgree("c18-stream-end.yaml");

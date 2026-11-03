@@ -41,6 +41,8 @@ public final class HeapLogStore implements LogStore {
     /** Trailing bytes held back as the valid start of an unfinished character. They are past every item. */
     private volatile int pendingBytes;
     private volatile java.util.List<Integer> runBoundaries = java.util.List.of();
+    /** Evidence-set key: the stream headers, taken out of the records by the tracker. */
+    private volatile java.util.List<StreamHeader> streamHeaders = java.util.List.of();
     /**
      * Follow saw bytes it could not decode (re-review RR-1). The rows read before them stand; the FILE's
      * claim does not, and nothing more is read until it is reopened. That holds by three different routes,
@@ -95,6 +97,7 @@ public final class HeapLogStore implements LogStore {
         this.includesEofRecord = eof && !requireTerminator && lastIndexed;
         this.streamEnd = tracker.resolve();
         this.runBoundaries = tracker.runBoundaries();
+        this.streamHeaders = tracker.streamHeaders();
         if (trailingPending) streamEnd = pendingOverride(streamEnd, index.size());
     }
 
@@ -110,6 +113,9 @@ public final class HeapLogStore implements LogStore {
      */
     private boolean offer(RawRecord raw, boolean unterminated) {
         if (unterminated) {
+            // A header is stream metadata whether or not a separator follows it: a header-only file whose writer
+            // separates only BETWEEN documents ends with one. Never a record, never a marker.
+            if (tracker.acceptHeader(raw.text())) return false;
             // §1a rule 1: an unterminated final item is never a claim. If it LOOKS like a marker it is
             // held back and explained rather than indexed — round six asked for that, because otherwise
             // the first real export with a marker shows an unexplained empty row and says nothing.
@@ -277,6 +283,7 @@ public final class HeapLogStore implements LogStore {
         this.pendingBytes = decoded.pendingBytes();
         this.streamEnd = tracker.resolve();
         this.runBoundaries = tracker.runBoundaries();
+        this.streamHeaders = tracker.streamHeaders();
         // Held-back bytes are content past the last item, exactly like a record still being written: the
         // file cannot vouch for itself while they are there, whatever an earlier marker declared (F2).
         if (trailingPending || pendingBytes > 0) streamEnd = pendingOverride(streamEnd, index.size());
@@ -407,6 +414,12 @@ public final class HeapLogStore implements LogStore {
         return runBoundaries;
     }
 
+    /** Evidence-set key: the stream headers, in file order. */
+    @Override
+    public java.util.List<StreamHeader> streamHeaders() {
+        return streamHeaders;
+    }
+
     /**
      * A failed live read is SOURCE DAMAGE: the reader could not read part of the source (second re-review O1).
      * It was first stated as a completeness gap, whose meaning is "the container's own claim did not check
@@ -416,10 +429,18 @@ public final class HeapLogStore implements LogStore {
      */
     @Override
     public java.util.List<String> sourceDiagnostics() {
-        if (!liveReadFailed) return java.util.List.of();
-        return java.util.List.of("Follow could not read this log: its current bytes are not valid UTF-8. The "
+        java.util.List<String> headerProblems = StreamHeader.diagnostics(streamHeaders, index.size());
+        if (!liveReadFailed) return headerProblems;
+        return concat(java.util.List.of("Follow could not read this log: its current bytes are not valid UTF-8. The "
                 + index.size() + " previously read records are shown from the retained snapshot; whether the current "
-                + "file is complete is unknown until it is reopened.");
+                + "file is complete is unknown until it is reopened."), headerProblems);
+    }
+
+    private static java.util.List<String> concat(java.util.List<String> a, java.util.List<String> b) {
+        if (b.isEmpty()) return a;
+        java.util.List<String> out = new java.util.ArrayList<>(a);
+        out.addAll(b);
+        return java.util.List.copyOf(out);
     }
 
     @Override

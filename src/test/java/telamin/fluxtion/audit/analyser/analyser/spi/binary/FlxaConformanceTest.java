@@ -6,6 +6,8 @@ import org.junit.jupiter.api.io.TempDir;
 import telamin.fluxtion.audit.analyser.analyser.model.KV;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
+import telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics;
+import telamin.fluxtion.audit.analyser.analyser.parse.StreamHeader;
 import telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader;
 import telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore;
 
@@ -14,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -60,7 +63,7 @@ class FlxaConformanceTest {
 
     @Test
     void everyFixtureInTheCorpusIsExercisedHere() {
-        assertEquals(26, FlxaConformanceCorpus.names().size(), "add a test below for a new fixture");
+        assertEquals(31, FlxaConformanceCorpus.names().size(), "add a test below for a new fixture");
     }
 
     @Test
@@ -336,5 +339,115 @@ class FlxaConformanceTest {
         IOException reported = assertThrows(IOException.class, () -> new BinaryAuditReader().read(f, texts::add));
         assertTrue(reported.getMessage().contains("unknown frame type 0x46"), reported.getMessage());
         assertEquals(1, texts.size(), "§15: cat is not rolling");
+    }
+
+    // ------------------------------------------------------------------ version 2: the stream header (§3.4)
+
+    private static final String FINGERPRINT = "5f3c0a9e1b7d4c2a8e6f0b3d9c1a7e5f2b8d4c6a0e9f3b7d1c5a8e2f6b0d4c9a";
+
+    private static SpiLogStore open(Path dir, String name) throws IOException {
+        return SpiLogStore.open(new BinaryAuditReader(), fixture(dir, name));
+    }
+
+    private static void assertFixtureHeader(StreamHeader h, String runId, int firstRecord) {
+        assertTrue(h.valid(), h.problem());
+        assertEquals(1, h.schema());
+        assertEquals("com.acme.TradeProcessor", h.processor());
+        assertEquals(FINGERPRINT, h.sourceFingerprint());
+        assertEquals("1.0.84", h.toolchainVersion());
+        assertEquals("1.1.4", h.runtimeVersion());
+        assertEquals("2023-11-14T22:13:20Z", h.startedAt(), "a quoted scalar reads as its text");
+        assertEquals(Map.of("serverId", "pricing-1", "runId", runId, "group", "pricing", "name", "quoter",
+                "generation", "1"), h.host());
+        assertEquals(List.of("serverId", "runId", "group", "name", "generation"), List.copyOf(h.host().keySet()),
+                "the host map keeps the writer's order");
+        assertEquals(firstRecord, h.firstRecord());
+    }
+
+    @Test
+    void f27_streamHeader_isStreamMetadata_neverARecord(@TempDir Path dir) throws IOException {
+        SpiLogStore store = open(dir, "f27-stream-header");
+        assertEquals(1, store.size(), "§3.4 the header is not a record: one record, as in f01");
+        assertEquals(1, store.streamHeaders().size());
+        assertFixtureHeader(store.streamHeaders().get(0), "run-1", 0);
+        LogRecord r = store.record(0);
+        assertEquals(TICK, r.eventType());
+        assertEquals(1.25, only(r).last("price").numeric().getAsDouble(), 0);
+        assertTrue(store.sourceDiagnostics().isEmpty(), store.sourceDiagnostics().toString());
+        var findings = ProducerDiagnostics.of(store.index(), store::rawText, store.sourceDiagnostics());
+        assertTrue(findings.findings().stream().noneMatch(f -> f.kind() == ProducerDiagnostics.Kind.NO_RECORD_KEY),
+                "the header is never a record without a record key: " + findings.messages());
+    }
+
+    @Test
+    void f28_streamHeaderResent_eachHeaderIsPlacedBeforeTheRecordsItDescribes(@TempDir Path dir) throws IOException {
+        SpiLogStore store = open(dir, "f28-stream-header-resent");
+        assertEquals(2, store.size());
+        assertEquals(2, store.streamHeaders().size());
+        assertFixtureHeader(store.streamHeaders().get(0), "run-1", 0);
+        assertFixtureHeader(store.streamHeaders().get(1), "run-2", 1);
+        assertEquals(1.5, only(store.record(1)).last("price").numeric().getAsDouble(), 0, "§3.4 the later header describes this one");
+    }
+
+    @Test
+    void f29_versionOne_readsUnchanged_andHasNoHeader(@TempDir Path dir) throws IOException {
+        assertTrue(new BinaryAuditReader().canOpen(fixture(dir, "f29-version-one")), "version 1 is still this reader's");
+        SpiLogStore store = open(dir, "f29-version-one");
+        assertEquals(1, store.size());
+        assertEquals(1.25, only(store.record(0)).last("price").numeric().getAsDouble(), 0);
+        assertTrue(store.streamHeaders().isEmpty());
+        assertTrue(store.sourceDiagnostics().isEmpty(), store.sourceDiagnostics().toString());
+    }
+
+    @Test
+    void f30_headerFrameInVersionOne_isAnUnknownFrame_nothingDeliveredAsAHeader(@TempDir Path dir) throws IOException {
+        List<String> texts = new ArrayList<>();
+        Path f = fixture(dir, "f30-header-frame-in-version-one");
+        IOException reported = assertThrows(IOException.class, () -> new BinaryAuditReader().read(f, texts::add));
+        assertTrue(reported.getMessage().contains("unknown frame type 0x3"), reported.getMessage());
+        assertTrue(texts.isEmpty(), "§9.4: no header, and no record after it: " + texts);
+    }
+
+    @Test
+    void f31_truncatedStreamHeader_isATruncatedTail_neverAHalfHeader(@TempDir Path dir) throws IOException {
+        SpiLogStore store = open(dir, "f31-truncated-stream-header");
+        assertEquals(0, store.size());
+        assertTrue(store.streamHeaders().isEmpty(), "a cut header is never delivered half-read");
+        List<String> d = store.sourceDiagnostics();
+        assertEquals(1, d.size(), d.toString());
+        assertTrue(d.get(0).contains("did not form a whole record"), d.get(0));
+    }
+
+    @Test
+    void anUnknownVersion_isRecognisedByMagic_andRefusedNamingTheVersions(@TempDir Path dir) throws IOException {
+        byte[] bytes = FlxaConformanceCorpus.committed("f27-stream-header").clone();
+        bytes[5] = 3;
+        Path f = dir.resolve("v3.flxa");
+        Files.write(f, bytes);
+        assertTrue(new BinaryAuditReader().canOpen(f), "the magic claims it, so the refusal can say why");
+        IOException refused = assertThrows(IOException.class, () -> SpiLogStore.open(new BinaryAuditReader(), f));
+        assertTrue(refused.getMessage().contains("version 3") && refused.getMessage().contains("1 to 2"),
+                refused.getMessage());
+    }
+
+    @Test
+    void aHeaderFrameThatHoldsNoHeader_isStatedAsDamage_neverARecordOrAHeader(@TempDir Path dir) throws IOException {
+        byte[] f27 = FlxaConformanceCorpus.committed("f27-stream-header");
+        int len = ((f27[9] & 0xFF) << 24) | ((f27[10] & 0xFF) << 16) | ((f27[11] & 0xFF) << 8) | (f27[12] & 0xFF);
+        byte[] text = "eventLogRecord:\n  logTime: 1\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        out.write(f27, 0, 8);
+        out.write(new byte[]{0x03, 0, 0, 0, (byte) text.length});
+        out.write(text);
+        out.write(f27, 13 + len, f27.length - 13 - len);
+        Path f = dir.resolve("forged-header.flxa");
+        Files.write(f, out.toByteArray());
+        SpiLogStore store = SpiLogStore.open(new BinaryAuditReader(), f);
+        assertEquals(1, store.size(), "the frame's text is not delivered as a record");
+        assertEquals(TICK, store.record(0).eventType());
+        assertTrue(store.streamHeaders().isEmpty());
+        assertEquals(1, store.sourceDiagnostics().size(), store.sourceDiagnostics().toString());
+        assertTrue(store.sourceDiagnostics().get(0).startsWith("1 stream header frame in forged-header.flxa did not hold"),
+                store.sourceDiagnostics().get(0));
     }
 }

@@ -1,0 +1,27 @@
+---
+auditStreamHeader:
+    schema: 2
+    processor: com.acme.TradeProcessor
+    sourceFingerprint: 5f3c0a9e1b7d4c2a
+    toolchainVersion: 1.0.84
+    runtimeVersion: 1.1.4
+    startedAt: '2026-11-03T09:15:02.118Z'
+    host: {}
+---
+eventLogRecord:
+    logTime: 1000
+    event: Tick
+    nodeLogs:
+    - book: { mid: 17.1}
+---
+auditStreamHeader:
+    schema: 1
+    processor: com.acme.TradeProcessor
+    sourceFingerprint: 5f3c0a9e1b7d4c2a
+---
+eventLogRecord:
+    logTime: 1001
+    event: Tick
+    nodeLogs:
+    - book: { mid: 17.2}
+---

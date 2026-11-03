@@ -73,9 +73,13 @@ class PomShapeTest {
         // BinaryLogReader, which existed in no released runtime), and again on 2026-09-14 when
         // fluxtion 1.0.15 was released and the pom moved back to it. A SNAPSHOT is a BRANCH-ONLY
         // state: the pom must name a released runtime CI can resolve before the feature ships.
+        //
+        // FIRED AGAIN on feature/evidence-set-key (2026-11-03): the stream header and FLXA version 2 exist only in
+        // fluxtion-runtime 1.1.4-SNAPSHOT. On this branch the tripwire pins the snapshot, exactly as it did for M52.5;
+        // before the branch can release, the runtime must be released and this must go back to asserting a released
+        // version that is not a snapshot.
         String fluxtionVersion = property(project, "fluxtion.version");
-        assertFalse(fluxtionVersion.endsWith("-SNAPSHOT"), "a release cannot depend on a snapshot: " + fluxtionVersion);
-        assertEquals("1.1.0", fluxtionVersion);
+        assertEquals("1.1.4-SNAPSHOT", fluxtionVersion, "branch-only: return to a released runtime before releasing");
     }
 
     @Test

@@ -92,6 +92,7 @@ public final class SessionAuditSink implements LogRecordListener {
     private long dropped;
     private long sinkFailures;
     private String firstSinkFailure;
+    private String streamHeader;
 
     public SessionAuditSink() {
         this(DEFAULT_CAPACITY);
@@ -145,6 +146,31 @@ public final class SessionAuditSink implements LogRecordListener {
                 firstSinkFailure = e.toString();
             }
         }
+    }
+
+    /**
+     * The audit stream header (fluxtion-runtime 1.1.4+): which processor wrote this stream and the shape of its graph.
+     * The runtime's default hands a text stream's header to {@link #processLogRecord} as if it were a record, which
+     * put it in the transitions ring, the counts and every {@code matching} search, and made an exported snapshot
+     * reopen one record short of {@link #records()}. It is stream metadata, so it is kept apart: never counted,
+     * never in a ring, and written once at the head of {@link #export}, where the analyser reads it as the header it
+     * is. The latest is kept; the driver attaches this sink once, before the first event, so there is one.
+     */
+    @Override
+    public void processStreamHeader(com.telamin.fluxtion.runtime.audit.StreamHeaderRecord header) {
+        try {
+            streamHeader = header.asCharSequence().toString();
+        } catch (RuntimeException e) {
+            sinkFailures++;
+            if (firstSinkFailure == null) {
+                firstSinkFailure = e.toString();
+            }
+        }
+    }
+
+    /** The stream header this session's processor wrote, or null before its first record. */
+    public String streamHeader() {
+        return streamHeader;
     }
 
     /** The records currently held, both rings interleaved, oldest first. */
@@ -226,6 +252,10 @@ public final class SessionAuditSink implements LogRecordListener {
         // lost on the round trip). No header line is invented: the runtime record carries its own
         // logTime, and a level the sink never retained would be a fabrication.
         StringBuilder out = new StringBuilder();
+        if (streamHeader != null) {
+            out.append("---\n").append(streamHeader);
+            if (!streamHeader.endsWith("\n")) out.append('\n');
+        }
         for (String record : records()) {
             out.append("---\n");
             out.append(record);

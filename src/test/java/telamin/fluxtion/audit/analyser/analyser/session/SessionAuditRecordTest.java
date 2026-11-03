@@ -13,6 +13,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -155,6 +156,14 @@ class SessionAuditRecordTest {
         var store = telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore.fromFile(out);
 
         assertEquals(recorded, store.size(), "one analyser record per runtime record — the framing survived");
+        // fluxtion-runtime 1.1.4: the session processor's stream header is kept apart from the records, and the
+        // snapshot carries it first, where the analyser reads it as the stream's header and not as a record
+        assertNotNull(driver.auditSink().streamHeader(), "the session processor wrote a stream header");
+        assertTrue(driver.auditSink().records().stream().noneMatch(r -> r.startsWith("auditStreamHeader:")),
+                "the header is not one of the records");
+        assertEquals(1, store.streamHeaders().size());
+        assertTrue(store.streamHeaders().get(0).valid(), store.streamHeaders().get(0).problem());
+        assertEquals(0, store.streamHeaders().get(0).firstRecord());
         String all = Files.readString(out);
         assertTrue(all.contains("staleResult"), "the superseded operation's refusal is in the snapshot");
         boolean pendingSeen = false, staleSeen = false;
