@@ -1,191 +1,263 @@
-# Proposal: deliver the browser run canvas through the analyser's JBang install
+# Proposal: the Analyser serves the AI canvas and brokers runs (option C)
 
 **Status:** proposal for independent review. Nothing has been built. Raised 2026-11-03.
 
-**In one line:** the playground's local browser canvas currently needs a repo checkout, Node 22, `pnpm` and a
-hand-edited MCP config. The analyser already has a one-line JBang install, a headless `--mcp` stdio bridge,
-and built-in MCP registration for the assistants. Serve the canvas from that bridge, and open the analyser
-window only when the assistant needs it to explain something.
+**Decided already (owner, 2026-11-02):** developers connect an AI assistant to Fluxtion **through the Analyser**
+(option C). The Node canvas spike is retired. This document is the Analyser-side detail for that decision. It
+carries the decision record in §1, because the web-repo document that first recorded it
+(`docs/proposals/canvas-install-and-connection.md` on fluxtion-web branch `fix/canvas-worker-isolation`) is
+retiring with the spike.
 
 **Naming.** In this repo "canvas" already means the *shared evidence canvas*
-([`spec-shared-evidence-canvas.md`](../specs/spec-shared-evidence-canvas.md), `CanvasHandoff`). This
-document calls the playground feature the **browser run canvas**: a browser page where a person can inspect
-a project snapshot, run its `Main`, send inputs and stop it. It is a presentation surface. It is not the
-shared evidence canvas, and it does not replace it.
+([`spec-shared-evidence-canvas.md`](../specs/spec-shared-evidence-canvas.md), `CanvasHandoff`). This document
+calls the new feature the **AI canvas**: a local surface where a person and their assistant see a project
+snapshot, run it, send inputs, regenerate it, and stop it. It renders results. It is not the shared evidence
+canvas and does not replace it.
 
-## 1. The problem
+## 1. The decision and what it changes
 
-The browser run canvas is a local prototype in the playground repo (`fluxtion-web`, `web/scripts/canvas.mjs`).
-For a first user to try it today, they must:
+### 1.1 Options considered (fluxtion-web, 2026-11-02)
 
-1. clone the web repo, install dependencies in `web/` (`pnpm install`), and fetch the browser library jars;
-2. install Node 22 or later;
-3. optionally run `pnpm dev` to reach the `/connect-ai` setup page;
-4. paste a JSON entry containing absolute paths into their assistant's MCP configuration;
-5. restart the assistant.
+The options were compared after the first end-to-end test of the Node canvas with Claude Code. That test worked:
+an assistant authored a change, a generation was approved in the browser, and the run was checked against the
+audit trail. The install did not work well. Users needed Node 22, had to download and unzip a file, hand-edit MCP
+config with absolute paths, and open a single-use five-minute link. Each step failed at least once in the test.
+The owner's requirement from it: **a user must not need Node.**
 
-The prototype's own docs list a named-host installation, a distributable package and a clean-machine trial
-as unmet release gates. Each step above is a place for a first user to fail.
+| Option | Summary | Outcome |
+|---|---|---|
+| A. Hosted relay | Claude → HTTPS MCP on the playground site → canvas tab. Zero install, but project source passes through Telamin and it is an operated service. | Dropped |
+| B. Native binary | The Node bridge compiled per platform (Bun, 57 MB). Per-platform signing; Bun's LGPL WebKit needs legal review. | Dropped |
+| **C. The Analyser** | JBang install (JDK provisioned), already an MCP server with built-in registration. Runs and regenerates locally, with the Analyser's evidence views. | **Developers** |
+| D. Assistant inside the playground | The person's own Anthropic API key in the page; tools are page functions. Nothing to install. | **Built first, for evaluators** (web repo, not this proposal) |
 
-Meanwhile the analyser is already installed with JBang
-(`jbang-catalog.json`: alias `analyser`, Java 21+). The repo records native installers as spec'd and
-withdrawn: "JBang is the install" (tracker ▸ Decisions, M41).
+### 1.2 Owner decisions, 2026-11-02 (quoted from the retiring web document)
 
-## 2. What the analyser already provides (checked on `origin/main`, 1.40.2)
+1. **Direction:** C for developers; D built first, for evaluation. A and B are dropped.
+2. **PR #39** (the Node canvas) was to ship as a preview. **Superseded on 2026-11-03:** the owner retired the whole
+   Node spike instead.
+3. **The Analyser decision of 2026-09-19 is revised.** Draft entry for `docs/specs/decisions.md`, to be recorded
+   with the spec:
+   > **2026-11-02 (owner).** Revises the 2026-09-19 decision. The Analyser may serve a loopback browser canvas and
+   > broker a project's run and generation for an AI assistant; it still never mutates a server. The
+   > browser-facing server is a second security contract, separate from the action socket, whose Origin refusal
+   > (F2) is unchanged. State follows rule 9.
 
-| Need | Already in the analyser |
+### 1.3 What the revision overturns
+
+The 2026-09-19 decision ([`decisions.md`](../specs/decisions.md), first entry) says application processing,
+generation and hosting execute in their owning tools, and that the Analyser *"must not acquire application
+execution or orchestration logic … it authorizes no new execution verb."* Option C deliberately adds brokered run
+and generation. Every new capability below must stay inside the revised wording: **broker** a run or generation the
+person approved. Do not interpret runbooks, implement domain behaviour, or mutate a server.
+
+## 2. Why C, and what friction remains
+
+**Why it suits developers.** It is one command they can trust (JBang, which they may already use). Registration
+already exists. Their real project folder is used. Generation uses the same device credential as
+`mvn fluxtion:login`. The results land in views the Analyser already has: topology and step-through, audit logs,
+spotlight, Design and reports. Fluxtion authors are Java developers, so a JDK is not an extra burden.
+
+**Friction that remains, and the mitigation for each:**
+
+| Friction | Mitigation |
 |---|---|
-| One-line install including the JVM | JBang alias in `jbang-catalog.json` |
-| A headless MCP server | `analyser --mcp` → `McpBridge`: hand-rolled JSON-RPC over stdio. It sets `java.awt.headless`, touches no Swing/AWT class (enforced by `McpBridgeHeadlessTest`), and writes only MCP messages to stdout. |
-| Registering the server with assistants | M42: `ClaudeMcpClient` (runs `claude mcp add --scope … --transport stdio …`), `CodexMcpClient`, `GenericMcpConfiguration`, and a connection probe |
-| Driving the window from an assistant | The bridge forwards `analyser_*` verbs to the running app's REST `/action` |
-
-What it does **not** have:
-
-- any `playground_*` tools;
-- a way to serve the canvas page;
-- a way to start the window from the bridge. Today the app must already be running, with external access
-  switched on.
+| First JBang run downloads a JDK and the jar, so it is slow | Make install or setup fetch everything, so the first `--mcp` launch is fast (§7.1) |
+| A desktop app, not a web page | Evaluators use D; C is for developers |
+| Does not reach claude.ai | Accepted; Claude Code, Codex and Claude Desktop are covered by M42 |
+| Registration is still a step | One setup command or the existing AI menu wraps it (§3) |
+| Development-Use licence | Fine for authoring; production use already needs an agreement |
 
 ## 3. Proposed user experience
 
 ```
-jbang app install analyser@telaminai        # once: JDK, jar, `analyser` on PATH
-analyser --setup-assistant                   # once: registers the MCP server (wraps M42)
+jbang app install analyser@telaminai/fluxtionauditlog-analyser   # once: JDK if absent, jar, `analyser` on PATH
+analyser --setup-assistant                                       # once: wraps the M42 registration
 ```
 
-(Command and catalog names are illustrative.) After that:
+(The setup flag name is illustrative; the AI menu already offers the same registration.) Then:
 
-1. The person asks their assistant to show a project.
-2. The assistant launches `analyser --mcp`. No window appears.
-3. The assistant calls `playground_present` with explicit relative paths. The bridge snapshots the files and
-   returns a single-use local link: `http://127.0.0.1:<auto>/canvas?...`.
-4. The person opens the link. Source, graph and README display. Nothing compiles or runs.
-5. On request, the assistant calls `playground_run`. Java compiles and runs inside the browser tab. Inputs,
-   results and Stop behave as in the prototype.
-6. When the assistant needs to explain a run (open its audit log, spotlight a record, flag a finding), the
-   bridge starts or attaches to the analyser window. The `analyser_*` verbs then work as they do today.
+1. In Claude Code, inside the project folder, the person asks to see or change the project.
+2. The assistant launches `analyser --mcp`. No window appears. **The project root defaults to the folder the
+   assistant runs in** (Claude Code passes `CLAUDE_PROJECT_DIR`), so no paths are hand-edited. The spike proved this
+   default (commit `e0af7a2`).
+3. The assistant presents a snapshot of explicitly named files. The canvas opens in the browser directly
+   (`--open-browser` in the spike), so the person does not have to open a five-minute link.
+4. When asked, the assistant runs `Main`, sends inputs and stops it. When generation is needed, the person approves
+   each one. Generated files are written by the Analyser, never retyped by the model.
+5. When the assistant needs to explain a run, the Analyser window opens or attaches, and the existing `analyser_*`
+   verbs (open the export, spotlight, flag) take over.
 
-Network access is assumed. People already need it for the cloud compiler, and JBang needs it on first install.
+Skills ship as a small plugin, so the assistant has Fluxtion authoring guidance. The web test showed an assistant
+without it improvises.
 
-## 4. Design
+## 4. What the Analyser already provides (checked on `origin/main`, 1.40.2)
 
-### 4.1 One MCP server, two tool families
+| Need | Already in the Analyser |
+|---|---|
+| One-line install including the JVM | JBang alias in `jbang-catalog.json` |
+| A headless, dual-era MCP server | `analyser --mcp` → `McpBridge`. It answers both MCP eras (`2026-07-28` and the handshake revisions), sets `java.awt.headless`, touches no Swing/AWT class (`McpBridgeHeadlessTest`), and writes only MCP messages to stdout. |
+| Registration with assistants | M42: `ClaudeMcpClient`, `CodexMcpClient`, `GenericMcpConfiguration`, connection probe |
+| Driving the window | Bridge forwards `analyser_*` verbs to the running app's REST `/action` |
+| Evidence views for a run | Topology, step-through, audit records, spotlight, Design, reports |
 
-`McpBridge` publishes `playground_*` alongside the existing `analyser_*` verbs. The person registers one
-server once. The `playground_*` tools are handled **inside the bridge process** and do not require the app
-window. The `analyser_*` tools continue to forward to `/action`.
+What it does **not** have:
 
-### 4.2 The bridge serves the canvas
+- tools to present, run, send input to, stop or generate a project;
+- a browser-facing server;
+- a device-credential client;
+- a way for the bridge to start the window.
 
-- **Static build.** Ship a production build of the canvas page and its worker (`runtime-worker.js` in the
-  fix commit) inside the jar. Serve them from a loopback HTTP server with an automatically allocated port.
-  Do not run a Vite dev server.
-- **Port the session protocol to Java.** This means pairing and the single-use invitation; the HttpOnly
-  session cookie; snapshot revision (SHA-256 over the sorted path and digest list); command IDs with
-  idempotency; poll, ack and report; expiry; and the caps. That logic is `web/scripts/canvas/core.mjs`
-  plus the HTTP layer in `canvas.mjs`.
-- **Use the existing tests as the acceptance spec.** `core.node-test.mjs` and `review-regressions.mjs`
-  become the cases the Java port must pass. Ideally they run against both implementations until the Node
-  one is retired.
-- **Keep the prototype's boundaries.** One selected project root. Only explicitly named files. No shell,
-  no editing, no Git. Loopback only, with Host and Origin checks. Run only code the person has approved:
-  this is not a sandbox for hostile Java.
+## 5. Design
 
-### 4.3 Window on demand
+### 5.1 One MCP server, two tool families
 
-When an `analyser_*` verb arrives and no app is listening, the bridge launches the app (same jar, GUI mode)
-and waits for `/action` to become ready. It then forwards the call, or returns a clear error saying how to
-start the app. Questions to settle:
+`McpBridge` publishes the canvas tools (`playground_present`, `_status`, `_focus`, `_run`, `_input`, `_stop`,
+`_result`, `_close`, `_generate`) beside the existing `analyser_*` verbs. One registration covers both. Canvas
+tools are handled in the bridge process and do not need the window. `analyser_*` keeps forwarding to `/action`.
 
-- **Consent.** Opening a window is visible to the person. Does the first launch need confirmation?
-- **External access.** Today, external MCP/REST access is a Settings toggle. Should a window launched by the
-  bridge enable it for that session only?
-- **Single instance.** If the person already has the analyser open, attach to it. Never open a second one.
-- **Handover.** A run shown in the browser canvas should be openable in the analyser through `analyser_open`
-  on that run's export, with no new pairing step.
+### 5.2 Where the Java runs: decide this first
 
-### 4.4 Versions
+The owner's wording allows either: *"with the Java executing in the browser or through the compiler"*. Option C's
+description also promised a real local JVM. These are different products:
 
-The canvas page, its runtime library manifest and the bridge ship in one jar, so they always match. The
-JBang alias should resolve a pinned release, as it does today, rather than a moving "latest" between the
-browser assets and the bridge.
+| | In the browser (CheerpJ worker, as the spike) | Local child JVM |
+|---|---|---|
+| First run | About 35 MB of libraries plus the CheerpJ runtime | None beyond the jar |
+| Stop | Terminate the worker (proven in the spike) | `Process.destroy`, then force kill |
+| Isolation | Browser process, but it can use browser services | **None.** Native process with the person's file and network access |
+| Java limits | CheerpJ compatibility | Full JVM |
+| Matches "reviewed code only" | Yes | Yes, but the consequence of running unreviewed code is larger |
 
-## 5. Risks and points to get right
+**Recommendation:** a local child JVM for developers, launched from the person's own project with an explicit
+approval per run, its working directory set to the project, and stdout and stderr captured. Keep the browser page
+for inputs and output. Record the choice in the spec. Neither option is a sandbox, so say so in the UI.
 
-1. **Slow first start.** JBang's first launch downloads a JDK. MCP hosts time out slow server starts (Claude
-   Code's limit is configurable but short by default). The install or setup step should fetch everything, so
-   the first `--mcp` launch is fast.
-2. **stdout must stay clean.** The bridge already enforces this. The new HTTP server and canvas code must log
-   only to stderr.
-3. **One bridge per assistant session.** Each session starts its own bridge. Ports must be allocated
-   automatically. The prototype originally pinned 5173, and a second bridge died with only
-   `Connection closed`.
-4. **Third-party hosts.** Opening the page currently contacts `cjrtnc.leaningtech.com` (Java runtime) and
-   `api.iconify.design` (icons). Bundle the icons, and document the runtime host, the cloud compiler and
-   the JBang and Maven hosts for corporate proxies.
-5. **Jar size and release coupling.** Canvas fixes would ship on the analyser's release cycle, and the jar
-   grows by the built page and worker.
-6. **Two implementations during migration.** The Node prototype and the Java port must not drift. Run the
-   shared regression cases against both, or retire the Node bridge as soon as the port passes them.
+### 5.3 Generation
 
-## 6. Repo rules this work must satisfy
+- Use the builder with the same device credential as `mvn fluxtion:login`.
+- The person approves each generation; credits belong to the person.
+- The credential never reaches the browser or the model's context.
+- Generated files are written by the Analyser into the project and presented as a new snapshot revision.
+- The spike's generation-source rule (leave out the code that *uses* the processor; commit `8fffa95`) carries over.
 
-- **Rule 6, read the live protocol first.** `McpBridge` already answers two MCP eras. New tools follow the
-  same dual-era handling, checked against the live MCP specification rather than the prototype's SDK
-  behaviour.
-- **Rule 9, one dispatch model.** The canvas session state (previews, runs, jobs, expiry) lives in the
-  headless bridge process, not the app. A reviewer should decide whether rule 9 applies there. If so, that
-  state belongs in a generated processor with effects and facts. If not, record why. Anything the window
-  shows about a browser run must come through the session snapshot, never a hand-placed refresh.
-- **Rule 8, regression closure.** Each prototype defect in §8 that the port could reintroduce needs a static
-  or executable check in this repo's suite, not just a passing trial.
-- **Rule 1, public repo.** Canvas fixtures must use demo content only. Screenshots of the browser canvas need
-  the same generated, isolated capture as other docs images.
+### 5.4 The browser-facing server: a second security contract
 
-## 7. What this does not change
+Separate from the action socket, whose Origin refusal (F2) is unchanged.
 
-- The browser canvas stays a presentation surface. Authoring, builds, tests and Git stay with the person's
-  assistant and local tools.
-- The shared evidence canvas, the `CanvasHandoff` rules and the `analyser_*` verbs are unchanged.
-- Hosted generation still goes through the cloud compiler and its account rules. Running a supplied,
-  pre-generated example uses no credits.
+- **Network:** loopback only, port allocated automatically, Host and Origin checks, and a custom header on every
+  call.
+- **Pairing:** a single-use invitation, then an HttpOnly session cookie scoped to the preview. A valid cookie must
+  not be re-paired.
+- **Files:** one selected project root, only explicitly named files, no symlinks, size and count caps.
+- **Snapshots:** revision = SHA-256 over the sorted path and digest list. A local edit needs a new snapshot. The
+  idempotency key must cover file **contents**, not just arguments. That was review bug 2.
+- **Commands:** IDs are idempotent; conflicting reuse is refused; Stop has reserved capacity.
+- **Output:** application-reported, labelled as such; paged by cursor to the end. That was review bug 6.
 
-## 8. Evidence behind this proposal
+### 5.5 State and rule 9
 
-Two reviews of the prototype on 2026-11-01 and 2026-11-03, both outside this repo. They used the official MCP
-SDK client over stdio with real Chromium and the real CheerpJ runtime. No assistant host was registered,
-because the reviewing session's config change was blocked.
+The decision says *"State follows rule 9."* Previews, runs, jobs, approvals and expiry are session state. They go
+through the generated session processor as nodes, with effects and facts, and the canvas and window render the
+snapshot. Nothing is hand-dispatched. This is the largest design task, and the reason the port is not a
+transliteration of the spike's `core.mjs`.
 
-- **Prototype at `fee7c0e`.** The approved order/limit demo worked end to end. Seven defects were found,
-  including the fixed port (above), a stale snapshot returned for a repeated `commandId`, single-use links
-  with no reissue, a run left `active` after its tab closed, expired previews still counting towards the
-  cap, output truncated at 60,000 characters, and "Running" shown after a program crashed.
-- **Fix commit `6262920`.** The canvas moved Java into disposable workers. All eight steps of the supplied
-  end-to-end script passed: present without execution, focus, run to readiness, four inputs with the right
-  boundary results, cached retry with no extra event, negative input refused, Stop, and a fresh JVM
-  restoring the £100 limit. The seven earlier defects were **not** retested in that pass.
+### 5.6 Window on demand
 
-Full report: the reviewer's local note `fluxtion-playground-mcp-review-2026-11-01.md` (not in this repo).
-Those findings belong to the web repo. They are summarised here only because they shape the requirements
-in §4 and §5.
+When an `analyser_*` verb arrives and no app is listening, the bridge starts the app (same jar, GUI mode). It
+waits for `/action`, then forwards the call. If it cannot, it returns a clear error. Settle:
 
-## 9. Suggested steps
+- **Consent.** Does the first launch need confirmation?
+- **External access.** Should a launch from the bridge enable external access for that session only?
+- **Single instance.** Attach to an open window; never open a second one.
+- **Handover.** Opening a run's export should need no new pairing step.
 
-1. **Decide:** accept or reject "the analyser is the canvas host" (this document).
-2. **Spike:** serve a static canvas build from `McpBridge`, with `playground_present` and `playground_status`
-   only. Measure the jar size increase and the cold `--mcp` start time.
-3. **Port:** move the session protocol to Java against the shared regression cases. Add `run`, `input`,
-   `stop`, `result`, `focus` and `close`.
-4. **Window on demand:** settle the questions in §4.3, then implement launch or attach.
-5. **First-user trial:** on a clean machine, JBang install, one setup command, then the order/limit demo,
-   observed rather than scripted. This is the gate the prototype has not yet met.
+## 6. The retired Node spike as reference
+
+The spike is retired, but it is a working reference and a test suite. **Archive it before deleting the branch**,
+and record the archive's location here.
+
+Port, adapting to §5:
+- the session protocol (`scripts/canvas/core.mjs`, the HTTP layer in `canvas.mjs`);
+- the device sign-in and gated proxy (`scripts/canvas/account.mjs`);
+- `playground_generate` with per-generation approval and follow-the-tab;
+- the generation source selection (`src/lib/canvas/generation.ts`);
+- the standalone canvas page build (`scripts/canvas/standalone/`), if the browser page is kept;
+- the static asset server with SHA-256-checked runtime downloads (`distribution-http.mjs`), if Java runs in the
+  browser.
+
+Tests to turn into this repo's acceptance cases:
+- `core.node-test.mjs`;
+- `review-regressions.mjs`;
+- the isolation, recovery and browser smokes;
+- `native-host-smoke.mjs`, which runs the real Claude Code host.
+
+Not carried over: the downloadable ZIP, the public `/connect-ai` page and its sidebar link, and the Node path in
+MCP settings.
+
+## 7. Risks and points to get right
+
+1. **Slow first start.** MCP hosts time out slow server starts; Claude Code's limit is configurable but short by
+   default. Prefetch during install or setup.
+2. **stdout stays clean.** Already enforced for the bridge; the new HTTP server, child JVM and builder must log to
+   stderr only.
+3. **One bridge per assistant session**, so ports must be allocated automatically. The spike originally pinned 5173,
+   and a second bridge died with only `Connection closed`.
+4. **Third-party hosts.** Document every host for corporate proxies: the compiler, the JBang and Maven hosts, and,
+   if the browser runtime is kept, `cjrtnc.leaningtech.com`. Bundle icons rather than calling `api.iconify.design`.
+5. **Local JVM execution** (if chosen) is native execution. The approval wording, the UI and the docs must say so.
+6. **Scope creep against the revised decision.** Brokered run and generation only: no runbook interpretation, no
+   domain logic, no server mutation.
+
+## 8. Repo rules this work must satisfy
+
+- **Rule 6.** Read the live MCP specification (currently `2026-07-28`) before adding tools. `McpBridge` already
+  answers both eras; keep it that way.
+- **Rule 9.** See §5.5.
+- **Rule 8, regression closure.** Each defect found in the spike reviews (§9) that the port could reintroduce needs
+  a static or executable check in this repo's suite, not just a passing trial.
+- **Rule 1, public repo.** Fixtures use demo content only. Canvas screenshots need the same generated, isolated
+  capture as other docs images.
+- **Decision record.** Add the §1.2 entry to `docs/specs/decisions.md` with the spec.
+
+## 9. Evidence behind this proposal
+
+**Tested by the reviewer (2026-11-01 and 2026-11-03).** These runs used the official MCP SDK client over stdio,
+real Chromium and the real CheerpJ runtime. No assistant host was registered, because the reviewing session's
+config change was blocked.
+
+- **Spike at `fee7c0e`.** The order/limit demo worked end to end. Seven defects were found:
+  1. fixed port 5173;
+  2. a stale snapshot returned for a repeated `commandId`;
+  3. single-use links with no reissue;
+  4. a run left `active` after its tab closed;
+  5. expired previews still counting towards the cap of five;
+  6. output truncated at 60,000 characters;
+  7. "Running" shown after a program crashed.
+- **Fix commit `6262920`.** All eight steps of the supplied end-to-end script passed. That covers present without
+  execution, focus, run, four inputs with correct boundary results, cached retry, negative input refused, Stop,
+  and a fresh JVM restoring the original limit. The seven defects were not retested.
+
+**Reported by the spike's author, not verified by this reviewer.** Native Claude Code 2.1.316 completed the MCP
+workflow twice, including from the extracted ZIP. A full generation loop on the owner's account also passed.
+
+## 10. Suggested steps
+
+1. **Archive and retire the spike** (§6). Record the archive here.
+2. **Decide where the Java runs** (§5.2), and write the spec. Include the rule 9 design (§5.5) and the
+   `decisions.md` entry.
+3. **Spike in the Analyser:** `playground_present` and `_status` served from `--mcp`, with the project root
+   defaulting to the assistant's folder. Measure cold-start time and jar growth.
+4. **Port run, input, stop and result**, against the archived regression cases.
+5. **Port generation:** device credential, approval and written files.
+6. **Window on demand** (§5.6) and the skills plugin.
+7. **First-user trial** on a clean machine: JBang install, one setup step, then the demo, observed rather than
+   scripted.
 
 ## Open questions for the reviewer
 
-- Should `--setup-assistant` be a new CLI flag, or should first launch of the window offer the existing M42
-  registration?
-- Should the window-on-demand launch need explicit consent each time, once, or never?
-- Does the canvas page belong in this repo's build, or should it be built in the web repo and consumed as a
-  versioned artifact?
-- Is retiring the Node bridge an explicit goal, or do both remain supported?
+- Local child JVM or browser runtime (§5.2)? The recommendation is the local JVM, but the owner's wording leaves
+  both open.
+- `--setup-assistant` as a new CLI flag, or only the existing AI menu?
+- Consent model for opening the window (§5.6)?
+- Is the browser page still needed if Java runs locally, or can the Analyser window host the inputs and output?
