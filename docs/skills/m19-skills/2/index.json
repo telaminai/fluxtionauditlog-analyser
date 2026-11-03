@@ -92,7 +92,7 @@
       ]
     }
   },
-  "revision": "e20104da3ca76666369b8717a1f809d1661d4e94",
+  "revision": "2cb1eff21f2407f7873495dbb7a702247fe0e986",
   "sha256": {
     "common/load-audit-log/SKILL.md": "61529c9cb7943ed57e16546fce04d01ae5c089fe035764392b34a90d469138d2",
     "common/guided-start/SKILL.md": "fdead498fa56b4df27d360f070de5357f833c16dd9cb8e0eef4ad3a5690c2d47",

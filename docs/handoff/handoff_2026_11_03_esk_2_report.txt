@@ -1,0 +1,137 @@
+Handoff report — evidence-set key, analyser slice 5 (spec §4.5, ship-order step 5)
+Date: 2026-11-03 · Branch: feature/evidence-set-key (on top of slice 1, 18397787/1670e04e) · Not pushed.
+Spec: docs/specs/spec-evidence-set-key.md (r3, copied public-safe from the review branch's spec 01 plus the
+programme tracker's "Revision 3"). Tracker: docs/specs/tracker.md ▸ Evidence and bundles ▸ Evidence-set key (#211).
+
+WHAT SHIPPED
+============
+
+1. Session state (rule 9) — one node, one fact, one regeneration.
+   - New node `evidenceSet` (session/node/EvidenceSet), parents openLog + openGraph, handler for the new fact
+     SessionEvents.StreamHeadersObserved(generation, headers, records). A new log generation forgets the previous
+     log's headers; a fact naming another generation is refused (staleFact). The decision is the pure
+     EvidenceSetState.decide; published as SessionSnapshot.evidenceSet (new last component; the previous
+     constructor kept and delegating with NONE).
+   - Effect: the existing ScanLogEvidenceEffect. Its performer (MainFrame.scanLogEvidence) now posts
+     StreamHeadersObserved BEFORE the findings, so the line the findings release already knows the shape.
+   - Graph side: GraphOpened gains `sourceFingerprint` (the graph's fluxtion.sourceFingerprint; old arities kept);
+     OpenGraph holds it and a changed fingerprint is a new revision.
+   - Follow: LogContentObserved gains `streamHeaders` (count; old arity kept) and LogEvidence's content signature
+     includes it, so a header appended with no record after it asks for a scan (owner answer 1).
+   - FactFieldsTest inventory: StreamHeadersObserved.headers = LOG_COUNTS, GraphOpened.sourceFingerprint = DIGEST.
+   - REGENERATIONS RUN: 1 (`mvn -o -Pregen process-classes`). The hosted generator reported target version 1.0.83
+     (the committed processor was 1.0.79) and api 1.1.4-SNAPSHOT, so SessionProcessor.java/.graphml moved far more
+     than the one node: ~5k lines. The attribution strip ran; GeneratedSourceIsPublishableTest passes.
+
+2. Verdict rules (EvidenceSetState):
+   MATCH every header states a fingerprint and each equals the graph's;
+   MISMATCH a header and the graph both state one and they differ (a forced/hand-opened graph included) — a proven
+     difference outranks missing evidence;
+   UNVERIFIED no header, a malformed header, records before the first header, a null fingerprint on either side
+     (acceptance 9: FLX-1010 now refuses the unstable key at build; a null still reads UNVERIFIED, never MISMATCH).
+   Wording: "graph shape matches" / "graph shape does not match" / "graph not verified"; the reason never says
+   "same build" (tests assert it). Never a refusal: nothing closes or refuses the graph (D2).
+
+3. Pairing (acceptance 3): GraphmlDiscovery.scan(..., logFingerprint) ranks MATCH first, then UNVERIFIED, then
+   MISMATCH; name fit orders within each and alone when the log states no fingerprint. Each candidate carries
+   evidenceSet + both fingerprints in its map and its description. Discovery still offers and never selects
+   (M35.4): "the log pairs with the matching one" = the matching build is the first offer, labelled MATCH.
+
+4. Human surfaces (rendered from the snapshot only):
+   - Status bar: the log/graph line ends "· graph shape matches" / "· ⚠ graph shape does not match" /
+     "· graph not verified"; the tooltip adds "Graph shape: <status> — <reason>." after the log's findings.
+   - Project panel: a "graph shape …" row under the graph (WARN tone for a mismatch, both fingerprints in the
+     provenance column); "Run <label>" rows under the log when it holds more than one run.
+   - Docs: log-format.md ▸ "Does the graph match the log?" and "Runs"; evidence-bundles/reference.md (--verify).
+
+5. Agent surfaces: context.graphPairing.{evidenceSet, evidenceSetStatus, logSourceFingerprint(s),
+   graphSourceFingerprint, evidenceSetNote} — in the block ABOVE the fresh-start return; context.log.segments and
+   log.streamHeaders; the open {graphml} echo and coverage carry EvidenceSetState.toMap() (stripped from the open
+   echo while a log loads, with the other pairing keys). MCP instructions gain one sentence (STATE THE GRAPH SHAPE
+   FIRST …; SpotlightVocabulary.EVIDENCE_SET); EvidenceSetApiDeltaTest proves it is the only external change, and
+   the older delta tests peel it. The in-app assistant's manifests (PromptBuilder) were NOT changed, to keep the
+   API delta to the MCP instructions the brief named. load-audit-log step 4 says the same; the published skill
+   index is re-pinned (one hash, revision = the slice-5 feature commit) — the playground must re-vendor.
+
+6. Segments by run key (acceptance 6, 7; owner answer 2): parse/RunSegments. Key = serverId|runId|group/name#
+   generation; a new segment only when the key changes; a re-sent equal key (sink change, daily roll) continues the
+   run; an empty host map is one segment unless a later header names another key; a malformed header keeps the run
+   in force; records before the first header are a leading segment of their own; no headers → no segments. Label
+   "serverId · runId(first 8) · group/name#generation". Rolled sets: RolledLogStore re-bases member headers (slice
+   1), so equal keys across a daily roll are one segment.
+
+7. Bundles: EvidenceKeys reads each log/ member's headers (text: the byte framer; FLXA: the runtime reader, records
+   counted not decoded) and each graph/ member's fluxtion.sourceFingerprint; BundleWriter passes them to a new pack
+   overload; the manifest gains an optional `evidenceKeys` list (absent → the manifest bytes are unchanged, the
+   PINNED identity test holds). Verification exposes them; `--verify` prints "graph key: …" (with whether the bundled
+   graph has each log's shape) and "run key: …" lines. BundleExcerpt now writes the stream header in force at the
+   first chosen record and any re-sent inside the range (StreamHeader keeps its document text for this); record
+   count and digests are unchanged.
+
+8. Sidecar (f): the analyser does not read `.mongoose-capture.properties` anywhere (searched src/main). No reader
+   was added, so the new sourceFingerprint/serverId/runId keys are not cross-checked.
+
+TESTS ADDED (acceptance owned by the analyser)
+=============================================
+ 3  GraphmlDiscoveryFingerprintTest (2): two builds, same node names, matching one sorts last by path and ranks first.
+ 4  EvidenceSetTest.aForcedPairingWithAnotherShapeIsAMismatch (real generated processor): MISMATCH, graph stays open,
+    persists across a Follow observation; EvidenceSetSurfacesTest: ⚠ on the line, WARN row.
+ 5  EvidenceSetTest.aLogWithNoHeaderIsUnverified; slice 1's StreamHeaderTest.aPreHeaderLogIsUnchanged.
+ 6  RunSegmentsTest.aStaticDeploymentRestartedTwiceIsThreeRuns (three runIds, each #1, labels).
+ 7  RunSegmentsTest.aRolledCaptureWithOneRunKeyIsOneSegment (RolledLogStore, two daily files).
+ 8  EvidenceSetTest.aHeaderOnlyLogPairsByShape; slice 1's c36 / header-only tests.
+ 9  EvidenceSetTest.aNullFingerprintIsUnverifiedNeverAMismatch (log side and graph side).
+ plus: stale/replaced generation refused, Follow header count asks a scan, malformed/pre-header/mixed rules,
+ Project panel rows, status-line words and tooltip, bundle keys recorded/verified/printed (text and FLXA f28),
+ manifest unchanged without keys, excerpt carries headers, API delta, FactFields inventory.
+ Rule-8 witnesses: ten hand mutations (mismatch detection, null-fingerprint rule, split-on-key-change, runId(8)
+ label, rank by shape, header count as content, stale fact refusal, manifest keys, excerpt header, ⚠ on the line);
+ each failed a named test above; restored. No MG-1 mutation-gate run.
+
+WHAT WAS NOT DONE / DEFERRED
+============================
+- The scan performer (MainFrame.scanLogEvidence posting StreamHeadersObserved), the GraphOpened fingerprint
+  (graphFact) and the context/echo wiring are frame code with no headless test; covered by the by-hand list below.
+- In-app assistant manifests unchanged (see 5).
+- CoverageClaim is unchanged: a MISMATCH does not qualify or refuse coverage; the reply carries evidenceSet beside it.
+  Owner question: should a MISMATCH make the coverage claim QUALIFIED?
+- runBoundaries() (per-node level carry-over) still follows stream-end markers only, not run segments.
+- Producers that count records for a §1a stream-end marker will count the header unless they override
+  processStreamHeader (owner answer 3: noted, no change here; format-spec §1b says the count is records only).
+
+SPEC-VS-REALITY
+===============
+- Spec §4.5 "pairs" is an offer: discovery never selects (M35.4/D-AI5); the matching build is ranked first and
+  labelled MATCH. A project/bundle/manual open is judged after the fact with the status line.
+- Spec says known-unstable fingerprints show "not verified"; with FLX-1010 they cannot be built, so the analyser's
+  only signal is a null fingerprint, which it reads as UNVERIFIED.
+- The copied spec drops revision 2's "Work and size" section (plans) and the compiler-repository file references.
+
+WHAT THE REVIEWER MUST STILL CHECK BY HAND (Swing is not unit-tested)
+====================================================================
+Build the jar (mvn package) and use a 1.1.4 log + its graphml:
+ [ ] Open log + matching graphml: status bar ends "· graph shape matches"; hover shows "Graph shape: … — …"; the
+     Project panel's graph section has a "graph shape matches" row with both fingerprints.
+ [ ] Open the same log with a graphml of another shape (Sources ▸ Open GraphML…): "⚠ graph shape does not match" on
+     the bar and a WARN row; the graph stays open; it stays after Follow ticks and a filter change.
+ [ ] A pre-1.1.4 log (src/test/resources/sample.yml) + any graph: "graph not verified", nothing else changed.
+ [ ] Close the graph: the words leave the bar; reopen another log: no stale verdict before its scan lands.
+ [ ] Sources ▸ Find GraphML in source roots… with two builds in a root: the matching one is listed first, its line
+     ends "graph shape matches the log"; nothing is opened by the dialog itself.
+ [ ] A log with three runs (restarts): three "Run …" rows under the log in the Project panel.
+ [ ] Follow a 1.1.4 log and append a header with a different shape: the bar moves to the mismatch.
+ [ ] Capture a bundle (report {bundle}) and run `--verify`: graph key / run key lines; an excerpt bundle opens with
+     the right status.
+ [ ] analyser_context over MCP: graphPairing.evidenceSet present with a graph open and no log? (it is absent then:
+     no pair) — and present above the fresh-start return when both are open.
+
+TEST COUNTS
+===========
+See the final paragraph appended below, from the last `mvn -o test` on this tree.
+`mvn -o test` (normal headless build) on the final tree: Tests run: 4525, Failures: 0, Errors: 0, Skipped: 381 —
+BUILD SUCCESS (slice 1 ended at 4500; +25 here). The 381 skips are the frame/Swing suites under the build's forced
+headless mode; frame suites were NOT run (they need a display and the shared display lock).
+Note: at the feature commit alone (2cb1eff2) CanonicalSkillsTest's published-index check fails by construction — the
+index can only name a revision that already holds the skill's bytes — and the next commit re-pins it. Same as the
+2026-10-25/26 re-pins.
+mkdocs build --strict: passes (scratch venv). Rule-1 sweep: prints nothing.
