@@ -31,9 +31,11 @@ removing or moving an image. *Used on* names each page by its nav title; **unuse
 | `ask-menu.png` | Ask the assistant | `M74DocCapture.java`, `capture-docs.py` |
 | `assistant-claude-code.png` | The assistant panel | `M74DocCapture.java`, `capture-docs.py` |
 | `assistant-in-app.png` | The assistant panel | `M74DocCapture.java`, `capture-docs.py` |
+| `assistant-quick-switch.png` | **unused** | `M74DocCapture.java`, `capture-docs.py` |
 | `audit-log-menu.png` | Open your own log, step by step | `capture-docs.py` |
 | `audit-loop.svg` | Home | no harness |
 | `chart-delete-confirmation.png` | Graphs | `ChartDeleteDocCapture.java`, `capture-docs.py` |
+| `compiler-account-services.png` | Open your own log, step by step | `CompilerAccountDocCapture.java`, `capture-docs.py` |
 | `conv-chart-and-report.png` | Sample conversations | `capture-conversations.py` |
 | `conv-deploy-uat.png` | Sample conversations | `capture-conversations.py` |
 | `conv-what-happened.png` | Sample conversations | `capture-conversations.py` |
@@ -69,6 +71,10 @@ removing or moving an image. *Used on* names each page by its nav title; **unuse
 | `screenshot-dark.png` | Home | `capture-docs.py` |
 | `screenshot-light.png` | **unused** | `capture-docs.py` |
 | `settings-assistant.png` | Settings reference | `M74DocCapture.java`, `capture-docs.py` |
+| `setup-ai-choice.png` | **unused** | `AiSetupDocCapture.java`, `capture-docs.py` |
+| `setup-ai-client.png` | **unused** | `AiSetupDocCapture.java`, `capture-docs.py` |
+| `setup-ai-first-run.png` | **unused** | `AiSetupDocCapture.java`, `capture-docs.py` |
+| `setup-ai-inside.png` | **unused** | `AiSetupDocCapture.java`, `capture-docs.py` |
 | `source-navigation.png` | Source navigation | `capture-docs.py` |
 | `sources-menu.png` | Open your own log, step by step | `capture-docs.py` |
 | `spotlight-dark.png` | Spotlights, walks and reels | `capture-docs.py` |
@@ -82,7 +88,7 @@ removing or moving an image. *Used on* names each page by its nav title; **unuse
 | `spring-starter-preview.png` | Spring authoring step by step | no harness |
 | `spring-validation-clean.png` | Spring authoring step by step | `capture-spring-authoring.py` |
 | `spring-validation-finding.png` | Spring authoring step by step | `capture-spring-authoring.py` |
-| `start-page.png` | Guided start with an external assistant, Guided tour and sample project, Start here, The start page | `capture-docs.py` |
+| `start-page.png` | Guided start with an external assistant, Guided tour and sample project, Open your own log, step by step, Start here, The start page | `capture-docs.py` |
 | `template-picker.png` | **unused** | `TemplatePickerDocCapture.java`, `capture-docs.py` |
 | `topology-explore.png` | Topology & step-through | `capture-docs.py` |
 | `topology-step-through.png` | Topology & step-through | `capture-docs.py` |
@@ -190,9 +196,9 @@ Older capture audits (2026-09-21 to 2026-09-29) are in this file's git history.
 `setup-ai-inside.png` and `setup-ai-client.png` on a fresh isolated home with no log and no `assistant.rest`, from a
 jar copied under the capture root, with a stub `claude`. Neither set is committed yet: the session that wrote M77-4
 had no Screen Recording grant, so the harness drove every screen to its state and took no image. Until they are
-regenerated, `start-page.png` still shows the retired *Connect an assistant* block and `settings-assistant.png` its
-*Connect an AI client…* button. Regenerate with `--start-page`, `--m74` and `--setup-ai`, read every string, and only
-then reference the new images from the pages.
+regenerated, `settings-assistant.png` still shows its *Connect an AI client…* button. Regenerate with `--m74` and
+`--setup-ai`, read every string, and only then reference the new images from the pages. `start-page.png` was
+regenerated with `--start-page` on 2026-11-03 and shows the current *How do you want AI to work* block.
 
 The harness now refuses a capture home that is, or runs through, a symbolic link (`require_real_home`,
 `DocShot.requireRealHome`): the analyser resolves `user.home` to its real path, and a walk under a symlinked home showed

@@ -1,7 +1,7 @@
 # Open your own log, step by step
 
-You have an audit log from your own processor and want to read it. This page takes you from opening the file to a
-log whose lines lead to their source. Only the first step is needed; each later one adds a view.
+You have an audit log from your own processor and want to read it. This page takes you from installing the analyser
+to a log whose lines lead to their source. Steps 0 and 1 are needed; each later one adds a view.
 
 You need a log your processor wrote ([Producing an audit log](producing-a-log.md)). To look around first with nothing
 of your own, use the [guided tour or the sample project](start/tour-and-sample.md).
@@ -12,21 +12,7 @@ The analyser runs through [JBang](https://www.jbang.dev), which also fetches Jav
 
 **Install JBang** (once), then open a new terminal so `jbang` is on your PATH:
 
-=== "macOS / Linux"
-
-    ```bash
-    curl -Ls https://sh.jbang.dev | bash -s - app setup
-    ```
-
-    or, on macOS with Homebrew: `brew install jbangdev/tap/jbang`
-
-=== "Windows (PowerShell)"
-
-    ```powershell
-    iex "& { $(iwr https://ps.jbang.dev) } app setup"
-    ```
-
-    or `choco install jbang`, or `scoop install jbang`
+--8<-- "snippets/jbang-install.md"
 
 **Install the analyser** as an `analyser` command, and start it:
 

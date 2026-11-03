@@ -1,27 +1,14 @@
 # Install & run
 
-Requires **JDK 21+**. The app is a single self-contained jar (FlatLaf is bundled) — no installer.
+The app is a single self-contained jar (FlatLaf is bundled) — no installer. With JBang (below) you need nothing else:
+JBang fetches Java 21 if you have none. To run the [plain jar](#plain-download) you need **JDK 21+**.
 
 ## 1. Install JBang
 
 [JBang](https://www.jbang.dev) runs the analyser and fetches a JDK if you have none. Install it once, then open a new
 terminal so `jbang` is on your PATH (`jbang --version` checks it):
 
-=== "macOS / Linux"
-
-    ```bash
-    curl -Ls https://sh.jbang.dev | bash -s - app setup
-    ```
-
-    or, on macOS with Homebrew: `brew install jbangdev/tap/jbang`
-
-=== "Windows (PowerShell)"
-
-    ```powershell
-    iex "& { $(iwr https://ps.jbang.dev) } app setup"
-    ```
-
-    or `choco install jbang`, or `scoop install jbang`
+--8<-- "snippets/jbang-install.md"
 
 More options: [jbang.dev/download](https://www.jbang.dev/download/).
 

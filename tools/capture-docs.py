@@ -23,6 +23,7 @@ Usage
     python3 tools/capture-docs.py --projects-menu     # Project, Sources, Audit log + the tutorial's ringed Project shot
     python3 tools/capture-docs.py --template-picker   # the template picker + the tutorial's ringed copy of it
     python3 tools/capture-docs.py --chart-delete      # the Graph tab's delete confirmation (its real words)
+    python3 tools/capture-docs.py --compiler-account  # AI ▸ Compiler account…, list open on Production/Staging; in-memory store, never the keychain
     python3 tools/capture-docs.py --keep     # leave the app running afterwards
 
 Runs the app under an isolated home (/tmp/analyser-docs/home, by its REAL path — /private/tmp/… on macOS) so no real
@@ -596,7 +597,8 @@ def capture_compiler_account():
     if EXPORT_DIR.exists():
         shutil.rmtree(EXPORT_DIR)
     EXPORT_DIR.mkdir(parents=True)
-    stage_mcp_setup_launchers()
+    CAPTURE_JAR.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(jar(), CAPTURE_JAR)   # the jar only: this capture needs no launcher or client stubs
     classes = CAPTURE_ROOT / "classes"
     result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(REPO / "tools" / "DocShot.java"),
                              str(REPO / "tools" / "CompilerAccountDocCapture.java")], capture_output=True, text=True)

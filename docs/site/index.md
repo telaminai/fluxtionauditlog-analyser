@@ -64,21 +64,7 @@ cycle shaded](assets/screenshot-dark.png)
 
 Install [JBang](https://www.jbang.dev) once (it fetches Java 21 if you have none), then run the analyser:
 
-=== "macOS / Linux"
-
-    ```bash
-    curl -Ls https://sh.jbang.dev | bash -s - app setup
-    ```
-
-    or, on macOS with Homebrew: `brew install jbangdev/tap/jbang`
-
-=== "Windows (PowerShell)"
-
-    ```powershell
-    iex "& { $(iwr https://ps.jbang.dev) } app setup"
-    ```
-
-    or `choco install jbang`, or `scoop install jbang`
+--8<-- "snippets/jbang-install.md"
 
 ```bash
 jbang analyser@telaminai/fluxtionauditlog-analyser

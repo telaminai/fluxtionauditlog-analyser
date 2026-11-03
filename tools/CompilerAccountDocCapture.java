@@ -27,6 +27,7 @@ public final class CompilerAccountDocCapture {
 
     /** Holds nothing and keeps nothing: the dialog reads "not connected" from it. */
     private static final class EmptyStore implements CredentialStore {
+        // the words CredentialStores.keychain shows on macOS (CredentialStores.java, description(), item SERVICE); keep in step
         @Override public String description() { return "macOS Keychain (item \"fluxtion-analyser-compiler-account\")"; }
         @Override public Optional<CompilerCredential> load() { return Optional.empty(); }
         @Override public void save(CompilerCredential credential) { }
