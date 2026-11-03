@@ -97,7 +97,8 @@ On first start, the Analyser offers **one consent screen** that registers everyt
 person's own assistant in their project folder:
 
 1. **Context.** The assistant reads the project's context through the Analyser: profile, processors, graph,
-   previous runs and evidence (existing `analyser_*` verbs).
+   previous runs, evidence, and the project's **runbooks** (existing `analyser_*` verbs). The runbooks, not the
+   Analyser, say how this project is built, generated and run.
 2. **Work.** The assistant edits the code, generates the processor and builds, with its own tools.
 3. **Run.** The assistant runs the application locally, with its own tools. The run writes an audit log.
 4. **Present.** The assistant tells the Analyser what to show: the changed files, the graph, the run's output and
@@ -176,7 +177,9 @@ No run, input, stop or generate tool: the assistant does those with its own tool
 
 - It runs no project code: no `Main`, no processor, no second JVM, no class loading of project classes.
 - It performs no generation and holds no compiler credential.
-- It interprets no runbook and implements no domain behaviour (the 2026-09-19 decision, unchanged).
+- It has **no build knowledge**. How to build, generate and run a project lives in the project's runbooks and in
+  the skills. The Analyser makes them available as context: the profile records runbook pointers, never contents
+  (M38). It interprets no runbook and implements no domain behaviour (the 2026-09-19 decision, unchanged).
 
 ### 6.3 The canvas: display only
 
@@ -239,8 +242,10 @@ device sign-in and generation proxy (`account.mjs`, `playground_generate`), the 
 2. **stdout stays clean.** Already enforced for the bridge.
 3. **Presented output is the assistant's claim.** The canvas shows what the assistant sends. Label it as reported,
    and point to the audit log in the Analyser, which the Analyser reads itself, as the evidence.
-4. **Skills carry the workflow.** With the assistant doing all the work, missing or stale skills are the main way
-   the experience goes wrong. Pin and version them with the Analyser.
+4. **Runbooks and skills carry the workflow.** With the assistant doing all the work and the Analyser holding no
+   build knowledge, missing or stale runbooks and skills are the main way the experience goes wrong. Pin and
+   version the skills with the Analyser. Make a project with no runbook visible as such, rather than letting the
+   assistant improvise.
 5. **One Analyser, several assistants.** Two sessions may present at once. Key presentations so they do not
    collide, or refuse the second with a clear message.
 6. **Broad registration must not surprise.** One consent screen, undo for every item, no overwrites (§4).
