@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.40.2] - 2026-11-03
+
 ### Changed
 
 - **Getting started now opens with installing the analyser.** The guide starts with installing JBang (macOS, Linux
