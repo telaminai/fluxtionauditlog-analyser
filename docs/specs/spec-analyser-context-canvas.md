@@ -27,12 +27,42 @@ copied endpoint token, admin account or compiler sign-in is needed for setup and
 
 The first prototype is a **setup skill using released Analyser 1.40.2**, not a new installer or new Java flags.
 It may use more than one assistant tool call: the person makes one request. A documented JBang command provisions
-Java and installs the app (including any disclosed JBang shell/PATH setup); the assistant opens it; the existing **Set up AI → Your own AI client** flow handles
+Java and installs the app (including disclosed JBang shell/PATH/JAVA_HOME setup); the assistant opens it; the existing **Set up AI → Your own AI client** flow handles
 consent/registration. The person may need to reload their assistant, then the assistant calls `analyser_context`.
 
 This prototype intentionally retains the existing per-client setup UI. It does not claim to have implemented the
 single consolidated consent screen, automatic Desktop config editing or the new presentation view. Its release
 can precede the canvas only after an independent onboarding trial and the release gates in §10.
+
+### 2.1.1 Executable onboarding review and required corrections
+
+The external 2026-11-03 macOS/Claude Code trial of the web skill at `823b50f` reported six passes, two failures
+and one blocked test. Its one real host `analyser_context` success used per-server PATH, test-only `--rest`
+and a per-invocation registration, not the supported UI consent/registration journey. It is not clean-machine
+or GUI-host acceptance. The verbatim report and internal review are retained on `feat/analyser-setup-skill`.
+
+C0 must include these corrections before another acceptance trial:
+
+- A JBang launcher invokes `jbang` by name. On macOS/Linux the host entry needs the resolved install `bin` on
+  its own PATH, plus resolved JBANG_DIR and custom cache configuration where applicable. Do not assume the
+  host reads shell profiles. 1.40.2's automatic registration omits this environment; use external-access consent
+  in the app, then Generic MCP and the documented host registration flow with the reviewed environment.
+  Preserve other entries; explicitly approve any replacement. Check the actual target when JBANG_DIR is custom.
+- Explain the native trust popup before starting. Supervise the installation and track its children, with bounded
+  waits and cleanup of only its own process tree; if the assistant cannot do that, use the person's terminal.
+  Never kill all Java processes, silently persist trust or leave an orphan popup after a timeout.
+- Disclose potential JAVA_HOME edits as well as PATH/alias changes before installation consent. JBang can
+  provision a bootstrap JDK and a separate application JDK. Retain private before-copies for precise rollback;
+  preserve previous settings and concurrent edits. JBANG_DIR alone does not isolate shell-profile changes.
+- Supply an executable checksum recipe honoring JBANG_CACHE_DIR and JBANG_DIR, with a failure on no pinned
+  match. Check the launcher's release URL separately; an unrelated matching cache entry is insufficient.
+- Ignore the bridge's `--rest` recovery hint during setup; obtain external-access consent in Set up AI instead.
+  Keep startup output private because 1.40.2 can print an endpoint-token prefix.
+
+C1 must remove the manual environment correction by generating the same verified launch environment/vector
+for Generic MCP, CLI registrations and probes. Test minimal GUI PATH and custom installation/cache paths.
+This specification changes no released implementation. End-to-end consent, host reload, same-name conflicts,
+Desktop/Codex and clean-machine tests remain release gates rather than inferred passes.
 
 ### 2.2 Full one-command setup contract
 

@@ -23,3 +23,18 @@ This is a documentation/specification change. No new canvas, installer flag, Jav
 
 Independent review and recheck completed: `handoff_2026_11_03_option_c_report.txt`.
 Four documentation/prototype findings addressed; future implementation and cold-host release gates remain open.
+
+## External onboarding follow-up — 2026-11-03
+
+Specification §2.1.1 now records the external skill review at web commit 823b50f: 6 PASS, 2 FAIL, 1 BLOCKED.
+The native Claude context call used a per-server PATH, temporary registration and test-only external-access
+flag; this does not pass the intended consent/reload journey. The verbatim report lives in web branch
+feat/analyser-setup-skill at docs/handoff/handoff_2026_11_03_analyser_setup_report.txt.
+
+C0 requires explicit launcher environment, advance trust/JAVA_HOME disclosure, supervised timeout recovery,
+executable checksum validation and rejection of the --rest recovery shortcut. C1 must generate the corrected
+environment itself. No Analyser runtime source was changed.
+
+Executed targeted SpecLinksResolveTest and TrailingWhitespaceTest: 5 passed, no skips or failures.
+Tracked-file public sweep passed excluding only the two rule-definition files. Full suite results above remain
+prior evidence; the full runtime suite was not repeated for this specification-only correction.

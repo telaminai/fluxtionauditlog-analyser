@@ -17,7 +17,7 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 
 ## Delivery order
 
-- ◧ [OPTION-C] Context/presentation and one-request setup: r1 spec reviewed and findings fixed; web setup-skill prototype first, cold-host trial pending. ▸ [spec](spec-analyser-context-canvas.md) · [handoff](../handoff/handoff_2026_11_03_option_c.txt)
+- ◧ [OPTION-C] Context/presentation and one-request setup: r1 spec reviewed; external setup trial found launcher/consent gaps, skill corrections in review; end-to-end host acceptance pending. ▸ [spec](spec-analyser-context-canvas.md) · [handoff](../handoff/handoff_2026_11_03_option_c.txt)
 
 - ◧ [INTEG-R7] Desktop acceptance remains open: complete Mac run 326/1/0/3 (T2 right-click control missing plus native skips); final ownership correction passes 21 affected cases. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
 - ☐ [INTEG-R8] Diagnose background EDT ownership exceptions in one passing grouped usability run; no proven production cause or named failing regression yet. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
