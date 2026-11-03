@@ -75,7 +75,21 @@ jbang app install analyser@telaminai/fluxtionauditlog-analyser   # once: JDK if 
 analyser --setup-assistant                                       # once: wraps the M42 registration
 ```
 
-(The setup flag name is illustrative; the AI menu already offers the same registration.) Then:
+(The setup flag name is illustrative; the AI menu already offers the same registration.)
+
+**For someone with no JBang or Java yet**, branch `prototype/builtin-claude-onboarding` already has a one-line
+zero-install launch. JBang's own installer fetches JBang and Java 21, then starts the jar:
+
+```
+curl -fsSL https://sh.jbang.dev | bash -s - --java 21 <analyser jar URL>        # macOS / Linux
+iex "& { $(iwr -useb https://ps.jbang.dev) } --java 21 <analyser jar URL>"     # Windows PowerShell
+```
+
+That prototype runs Claude Code *inside* the Analyser. Its test asserts it never registers an external MCP client.
+Option C needs the opposite: register the bridge with the person's own assistant. The launch line carries over; the
+registration step is new (§10, open question).
+
+Then:
 
 1. In Claude Code, inside the project folder, the person asks to see or change the project.
 2. The assistant launches `analyser --mcp`. No window appears. **The project root defaults to the folder the
@@ -174,8 +188,10 @@ waits for `/action`, then forwards the call. If it cannot, it returns a clear er
 
 ## 6. The retired Node spike as reference
 
-The spike is retired, but it is a working reference and a test suite. **Archive it before deleting the branch**,
-and record the archive's location here.
+The spike is retired, but it is a working reference and a test suite. **Archived 2026-11-03** as fluxtion-web tag
+`archive/node-canvas-spike-2026-11-03` (commit `848f330`, the head of the deleted branch
+`fix/canvas-worker-isolation`; PR #39 closed). Read files from it with
+`git show archive/node-canvas-spike-2026-11-03:<path>`.
 
 Port, adapting to §5:
 - the session protocol (`scripts/canvas/core.mjs`, the HTTP layer in `canvas.mjs`);
@@ -243,7 +259,7 @@ workflow twice, including from the extracted ZIP. A full generation loop on the 
 
 ## 10. Suggested steps
 
-1. **Archive and retire the spike** (§6). Record the archive here.
+1. ~~Archive and retire the spike~~ **Done 2026-11-03** (§6).
 2. **Decide where the Java runs** (§5.2), and write the spec. Include the rule 9 design (§5.5) and the
    `decisions.md` entry.
 3. **Spike in the Analyser:** `playground_present` and `_status` served from `--mcp`, with the project root
@@ -258,6 +274,9 @@ workflow twice, including from the extracted ZIP. A full generation loop on the 
 
 - Local child JVM or browser runtime (§5.2)? The recommendation is the local JVM, but the owner's wording leaves
   both open.
-- `--setup-assistant` as a new CLI flag, or only the existing AI menu?
+- `--setup-assistant` as a new CLI flag, or only the existing AI menu? Should the zero-install launch register the
+  bridge with the person's assistant **by default** (with consent), so install and connection are one step?
+- How do option C (an external assistant drives the Analyser) and the onboarding prototype (Claude Code runs inside
+  the Analyser) coexist? Are they two doors to one setup, or does one replace the other?
 - Consent model for opening the window (§5.6)?
 - Is the browser page still needed if Java runs locally, or can the Analyser window host the inputs and output?
