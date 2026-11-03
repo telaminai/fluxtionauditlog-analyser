@@ -61,7 +61,9 @@ The sequence is:
 
 Cancellation before confirmation makes no registrations, enables no external access and starts no AI session.
 Bootstrap downloads already made are identified as retained caches. Retry after a partial failure resumes only
-unfinished approved actions; an interrupted or failed registration is not reported as success. A network/auth/
+unfinished approved actions; an interrupted or failed registration is not reported as success. The current 1.40.2 wizard retains already-enabled external access when cancelled; it offers to turn it off
+when this wizard enabled it, while preserving pre-existing access;
+the prototype must state that rather than promise rollback. A network/auth/
 policy failure gets its exact stage and supported next step, not a workaround that weakens host policy.
 
 Installing skills is not permission to execute project code. Actual authoring follows the assistant's normal
@@ -95,7 +97,7 @@ An indeterminate lookup is a conflict, not an absent entry. Do not silently repl
 | Claude Code | Existing CLI, user scope; show resolved executable/profile | Own tools perform edits/build/run under its permissions |
 | Codex | Existing CLI; preserve actual configuration/profile scope | Own workspace/shell permissions still apply |
 | Claude Desktop / generic | Existing copy/save flow first; automated JSON merge only after dedicated tests | Analyser tools provide context/display; local editing/build tools require separate support/consent |
-| Built-in Claude | Existing private per-window connection and Safe/Full controls | Safe analysis remains read-only; Full is a separately enabled authoring posture |
+| Built-in Claude | Existing private per-window connection and Safe/Full controls | Safe analysis keeps read-only built-in file tools; hosted Analyser mutations retain their existing approval gates. Full is separately enabled |
 
 Track an installation receipt per action: component/version, client/profile/scope, exact non-secret entry written,
 previous access state and result. Undo removes only entries/files still matching what this setup installed.
@@ -213,7 +215,8 @@ Do not count an SDK bridge probe as a native assistant trial. The prototype may 
 actually tested; do not delay useful supported platforms by implying untested ones work.
 
 **C1 — Consolidated setup.** Preserve internal-only Build and Safe/Full guards; test explicit consent, no side
-effects on Cancel, passive detection, profile scope, conflicts, partial retries and ownership-aware undo. Named
+effects on Cancel before confirmation, accurate partial-state disclosure after cancellation, passive detection,
+profile scope, conflicts, partial retries and ownership-aware undo. Named
 wrong-result witnesses must demonstrate that pre-existing config survives and a real host call, not a probe,
 sets Connected. No change to action-socket permissions or automatic model startup.
 

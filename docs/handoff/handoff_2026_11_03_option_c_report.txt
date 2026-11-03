@@ -1,0 +1,80 @@
+# Independent review — option C and setup skill
+
+Reviewed 2026-11-03. Analyser: `015f4c08d8b8fd6925578d10dfd5a4a7e65ddbdf`, against main/released v1.40.2 `10841b2ad2f7b8ed99c29ac046e5b74e93c3a01f`. Web: `823b50f49c0f31cc7228ba894cf90c62d61cf5fd`, against `4f437b0`.
+
+Verdict: **ready after the named documentation changes for continued prototype review; not ready for public release**. The existing fresh-machine, GUI and native-host acceptance gates remain appropriate. This review does not demand delivery of the new canvas or consolidated installer before the released-app skill.
+
+## Findings
+
+### F1 — P2: cancellation falsely promises external access is off
+
+**Location:** web `web/static/skills/analyser-setup/SKILL.md:119`.
+
+“Cancel leaves the app usable without external access” is not the released wizard's behavior once the person has enabled access. At Analyser `session/node/AiSetup.java:931–947`, cancellation deliberately retains changes already applied. When this wizard enabled access, it reports that access remains on and offers **Turn it off**. `session/AiSetupExternalTest.java:320–350` explicitly describes and checks this behavior, including preservation of access enabled before the wizard. Those paths are under `src/main/java/telamin/fluxtion/audit/analyser/analyser/` and `src/test/java/telamin/fluxtion/audit/analyser/analyser/`, respectively.
+
+**Impact:** someone who approves access and later cancels registration could receive a false assurance that external access is off. Undoing it automatically would also be wrong if it predated this setup.
+
+**Targeted fix:** distinguish cancelling before consent from cancelling after an applied action. Say that completed actions remain, report the actual access/registration state, and point to the existing **Turn it off** UI when the person wants to undo access enabled by this setup. Preserve pre-existing access and registrations. No runtime change is needed.
+
+**Evidence class:** source and existing test inspection; I did not execute the GUI journey or that test.
+
+### F2 — P2: the capability table overstates Safe analysis as read-only
+
+**Location:** Analyser `docs/specs/spec-analyser-context-canvas.md:98`.
+
+The table says “Safe analysis remains read-only.” Only its built-in file tools are confined to `Read`, `Grep`, `Glob` (`session/LocalAgentPosture.java:130–131`). Its hosted Analyser tools retain changes and approvals: `LocalAgentPosture.asks():205–211` returns true for the default/Safe posture; `McpTools.java:91–92` includes file-writing `report` and `screenshot` among the approval-requiring verbs; `McpTools.java:465–468` pre-allows actions including `filter`, `goto`, `flag` and `propose`. `propose` is explicitly not read-only (`McpTools.java:31`). Source paths are under `src/main/java/telamin/fluxtion/audit/analyser/analyser/`.
+
+**Impact:** the implementation spec currently describes a stronger permission boundary than the existing product provides, potentially encouraging an incompatible implementation or inaccurate user promise. Section 4 otherwise correctly preserves the hosted route.
+
+**Targeted fix:** say “Read-only built-in workspace tools, with existing hosted Analyser actions and per-call approvals; Full separately enables the authoring posture.” Retain strict MCP config, private instance binding, hosted-only `propose` and the external-registration exclusion.
+
+**Evidence class:** source inspection, not an executed permission test.
+
+### F3 — P2: custom JBang directory support needs a registration-target check
+
+**Locations:** web `web/static/skills/analyser-setup/SKILL.md:31`, `:75–89`.
+
+The skill correctly honors `JBANG_DIR` for installation and launching, but trusts the setup UI's proposed bridge vector without checking that it represents that selected installation. Released `mcp/McpLaunchCommand.java:47–53` searches only `user.home/.jbang/bin`; it does not read `JBANG_DIR`. `ui/MainFrame.java:12863–12867` and `ui/McpSetupDialog.java:289–290` prefer that default-directory launcher over the running jar. These methods are unchanged at release tag v1.40.2, which resolves to the stated main SHA.
+
+**Trigger:** a person has an older/default `~/.jbang/bin/analyser` and deliberately installs/opens the pinned release under a custom `JBANG_DIR`. The UI can offer the default launcher for registration. With no default launcher, its fallback can instead name the currently running cached jar. Neither path demonstrates the custom durable launcher contract merely because its arguments are absolute.
+
+**Impact:** registration may target a different release or a cache-based fallback while the setup receipt identifies the intended installed release. This is a known released-app limitation, not a demand to implement a new installer now.
+
+**Targeted fix:** before approving registration, compare the displayed command with the resolved selected installation/release, identify this release's default-directory discovery limit, and stop with an explicit supported-path limitation if they differ. Do not rewrite existing registrations or silently move installations. Include custom-directory/default-launcher coexistence in the later acceptance matrix; a narrower initial supported configuration is acceptable.
+
+**Evidence class:** released source inspection and design inference. No real-profile installation or registration was performed by this reviewer.
+
+### F4 — P3: the bootstrap pipeline hides a failed initial download
+
+**Location:** web `web/static/skills/analyser-setup/SKILL.md:57` (failure handling at `:69`).
+
+`curl -fsSL ... | bash -s - app install ...` normally returns the last process's status. When curl fails before producing output, Bash receives an empty script and exits successfully. `-f` does not enable pipeline failure propagation. This weakens the instruction to stop and identify the failed stage; later launcher/checksum checks prevent it from proving a successful complete setup, but the initial operation appears successful.
+
+**Executed witness:** in Bash, shadowed only `curl` with `function curl { return 22; }`, then ran the otherwise exact documented pipeline. Exit status was **0**. The identical witness under `bash -o pipefail -c` exited **22**. No network, installer, application or configuration was touched.
+
+**Targeted fix:** run the documented pipeline in an explicitly Bash shell with `pipefail` enabled (or separately fetch and execute only on a successful fetch). Preserve the JBang argument vector. Do not rely on the invoking assistant's shell already having pipefail enabled. Record this cheap failure witness alongside the fix.
+
+## Confirmed design strengths and scope
+
+- The assistant owns project author/build/run; the Analyser owns context, evidence and presentation. The spec explicitly does not execute project classes or turn runbooks into commands.
+- Hosted/external permission separation is source-backed: `ClaudeCodeProvider.java:110–128` retains session identity and private config, strict in Safe mode; `LocalAgentPosture.java:283` excludes the person's external registration in Full; `McpBridge.java:281,333–348` separates hosted tool exposure, generation credential and call-use binding; `ActionServer.java:164–174` supports a hosted-only server with external access disabled.
+- R1–R8 have meaningful design dispositions, not invented implementation evidence. Immutable captured bytes, run/revision/epoch binding, bounded reads, owner conflicts and the optional browser's invitation/session boundary are explicitly future acceptance work.
+- A first delivery limited to the existing setup UI plus a tested public skill is useful. Do not hold that delivery for C1–C3. Initially claim only an OS/host/install configuration that passed a full native-host journey.
+- JBang's official [installation documentation](https://www.jbang.dev/documentation/jbang/latest/installation.html) supports the zero-install command shape, Java provisioning and configurable directories. Its [app-install reference](https://www.jbang.dev/documentation/jbang/latest/cli/jbang-app-install.html) supports `--java`, `--name` and the explicit replacement option. The [bootstrap source](https://raw.githubusercontent.com/jbangdev/jbang/master/src/main/scripts/jbang) distinguishes `JBANG_DIR` and `JBANG_CACHE_DIR`; the checksum lookup should honor the resolved cache rather than assume it lives under the app directory.
+- The updated shell/PATH side-effect disclosure and the warning that an absolute launcher can still depend on `jbang` resolution are appropriate. I did not repeat the author's installer trial.
+
+## Independent checks and limits
+
+Executed: both branch `git diff --check` checks passed; both worktrees were clean at initial inspection; exact reviewed SHAs and release tag were inspected; two isolated pipeline failure witnesses produced the expected contrasting statuses (original **0**, pipefail **22**). Source inspection and live primary JBang documentation were used for the other findings. During final checks, the parent began authorized fixes in both reviewed Markdown files; these are not reviewer edits and this report's verdict remains pinned to the commits above, not the parent's in-progress changes.
+
+I did not run Maven, a cold installation, the released jar, a GUI acceptance journey, native-host registration/reload/context, Windows, or profile-writing commands. The author's reported 4,094 passes/381 skips, five doc checks, skill validation and four released-jar smoke checks remain author evidence, not independent test results. No credentials or endpoint tokens were read. No repository files, real profiles, servers, production service or registrations were changed. This report is the sole written review artifact.
+
+Public-release gates remain **pending**, including true cold-host installation, host connection after reload, conflict/cancel/retry/failure behavior and supported-platform evidence. Fixing these documentation findings does not turn those pending gates into passes.
+
+## Independent working-tree recheck — 2026-11-03
+
+At the parent's request, reviewed the subsequent uncommitted fixes against F1–F4. **All four are addressed at the documentation/prototype level.** F1 now distinguishes retained completed stages, the turn-off offer when this wizard enabled access, and preservation of pre-existing access/registrations. F2 distinguishes read-only built-in file tools from the hosted Analyser's existing mutation approvals. F3 requires checking the actual registration target, explicitly identifies the 1.40.2 custom-directory limitation and stops at installed if no supported matching route is available. The checksum guidance now explicitly honors `JBANG_CACHE_DIR` independently of `JBANG_DIR`. F4 replaces streaming execution with a completed download to an owned temporary file, failure propagation and cleanup.
+
+Independently executed `python3 web/scripts/test-analyser-setup-skill.py`: **4 tests passed**, 0 failures/errors (0.122 s). It extracts the actual published Bash block and checks failed fetch, partial download, successful exact pinned arguments, and the old streaming pipeline's wrong-result witness. Both working-tree whitespace checks passed. I inspected the test implementation; its curl substitute operates only in temporary test directories and neither installs nor contacts a service. No full suites or real-profile operations were repeated.
+
+No further release-blocking documentation/prototype defect was identified in this recheck. **Release remains gated** on the existing cold-host, GUI, native assistant registration/reload/context and supported-platform trials; these working-tree checks do not establish those outcomes. This recheck applies to the inspected working-tree content, not an as-yet-uncreated follow-up commit.
