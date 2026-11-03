@@ -154,9 +154,16 @@ a log and a graph are both open, the analyser compares the two and states exactl
 | **⚠ graph shape does not match** | a header and the graph state different fingerprints | the graph on screen is not the shape that wrote this log, so a node that "never logged", and coverage, may describe the wrong graph. It is a warning that stays on screen for as long as the pair does; the graph is never closed or refused, including one you opened by hand |
 | **graph not verified** | the log has no header (a runtime before 1.1.4), a header is malformed, a header or the graph states no fingerprint, or records come before the first header | nothing proves either answer. Missing evidence is never reported as a mismatch |
 
+**A mismatch qualifies coverage.** When the shape does not match, `coverage` (and a report's coverage table) is still
+computed, but its claim is **qualified**, and the reason says the shape differs: a node that "never logged" may belong to
+a graph that did not write this log. **Graph not verified does not qualify coverage**: most logs written today carry no
+stream header, and qualifying every one of them would say nothing; the other reasons coverage is qualified or refused
+still apply.
+
 Where you see it: on the **status bar** after the record count, with the reason when you hover; and in the **Project
-panel**, as a row under the graph with both fingerprints. An agent reads it from `context.graphPairing.evidenceSet`
-(`MATCH`, `MISMATCH` or `UNVERIFIED`), with `logSourceFingerprint`, `graphSourceFingerprint` and `evidenceSetNote`; the
+panel**, as a row under the graph with both fingerprints (and, on a mismatch, that coverage over the pair is
+qualified). An agent reads it from `context.graphPairing.evidenceSet`
+(`MATCH`, `MISMATCH` or `UNVERIFIED`), with `logSourceFingerprint`, `graphSourceFingerprint`, `evidenceSetNote` and `coverageClaim`; the
 `open {graphml}` echo and `coverage` carry the same keys. **Sources ▸ Find GraphML in source roots…** (`open {discover: "graphml"}`) offers
 a graph whose fingerprint equals the log's first, ahead of one that merely declares the same node names; it still opens
 nothing for you.

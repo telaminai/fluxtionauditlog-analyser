@@ -91,7 +91,11 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         AuditInstallation auditInstallation = new AuditInstallation(openGraph);
         LogArrival logArrival = new LogArrival(gate, pairing, openGraph, effects);
         LogOpening logOpening = new LogOpening(gate, effects);
-        CoverageClaim coverageClaim = new CoverageClaim(pairing, auditInstallation, openGraph, openLog);
+        // evidence-set key: whether the graph has the shape of the graph that wrote the log; a MISMATCH qualifies the
+        // coverage claim (owner decision O3), so it is a parent of coverageClaim
+        telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceSet evidenceSet =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceSet(openLog, openGraph);
+        CoverageClaim coverageClaim = new CoverageClaim(pairing, auditInstallation, openGraph, openLog, evidenceSet);
         IgnoredParameters ignoredParameters = new IgnoredParameters();
         // M44.4c: what wider comparisons say about the pairing, bound to the pair by generation and revision
         PairingQualifier pairingQualifier = new PairingQualifier(openLog, openGraph, pairing);
@@ -131,8 +135,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // Evidence-set key (spec-evidence-set-key.md §4.5): whether the graph on screen has the SHAPE of the graph that
         // wrote the log (its stream headers' sourceFingerprint against the graph's), and the log's runs by run key.
         // Fed by StreamHeadersObserved, which the evidence scan reports; re-decided when the log or graph moves.
-        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceSet(openLog, openGraph),
-                "evidenceSet");
+        cfg.addNode(evidenceSet, "evidenceSet");
         // the Records view: what it shows and what each filter hides — measured on the node's request, published in
         // the snapshot, rendered by the "showing" label, the Records title, the Event types toggle and the empty table
         telamin.fluxtion.audit.analyser.analyser.session.node.RecordsView recordsView =

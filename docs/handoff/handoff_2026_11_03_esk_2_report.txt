@@ -94,8 +94,7 @@ WHAT WAS NOT DONE / DEFERRED
 - The scan performer (MainFrame.scanLogEvidence posting StreamHeadersObserved), the GraphOpened fingerprint
   (graphFact) and the context/echo wiring are frame code with no headless test; covered by the by-hand list below.
 - In-app assistant manifests unchanged (see 5).
-- CoverageClaim is unchanged: a MISMATCH does not qualify or refuse coverage; the reply carries evidenceSet beside it.
-  Owner question: should a MISMATCH make the coverage claim QUALIFIED?
+- CoverageClaim: RESOLVED by owner decision O3 (see "O3" below) — a MISMATCH now makes the claim QUALIFIED.
 - runBoundaries() (per-node level carry-over) still follows stream-end markers only, not run segments.
 - Producers that count records for a §1a stream-end marker will count the header unless they override
   processStreamHeader (owner answer 3: noted, no change here; format-spec §1b says the count is records only).
@@ -207,3 +206,20 @@ Each witness above was checked by reverting its fix by hand and seeing the named
 
 Test counts after the review fixes: `mvn -o test` — Tests run: 4539, Failures: 0, Errors: 0, Skipped: 381 (frame suites,
 headless; not run). mkdocs build --strict passes. Rule-1 sweep prints nothing.
+
+
+O3 — A GRAPH-SHAPE MISMATCH QUALIFIES COVERAGE (owner decision, 2026-11-03)
+==========================================================================
+- CoveragePolicy.decide gains the evidence verdict and reason: MISMATCH turns a FULL or QUALIFIED claim into
+  QUALIFIED, the reason first ("the graph shape does not match the log: <evidence reason>. The number is computable, but
+  a node that never logged may be a node of a graph that did not write this log"), any other qualification after
+  "Also:". A REFUSED claim stays refused. UNVERIFIED and MATCH change nothing (docs say why: most logs have no header).
+- coverageClaim now takes evidenceSet as a parent. REGENERATIONS: 1 more (2 for slice 5 in all). The diff is the new
+  constructor argument, evidenceSet's dirty flag and the descriptor digest; generator still 1.0.83.
+- Agreement: coverage replies claim "qualified" + claimNote; context.graphPairing.coverageClaim (new key, read by the
+  Project panel's graph-shape row, which says "coverage over this pair is qualified"); the status bar tooltip adds
+  "Coverage over this pair is qualified."; log-format.md says the same; spec §4.5 and §8 (O3) updated.
+- Failing first: EvidenceSetTest.aMismatchQualifiesTheCoverageClaim failed (FULL, expected QUALIFIED) before the fix.
+  Witnesses with the fix removed by hand: see the commit message.
+- Test counts after O3: `mvn -o test` — 4541 run, 0 failures, 0 errors, 381 skipped (frame suites, headless). mkdocs
+  build --strict passes. Rule-1 sweep prints nothing.

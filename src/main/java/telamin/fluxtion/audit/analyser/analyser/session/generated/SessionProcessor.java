@@ -551,7 +551,7 @@ public class SessionProcessor
       new telamin.fluxtion.audit.analyser.analyser.session.node.Pairing(openLog, openGraph);;
   public final transient CoverageClaim coverageClaim =
       new telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim(
-          pairing, auditInstallation, openGraph, openLog);;
+          pairing, auditInstallation, openGraph, openLog, evidenceSet);;
   public final transient PairingQualifier pairingQualifier =
       new telamin.fluxtion.audit.analyser.analyser.session.node.PairingQualifier(
           openLog, openGraph, pairing);;
@@ -641,9 +641,9 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(19);
+      new IdentityHashMap<>(20);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(19);
+      new IdentityHashMap<>(20);
 
   private boolean isDirty_actionListener = false;
   private boolean isDirty_activeProject = false;
@@ -651,6 +651,7 @@ public class SessionProcessor
   private boolean isDirty_assistantLoop = false;
   private boolean isDirty_assistantMode = false;
   private boolean isDirty_auditInstallation = false;
+  private boolean isDirty_evidenceSet = false;
   private boolean isDirty_localAgentPermission = false;
   private boolean isDirty_localAgentSession = false;
   private boolean isDirty_logEvidence = false;
@@ -1521,7 +1522,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "ccfd3c7d746b38a0f025e9822a59863bdd853be18dfa0433ac047355451c7bc2",
+              "6e917d7dec8adb9892152205093cb1373a9acfc060ddebbe7ac3181f7151f9a3",
               null));
 
   @Override
@@ -4067,7 +4068,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -4133,7 +4134,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -4317,7 +4318,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -4375,7 +4376,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -4430,7 +4431,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -5157,7 +5158,7 @@ public class SessionProcessor
     isDirty_openLog = openLog.onLogAppended(typedEvent);
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -5214,7 +5215,7 @@ public class SessionProcessor
     isDirty_openLog = openLog.onLogCleared(typedEvent);
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -5271,7 +5272,7 @@ public class SessionProcessor
     isDirty_openLog = openLog.onLogClosed(typedEvent);
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -5352,7 +5353,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -5413,7 +5414,7 @@ public class SessionProcessor
     isDirty_openLog = openLog.onLogOpened(typedEvent);
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -5510,7 +5511,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -5577,7 +5578,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -5696,7 +5697,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -5772,7 +5773,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -6099,7 +6100,7 @@ public class SessionProcessor
     }
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -6416,7 +6417,12 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(
         evidenceSet, "evidenceSet", "onStreamHeadersObserved", "OnEventHandler", typedEvent);
-    evidenceSet.onStreamHeadersObserved(typedEvent);
+    isDirty_evidenceSet = evidenceSet.onStreamHeadersObserved(typedEvent);
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(
+          coverageClaim, "coverageClaim", "recomputeOnStateChange", "OnTrigger", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
     afterEvent();
   }
 
@@ -6584,7 +6590,7 @@ public class SessionProcessor
   private void commonDispatchTail_1(Object typedEvent) {
     if (guardCheck_evidenceSet()) {
       auditInvocation(evidenceSet, "evidenceSet", "onPairChanged", "OnTrigger", typedEvent);
-      evidenceSet.onPairChanged();
+      isDirty_evidenceSet = evidenceSet.onPairChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", "OnTrigger", typedEvent);
@@ -8318,7 +8324,7 @@ public class SessionProcessor
         auditEvent(typedEvent);
         auditInvocation(
             evidenceSet, "evidenceSet", "onStreamHeadersObserved", "OnEventHandler", typedEvent);
-        evidenceSet.onStreamHeadersObserved(typedEvent);
+        isDirty_evidenceSet = evidenceSet.onStreamHeadersObserved(typedEvent);
       } else if (event instanceof TimeOrderObserved) {
         TimeOrderObserved typedEvent = (TimeOrderObserved) event;
         auditEvent(typedEvent);
@@ -8610,6 +8616,7 @@ public class SessionProcessor
     isDirty_assistantLoop = false;
     isDirty_assistantMode = false;
     isDirty_auditInstallation = false;
+    isDirty_evidenceSet = false;
     isDirty_localAgentPermission = false;
     isDirty_localAgentSession = false;
     isDirty_logEvidence = false;
@@ -8639,6 +8646,7 @@ public class SessionProcessor
     isDirty_assistantLoop = false;
     isDirty_assistantMode = false;
     isDirty_auditInstallation = false;
+    isDirty_evidenceSet = false;
     isDirty_localAgentPermission = false;
     isDirty_localAgentSession = false;
     isDirty_logEvidence = false;
@@ -8711,6 +8719,7 @@ public class SessionProcessor
       dirtyFlagSupplierMap.put(assistantLoop, () -> isDirty_assistantLoop);
       dirtyFlagSupplierMap.put(assistantMode, () -> isDirty_assistantMode);
       dirtyFlagSupplierMap.put(auditInstallation, () -> isDirty_auditInstallation);
+      dirtyFlagSupplierMap.put(evidenceSet, () -> isDirty_evidenceSet);
       dirtyFlagSupplierMap.put(localAgentPermission, () -> isDirty_localAgentPermission);
       dirtyFlagSupplierMap.put(localAgentSession, () -> isDirty_localAgentSession);
       dirtyFlagSupplierMap.put(logEvidence, () -> isDirty_logEvidence);
@@ -8737,6 +8746,7 @@ public class SessionProcessor
       dirtyFlagUpdateMap.put(assistantLoop, (b) -> isDirty_assistantLoop = b);
       dirtyFlagUpdateMap.put(assistantMode, (b) -> isDirty_assistantMode = b);
       dirtyFlagUpdateMap.put(auditInstallation, (b) -> isDirty_auditInstallation = b);
+      dirtyFlagUpdateMap.put(evidenceSet, (b) -> isDirty_evidenceSet = b);
       dirtyFlagUpdateMap.put(localAgentPermission, (b) -> isDirty_localAgentPermission = b);
       dirtyFlagUpdateMap.put(localAgentSession, (b) -> isDirty_localAgentSession = b);
       dirtyFlagUpdateMap.put(logEvidence, (b) -> isDirty_logEvidence = b);
@@ -8788,7 +8798,11 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_coverageClaim() {
-    return isDirty_auditInstallation | isDirty_openGraph | isDirty_openLog | isDirty_pairing;
+    return isDirty_auditInstallation
+        | isDirty_evidenceSet
+        | isDirty_openGraph
+        | isDirty_openLog
+        | isDirty_pairing;
   }
 
   private boolean guardCheck_designSession() {

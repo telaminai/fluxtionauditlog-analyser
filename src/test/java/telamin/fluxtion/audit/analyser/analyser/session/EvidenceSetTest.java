@@ -38,7 +38,7 @@ class EvidenceSetTest {
     }
 
     static SessionEvents.GraphOpened graph(String fingerprint) {
-        return new SessionEvents.GraphOpened("/graphs/quote.graphml", "OPENED", Set.of("a"), List.of("A"), null, fingerprint);
+        return new SessionEvents.GraphOpened("/graphs/quote.graphml", "OPENED", Set.of("a"), List.of("EventLogManager"), null, fingerprint);
     }
 
     private static SessionDriver opened(FakeSessionAdapter a) {
@@ -184,5 +184,25 @@ class EvidenceSetTest {
         d.post(new SessionEvents.LogContentObserved(g, 3, 0, "unknown", 0, null, 2));
         long after = a.performed.stream().filter(SessionEffects.ScanLogEvidenceEffect.class::isInstance).count();
         assertEquals(scans + 1, after, "the second header, with no record after it, moved the content: " + a.performed);
+    }
+
+    @Test
+    @DisplayName("O3: a graph-shape MISMATCH makes a FULL coverage claim QUALIFIED; UNVERIFIED and MATCH leave it")
+    void aMismatchQualifiesTheCoverageClaim() {
+        for (String[] c : new String[][]{{SHAPE_B, "QUALIFIED"}, {SHAPE_A, "FULL"}, {null, "FULL"}}) {
+            FakeSessionAdapter a = new FakeSessionAdapter();
+            SessionDriver d = opened(a);
+            long g = d.snapshot().logGeneration();
+            d.post(new SessionEvents.StreamHeadersObserved(g, List.of(header(SHAPE_A, "run-1", 0)), 3));
+            d.post(graph(c[0]));
+            var claim = d.snapshot().claim();
+            assertEquals(c[1], claim.claim().name(), "graph " + c[0] + ": " + claim.reason());
+            if (c[1].equals("QUALIFIED")) {
+                assertTrue(claim.reason().startsWith("the graph shape does not match the log: the fingerprints differ"),
+                        claim.reason());
+                assertFalse(claim.reason().toLowerCase(java.util.Locale.ROOT).contains("same build"));
+                assertFalse(claim.reason().toLowerCase(java.util.Locale.ROOT).contains("different build"));
+            }
+        }
     }
 }

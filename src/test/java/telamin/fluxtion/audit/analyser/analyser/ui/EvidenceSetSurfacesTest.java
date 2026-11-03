@@ -43,6 +43,10 @@ class EvidenceSetSurfacesTest {
         }
         assertTrue(MainFrame.evidenceTooltip("a finding", mismatch).contains("a finding"), "the log's findings stay");
         assertNull(MainFrame.evidenceTooltip(null, EvidenceSetState.NONE));
+        var qualified = new telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy.Assessment(
+                telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy.Claim.QUALIFIED, "x");
+        assertTrue(MainFrame.evidenceTooltip(null, mismatch, qualified).endsWith("Coverage over this pair is qualified."));
+        assertFalse(MainFrame.evidenceTooltip(null, unverified, qualified).contains("Coverage"), "UNVERIFIED says nothing of it");
     }
 
     @Test
@@ -74,6 +78,10 @@ class EvidenceSetSurfacesTest {
         assertEquals("⚠ graph shape does not match", shape.primary());
         assertEquals(ProjectModel.Tone.WARN, shape.tone());
         assertEquals("the shapes differ", shape.secondary());
+        pair.put("coverageClaim", "qualified");   // O3: the session's claim beside the verdict
+        assertEquals("the shapes differ — coverage over this pair is qualified", ProjectModel.from(ctx).section(ProjectModel.GRAPH)
+                .rows().stream().filter(r -> r.primary().contains("graph shape")).findFirst().orElseThrow().secondary());
+        pair.remove("coverageClaim");
         assertEquals("log aaaaaaaaaaaa… · graph bbbbbbbbbbbb…", shape.provenance());
         // review F11: every shape the log states has a human surface too
         pair.put("logSourceFingerprints", java.util.Arrays.asList("aaaaaaaaaaaaaaaaaaaa", "cccccccccccccccc", null));

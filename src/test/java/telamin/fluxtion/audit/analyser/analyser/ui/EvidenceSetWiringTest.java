@@ -90,6 +90,7 @@ class EvidenceSetWiringTest {
         assertEquals(SHAPE, pair.get("logSourceFingerprint"));
         assertEquals(SHAPE, pair.get("graphSourceFingerprint"));
         assertNotNull(pair.get("evidenceSetNote"));
+        assertEquals("full", pair.get("coverageClaim"), "the session's coverage claim beside the verdict (O3)");
         Map<String, Object> none = new LinkedHashMap<>();
         MainFrame.putEvidenceSet(none, d.snapshot(), false);
         assertTrue(none.isEmpty(), "no graph shown: nothing is said about a pair");
@@ -113,6 +114,27 @@ class EvidenceSetWiringTest {
     @Test
     @DisplayName("coverage over a pair carries evidenceSet with both fingerprints (ActionExecutor, socket level)")
     void coverageCarriesTheEvidenceSet() throws Exception {
+        ActionResult reply = coverage(null);
+        assertTrue(reply.ok(), String.valueOf(reply.toMap()));
+        assertEquals("MATCH", reply.payload().get("evidenceSet"), String.valueOf(reply.payload()));
+        assertEquals(SHAPE, reply.payload().get("logSourceFingerprint"));
+        assertEquals(SHAPE, reply.payload().get("graphSourceFingerprint"));
+        assertNull(reply.payload().get("claim"), "a match leaves a FULL claim alone");
+    }
+
+    @Test
+    @DisplayName("O3: coverage over a graph of another shape is QUALIFIED, and says why in the evidence set's words")
+    void coverageOverAMismatchIsQualified() throws Exception {
+        ActionResult reply = coverage("0000other0shape");
+        assertTrue(reply.ok(), "qualified, never refused (D2): " + reply.toMap());
+        assertEquals("MISMATCH", reply.payload().get("evidenceSet"));
+        assertEquals("qualified", reply.payload().get("claim"));
+        assertTrue(String.valueOf(reply.payload().get("claimNote")).startsWith(
+                "the graph shape does not match the log: the fingerprints differ"), String.valueOf(reply.payload()));
+    }
+
+    /** Coverage through a real executor over a real session; {@code otherShape} replaces the graph's fingerprint. */
+    private static ActionResult coverage(String otherShape) throws Exception {
         var holder = new java.util.concurrent.atomic.AtomicReference<ActionResult>();
         var store = new HeapLogStore(log());
         SwingUtilities.invokeAndWait(() -> {
@@ -122,7 +144,9 @@ class EvidenceSetWiringTest {
             for (Object f : MainFrame.evidenceScanFacts(d.snapshot().logGeneration(), store, null, null)) d.post(f);
             TopologyPanel panel = new TopologyPanel();
             panel.load(GRAPHML);
-            d.post(MainFrame.graphOpenedFact(GRAPHML, "OPENED", GraphMlParser.parse(GRAPHML), List.of("EventLogManager"), null));
+            var fact = MainFrame.graphOpenedFact(GRAPHML, "OPENED", GraphMlParser.parse(GRAPHML), List.of("EventLogManager"), null);
+            d.post(otherShape == null ? fact : new SessionEvents.GraphOpened(fact.graphPath(), fact.source(),
+                    fact.declaredNodeIds(), fact.nodeTypes(), null, otherShape, fact.toolchainVersion()));
             var filter = new FilterState();
             var tabs = new GraphTabs();
             tabs.bind(store, filter);
@@ -133,11 +157,7 @@ class EvidenceSetWiringTest {
             executor.bindSessionSnapshot(d::snapshot);
             holder.set(executor.render("coverage", Map.of()));
         });
-        ActionResult reply = holder.get();
-        assertTrue(reply.ok(), String.valueOf(reply.toMap()));
-        assertEquals("MATCH", reply.payload().get("evidenceSet"), String.valueOf(reply.payload()));
-        assertEquals(SHAPE, reply.payload().get("logSourceFingerprint"));
-        assertEquals(SHAPE, reply.payload().get("graphSourceFingerprint"));
+        return holder.get();
     }
 
     private static void open(SessionDriver d) {

@@ -91,6 +91,7 @@ public record ProjectModel(List<Section> sections) {
             "graphPairing.auditLogging", "graphPairing.auditLoggingNote",
             "graphPairing.evidenceSet", "graphPairing.evidenceSetStatus", "graphPairing.evidenceSetNote",
             "graphPairing.logSourceFingerprint", "graphPairing.logSourceFingerprints", "graphPairing.graphSourceFingerprint",
+            "graphPairing.coverageClaim",
             "log.segments.label", "log.segments.firstRecord", "log.segments.lastRecord", "log.segments.records",
             "processorDeclarations.name", "processorDeclarations.kind", "processorDeclarations.status",
             "savedGraphs.name", "savedGraphs.open", "savedGraphs.input",
@@ -344,7 +345,9 @@ public record ProjectModel(List<Section> sections) {
             if (pair.get("evidenceSet") != null) {
                 String status = str(pair.get("evidenceSetStatus"));
                 boolean mismatch = "MISMATCH".equals(pair.get("evidenceSet"));
-                rows.add(new Row(mismatch ? "⚠ " + status : status, str(pair.get("evidenceSetNote")), null,
+                String note = str(pair.get("evidenceSetNote"));
+                if (mismatch && "qualified".equals(pair.get("coverageClaim"))) note += " — coverage over this pair is qualified";
+                rows.add(new Row(mismatch ? "⚠ " + status : status, note, null,
                         "log " + logPrints(pair) + " · graph "
                                 + shortPrint(pair.get("graphSourceFingerprint")),
                         mismatch ? Tone.WARN : "MATCH".equals(pair.get("evidenceSet")) ? Tone.NORMAL : Tone.MUTED,

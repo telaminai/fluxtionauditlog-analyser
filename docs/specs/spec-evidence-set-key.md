@@ -106,7 +106,8 @@ text. A version-1 reader refuses version 2 by its number.
 - **Status line** on the open log, one of:
   - "graph shape matches" (fingerprints equal)
   - "graph shape does not match" (fingerprints differ): a persistent warning, never a refusal (D2), including a forced or
-    manual pairing
+    manual pairing. It makes the coverage claim QUALIFIED, with a reason saying the shape differs (owner decision O3,
+    2026-11-03); "graph not verified" does not, because most logs carry no header yet.
   - "graph not verified" (no header, a malformed header, a null fingerprint on either side, or records no header
     covers: before the first header, after a stream-end marker, or at the start of a rolled file, with no header
     immediately before them). Missing evidence is never a mismatch; a proven difference outranks missing evidence.
@@ -168,6 +169,7 @@ Items 3–9 are the analyser's; where each is tested is listed in the slice repo
 - D4 **Decided 2026-11-03:** a match is worded "graph shape matches", never "same build" (R-1.5).
 - D5 **Decided 2026-11-03:** `runId` and `serverId` are in the key, so restarts of a static deployment are
   distinguishable (R-2.5).
+- O3 **Decided 2026-11-03:** a graph-shape MISMATCH makes the coverage claim QUALIFIED; UNVERIFIED does not.
 
 ## 9. Revision 3 — where the implementation departs from revision 2, and why
 

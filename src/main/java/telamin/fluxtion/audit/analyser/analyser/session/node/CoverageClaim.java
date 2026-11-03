@@ -24,17 +24,20 @@ public class CoverageClaim implements EventLogSource {
     private final AuditInstallation auditInstallation;
     private final OpenGraph openGraph;
     private final OpenLog openLog;
+    /** Owner decision O3: a graph-shape MISMATCH qualifies the claim. */
+    private final EvidenceSet evidenceSet;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private CoveragePolicy.Assessment assessment =
             new CoveragePolicy.Assessment(CoveragePolicy.Claim.REFUSED, "no log and no graph are open");
 
     public CoverageClaim(Pairing pairing, AuditInstallation auditInstallation,
-                         OpenGraph openGraph, OpenLog openLog) {
+                         OpenGraph openGraph, OpenLog openLog, EvidenceSet evidenceSet) {
         this.pairing = pairing;
         this.auditInstallation = auditInstallation;
         this.openGraph = openGraph;
         this.openLog = openLog;
+        this.evidenceSet = evidenceSet;
     }
 
     @Override
@@ -52,13 +55,16 @@ public class CoverageClaim implements EventLogSource {
                 pairing.verdict(),
                 pairing.sampled(),
                 pairing.total(),
-                openLog.mostVerboseLevel());
+                openLog.mostVerboseLevel(),
+                evidenceSet.state().verdict(),
+                evidenceSet.state().reason());
         auditLog.info("coverageClaim", assessment.claim().name())
                 .info("claim", assessment.claim().name())
                 .info("whyNot", assessment.reason())
                 .info("provenance", String.valueOf(openGraph.source()))
                 .info("auditInstallation", auditInstallation.verdict().name())
-                .info("level", String.valueOf(openLog.mostVerboseLevel()));
+                .info("level", String.valueOf(openLog.mostVerboseLevel()))
+                .info("evidenceSet", String.valueOf(evidenceSet.state().verdict()));
         return true;
     }
 

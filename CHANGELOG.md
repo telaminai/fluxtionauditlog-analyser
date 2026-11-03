@@ -36,6 +36,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   refusal, not a crash); a header with no host continues the run in force; a header the analyser cannot read starts a
   run labelled *run identity unreadable*; a mismatch between a log and a graph digested by two builder versions says the
   difference may be in how the shape was digested. The Project panel's graph-shape row shows every shape a log states.
+- **Coverage over a graph whose shape does not match the log is qualified.** `coverage`, a report's coverage table and
+  the Project panel say so, with the reason; the number is still computed. A log whose graph shape is only not verified
+  (no stream header yet, the usual case) is not qualified for that.
 - **The session processor was regenerated (hosted generator 1.0.83).** A node that throws no longer leaves the session
   wedged (every cycle path is wrapped and the failed cycle is cleared), an action run with `runInEventCycle` that fails
   now discards the callbacks it queued, the batch-end audit record is written inside the cycle, and the processor needs

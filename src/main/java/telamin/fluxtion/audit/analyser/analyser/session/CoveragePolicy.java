@@ -87,6 +87,35 @@ public final class CoveragePolicy {
     public static Assessment decide(boolean graphOpen, boolean logOpen, String graphProvenance,
                                     AuditInstalled auditInstalled, GraphPairing pairing,
                                     int sampled, int total, String mostVerboseLevel) {
+        return decide(graphOpen, logOpen, graphProvenance, auditInstalled, pairing, sampled, total, mostVerboseLevel,
+                null, null);
+    }
+
+    /**
+     * As above, with the evidence-set verdict (owner decision O3, 2026-11-03): a graph-shape MISMATCH — the log's stream
+     * headers state a fingerprint the graph does not have — makes a computable claim QUALIFIED, never refused (D2).
+     * UNVERIFIED does not qualify it: most logs carry no stream header yet, and qualifying every one of them would say
+     * nothing.
+     *
+     * @param evidence       the evidence-set verdict, or null when there is none
+     * @param evidenceReason its reason, in the evidence set's own words
+     */
+    public static Assessment decide(boolean graphOpen, boolean logOpen, String graphProvenance,
+                                    AuditInstalled auditInstalled, GraphPairing pairing,
+                                    int sampled, int total, String mostVerboseLevel,
+                                    EvidenceSetState.Verdict evidence, String evidenceReason) {
+        Assessment base = decideWithoutShape(graphOpen, logOpen, graphProvenance, auditInstalled, pairing, sampled, total,
+                mostVerboseLevel);
+        if (evidence != EvidenceSetState.Verdict.MISMATCH || base.claim() == Claim.REFUSED) return base;
+        String shape = "the graph shape does not match the log: " + evidenceReason + ". The number is computable, "
+                + "but a node that never logged may be a node of a graph that did not write this log";
+        return new Assessment(Claim.QUALIFIED, base.claim() == Claim.QUALIFIED
+                ? shape + ". Also: " + base.reason() : shape);
+    }
+
+    private static Assessment decideWithoutShape(boolean graphOpen, boolean logOpen, String graphProvenance,
+                                                 AuditInstalled auditInstalled, GraphPairing pairing,
+                                                 int sampled, int total, String mostVerboseLevel) {
         if (!graphOpen) {
             return new Assessment(Claim.REFUSED,
                     "no graph is open — coverage compares a graph against a log, so it needs one");

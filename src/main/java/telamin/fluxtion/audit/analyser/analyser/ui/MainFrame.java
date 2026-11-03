@@ -7741,7 +7741,7 @@ public final class MainFrame extends JFrame {
         }
         // the full sentence, where there is room for it — the status bar has none
         String tip = evidenceTooltip(findings.isClean() ? null : String.join("\n\n", findings.messages()),
-                next.evidenceSet());
+                next.evidenceSet(), next.claim());
         status.setToolTipText(tip == null ? null : UiText.tooltip(tip));
         boolean findingsMoved = renderedEvidence == null || renderedEvidence.producerFindings() != findings;
         renderedEvidence = next;
@@ -8027,8 +8027,17 @@ public final class MainFrame extends JFrame {
 
     /** The status bar's tooltip text (plain words; the door makes it a tooltip): the log's findings, then the graph shape. */
     static String evidenceTooltip(String findings, telamin.fluxtion.audit.analyser.analyser.session.EvidenceSetState evidence) {
+        return evidenceTooltip(findings, evidence, null);
+    }
+
+    /** As above, adding the session's coverage claim when the shape does not match (owner decision O3). */
+    static String evidenceTooltip(String findings, telamin.fluxtion.audit.analyser.analyser.session.EvidenceSetState evidence,
+                                  telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy.Assessment claim) {
         String why = evidence == null || evidence.verdict() == null ? null
-                : "Graph shape: " + evidence.line() + " — " + evidence.reason() + ".";
+                : "Graph shape: " + evidence.line() + " — " + evidence.reason() + "."
+                + (evidence.verdict() == telamin.fluxtion.audit.analyser.analyser.session.EvidenceSetState.Verdict.MISMATCH
+                        && claim != null && claim.claim() == telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy.Claim.QUALIFIED
+                        ? " Coverage over this pair is qualified." : "");
         if (findings == null && why == null) return null;
         return findings == null ? why : why == null ? findings : findings + "\n\n" + why;
     }
@@ -9607,6 +9616,9 @@ public final class MainFrame extends JFrame {
         if (evidence.logFingerprints().size() > 1) pair.put("logSourceFingerprints", evidence.logFingerprints());
         pair.put("graphSourceFingerprint", evidence.graphFingerprint());
         pair.put("evidenceSetNote", evidence.reason());
+        // owner decision O3: a MISMATCH qualifies the coverage claim — the session's claim, stated beside the verdict so
+        // context, coverage, the status bar's tooltip and the Project panel row say the same thing
+        if (snap.claim() != null) pair.put("coverageClaim", snap.claim().claim().name().toLowerCase(java.util.Locale.ROOT));
     }
 
     /** Evidence-set key: the graph's own {@code fluxtion.sourceFingerprint} — its shape — or null when it states none. */
