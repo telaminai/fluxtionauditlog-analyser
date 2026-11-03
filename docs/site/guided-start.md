@@ -78,7 +78,7 @@ ask me before opening anything, because opening a project closes what I have.
 The analyser opens on its Start page — no log, no project, and the demo set one click away. Your assistant
 starts from here:
 
-![The analyser's start page: nothing open, What would you like to do? with Run me through a demo first, and the Explore DEMO, Open, Create, Connect an assistant and Settings blocks under Or open directly](assets/start-page.png)
+![The analyser's start page: nothing open, What would you like to do? with Run me through a demo first, the How do you want AI to work with the analyser? panel, and the Explore DEMO, Open, Create and Settings blocks under Or open directly](assets/start-page.png)
 
 Then it drives the window. From analyser 1.14 it also **points**: before it talks about something it dims the
 window, lights that one thing, and says in a few words why to look there. The callout is tagged *assistant*

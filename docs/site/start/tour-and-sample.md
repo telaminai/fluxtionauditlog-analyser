@@ -4,8 +4,9 @@ You can see what the analyser does before you have a log of your own. It ships w
 processor's graph and its source, inside the jar. Three start-page actions open them. None needs an AI, a key, a
 server or a network connection.
 
-![The start page: What would you like to do? with its numbered entries, a box and its button; Or open directly with the
-Explore DEMO, Open, Create, Connect an assistant and Settings blocks; and Recent](../assets/start-page.png)
+![The start page: What would you like to do? with its numbered entries, a box and its button, and the How do you want AI
+to work with the analyser? panel; Or open directly with the Explore DEMO, Open, Create and Settings blocks; and
+Recent](../assets/start-page.png)
 
 | Action | Where | What it does | Length |
 |---|---|---|---|
