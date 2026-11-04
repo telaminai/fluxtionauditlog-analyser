@@ -1,7 +1,7 @@
 # Set up with your AI assistant
 
 !!! warning "Preview: macOS and the Claude Code terminal"
-    This unreleased preview has been tested on macOS with Claude Code in an interactive terminal.
+    This preview has been tested on macOS with Claude Code in an interactive terminal.
     Automatic setup currently supports that host and OS only. Linux and Windows use the
     [manual install](../install.md). The manual route stays fully supported, for example for teams that do not let an
     assistant install software.
@@ -16,13 +16,7 @@ may also ask for permission; setup asks again for changes outside the list you a
 
 ## Claude Code: the plugin
 
-!!! warning "Publication pending"
-    The marketplace name is agreed, but the plugin is not published yet. These commands are for use after
-    publication. The URL route below also requires its setup files to be published. Until then, use the
-    [manual install](../install.md). The one-JDK download below requires the matching
-    plugin and URL skill release. An explicit JBang Java-version override can change what is downloaded.
-
-After publication, in Claude Code:
+In Claude Code:
 
 ```text
 /plugin marketplace add telaminai/claude-plugins
@@ -43,7 +37,7 @@ In the macOS Claude Code 2.1.316 interactive trial, explicit reconnect worked in
 
 ## Claude Code without the plugin: the setup instructions
 
-After the setup files are published, give Claude Code this prompt:
+Give Claude Code this prompt:
 
 > **Set up the Fluxtion Analyser and connect it to this assistant. Follow
 > https://fluxtion-playground.dev/skills/analyser-setup/SKILL.md and ask me before changing anything.**
@@ -113,10 +107,8 @@ Ask for a project, for example:
 This generation step needs compiler sign-in and uses its plan allowance. The assistant downloads
 an audited [starter template](templates-and-examples.md), builds and runs it, then opens its audit beside the graph.
 
-!!! warning "Requires the starter audit-export fix"
-    The `logs/audit-<processor>.yaml` export is supplied by the pending starter fix. It contains separate YAML
-    documents for records published after Init; Init remains on stdout. Release this journey only with that
-    fix deployed and an untouched export checked against its generated GraphML.
+The starter writes `logs/audit-<processor>.yaml` as separate YAML documents for records published after Init;
+Init remains on stdout. Open the untouched export beside its generated GraphML.
 
 **No Java on your machine?** If no JDK 21+ is available, the assistant selects the same Java 21 that
 JBang downloaded, separately for each build or run command. This Java selection does not change your

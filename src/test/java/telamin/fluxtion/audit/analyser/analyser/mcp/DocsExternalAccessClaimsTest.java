@@ -38,7 +38,7 @@ class DocsExternalAccessClaimsTest {
                 "Setup does not edit your shell profile")) {
             assertFalse(page.contains(wrong), wrong);
         }
-        for (String boundary : List.of("Publication pending", "starter audit-export fix",
+        for (String boundary : List.of("logs/audit-<processor>.yaml", "untouched export",
                 "may refresh", "Installation may also add PATH", "private fields", "ok: true")) {
             assertTrue(page.contains(boundary), boundary);
         }
@@ -54,6 +54,8 @@ class DocsExternalAccessClaimsTest {
         assertTrue(page.contains("**Preview target:**"));
         assertTrue(page.contains("seven host approvals"));
         assertTrue(page.contains("Five or fewer is a target"));
+        assertFalse(page.contains("Publication pending"));
+        assertFalse(page.contains("Requires the starter audit-export fix"));
         assertTrue(page.contains("/mcp reconnect plugin:fluxtion-analyser:fluxtion-analyser"));
     }
 
