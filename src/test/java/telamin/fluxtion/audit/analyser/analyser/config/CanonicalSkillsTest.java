@@ -93,6 +93,27 @@ class CanonicalSkillsTest {
         }
     }
 
+    /**
+     * S7: a flag without {@code kind} now saves a neutral note, so the fault-found path must say
+     * {@code "kind": "fault"} or a real fault is recorded as a note. The proving-a-claim line stays neutral.
+     */
+    @Test
+    void pointAtTheFaultFlagsAFoundFaultAsAFault() throws Exception {
+        String text = Files.readString(ROOT.resolve("common/point-at-the-fault/SKILL.md"));
+        String last = text.substring(text.indexOf("### And make it last"), text.indexOf("## What your captions"));
+        assertTrue(last.contains("analyser_flag {\"recordIndexes\": [<n>], \"kind\": \"fault\""),
+                "the fault-found flag must carry kind fault");
+        String example = text.substring(text.indexOf("## Worked example"), text.indexOf("And the same runbook"));
+        int flag = example.indexOf("analyser_flag");
+        assertTrue(flag >= 0 && example.indexOf("\"kind\": \"fault\"", flag) > flag,
+                "the worked example's flag must carry kind fault");
+        String claim = text.substring(text.indexOf("## Showing which record proves a claim"),
+                text.indexOf("## If you are fixing a fault"));
+        assertFalse(claim.contains("analyser_flag {\"recordIndexes\": [<n>], \"kind\": \"fault\""),
+                "proving a claim is not a fault by default");
+        assertTrue(claim.contains("\"kind\": \"confirmation\"") && claim.contains("neutral note"));
+    }
+
     @Test
     void mongooseTierUsesRegistryAndYamlExport_notTheRejectedFileSinkStory() throws Exception {
         String text = Files.readString(ROOT.resolve("mongoose/run-mongoose-server/SKILL.md"));
