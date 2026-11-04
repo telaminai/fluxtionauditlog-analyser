@@ -606,14 +606,25 @@ class QuotedScalarsTest(unittest.TestCase):
             code, out = self.run_compare(before, after)
             self.assertEqual(1, code, out)
             self.assertNotIn('quoted scalars:', out)
+        # review r14: text the quoting runtime writes bare is no proof of age either (core d601af6/dae594b)
+        for bare in ('d: -dash', 'e: ', 't: ~', 'h: .hidden', 'p: +x', 'n: 3', 'b: true'):
+            same_runtime = (self.probe('a: x, b: y, ' + bare), self.probe('a: "x, b: y", ' + bare, marked=True))
+            for before, after in (same_runtime, same_runtime[::-1]):
+                code, out = self.run_compare(before, after)
+                self.assertEqual(1, code, bare + ': ' + out)
+                self.assertNotIn('quoted scalars:', out)
 
     def test_an_unmarked_record_proves_its_age_only_by_text_a_quoting_runtime_would_quote(self):
         proves = lambda body: audit_compare.proves_pre_quoting(audit_compare.parse(self._write(self.probe(body)))[0])
+        # mirrors the runtime's final flow rule (core dae594b): typed-looking and empty text is written bare
         for body in ('reason: membership not active, balance due 30.0',   # a keyless fragment
-                     'o: Order(id=1, px=2.0)', 'tags: [a, b]', 'at: 12:30', 'q: say "hi"', 'e: ', 'p: open(',
-                     'h: #1', 'm: -x'):
+                     'o: Order(id=1, px=2.0)', 'tags: [a, b]', 'kv: x: y', 'c: a:', 'q: say "hi"', 'p: open(',
+                     'h: #1', 'm: - x', 'a: &x', 'r: %d', 's: @me', 'l: <tag>', 'eq: =x', 'one: -', 'nb: x\u00a0',
+                     'u: a\u2028b'):
             self.assertTrue(proves(body), body)
-        for body in ('reason: a, b: c', 'n: 3', 'd: -2.5', 'b: true', 'x: null', 'f: NaN', 'w: plain words', 'k: f(x)'):
+        for body in ('reason: a, b: c', 'n: 3', 'd: -2.5', 'b: true', 'x: null', 'f: NaN', 'w: plain words', 'k: f(x)',
+                     'e: ', 'm: -x', 'dash: -dash', 't: ~', 'h: .hidden', 'p: +x', 'y: yes', 'z: 0x1F',
+                     'at: 12:30', 'url: http://x:8/a'):   # a `:` without a space after it is left bare
             self.assertFalse(proves(body), body)
 
     def test_header_whitespace_a_bare_header_lost_matches_across_the_upgrade(self):

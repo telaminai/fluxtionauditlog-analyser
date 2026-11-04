@@ -38,8 +38,9 @@ read exactly as before: quotes kept, nothing decoded. A runtime that quotes writ
 quoting, so one capture may mix marked and unmarked records. A marked record and an unmarked one whose entries
 differ only as the old grammar would read the same values written bare (`reason: "a, b"` against `reason: a, b`)
 match, but only when the unmarked record itself shows it was written before the runtime quoted - it holds an entry a
-quoting runtime would have quoted (a keyless fragment, or a value with a separator, bracket, quote or unbalanced
-parenthesis) - or when the legacy reading changes nothing but surrounding whitespace in a header field. That is a
+quoting runtime would have quoted (a keyless fragment, or a value with a separator, bracket, quote, leading
+indicator or unbalanced parenthesis; a number, boolean, null or empty value proves nothing, since such text is written
+bare by both runtimes) - or when the legacy reading changes nothing but surrounding whitespace in a header field. That is a
 capture from before a runtime upgrade against one from after; the count of such records is printed, and the choice is
 made record by record. Otherwise records are compared exactly: `a: "x, b: y"` and `a: x, b: y` from a runtime that
 quotes are different.
@@ -615,31 +616,34 @@ def business_views(before, after, normalise, annotations_are_trace=True):
     return views[0], views[1], upgraded
 
 
-_INDICATOR_START = set("-?:,[]{}#&*!|>'\"%@`+.=<~")
-_FLOW_SPECIAL = set(",:{}[]#\"'?")
+# The quoting runtime's flow rule (fluxtion-runtime YamlScalar.needsQuoting): an indicator at the start (`-` only
+# when whitespace follows it), a comma, bracket, `#`, quote, `?`, control or non-printable character anywhere, `: `
+# or a trailing `:`, edge whitespace, or an unbalanced parenthesis. A `:` followed by anything else (12:30:00, a URL)
+# counts only as runtimes that leave it bare read it, so it never proves age. Typed-looking text - a number, boolean or null spelling, an empty
+# value - is written bare, as the runtime before it wrote it, so it proves nothing.
+_INDICATOR_START = set("-?:,[]{}#&*!|>'\"%@`=<")
+_FLOW_SPECIAL = set(",{}[]#\"'?")
 
 
-def _number_like(v):
-    try:
-        float(v)
-        return True
-    except ValueError:
-        return v in ("NaN", "Infinity", "-Infinity")
+def _special(c):
+    o = ord(c)
+    return (c in _FLOW_SPECIAL or o < 32 or 0x7F <= o <= 0x9F or o in (0x2028, 0x2029, 0xFEFF, 0xFFFE, 0xFFFF)
+            or 0xD800 <= o <= 0xDFFF)
 
 
 def would_quote(value):
-    """True when a runtime that quotes would have written this bare value quoted, by a rule only TEXT can trigger: it
-    is empty, starts with an indicator, or holds a flow separator, bracket, quote, control character or unbalanced
-    parenthesis. A number, boolean or null spelling proves nothing: a typed value is written bare by every runtime."""
-    if value == "":
-        return True
-    if _number_like(value):
+    """True when a runtime that quotes would have written this bare value quoted (YamlScalar.needsQuoting). Edge
+    whitespace the legacy reading stripped (ASCII) cannot be seen; Unicode edge spaces it keeps can."""
+    if not value:
         return False
-    if value[0] in _INDICATOR_START:
+    first = value[0]
+    if len(value) == 1:
+        return first in _INDICATOR_START or _special(first) or first.isspace() or first in "()"
+    if (value[1].isspace() if first == "-" else first in _INDICATOR_START) or first.isspace() or value[-1].isspace():
         return True
     depth = 0
-    for c in value:
-        if c in _FLOW_SPECIAL or ord(c) < 32 or 0x7F <= ord(c) <= 0x9F:
+    for i, c in enumerate(value):
+        if _special(c) or (c == ":" and (i + 1 == len(value) or value[i + 1] == " ")):
             return True
         if c == "(":
             depth += 1
