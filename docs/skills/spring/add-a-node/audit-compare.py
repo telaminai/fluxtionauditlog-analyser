@@ -30,6 +30,17 @@ the analyser reads it without its node logs. Where it cannot tell (a continuatio
 under an unknown key - text the analyser skips - is compared with the value it sits in (unless that value is one
 of the fields never compared).
 
+Quoted scalars (format-spec section 3a, Format 1 revision 1.2): a record whose first line after `eventLogRecord:` is
+`textEncoding: QUOTED_SCALARS` declares that a key, value, instance id or string header field written entirely as
+one "..." scalar is text, with escapes decoded (\\\\ \\" \\n \\r \\t \\0 \\xXX \\uXXXX). The declaration is recognised
+by position only and is never compared; the same spelling anywhere else is an ordinary field. An unmarked record is
+read exactly as before: quotes kept, nothing decoded. A runtime that quotes writes a record bare unless a value needs
+quoting, so one capture may mix marked and unmarked records. A marked record and an unmarked one whose entries
+differ only as the old grammar would read the same values written bare (`reason: "a, b"` against `reason: a, b`)
+match, when the unmarked record's capture declares quoted scalars nowhere: that is a capture from before a runtime
+upgrade against one from after, and the count of such records is printed. Otherwise records are compared exactly: a
+capture holding any marked record comes from a runtime that quotes, so its bare records are unambiguous.
+
 An `annotation` straight after the method is ambiguous (tracing's from runtime 1.1.1, or an older node's own key):
 when the match depends on it the verdict is INCONCLUSIVE (exit 3) unless --annotations-are-trace says it is
 tracing's.
@@ -107,6 +118,153 @@ def split_top_level(body):
         key, sep, value = part.partition(":")
         entries.append((astrip(key), astrip(value)) if sep else (None, part))
     return entries
+
+
+TEXT_ENCODING_KEY = "textEncoding"
+QUOTED_SCALARS = "QUOTED_SCALARS"
+# string header fields a record's own declaration decodes (format-spec 3a); other fields stay raw
+DECODED_HEADERS = {"event", "eventType", "eventToString", "thread", "groupingId"}
+_SIMPLE_ESCAPES = {"\\": "\\", '"': '"', "n": "\n", "r": "\r", "t": "\t", "0": "\0"}
+
+
+def _hex(s, start, digits, end):
+    """The value of `digits` ASCII hex digits at `start`, all before `end`; -1 when they are not there."""
+    if start + digits > end:
+        return -1
+    h = s[start:start + digits]
+    return int(h, 16) if all(c in "0123456789abcdefABCDEF" for c in h) else -1
+
+
+def unquote(s):
+    """(text, True) when `s` is entirely one double-quoted scalar, decoded as the analyser's NodeLogTokenizer.unquote
+    decodes it; (s, False) otherwise. A malformed escape is kept verbatim; a dangling backslash or an unescaped
+    quote inside means it is not one quoted scalar."""
+    if len(s) < 2 or s[0] != '"' or s[-1] != '"':
+        return s, False
+    end, out, i = len(s) - 1, [], 1
+    while i < end:
+        c = s[i]
+        if c == '"':
+            return s, False
+        if c != "\\":
+            out.append(c)
+            i += 1
+            continue
+        if i + 1 >= end:
+            return s, False                              # dangling escape: not ours
+        e = s[i + 1]
+        i += 2
+        if e in _SIMPLE_ESCAPES:
+            out.append(_SIMPLE_ESCAPES[e])
+        elif e == "x" and _hex(s, i, 2, end) >= 0:
+            out.append(chr(_hex(s, i, 2, end)))
+            i += 2
+        elif e == "u" and _hex(s, i, 4, end) >= 0:
+            v = _hex(s, i, 4, end)
+            if 0xD800 <= v <= 0xDBFF:
+                low = _hex(s, i + 6, 4, end) if s[i + 4:i + 6] == "\\u" and i + 5 < end else -1
+                if 0xDC00 <= low <= 0xDFFF:
+                    out.append(chr(0x10000 + ((v - 0xD800) << 10) + (low - 0xDC00)))
+                    i += 10
+                else:
+                    out.append(c + e)                    # half a surrogate pair: kept verbatim
+            elif 0xDC00 <= v <= 0xDFFF:
+                out.append(c + e)
+            else:
+                out.append(chr(v))
+                i += 4
+        else:
+            out.append(c + e)                            # unknown or short escape: kept verbatim
+    return "".join(out), True
+
+
+def index_of_sep(s):
+    """The first top-level `: ` under the quoted grammar (NodeLogTokenizer.indexOfSep with escapes), or -1."""
+    depth, in_s, in_d, i = 0, False, False, 0
+    while i < len(s) - 1:
+        c = s[i]
+        if in_s:
+            in_s = c != "'"
+        elif in_d:
+            if c == "\\":
+                i += 1
+            elif c == '"':
+                in_d = False
+        elif c == "'":
+            in_s = True
+        elif c == '"':
+            in_d = True
+        elif c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth = max(0, depth - 1)
+        elif depth == 0 and c == ":" and s[i + 1] == " ":
+            return i
+        i += 1
+    return -1
+
+
+def split_quoted(body):
+    """Split and decode `k: v, k: v` under the quoted grammar: as split_top_level, but a backslash inside double
+    quotes escapes the next character, the key ends at the first top-level `: `, and a key or value that is entirely
+    one quoted scalar decodes."""
+    parts, depth, start, in_s, in_d, i = [], 0, 0, False, False, 0
+    while i < len(body):
+        ch = body[i]
+        if in_s:
+            in_s = ch != "'"
+        elif in_d:
+            if ch == "\\":
+                i += 1
+            elif ch == '"':
+                in_d = False
+        elif ch == "'":
+            in_s = True
+        elif ch == '"':
+            in_d = True
+        elif ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth = max(0, depth - 1)
+        elif ch == "," and depth == 0:
+            parts.append(body[start:i])
+            start = i + 1
+        i += 1
+    parts.append(body[start:])
+    entries = []
+    for part in (astrip(p) for p in parts):
+        sep = index_of_sep(part)
+        if sep < 0 and part.endswith(":") and index_of_sep(part + " ") == len(part) - 1:
+            sep = len(part) - 1                          # `key:` with nothing after it
+        if sep < 0:
+            entries.append((None, unquote(part)[0]))
+        else:
+            entries.append((unquote(astrip(part[:sep]))[0], unquote(astrip(part[sep + 1:]))[0]))
+    return entries
+
+
+def as_legacy(entries):
+    """The entries as the legacy grammar reads the same values written bare - what a runtime that did not quote
+    wrote. Used only to match a marked record against an unmarked one."""
+    body = ", ".join(v if k is None else f"{k}: {v}" for k, v in entries)
+    return split_top_level(body) if astrip(body) else []
+
+
+def declares_quoted_scalars(lines, roles):
+    """True when the record's first non-empty line after `eventLogRecord:` is the field `textEncoding: QUOTED_SCALARS`
+    (format-spec 3a: by position, never by mention; a comment line there disqualifies it)."""
+    for i, raw in enumerate(lines):
+        if astrip(raw) == "eventLogRecord:":
+            for j in range(i + 1, len(lines)):
+                t = astrip(lines[j])
+                if not t:
+                    continue
+                if roles[j] != "FIELD":
+                    return False
+                key, _, value = t.partition(":")
+                return key == TEXT_ENCODING_KEY and astrip(value) == QUOTED_SCALARS
+            return False
+    return False
 
 
 def astrip(s):
@@ -298,6 +456,7 @@ def parse(path):
             raise Unreadable(f"{path}: record structure breaks at line {broken[0]} of document {number}: {broken[1]}. "
                              "A value was written with a line break in it; the analyser reads such a record without "
                              "its node logs, so no comparison of it can be trusted")
+        marked = declares_quoted_scalars(all_lines, roles)
         fields, items, last_field = {}, [], None
         for raw, role in zip(all_lines, roles):
             raw = raw.rstrip("\r")
@@ -313,6 +472,10 @@ def parse(path):
                 if not items:
                     raise Unreadable(f"{path}: a node-log line before any entry in document {number}")
                 items[-1] += "\n" + raw
+        if marked:
+            fields.pop(TEXT_ENCODING_KEY, None)          # the declaration is metadata, never a field
+            for key in DECODED_HEADERS & set(fields):
+                fields[key] = unquote(fields[key])[0]
         parsed = []
         for item in items:
             match = ITEM.match(item)
@@ -321,22 +484,24 @@ def parse(path):
                                  f"{item.strip()[:60]}")
             body = match.group(2)
             # as the analyser's parseItem: an empty or blank body is no entry at all
-            parsed.append((match.group(1), split_top_level(body) if astrip(body) else []))
+            node = unquote(match.group(1))[0] if marked else match.group(1)
+            parsed.append((node, (split_quoted(body) if marked else split_top_level(body)) if astrip(body) else []))
         if not parsed and fields and set(fields) <= MARKER_KEYS and "streamEnd" in fields:
             continue                                     # a stream-end marker is a container fact
         other = tuple(sorted((k, v) for k, v in fields.items() if k not in NOT_COMPARED | {"event", "eventToString"}))
         records.append({"event": fields.get("event"), "text": fields.get("eventToString"), "other": other,
-                        "items": parsed})
+                        "items": parsed, "marked": marked})
     return records
 
 
-def split_record(record, normalise, annotations_are_trace=True):
+def split_record(record, normalise, annotations_are_trace=True, legacy=False):
     """Return (business view or None, framework view) of one record.
 
     An `annotation` at the end of the trace run is AMBIGUOUS: Fluxtion 1.1.1 tracing writes the dispatching
     annotation there, and a node of an older runtime that logged its own `annotation: Approved` first reads the
     same. With annotations_are_trace=False it is kept in the business view, so the caller can tell whether the
-    verdict depends on it."""
+    verdict depends on it. With legacy=True a marked record's business entries are read as the legacy grammar reads
+    the same values written bare (as_legacy)."""
     if "raw" in record:
         return ("UNPARSED", normalise(record["raw"])), ()
     business, framework = [], []
@@ -344,7 +509,8 @@ def split_record(record, normalise, annotations_are_trace=True):
         run = trace_run(entries)
         if not annotations_are_trace and run and entries[run - 1][0] == "annotation":
             run -= 1
-        own = tuple((k, normalise(v)) for k, v in entries[run:])
+        own_entries = as_legacy(entries[run:]) if legacy and record.get("marked") else entries[run:]
+        own = tuple((k, normalise(v)) for k, v in own_entries)
         trace = tuple(entries[:run])
         if own:
             business.append((node, own))
@@ -385,15 +551,18 @@ def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.std
     if not sides[0][0] or not sides[1][0]:
         print("verdict: NOTHING TO COMPARE - a log holds no business record, so no conclusion follows", file=out)
         return 2
-    changed = report("business", sides[0][0], sides[1][0], max_diffs, out)
+    business_before, business_after, upgraded = business_views(before, after, normalise)
+    if upgraded:
+        print(f"quoted scalars: {upgraded} business record(s) match only as the legacy grammar reads them - one capture "
+              "declares quoted scalars there and the other does not (a runtime upgrade between the captures)", file=out)
+    changed = report("business", business_before, business_after, max_diffs, out)
     report("framework (reported, does not decide the verdict)", sides[0][1], sides[1][1], max_diffs, out)
     if sides[0][2] != sides[1][2]:
         print(f"  framework-only records: {sides[0][2]} before, {sides[1][2]} after", file=out)
     print("note: this compares what nodes LOGGED for these captures; an output or side effect no node logged is not "
           "covered, and a change to what is logged shows as a difference", file=out)
     if not changed and not annotations_are_trace:
-        strict = [[b for b in (split_record(r, normalise, False)[0] for r in records) if b is not None]
-                  for records in (before, after)]
+        strict = business_views(before, after, normalise, annotations_are_trace=False)
         if strict[0] != strict[1]:
             print("verdict: INCONCLUSIVE - the entries match only if every `annotation` written straight after the "
                   "method is tracing's (Fluxtion 1.1.1+); a node of an older runtime logging its own `annotation` "
@@ -402,6 +571,32 @@ def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.std
             return 3
     print("verdict: logged business entries " + ("DIFFER" if changed else "MATCH") + " for these captures", file=out)
     return 1 if changed else 0
+
+
+def business_views(before, after, normalise, annotations_are_trace=True):
+    """(before views, after views, upgraded): the business views the verdict compares. Exact when they are equal.
+    Otherwise, when every record that differs pairs a marked record with an unmarked one from a capture that marks
+    no record (a capture from before the runtime quoted), and the two read alike under the legacy grammar: the legacy
+    reading of both sides, and how many records needed it. Two marked or two unmarked records, or an unmarked one from
+    a quoting runtime's capture, are never matched that way: the quoted grammar tells `a: "x, b: y"` from `a: x, b: y`."""
+    pre_quoting = [not any(r.get("marked") for r in records) for records in (before, after)]
+    sides = []
+    for records in (before, after):
+        rows = [(split_record(r, normalise, annotations_are_trace)[0],
+                 split_record(r, normalise, annotations_are_trace, legacy=True)[0], r.get("marked", False))
+                for r in records]
+        sides.append([row for row in rows if row[0] is not None])
+    exact = ([row[0] for row in sides[0]], [row[0] for row in sides[1]])
+    if exact[0] == exact[1] or len(sides[0]) != len(sides[1]):
+        return exact[0], exact[1], 0
+    upgraded = 0
+    for (b_exact, b_legacy, b_marked), (a_exact, a_legacy, a_marked) in zip(*sides):
+        if b_exact == a_exact:
+            continue
+        if b_marked == a_marked or b_legacy != a_legacy or not pre_quoting[1 if b_marked else 0]:
+            return exact[0], exact[1], 0
+        upgraded += 1
+    return [row[1] for row in sides[0]], [row[1] for row in sides[1]], upgraded
 
 
 def report(title, before, after, max_diffs, out):

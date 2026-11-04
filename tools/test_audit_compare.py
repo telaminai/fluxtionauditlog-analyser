@@ -451,5 +451,143 @@ class AuditCompareTest(unittest.TestCase):
         self.assertNotEqual(a, BEFORE)
         self.assertEqual(0, self.run_compare(a, BEFORE)[0])
 
+
+# ---- quoted scalars (format-spec 3a, Format 1 revision 1.2): a capture from before the runtime quoted against one after ----
+OLD_RUNTIME = textwrap.dedent(r"""
+    ---
+    eventLogRecord: 
+        eventTime: 1000
+        logTime: 1001
+        groupingId: null
+        event: MemberEvent
+        eventToString: MemberEvent{id=7, note: vip}
+        thread: main
+        nodeLogs: 
+            - gymAccess: { thread: main, method: onMember, reason: membership not active, balance due 30.0, granted: false}
+            - order: { o: Order{id=1, px=2.0}, said: say "hi", name: Renée, smile: 😀, code: 123}
+        endTime: 1002
+    ---
+    eventLogRecord: 
+        logTime: 2001
+        event: Tick
+        nodeLogs: 
+            - gymAccess: { granted: true}
+        endTime: 2002
+    ---
+    """).lstrip('\n')
+NEW_RUNTIME = textwrap.dedent(r"""
+    ---
+    eventLogRecord: 
+        textEncoding: QUOTED_SCALARS
+        eventTime: 5000
+        logTime: 5001
+        groupingId: null
+        event: MemberEvent
+        eventToString: "MemberEvent{id=7, note: vip}"
+        thread: main
+        nodeLogs: 
+            - gymAccess: { thread: main, method: onMember, reason: "membership not active, balance due 30.0", granted: false}
+            - order: { o: "Order{id=1, px=2.0}", said: "say \x22hi\x22", name: "Renée", smile: "😀", code: "123"}
+        endTime: 5002
+    ---
+    eventLogRecord: 
+        logTime: 6001
+        event: Tick
+        nodeLogs: 
+            - gymAccess: { granted: true}
+        endTime: 6002
+    ---
+    """).lstrip('\n')
+
+
+class QuotedScalarsTest(unittest.TestCase):
+    run_compare = AuditCompareTest.run_compare
+    _run = AuditCompareTest._run
+    ANNOTATIONS_ARE_TRACE = True
+
+    def test_a_capture_before_the_runtime_quoted_matches_one_after(self):
+        for before, after in ((OLD_RUNTIME, NEW_RUNTIME), (NEW_RUNTIME, OLD_RUNTIME)):
+            code, out = self.run_compare(before, after)
+            self.assertEqual(0, code, out + self.last_stderr)
+            self.assertIn('quoted scalars: 1 business record(s) match only as the legacy grammar reads them', out)
+            self.assertIn('framework (reported, does not decide the verdict): same', out)
+
+    def test_WRONG_RESULT_CONTROL_a_changed_value_across_the_upgrade_still_differs(self):
+        for changed in (NEW_RUNTIME.replace('balance due 30.0"', 'balance due 40.0"'),
+                        NEW_RUNTIME.replace('code: "123"', 'code: "124"'),
+                        NEW_RUNTIME.replace(r'\x22hi\x22', r'\x22bye\x22'),
+                        NEW_RUNTIME.replace('note: vip}"', 'note: VIP}"'),
+                        NEW_RUNTIME.replace('{ granted: true}', '{ granted: false}')):
+            self.assertNotEqual(changed, NEW_RUNTIME)
+            code, out = self.run_compare(OLD_RUNTIME, changed)
+            self.assertEqual(1, code, out)
+            self.assertIn('verdict: logged business entries DIFFER', out)
+
+    def test_the_marker_is_never_compared_and_a_bare_value_reads_the_same_either_way(self):
+        # an exact match needs no legacy reading: "123" decodes to 123, the header decodes to the bare text
+        plain_old = OLD_RUNTIME.replace('reason: membership not active, balance due 30.0, ', '')
+        plain_new = NEW_RUNTIME.replace('reason: "membership not active, balance due 30.0", ', '')
+        code, out = self.run_compare(plain_old, plain_new)
+        self.assertEqual(0, code, out)
+        self.assertNotIn('quoted scalars:', out)
+        self.assertNotIn('textEncoding', out)
+
+    def test_two_quoting_captures_are_compared_exactly(self):
+        # both captures come from a runtime that quotes (each holds a marked record): `a: "x, b: y"` is one value and
+        # `a: x, b: y` two, so they differ even though the legacy grammar reads them alike
+        one = NEW_RUNTIME.replace('{ granted: true}', '{ a: x, b: y}')
+        other = NEW_RUNTIME.replace('{ granted: true}', '{ a: "x, b: y"}').replace(
+            '    logTime: 6001', '    textEncoding: QUOTED_SCALARS\n    logTime: 6001')
+        self.assertIn('textEncoding: QUOTED_SCALARS\n    logTime: 6001', other)
+        code, out = self.run_compare(one, other)
+        self.assertEqual(1, code, out)
+        both_marked = other.replace('{ a: "x, b: y"}', '{ a: "x", b: "y"}')
+        self.assertEqual(1, self.run_compare(other, both_marked)[0])
+        self.assertEqual(0, self.run_compare(both_marked, both_marked.replace('{ a: "x", b: "y"}', '{ a: x, b: y}'))[0])
+
+    def test_the_declaration_counts_only_as_the_first_line(self):
+        # anywhere else the spelling is content (an unknown field, compared) and the record stays legacy
+        late = NEW_RUNTIME.replace('    textEncoding: QUOTED_SCALARS\n', '', 1).replace(
+            '    endTime: 5002', '    endTime: 5002\n    textEncoding: QUOTED_SCALARS', 1)
+        code, out = self.run_compare(OLD_RUNTIME, late)
+        self.assertEqual(1, code, out)
+        commented = NEW_RUNTIME.replace('eventLogRecord: \n    textEncoding', 'eventLogRecord: \n    # note\n    textEncoding', 1)
+        records = audit_compare.parse(self._write(commented))
+        self.assertFalse(records[0]['marked'])
+        self.assertTrue(audit_compare.parse(self._write(NEW_RUNTIME))[0]['marked'])
+        other_value = NEW_RUNTIME.replace('QUOTED_SCALARS', 'QUOTED_SCALARS_V9', 1)
+        record = audit_compare.parse(self._write(other_value))[0]
+        self.assertFalse(record['marked'])
+        self.assertIn(('textEncoding', 'QUOTED_SCALARS_V9'), record['other'])
+
+    def test_a_marked_record_decodes_and_an_unmarked_one_keeps_its_quotes(self):
+        marked, = [r for r in audit_compare.parse(self._write(NEW_RUNTIME)) if r['event'] == 'MemberEvent']
+        self.assertEqual('MemberEvent{id=7, note: vip}', marked['text'])
+        self.assertEqual(('order', [('o', 'Order{id=1, px=2.0}'), ('said', 'say "hi"'), ('name', 'Renée'),
+                                    ('smile', '😀'), ('code', '123')]), marked['items'][1])
+        self.assertEqual(('reason', 'membership not active, balance due 30.0'), marked['items'][0][1][2])
+        unmarked, = [r for r in audit_compare.parse(self._write(NEW_RUNTIME.replace('    textEncoding: QUOTED_SCALARS\n', '')))
+                     if r['event'] == 'MemberEvent']
+        self.assertEqual('"MemberEvent{id=7, note: vip}"', unmarked['text'])
+        self.assertIn(('said', r'"say \x22hi\x22"'), unmarked['items'][1][1])
+
+    def test_unquote_follows_the_analysers_escapes(self):
+        u = audit_compare.unquote
+        self.assertEqual(('a\\b"c\nd\re\tf\0g"hé', True), u(r'"a\\b\"c\nd\re\tf\0g\x22hé"'))
+        self.assertEqual(('😀', True), u(r'"😀"'))
+        # C35's malformed run: unknown escape, too few hex digits and half a surrogate pair are kept verbatim
+        self.assertEqual((r'x\q\u12G4\uD83Dy', True), u(r'"x\q\u12G4\uD83Dy"'))
+        self.assertEqual((r'"dangling\"', False), u(r'"dangling\"'))
+        self.assertEqual(('"a" b "c"', False), u('"a" b "c"'))
+        self.assertEqual(('plain', False), u('plain'))
+        self.assertEqual([('k@1', 'v, w'), ('e', ''), (None, 'flag')], audit_compare.split_quoted('"k@1": "v, w", e:, flag'))
+
+    def _write(self, text):
+        handle = tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False, encoding='utf-8')
+        with handle:
+            handle.write(text)
+        self.addCleanup(Path(handle.name).unlink)
+        return handle.name
+
 if __name__ == '__main__':
     unittest.main()
