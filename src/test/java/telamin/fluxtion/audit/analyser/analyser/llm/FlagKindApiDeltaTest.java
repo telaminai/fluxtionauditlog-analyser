@@ -12,7 +12,7 @@ import java.util.TreeSet;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * S7 (fix/gym-flag-kind-bridge-exit): {@code flag} without a {@code kind} saved a FAULT, so an agent's evidence of a
+ * Flag kind default change: {@code flag} without a {@code kind} saved a FAULT, so an agent's evidence of a
  * correct refusal was recorded as a fault. The external API's ONLY delta is the {@code flag} schema's {@code kind}
  * gaining a third value, {@code note}, which is now the default for a new finding, plus the wording of the
  * {@code kind}/{@code note}/{@code fix} descriptions and the in-process manifest's flag line that state it. No verb or

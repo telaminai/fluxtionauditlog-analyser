@@ -301,6 +301,8 @@ class AuditCompareTest(unittest.TestCase):
 
     # Every conformance fixture compared with itself: (file, exit, (records, business) or None, refused as broken).
     # Pinned, so a change to how any fixture reads is visible here (rule 8). A broken record is refused, never a match.
+    # every conformance fixture (src/test/resources/conformance/*.yaml) needs a row here: the test below fails on a
+    # fixture the table does not list
     FIXTURE_TABLE = [
         ('c01-minimal.yaml', 0, (1, 1), False),
         ('c02-unknown-fields.yaml', 0, (1, 1), False),
@@ -455,29 +457,29 @@ class AuditCompareTest(unittest.TestCase):
 # ---- quoted scalars (format-spec 3a, Format 1 revision 1.2): a capture from before the runtime quoted against one after ----
 OLD_RUNTIME = textwrap.dedent(r"""
     ---
-    eventLogRecord: 
+    eventLogRecord:{SP}
         eventTime: 1000
         logTime: 1001
         groupingId: null
         event: MemberEvent
         eventToString: MemberEvent{id=7, note: vip}
         thread: main
-        nodeLogs: 
+        nodeLogs:{SP}
             - gymAccess: { thread: main, method: onMember, reason: membership not active, balance due 30.0, granted: false}
             - order: { o: Order{id=1, px=2.0}, said: say "hi", name: Renée, smile: 😀, code: 123}
         endTime: 1002
     ---
-    eventLogRecord: 
+    eventLogRecord:{SP}
         logTime: 2001
         event: Tick
-        nodeLogs: 
+        nodeLogs:{SP}
             - gymAccess: { granted: true}
         endTime: 2002
     ---
-    """).lstrip('\n')
+    """).lstrip('\n').replace('{SP}', ' ')   # {SP}: a trailing space the runtime writes, kept out of the source
 NEW_RUNTIME = textwrap.dedent(r"""
     ---
-    eventLogRecord: 
+    eventLogRecord:{SP}
         textEncoding: QUOTED_SCALARS
         eventTime: 5000
         logTime: 5001
@@ -485,19 +487,19 @@ NEW_RUNTIME = textwrap.dedent(r"""
         event: MemberEvent
         eventToString: "MemberEvent{id=7, note: vip}"
         thread: main
-        nodeLogs: 
+        nodeLogs:{SP}
             - gymAccess: { thread: main, method: onMember, reason: "membership not active, balance due 30.0", granted: false}
             - order: { o: "Order{id=1, px=2.0}", said: "say \x22hi\x22", name: "Renée", smile: "😀", code: "123"}
         endTime: 5002
     ---
-    eventLogRecord: 
+    eventLogRecord:{SP}
         logTime: 6001
         event: Tick
-        nodeLogs: 
+        nodeLogs:{SP}
             - gymAccess: { granted: true}
         endTime: 6002
     ---
-    """).lstrip('\n')
+    """).lstrip('\n').replace('{SP}', ' ')
 
 
 class QuotedScalarsTest(unittest.TestCase):
@@ -584,20 +586,21 @@ class QuotedScalarsTest(unittest.TestCase):
 
     PROBE = textwrap.dedent("""
         ---
-        eventLogRecord: 
+        eventLogRecord:{SP}
         {marker}    event: Ev
             eventToString: {text}
-            nodeLogs: 
+            nodeLogs:{SP}
                 - gate: {{ {body}}}
             endTime: 2
         ---
         """).lstrip('\n')
 
     def probe(self, body, text='Ev{x}', marked=False):
-        return self.PROBE.format(marker='    textEncoding: QUOTED_SCALARS\n' if marked else '', text=text, body=body)
+        return self.PROBE.format(marker='    textEncoding: QUOTED_SCALARS\n' if marked else '', text=text, body=body,
+                                 SP=' ')
 
     def test_WRONG_RESULT_CONTROL_a_quoting_runtime_capture_that_needed_no_quotes_is_not_taken_for_an_old_one(self):
-        # review r11: two captures from the quoting runtime - reason="a, b: c" (one value, marked) and reason="a",
+        # two captures from the quoting runtime - reason="a, b: c" (one value, marked) and reason="a",
         # b="c" (two values, nothing to quote, so unmarked) - read alike under the legacy grammar. The unmarked record
         # proves nothing about its age, so they are compared exactly.
         one = self.probe('reason: "a, b: c"', marked=True)
@@ -606,7 +609,7 @@ class QuotedScalarsTest(unittest.TestCase):
             code, out = self.run_compare(before, after)
             self.assertEqual(1, code, out)
             self.assertNotIn('quoted scalars:', out)
-        # review r14: text the quoting runtime writes bare is no proof of age either (core d601af6/dae594b)
+        # text the quoting runtime writes bare is no proof of age either (core d601af6/dae594b)
         # and (core 3c1ee83) an inner `:` - times, timestamps, URLs, drive paths, IPv6 - is written bare too
         for bare in ('d: -dash', 'e: ', 't: ~', 'h: .hidden', 'p: +x', 'n: 3', 'b: true',
                      'at: 12:30:00', 'ts: 2026-11-04T10:00:00Z', 'url: http://x:8/a', 'ab: a:b', 'dir: C:\\temp',
@@ -632,7 +635,7 @@ class QuotedScalarsTest(unittest.TestCase):
             self.assertFalse(proves(body), body)
 
     def test_header_whitespace_a_bare_header_lost_matches_across_the_upgrade(self):
-        # review r11: the old runtime wrote `eventToString: Ev{x} ` and the reader stripped it; the new one quotes it
+        # the old runtime wrote `eventToString: Ev{x} ` and the reader stripped it; the new one quotes it
         old, new = self.probe('reason: ok', text='Ev{x} '), self.probe('reason: ok', text='"Ev{x} "', marked=True)
         code, out = self.run_compare(old, new)
         self.assertEqual(0, code, out)
@@ -643,7 +646,7 @@ class QuotedScalarsTest(unittest.TestCase):
         self.assertEqual(1, self.run_compare(self.probe('reason: ok', text='Ev{y} '), new)[0])
 
     def test_one_real_change_across_the_upgrade_is_reported_once(self):
-        # review r11: one changed record made every record fall back to the exact view and report as changed
+        # one changed record made every record fall back to the exact view and report as changed
         changed = NEW_RUNTIME.replace('{ granted: true}', '{ granted: false}')
         code, out = self.run_compare(OLD_RUNTIME, changed)
         self.assertEqual(1, code, out)

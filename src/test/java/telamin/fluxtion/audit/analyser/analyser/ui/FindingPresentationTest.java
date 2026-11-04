@@ -45,7 +45,7 @@ class FindingPresentationTest {
     }
 
     /**
-     * S7: a flag without {@code kind} once saved a FAULT, so correct refusals an agent flagged as evidence were stored
+     * Flag kind default change: a flag without {@code kind} once saved a FAULT, so correct refusals an agent flagged as evidence were stored
      * as faults. A new finding without a kind is now a neutral note; explicit kinds still work; an existing finding
      * keeps its kind when a later flag omits it. Wrong-result witness: default {@link Finding#flagged} to fault again.
      */

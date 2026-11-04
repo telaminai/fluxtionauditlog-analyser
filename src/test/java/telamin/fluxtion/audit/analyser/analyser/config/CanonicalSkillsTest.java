@@ -94,7 +94,7 @@ class CanonicalSkillsTest {
     }
 
     /**
-     * S7: a flag without {@code kind} now saves a neutral note, so the fault-found path must say
+     * Flag kind default change: a flag without {@code kind} now saves a neutral note, so the fault-found path must say
      * {@code "kind": "fault"} or a real fault is recorded as a note. The proving-a-claim line stays neutral.
      */
     @Test

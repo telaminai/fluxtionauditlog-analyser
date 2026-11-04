@@ -72,7 +72,7 @@ class WorkModeKeepsTheApiTest {
     // before it back (its BEFORE), and holds the pins after (its AFTER)
     // owner-approved M80 metadata: the node spotlight synonym and Java-builder source descriptions only.
     // M80DesignApiDeltaTest independently retains all eleven previous pins and undoes only those literal edits.
-    // S7 (fix/gym-flag-kind-bridge-exit): flag's kind gained the neutral 'note', now the default for a new finding — the
+    // flag kind default change: flag's kind gained the neutral 'note', now the default for a new finding — the
     // two schema maps, the two tool lists and the in-process manifest moved; FlagKindApiDeltaTest proves undoing exactly
     // that gives the earlier pins back (its BEFORE), and every older *ApiDeltaTest peels it first
     static final Map<String, String> PINNED = Map.ofEntries(
