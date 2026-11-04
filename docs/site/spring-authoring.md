@@ -274,8 +274,11 @@ project's `src/` folders as source roots:
 | `target/classes/fluxtion-diagnostics.json` | diagnostics intake |
 
 The list is closed and read-only. It grants no directory and no other file: `.env`, `pom.xml` and every other
-`target/` file stay unreadable unless a source root covers them. A listed path that is a link, or whose folder is a link, is refused; so is
-every listed file of a project that is the home folder or a credential folder. Do not add the project root as a
+`target/` file stay unreadable unless a source root covers them. A listed path that is a symbolic link, or whose folder
+is one, is refused, and so is a listed file with a second hard link (where the filesystem reports link counts); so is
+every listed file of a project that is the home folder or a credential folder. A source root that holds a file of the
+same relative name — a module's own `target/fluxtion-validation.json` — takes precedence over the project's. The
+project root is the folder holding `.analyser/`, or, for a settings file opened from elsewhere, that file's folder. Do not add the project root as a
 source root to reach these files: that grants every file in the project, and design discovery then scans all of it.
 
 ## Change the design without losing the implementation

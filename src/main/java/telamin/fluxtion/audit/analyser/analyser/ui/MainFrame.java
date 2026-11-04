@@ -1800,8 +1800,7 @@ public final class MainFrame extends JFrame {
 
     private telamin.fluxtion.audit.analyser.analyser.design.DesignFiles designFiles() {
         Path profile = project == null ? null : project.activeFile();
-        Path root = profile == null || profile.getParent() == null ? null : profile.getParent().getParent();
-        return new telamin.fluxtion.audit.analyser.analyser.design.DesignFiles(effectiveSourceRoots(), root);
+        return telamin.fluxtion.audit.analyser.analyser.design.DesignFiles.forProfile(effectiveSourceRoots(), profile);
     }
 
     private telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace designs() {
@@ -8587,10 +8586,10 @@ public final class MainFrame extends JFrame {
             // the open echo and sits in `context`, so the agent (and the human reading over its
             // shoulder) know a project is available without the app freezing behind a dialog.
             status.setText(status.getText() + "  ·  project available: "
-                    + (offer.getParent() == null ? offer : offer.getParent().getParent()));
+                    + telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(offer));
             return;
         }
-        Path root = offer.getParent() == null ? offer : offer.getParent().getParent();
+        Path root = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(offer);
         String name = root == null ? offer.toString() : root.getFileName().toString();
         int answer = JOptionPane.showConfirmDialog(this,
                 UiText.inert("This log sits inside the project \"" + name + "\", which has analyser settings.\n\n"

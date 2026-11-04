@@ -11,7 +11,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * S4 (2026-11-04, a gym run): a project granting only its {@code src/} roots could not open
+ * 2026-11-04, a test project: a project granting only its {@code src/} roots could not open
  * {@code target/fluxtion-validation.json}, and the authoring-record checks read "unavailable". Granting the project root
  * instead broke discovery: every build copies the design to {@code target/classes/}, so two designs were found and the
  * zero-setup auto-open was lost. The analyser now reads a closed list of evidence files below the project root without
@@ -25,7 +25,7 @@ class AuthoringEvidenceTest {
     static final String SPRING = "<beans><bean id='cfg' class='com.acme.FluxtionSpringConfig'/></beans>\n";
 
     @BeforeEach void layout() throws Exception {
-        project = Files.createDirectories(tmp.resolve("gym"));
+        project = Files.createDirectories(tmp.resolve("demo-project"));
         sources = Files.createDirectories(project.resolve("src/main/java"));
         Files.writeString(sources.resolve("Node.java"), "class Node {}\n");
         Path designs = Files.createDirectories(project.resolve("src/main/fluxtion"));
@@ -90,9 +90,42 @@ class AuthoringEvidenceTest {
         Path moved = Files.move(classes, tmp.resolve("classes-elsewhere"));
         Files.createSymbolicLink(classes, moved);
         assertThrows(IOException.class, () -> srcOnly().resolve("target/classes/fluxtion-diagnostics.json"), "directory link");
-        Path alias = Files.createSymbolicLink(tmp.resolve("gym-alias"), project);
+        Path alias = Files.createSymbolicLink(tmp.resolve("demo-project-alias"), project);
         assertEquals(project.toRealPath().resolve("target/fluxtion-run.json"),
                 new DesignFiles(List.of(), alias).resolve("target/fluxtion-run.json"), "a project opened through an alias still reads its own files");
+    }
+
+    /** A module root's own target/ file wins over the project's: evidence is consulted only when no root matched. */
+    @Test void aModuleRootMatchTakesPrecedenceOverProjectEvidence() throws Exception {
+        Path module = Files.createDirectories(project.resolve("moduleA/target"));
+        Path own = Files.writeString(module.resolve("fluxtion-validation.json"), VALIDATION);
+        var files = new DesignFiles(List.of(project.resolve("moduleA").toString()), project);
+        assertEquals(own.toRealPath(), files.resolve("target/fluxtion-validation.json"), "not ambiguous: the root's file");
+        assertEquals(project.toRealPath().resolve("target/fluxtion-run.json"), files.resolve("target/fluxtion-run.json"),
+                "a name the module lacks still reaches the project's evidence");
+        assertEquals(project.toRealPath().resolve("target/fluxtion-validation.json"),
+                files.resolve(project.resolve("target/fluxtion-validation.json").toString()), "an absolute path names one file");
+    }
+
+    @Test void aSecondHardLinkIsRefusedWhereLinkCountsExist() throws Exception {
+        Path listed = project.resolve("target/fluxtion-run.json");
+        Assumptions.assumeTrue(Files.getFileStore(listed).supportsFileAttributeView("unix"), "needs link counts");
+        Files.createLink(tmp.resolve("other-name"), listed);
+        assertThrows(IOException.class, () -> srcOnly().resolve("target/fluxtion-run.json"));
+    }
+
+    /** The project root of a settings file outside .analyser/ is that file's own folder (ProjectProfile.baseDirFor). */
+    @Test void aLooseSettingsFileAnchorsEvidenceAtItsOwnFolder() throws Exception {
+        Path loose = Files.writeString(project.resolve("exported.fluxtion-settings"), "sourceRoot.count=0\n");
+        assertEquals(project.toRealPath().resolve("target/fluxtion-run.json"),
+                DesignFiles.forProfile(List.of(), loose).resolve("target/fluxtion-run.json"));
+        Path canonical = project.resolve(telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.CANONICAL_RELATIVE);
+        Files.createDirectories(canonical.getParent());
+        Files.writeString(canonical, "sourceRoot.count=0\n");
+        assertEquals(project.toAbsolutePath().normalize(), DesignFiles.forProfile(List.of(), canonical).project());
+        assertNull(DesignFiles.forProfile(List.of(), null).project());
+        String frame = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"));
+        assertFalse(frame.contains("getParent().getParent()"), "the project root is ProjectProfile.baseDirFor, never assumed");
     }
 
     @Test void aHomeFolderProjectGrantsNothing() throws Exception {
@@ -139,6 +172,27 @@ class AuthoringEvidenceTest {
         driver.submit(new DesignEvents.DiscoveryCompleted(found, driver.processor().designSession.discoveryGeneration()));
         assertEquals(1, presented.size());
         assertEquals(design.toRealPath().toString(), presented.getFirst().file(), "exactly one design: the zero-setup auto-open");
+    }
+
+    @Test void toolAndVcsFoldersAndOutBesideAnImlAreSkipped() throws Exception {
+        for (String dir : List.of(".svn", ".hg", ".gradle", "out")) {
+            Files.createDirectories(project.resolve(dir));
+            Files.writeString(project.resolve(dir + "/copy.xml"), SPRING);
+        }
+        Files.delete(project.resolve("pom.xml"));
+        Path module = Files.createDirectories(project.resolve("plain"));
+        Files.writeString(module.resolve("plain.iml"), "<module/>");
+        Files.createDirectories(module.resolve("out"));
+        Files.writeString(module.resolve("out/copy.xml"), SPRING);
+        Path lone = Files.createDirectories(project.resolve("lone/out"));
+        Path kept = Files.writeString(lone.resolve("design.xml"), SPRING);
+        var found = DesignDiscovery.scan(new DesignFiles(List.of(project.toString()), project));
+        Set<String> paths = new HashSet<>(found.files().stream().map(DesignDiscovery.FileRef::path).toList());
+        assertTrue(paths.contains(kept.toRealPath().toString()), "out/ with no build file or .iml beside it is scanned: " + paths);
+        assertFalse(paths.stream().anyMatch(p -> p.contains("/.svn/") || p.contains("/.hg/") || p.contains("/.gradle/")
+                || p.contains("/plain/out/")), String.valueOf(paths));
+        assertTrue(paths.contains(project.toRealPath().resolve("out/copy.xml").toString()),
+                "project out/ has no build file now (pom removed) and no .iml: scanned");
     }
 
     @Test void aJavaPackageNamedBuildOrTargetIsStillScanned() throws Exception {
@@ -190,6 +244,66 @@ class AuthoringEvidenceTest {
         assertFalse(found.source().startsWith("unavailable"), found.source());
         assertTrue(found.files().size() <= 1, String.valueOf(found.files()));
         assertEquals(List.of(), found.unreadableFiles());
+    }
+
+    /**
+     * A folder removed while its entries are being visited is skipped, not a failed scan. On APFS this reaches the
+     * vanished-entry paths, not a listing exception; {@link #aListingFailureBelowTheRootIsNeverFatal} holds that one.
+     */
+    @Test void aDirectoryRemovedMidIterationIsSkipped() throws Exception {
+        Path root = Files.createDirectories(tmp.resolve("iter"));
+        Path big = Files.createDirectories(root.resolve("big"));
+        for (int i = 0; i < 400; i++) Files.writeString(big.resolve("f" + i + ".txt"), "DEMO");
+        Path kept = Files.writeString(root.resolve("design.xml"), SPRING);
+        boolean[] first = {true};
+        var found = DesignDiscovery.scan(new DesignFiles(List.of(root.toString()), null), entry -> {
+            if (first[0] && entry.getParent() != null && entry.getParent().getFileName().toString().equals("big")) {
+                first[0] = false;
+                deleteTree(big);
+            }
+        });
+        assertFalse(found.source().startsWith("unavailable"), found.source());
+        assertEquals(List.of(new DesignDiscovery.FileRef(kept.toRealPath().toString(), "spring")), found.files());
+        assertEquals(List.of(), found.unreadableFiles(), "removed, not unreadable");
+    }
+
+    /**
+     * The decision behind visitFileFailed and postVisitDirectory. A listing that fails part-way (the walk reports a
+     * DirectoryIteratorException's cause to postVisitDirectory) cannot be produced on demand on every filesystem, so
+     * the decision is held here directly; the walk tests above cover the paths a deletion does reach.
+     */
+    @Test void aListingFailureBelowTheRootIsNeverFatal() throws Exception {
+        Path root = tmp.resolve("r"), entry = root.resolve("d");
+        Set<String> unreadable = new TreeSet<>();
+        assertEquals(FileVisitResult.CONTINUE, DesignDiscovery.failed(entry, root, new NoSuchFileException("d"), unreadable));
+        assertEquals(Set.of(), unreadable, "vanished: skipped silently");
+        assertEquals(FileVisitResult.CONTINUE, DesignDiscovery.failed(entry, root, new AccessDeniedException("d"), unreadable));
+        assertEquals(Set.of(entry.toAbsolutePath().normalize().toString()), unreadable, "other failures are named");
+        assertThrows(IOException.class, () -> DesignDiscovery.failed(root, root, new IOException("root"), new TreeSet<>()),
+                "the root itself still makes the scan unavailable");
+        String source = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/design/DesignDiscovery.java"));
+        assertTrue(source.contains("return error == null ? FileVisitResult.CONTINUE : failed(dir, directory, error, unreadable);"),
+                "postVisitDirectory routes a listing failure through the same decision");
+    }
+
+    /** A folder swapped for a link to outside the root after listing is skipped and named, not read and not fatal. */
+    @Test void aDirectoryReplacedMidWalkIsSkipped() throws Exception {
+        Path root = Files.createDirectories(tmp.resolve("swap"));
+        Path sub = Files.createDirectories(root.resolve("sub"));
+        Files.writeString(sub.resolve("inner.xml"), SPRING);
+        Path outside = Files.createDirectories(tmp.resolve("elsewhere"));
+        Files.writeString(outside.resolve("foreign.xml"), SPRING);
+        Path kept = Files.writeString(root.resolve("design.xml"), SPRING);
+        var found = DesignDiscovery.scan(new DesignFiles(List.of(root.toString()), null), entry -> {
+            if (entry.getFileName().toString().equals("sub")) {
+                deleteTree(sub);
+                try { Files.createSymbolicLink(sub, outside); } catch (IOException e) { throw new AssertionError(e); }
+            }
+        });
+        assertFalse(found.source().startsWith("unavailable"), found.source());
+        assertEquals(List.of(new DesignDiscovery.FileRef(kept.toRealPath().toString(), "spring")), found.files(),
+                "nothing outside the root is read");
+        assertEquals(1, found.unreadableFiles().size(), String.valueOf(found.unreadableFiles()));
     }
 
     @Test void anUnopenableDirectoryIsNamedAndTheScanContinues() throws Exception {
