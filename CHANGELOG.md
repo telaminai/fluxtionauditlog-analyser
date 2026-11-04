@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- Automatic project-reopen dialogs withdraw when a newer open supersedes them, so assistant-loaded evidence is visible; stale chooser answers are ignored.
+- Legacy key guidance distinguishes Maven build sign-in, and the assistant guide names the onboard setup route for Both.
+- Authoring skills now distinguish saved build sign-in from legacy key status, explain recovery after a failed authoring build, and describe single-run exports and optional screenshot verification.
+
 ### Added
 
 - **Set up with your AI assistant (preview).** A docs page for the one-question install: the Claude Code plugin

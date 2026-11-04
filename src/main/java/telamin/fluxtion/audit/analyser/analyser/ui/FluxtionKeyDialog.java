@@ -64,6 +64,9 @@ public final class FluxtionKeyDialog extends JDialog {
                 + "FLUXTION_API_KEY is not read by the builder.");
         rule.setAlignmentX(Component.LEFT_ALIGNMENT);
         root.add(rule);
+        JLabel managed = new JLabel("Legacy key only: Maven build sign-in uses ~/.fluxtion/credentials separately.");
+        managed.setAlignmentX(Component.LEFT_ALIGNMENT);
+        root.add(managed);
         root.add(Box.createVerticalStrut(14));
 
         JPanel activate = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));

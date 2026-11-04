@@ -168,3 +168,11 @@ that is the question the tour exists to provoke.
 - **…open something without asking, when they already had work open.** Don't.
 - **…claim a capability you could not get on screen.** Say it exists and that you could not demonstrate
   it, or leave it out.
+
+## When screenshot access is disabled
+
+If `analyser_screenshot` reports that assistant file exchange is disabled, say so once. Ask whether
+the person wants to enable **Settings > Assistant > Allow assistant file exchange** and choose an
+exchange directory. Do not change that permission silently. If they decline, continue the data and
+pairing checks and ask them to verify placement visually; record screenshot placement as unverified,
+not passed. Do not repeatedly call the denied screenshot tool.

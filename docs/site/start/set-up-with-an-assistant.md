@@ -199,3 +199,16 @@ See [Managed policy](../admin/managed-policy.md) for the analyser's own policy c
 - Later code generation sends a graph model and generation configuration, not Java source files. The model can
   include configured values, including private fields; do not put secrets in it. See
   [What is stored where, what leaves](../admin/data.md).
+
+
+### Also use Claude inside the Analyser
+
+Open **Set up AI** from the onboard **Assistant panel** (or its header dropdown), then choose
+**Both** to keep your external client and add onboard Claude. Close an already-open setup window
+before using this route. With an external client selected, the top **AI > Set up AI** menu can jump
+straight to the external-client screen instead of the choice screen. Keep the plugin connection;
+do not create another user-scope registration to complete the onboard setup.
+
+The legacy **Fluxtion API key** display and `context.fluxtionKey` inspect only the old key file.
+They do not inspect Maven's saved build sign-in in `~/.fluxtion/credentials`; an absent legacy key
+is not evidence that a signed-in Maven build cannot authenticate.

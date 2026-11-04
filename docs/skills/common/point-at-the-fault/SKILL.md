@@ -178,3 +178,11 @@ is the point of the report.
 - **…light six things because six is allowed.** Two that carry the argument beat six that decorate it.
 - **…claim the node "never ran" because it is not in the record.** Absence from a sparse log says nothing;
   `analyser_coverage` tells you which regime you are in, and says so itself.
+
+## When screenshot access is disabled
+
+If `analyser_screenshot` reports that assistant file exchange is disabled, say so once. Ask whether
+the person wants to enable **Settings > Assistant > Allow assistant file exchange** and choose an
+exchange directory. Do not change that permission silently. If they decline, continue the data and
+pairing checks and ask them to verify placement visually; record screenshot placement as unverified,
+not passed. Do not repeatedly call the denied screenshot tool.

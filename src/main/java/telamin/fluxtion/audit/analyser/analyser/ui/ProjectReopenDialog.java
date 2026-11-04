@@ -7,6 +7,9 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JLabel;
+import javax.swing.JDialog;
+import javax.swing.Timer;
+import java.util.function.BooleanSupplier;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -48,6 +51,13 @@ final class ProjectReopenDialog {
     private static final String NONE = "\u0000none";
 
     static Choice choose(Component owner, String projectLabel, ProjectReopen candidates) {
+        return choose(owner, projectLabel, candidates, () -> true);
+    }
+
+    /** The session owns validity; this modal only renders its withdrawal while the EDT keeps dispatching. */
+    static Choice choose(Component owner, String projectLabel, ProjectReopen candidates,
+                         BooleanSupplier stillCurrent) {
+        if (!stillCurrent.getAsBoolean()) return null;
         JList<String> logs = list(candidates.logs(), "Don't open a log");
         JList<String> graphs = list(candidates.topologies(), "Don't open a topology");
 
@@ -105,9 +115,22 @@ final class ProjectReopenDialog {
         panel.add(split, BorderLayout.CENTER);
 
         Object[] options = {"Open", "Not now"};
-        int answer = JOptionPane.showOptionDialog(owner, panel, "Open a log or topology",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
-        if (answer != 0) return null;
+        JOptionPane pane = new JOptionPane(panel, JOptionPane.PLAIN_MESSAGE,
+                JOptionPane.DEFAULT_OPTION, null, options, options[0]);
+        JDialog dialog = pane.createDialog(owner, "Open a log or topology");
+        // An MCP open can supersede this offer inside Swing's modal event loop. Close only
+        // this chooser, not unrelated settings/confirmation dialogs or any other app window.
+        Timer validity = new Timer(75, event -> {
+            if (!stillCurrent.getAsBoolean()) dialog.dispose();
+        });
+        try {
+            validity.start();
+            dialog.setVisible(true);
+        } finally {
+            validity.stop();
+            dialog.dispose();
+        }
+        if (!stillCurrent.getAsBoolean() || !options[0].equals(pane.getValue())) return null;
         Choice chosen = new Choice(chosenValue(logs), chosenValue(graphs));
         return chosen.nothing() ? null : chosen;
     }

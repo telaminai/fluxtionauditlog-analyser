@@ -27,6 +27,27 @@ class CanonicalSkillsTest {
     private static final String PUBLISHED_REVISION = "f5efe17e1b234bdb6c55cd8fada27d2bdc8d2bc8";
 
     @Test
+    void installAcceptanceGuidanceKeepsEvidenceAndAuthenticationHonest() throws Exception {
+        String run = Files.readString(ROOT.resolve("mongoose/run-mongoose-server/SKILL.md"));
+        assertTrue(run.contains("one server run by default"));
+        assertTrue(run.contains("ALL_RUNS=1"));
+        assertTrue(run.contains("saved build credential"));
+        assertTrue(run.contains("does not refresh the authoring receipt"));
+        assertFalse(run.contains("The export is cumulative"));
+        assertFalse(run.contains("It reads `FLUXTION_API_KEY`"));
+        String add = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
+        assertTrue(add.contains("Recover a partial generation attempt"));
+        assertTrue(add.contains("valueType"));
+        assertTrue(add.contains("not a success/failure result"));
+        assertTrue(add.contains("cannot infer a new class"));
+        for (String skill : List.of("guided-start", "point-at-the-fault")) {
+            String text = Files.readString(ROOT.resolve("common/" + skill + "/SKILL.md"));
+            assertTrue(text.contains("record screenshot placement as unverified"));
+            assertTrue(text.contains("Do not change that permission silently"));
+        }
+    }
+
+    @Test
     void exactlyTheCanonicalSkillsAreDiscoverableWithRequiredFrontmatter() throws Exception {
         SkillDiscovery.Found found = SkillDiscovery.find(ROOT, Map.of());
         assertEquals(Set.of("load-audit-log", "replay-a-run", "run-embedded", "run-mongoose-server",

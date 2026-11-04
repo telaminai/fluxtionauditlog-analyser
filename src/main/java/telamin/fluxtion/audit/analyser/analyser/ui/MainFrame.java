@@ -9210,10 +9210,13 @@ public final class MainFrame extends JFrame {
                         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented(opId, false));
                         return;
                     }
+                    java.util.function.BooleanSupplier stillCurrent =
+                            () -> session.processor().projectReopenOffer.mayPresent(e.opId(), e.profilePath());
                     var chosen = chooser != null ? chooser.apply(e.label(), e.candidates())
-                            : ProjectReopenDialog.choose(this, e.label(), e.candidates());
-                    session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented(opId, true));
-                    applyReopenChoice(chosen);
+                            : ProjectReopenDialog.choose(this, e.label(), e.candidates(), stillCurrent);
+                    boolean current = stillCurrent.getAsBoolean();
+                    session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented(opId, current));
+                    if (current) applyReopenChoice(chosen);
                 });
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(opId, "reopen offer scheduled");
             }
@@ -11255,7 +11258,9 @@ public final class MainFrame extends JFrame {
                 fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
                 fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
                 fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
-                        + "overrides this file; FLUXTION_API_KEY is not read by the builder");
+                        + "overrides this legacy file; FLUXTION_API_KEY is not read by the builder. "
+                        + "This key-only observation does not inspect Maven compiler sign-in in ~/.fluxtion/credentials "
+                        + "and cannot establish whether builds can authenticate. Maven validates build sign-in independently.");
                 out.put("fluxtionKey", fluxtionKey);
             }
             // M37: the graph is reported whether or not a log is open. It sat inside the store block, so
