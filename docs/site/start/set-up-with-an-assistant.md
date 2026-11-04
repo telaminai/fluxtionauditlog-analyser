@@ -7,8 +7,8 @@
     assistant install software.
 
 **Preview target:** from a Mac with nothing installed to your first audited run in under ten minutes.
-One setup question, one reconnect and a browser sign-in (optional for setup; needed to build a project, free).
-This timing still needs the production release run with a person approving commands in Manual mode.
+One setup question, one reconnect and a browser sign-in (optional for setup; needed for processor generation, free).
+The production Manual-mode trial passed, but did not establish this timing target. Browser approval, downloads and the task affect elapsed time.
 
 Ask your assistant to set the analyser up, answer **one question**, and it installs the analyser, opens it and
 then checks its connection. You do not need to install Java or JBang first. Your host and operating system
@@ -49,26 +49,26 @@ That route registers the connection in Claude Code's user configuration, and nee
 
 In **Manual mode**, Claude Code asks before commands that are not already allowed. A remembered
 `analyser-setup plan *` rule covers matching plans in that project; `analyser-setup apply *` is a separate
-approval. Neither approves the other, and other commands may still prompt. The last measured run needed
-seven host approvals for setup, plus one on the sign-in rerun. Five or fewer is a target, and the refined
-flow has not had another cold count. Your permission mode determines the prompts; setup does not change it.
+approval. Neither approves the other, and other commands may still prompt. The production trial needed
+four setup command approvals plus one native MCP approval, with none on the sign-in rerun. Counts depend
+on existing rules and the commands used. Your permission mode determines the prompts; setup does not change it.
 See [Claude Code permissions](https://code.claude.com/docs/en/permissions).
 
 1. **One question.** Before it changes anything, the assistant lists every change and where it goes (JBang, the
    analyser, its settings folder, the optional sign-in), and asks:
    *yes / yes, but without the Fluxtion sign-in / no*. **No** changes nothing.
-2. **Install.** If JBang is missing, it is installed. On a machine without JDK 21 or newer, JBang downloads one Java 21 (approximately 190 MB),
+2. **Install.** If JBang is missing, it is installed. When a usable Java 21 is not selected, JBang downloads one Java 21 (approximately 190 MB compressed / 335 MB on disk),
    used by JBang, setup and the analyser, and by your builds if you have no JDK 21+. An explicit
    JBang Java-version override can change the download. The analyser
    **1.40.2** is installed and its download is checked against a pinned checksum. You see progress as each step
    finishes. Installation may also add PATH, the j! alias and JAVA_HOME to shell startup files; the
-   question discloses this because it can affect future Java builds.
+   question discloses this because it can affect future Java builds. The Java-free production trial downloaded approximately 420 MB in total and used about 580 MB on disk, including the analyser. Sizes vary by platform and version.
 3. **Open.** The analyser window opens with external access turned on. While the app is closed, setup records
    Claude Code as your AI client if no choice is saved. It preserves an existing choice. On the URL route, if the app is already
    open without a choice, use **AI ▸ Set up AI…**, pick **Your own AI client connects** (not **Claude inside**),
    then **Claude Code**. On the plugin route, the connection comes from the plugin: do not use that registration
    flow just to change the start-screen label. The label can still reflect a previous saved choice.
-4. **Sign in (optional for setup; needed to build a project, free).** Your browser opens on the Fluxtion compiler's sign-in page with a short code, which the
+4. **Sign in (optional for setup; needed for processor generation, free).** Your browser opens on the Fluxtion compiler's sign-in page with a short code, which the
    assistant also shows you. Approve it there. A build credential, readable only by you, is saved in
    `~/.fluxtion/credentials` by default. Signing in charges nothing; free-plan limits apply. Skipping or
    declining sign-in leaves the analyser setup in place.
@@ -129,8 +129,7 @@ To run `analyser` from a terminal by name, ensure the actual JBang `bin` directo
 Installation may have added it; setup does not assume that it did.
 
 Day-two recovery was exercised in an isolated macOS Claude Code 2.1.317 interactive session:
-setup reopened the app and a native check succeeded after reconnect. Marketplace and production
-acceptance remain pending.
+setup reopened the app and a native check succeeded after reconnect. Marketplace installation and production acceptance also passed in the 2026-11-04 macOS trial. The authoring bundle subsequently exposed a separate legacy preflight failure; a successful initial AOT trial does not certify graph-editing workflows.
 
 ## Already connected the analyser another way?
 
@@ -184,8 +183,7 @@ See [Managed policy](../admin/managed-policy.md) for the analyser's own policy c
 - Linux and Windows: use the [manual install](../install.md).
 - Assistants other than Claude Code: automatic setup is not supported; use the manual installation and
   [client connection instructions](../connect-an-llm.md).
-- Marketplace installation, managed pre-install and the refined Manual-mode approval count remain untested.
-  The earlier Manual-mode run measured seven setup approvals plus one on the sign-in rerun.
+- Managed pre-install remains untested. Marketplace installation and the production Manual-mode trial passed; local follow-up fixes need their own acceptance.
 - Claude Code's desktop app and non-interactive runs (`claude -p`): plugin connections take effect in the next
   session.
 

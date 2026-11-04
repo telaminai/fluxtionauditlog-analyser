@@ -129,6 +129,29 @@ public class Issue84BundleFrameTest {
         });
     }
 
+    @Test void aStaleChooserAnswerCannotReplaceANewerAssistantLog() throws Exception {
+        Path tmp = tmp("superseded-reopen");
+        try (var f = shown(tmp)) {
+            Path p = profile(tmp.resolve("project"));
+            Path oldLog = Files.copy(DEMO_LOG, tmp.resolve("DEMO-old.yaml"));
+            Path newLog = Files.copy(DEMO_LOG, tmp.resolve("DEMO-new.yaml"));
+            AtomicBoolean asked = new AtomicBoolean();
+            onEdt(() -> ((AppConfig)field(f.frame,"config")).addRecent(oldLog.toString()));
+            MainFrame.reopenChooser = (label,candidates) -> {
+                render(f.ex, "open", Map.of("log", newLog.toString()));
+                asked.set(true);
+                return new ProjectReopenDialog.Choice(oldLog.toString(), null);
+            };
+            var request = MainFrame.class.getDeclaredMethod("requestProject", Path.class, TransitionKind.class, String.class, boolean.class);
+            request.setAccessible(true);
+            onEdt(() -> { try { request.invoke(f.frame,p,TransitionKind.EXPLICIT_SWITCH,"DEMO-person",true); } catch(Exception e){throw new RuntimeException(e);} });
+            for (int i=0;i<100&&!asked.get();i++) Thread.sleep(50);
+            assertTrue(asked.get(), "the offer actually opened");
+            awaitLoaded(f.ex);
+            assertEquals(newLog.toString(), f.processorLog(), "staleChooserAnswerCannotReplaceNewerEvidence");
+        }
+    }
+
     @Test void aPersonsReopenOfferRunsAfterTheCycle() throws Exception {
         Path tmp = tmp("reopen");
         try (var f = shown(tmp)) {

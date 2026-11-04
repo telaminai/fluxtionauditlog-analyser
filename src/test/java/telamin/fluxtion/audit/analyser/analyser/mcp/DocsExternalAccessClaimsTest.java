@@ -45,15 +45,15 @@ class DocsExternalAccessClaimsTest {
         assertTrue(page.contains("/plugin install fluxtion-analyser@telamin"));
         assertTrue(page.contains("/reload-plugins --force"));
         assertTrue(page.contains("Manual mode"));
-        assertTrue(page.contains("needed to build a project"));
+        assertTrue(page.contains("needed for processor generation"));
         assertTrue(page.contains("Plugin declared"));
         assertTrue(page.contains("analyser-setup plan *"));
         assertTrue(page.contains("analyser-setup apply *"));
         assertFalse(page.contains("Shift+Tab"));
         assertFalse(Pattern.compile("`[0-9a-f]{7,40}`").matcher(page).find(), "no private commit IDs in the user guide");
         assertTrue(page.contains("**Preview target:**"));
-        assertTrue(page.contains("seven host approvals"));
-        assertTrue(page.contains("Five or fewer is a target"));
+        assertTrue(page.contains("four setup command approvals plus one native MCP approval"));
+        assertTrue(page.contains("did not establish this timing target"));
         assertFalse(page.contains("Publication pending"));
         assertFalse(page.contains("Requires the starter audit-export fix"));
         assertTrue(page.contains("/mcp reconnect plugin:fluxtion-analyser:fluxtion-analyser"));
