@@ -39,6 +39,10 @@ public final class RecordParser {
      *                 ({@link AuditLogReader#textEncoding()}). Never inferred from the text: a
      *                 declaration-shaped line inside a multiline legacy value is value data, and
      *                 promoting it to a control field deleted the entry after it (review, round 6).
+     *                 Under {@code LEGACY} only, the record's own declaration - {@code textEncoding:
+     *                 QUOTED_SCALARS} as the first line of its mapping ({@link #declaration(String)}) -
+     *                 selects the quoted grammar for this record; the result says so
+     *                 ({@link LogRecord#recordDeclaredEncoding()}).
      */
     public static LogRecord parse(String text, long offset, int storedLength,
                                   AuditLogReader.TextEncoding encoding) {
@@ -64,6 +68,17 @@ public final class RecordParser {
         RecordBreak.Role[] roles = structure.roles();
         String[] lines = text.split("\n", -1);
         int readLines = broken == null ? lines.length : broken.keepBefore();
+        // §3a: a record may declare its own grammar, but only as the FIRST line of its mapping, and only where the
+        // reader declares none. Anywhere else the same spelling is content. A reader's declaration is never overridden.
+        boolean recordDeclared = false;
+        if (encoding == AuditLogReader.TextEncoding.LEGACY) {
+            Declaration declaration = declaration(lines, roles, readLines);
+            if (declaration != null && declaration.honoured()) {
+                encoding = AuditLogReader.TextEncoding.QUOTED_SCALARS;
+                recordDeclared = true;
+            }
+        }
+        final boolean decodeHeader = recordDeclared;
         for (int lineIndex = 0; lineIndex < readLines; lineIndex++) {
             String raw = lines[lineIndex];
             int linePosition = rawPosition;
@@ -96,15 +111,15 @@ public final class RecordParser {
                         case "eventTime":    eventTime = parseTime(val, true);  sawFields = true; break;
                         case "logTime":      logTime = parseTime(val, false);   sawFields = true; break;
                         case "endTime":      endTime = parseTime(val, false);   sawFields = true; break;
-                        case "groupingId":   groupingId = nullLiteral(val);     sawFields = true; break;
-                        case "event":        event = emptyToNull(val);          sawFields = true; break;
+                        case "groupingId":   groupingId = header(val, decodeHeader, true); sawFields = true; break;
+                        case "event":        event = header(val, decodeHeader, false); sawFields = true; break;
                         // The fully-qualified identity, when the source carries it. The text record never
                         // did - it has always written the simple name - so this is null for text logs and
                         // set for binary ones, whose wire records Class.getName(). Kept separate from
                         // `event` so nothing that matches the simple name literally changes behaviour.
-                        case "eventType":    eventType = emptyToNull(val);      sawFields = true; break;
-                        case "eventToString":eventToString = emptyToNull(val);  sawFields = true; break;
-                        case "thread":       thread = emptyToNull(val);         sawFields = true; break;
+                        case "eventType":    eventType = header(val, decodeHeader, false); sawFields = true; break;
+                        case "eventToString":eventToString = header(val, decodeHeader, false); sawFields = true; break;
+                        case "thread":       thread = header(val, decodeHeader, false); sawFields = true; break;
                         default: /* unknown top-level scalar: ignore, keep in rawText */
                     }
                 }
@@ -118,6 +133,8 @@ public final class RecordParser {
         String resolvedThread = thread != null ? thread : header.thread();
         final String block = nodeLogs.toString();
         final boolean quotedScalarsFinal = encoding == AuditLogReader.TextEncoding.QUOTED_SCALARS;
+        // reserved @-keys are the binary reader's vocabulary; the text runtime that declares per record has none
+        final boolean reservedKeysFinal = quotedScalarsFinal && !recordDeclared;
 
         return LogRecord.builder()
                 .fileOffset(offset)
@@ -129,6 +146,7 @@ public final class RecordParser {
                 .event(event)
                 .eventType(eventType)
                 .textEncoding(encoding)
+                .recordDeclaredEncoding(recordDeclared)
                 .eventToString(eventToString)
                 .thread(resolvedThread)
                 .logger(header.logger())
@@ -144,7 +162,7 @@ public final class RecordParser {
                 .rawText(text)
                 .brokenAtLine(broken == null ? 0 : broken.line())
                 .nodeLogDataSupplier(() -> {
-                    NodeLogData data = NodeLogTokenizer.parseBlockData(block, quotedScalarsFinal);
+                    NodeLogData data = NodeLogTokenizer.parseBlockData(block, quotedScalarsFinal, reservedKeysFinal);
                     java.util.List<NodeLogData.KeySpan> spans = new java.util.ArrayList<>();
                     int line = 0;
                     for (var span : data.keySpans()) {
@@ -158,6 +176,68 @@ public final class RecordParser {
                     return new NodeLogData(data.nodes(), spans);
                 })
                 .build();
+    }
+
+    /** The key of the per-record grammar declaration (format-spec §3a). */
+    public static final String TEXT_ENCODING_KEY = "textEncoding";
+
+    /**
+     * A record's own grammar declaration: {@code textEncoding: <value>} as the first non-empty line after
+     * {@code eventLogRecord:}. Only {@code QUOTED_SCALARS} is honoured; any other value leaves the record legacy
+     * and is reported ({@link ProducerDiagnostics.Kind#UNKNOWN_TEXT_ENCODING}).
+     *
+     * @param line  the 1-based line within the record's text
+     * @param value the declared value, as written
+     */
+    public record Declaration(int line, String value) {
+        public boolean honoured() {
+            return AuditLogReader.TextEncoding.QUOTED_SCALARS.name().equals(value);
+        }
+    }
+
+    /**
+     * The declaration {@code text} makes about its own grammar, or null when it makes none. Recognised by POSITION,
+     * as the §1a stream-end marker is: the line that immediately follows the record key (blank lines aside, the same
+     * whitespace and byte-order-mark stripping), at the fields' indentation and outside any quoted value. A line spelled
+     * the same anywhere else - inside a multi-line {@code eventToString}, a node value, after {@code endTime} - is content.
+     */
+    public static Declaration declaration(String text) {
+        if (text == null || text.indexOf(TEXT_ENCODING_KEY) < 0) return null;   // the common case: no analysis
+        String[] lines = text.split("\n", -1);
+        RecordBreak.Structure structure = RecordBreak.analyse(text);
+        RecordBreak broken = structure.broken();
+        return declaration(lines, structure.roles(), broken == null ? lines.length : broken.keepBefore());
+    }
+
+    private static Declaration declaration(String[] lines, RecordBreak.Role[] roles, int readLines) {
+        int key = -1;
+        for (int i = 0; i < readLines; i++) {
+            if (roles[i] == RecordBreak.Role.RECORD_KEY) { key = i; break; }
+            if (roles[i] == RecordBreak.Role.FIELD) return null;   // fields with no record key before them
+        }
+        if (key < 0) return null;
+        for (int i = key + 1; i < readLines; i++) {
+            String t = AuditText.strip(lines[i]);
+            if (t.isEmpty()) continue;
+            if (roles[i] != RecordBreak.Role.FIELD) return null;
+            String[] kv = splitScalar(t);
+            if (kv == null || !TEXT_ENCODING_KEY.equals(kv[0])) return null;
+            return new Declaration(i + 1, kv[1]);
+        }
+        return null;
+    }
+
+    /**
+     * A header scalar's value. Under a record's own declaration a value that is ENTIRELY one quoted scalar decodes
+     * (§3a) and is text whatever it spells - a quoted {@code "null"} grouping id is the string {@code null}. Otherwise,
+     * and always for a reader's declaration, it is the raw text it has always been.
+     */
+    private static String header(String val, boolean decode, boolean nullLiteral) {
+        if (decode) {
+            NodeLogTokenizer.Scalar scalar = NodeLogTokenizer.unquote(val);
+            if (scalar.quoted()) return emptyToNull(scalar.text());
+        }
+        return nullLiteral ? nullLiteral(val) : emptyToNull(val);
     }
 
     /** Splits a trimmed scalar line into [key, value] on the first {@code :}; null if not a scalar. */

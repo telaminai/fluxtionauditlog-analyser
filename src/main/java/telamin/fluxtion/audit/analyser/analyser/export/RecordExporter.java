@@ -51,6 +51,12 @@ public final class RecordExporter {
      *         re-opened as a text log would read every quoted String as its quoted characters (a
      *         review showed {@code "ok, invented: 99"} reloading with the quotes inside the value).
      *         The lossless artefact for a binary log is the {@code .flxa} file itself.
+     *
+     * <p>A TEXT log whose records declare the quoted grammar themselves (format-spec §3a) is not refused:
+     * the declaration is part of each record's own text, which this export copies, so marked and
+     * unmarked records re-load exactly as they read. Injecting a declaration into a binary-derived
+     * record's text would re-encode rather than copy (and decode header scalars the reader left raw),
+     * so a reader-declared store stays refused.
      */
     /**
      * Why a YAML export of this store would not re-load as the same records, or null when it would.

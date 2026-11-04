@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **A text audit record can declare quoted values itself.** A record whose `eventLogRecord` mapping opens with
+  `textEncoding: QUOTED_SCALARS` is read with the quoted-scalar grammar (format spec §3a): a value such as
+  `reason: "membership not active, balance due 30.0"` is one value, `"123"` and `"true"` stay text, quoted header
+  values decode, and `\0`, `\xXX`, `\uXXXX` (surrogate pairs included) are decoded alongside `\\ \" \n \r \t`;
+  malformed escapes are kept verbatim. Recognised only as the first line of the mapping, record by record, so a
+  file or Follow stream mixing old and new records reads each correctly; records without it read exactly as
+  before. An unknown value reads as legacy and is named once as a producer finding. Fixture C35.
+
 ## [1.40.3] - 2026-11-04
 
 ### Fixed

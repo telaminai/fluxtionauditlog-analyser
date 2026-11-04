@@ -128,6 +128,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
         String firstEvent = null;
         String previousKey = null, previousValue = null;   // the last field line, for the exported-service shape
         int textFrom = Integer.MAX_VALUE;   // the additional payload cap; groupingId/thread are not certified safe
+        boolean firstField = false;     // this line is the record's first field
         for (int i = 0; i < lines.length; i++) {
             String raw = stripCr(lines[i]);
             boolean insideQuote = quotesCount && open != 0;
@@ -155,6 +156,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
                 String key = keyOf(t);
                 if (key == null) continue;
                 fieldIndent = indent;
+                firstField = true;
                 // falls through: this is the first field
             } else {
                 // a separator the framer did not split on (a BOM in front of it, mid-file) is framing's subject: the record
@@ -200,7 +202,12 @@ public record RecordBreak(int line, int keepBefore, String reason) {
             String value = AuditText.strip(t.substring(key.length() + 1));
             previousKey = key;
             previousValue = value;
-            boolean carriesText = !FIELD_KEYS.contains(key) || key.equals("eventToString") || key.equals("nodeLogs");
+            // §3a: the grammar declaration, in the one position it is recognised (the first field), is the producer's
+            // metadata and carries no payload; spelled anywhere else it is an unknown field like any other
+            boolean declaration = firstField && key.equals("textEncoding");
+            firstField = false;
+            boolean carriesText = !declaration
+                    && (!FIELD_KEYS.contains(key) || key.equals("eventToString") || key.equals("nodeLogs"));
             if (carriesText && textFrom == Integer.MAX_VALUE) textFrom = i;
             if (FIELD_KEYS.contains(key)) {
                 Integer first = firstAt.putIfAbsent(key, i);

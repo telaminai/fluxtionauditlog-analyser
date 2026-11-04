@@ -21,7 +21,7 @@ import java.util.List;
  * <p><b>Two grammars, and the RECORD says which.</b> The legacy grammar is what every text log has
  * ever been read with: quotes protect separators while scanning, nothing is decoded, a backslash is a
  * character. The quoted-scalar grammar (format-spec §3a) adds one thing: an instance id, key or value
- * that is entirely {@code "…"} with the escapes {@code \\ \" \n \r \t} is decoded and marked
+ * that is entirely {@code "…"} with the escapes {@code \\ \" \n \r \t \0 \xXX} (and the four-hex-digit {@code u} escape) is decoded and marked
  * {@link KV#quoted() quoted}, and a backslash inside double quotes escapes the next character while
  * scanning. That is the one lossless spelling for text that would otherwise BE syntax: a logged String
  * {@code "ok, price: 42.0"} written bare reads as two entries, the second a numeric figure the
@@ -33,7 +33,9 @@ import java.util.List;
  * review showed a legacy value {@code prefix "C:\"} read under the quoted grammar swallowing the
  * entry after it, and a later one showed a per-record declaration scalar being forged by a multiline
  * value. So text is never sniffed: the binary reader declares the quoted grammar, the text reader has
- * nothing to declare, and every text log is read exactly as before, byte for byte.
+ * nothing to declare, and every text record that declares nothing is read exactly as before, byte for
+ * byte. The one declaration a text record can make is positional - {@code textEncoding: QUOTED_SCALARS} as
+ * the first line of its mapping, read by {@link RecordParser} - so no value can reach it.
  *
  * <p><b>Reserved keys under the declared grammar.</b> A BARE key beginning with {@code @} is the
  * reader's, not the producer's: a business key containing {@code @} is always quoted on the way out
@@ -72,6 +74,18 @@ public final class NodeLogTokenizer {
      * whitespace is lossy, so their UI falls back to the node's named keys.
      */
     public static NodeLogData parseBlockData(String block, boolean quotedScalars) {
+        return parseBlockData(block, quotedScalars, quotedScalars);
+    }
+
+    /**
+     * @param reservedKeys whether bare {@code @invoked} / {@code @unkeyed} keys are the reader's
+     *                     vocabulary. True only for a READER that declares the quoted grammar (the
+     *                     binary reader writes them); a text record that declares the grammar itself
+     *                     ({@code textEncoding: QUOTED_SCALARS}, format-spec §3a) was written by the
+     *                     text runtime, which has no wire TRACE, so a bare {@code @invoked} there is
+     *                     the producer's key and stays an entry.
+     */
+    public static NodeLogData parseBlockData(String block, boolean quotedScalars, boolean reservedKeys) {
         List<NodeLog> out = new ArrayList<>();
         List<KeySpan> spans = new ArrayList<>();
         if (block == null || block.isBlank()) return new NodeLogData(out, spans);
@@ -93,7 +107,7 @@ public final class NodeLogTokenizer {
             String t = line.strip();
             if (t.isEmpty()) continue;
             if (!insideQuote && (t.startsWith("- ") || t.equals("-"))) {
-                if (current != null) appendItem(out, spans, current, quotedScalars, itemOffset, multiline);
+                if (current != null) appendItem(out, spans, current, quotedScalars, reservedKeys, itemOffset, multiline);
                 current = new StringBuilder(t.length() >= 2 ? t.substring(2) : "");
                 itemOffset = lineOffset + line.indexOf(t) + (t.length() >= 2 ? 2 : 1);
                 multiline = false;
@@ -105,14 +119,14 @@ public final class NodeLogTokenizer {
                 itemOffset = lineOffset + line.indexOf(t);
             }
         }
-        if (current != null) appendItem(out, spans, current, quotedScalars, itemOffset, multiline);
+        if (current != null) appendItem(out, spans, current, quotedScalars, reservedKeys, itemOffset, multiline);
         return new NodeLogData(out, spans);
     }
 
     private static void appendItem(List<NodeLog> nodes, List<KeySpan> spans, StringBuilder item,
-                                   boolean quoted, int offset, boolean multiline) {
+                                   boolean quoted, boolean reservedKeys, int offset, boolean multiline) {
         List<KeySpan> itemSpans = new ArrayList<>();
-        nodes.add(parseItem(item.toString(), quoted, itemSpans, offset));
+        nodes.add(parseItem(item.toString(), quoted, reservedKeys, itemSpans, offset));
         if (!multiline) spans.addAll(itemSpans);
     }
 
@@ -126,10 +140,11 @@ public final class NodeLogTokenizer {
 
     /** @see #parseBlock(String, boolean) */
     public static NodeLog parseItem(String item, boolean quotedScalars) {
-        return parseItem(item, quotedScalars, new ArrayList<>(), 0);
+        return parseItem(item, quotedScalars, quotedScalars, new ArrayList<>(), 0);
     }
 
-    private static NodeLog parseItem(String item, boolean quotedScalars, List<KeySpan> spans, int offset) {
+    private static NodeLog parseItem(String item, boolean quotedScalars, boolean reservedKeys,
+                                     List<KeySpan> spans, int offset) {
         String s = item.strip();
         offset += item.length() - item.stripLeading().length();
         int colon = indexOfSep(s, quotedScalars);
@@ -153,7 +168,7 @@ public final class NodeLogTokenizer {
             int segmentOffset = offset + bodyOffset + 1 + rawInner.length() - rawInner.stripLeading().length();
             if (!inner.isEmpty()) {
                 for (String seg : splitTopLevel(inner, ',', quotedScalars)) {
-                    Pair pair = parsePair(seg, quotedScalars);
+                    Pair pair = parsePair(seg, quotedScalars, reservedKeys);
                     if (pair.traceMarker) {
                         traced = true;          // metadata, not an entry
                     } else {
@@ -184,7 +199,7 @@ public final class NodeLogTokenizer {
     private record Pair(KV kv, boolean traceMarker) {
     }
 
-    private static Pair parsePair(String segment, boolean quotedScalars) {
+    private static Pair parsePair(String segment, boolean quotedScalars, boolean reservedKeys) {
         String seg = segment.strip();
         int colon = indexOfSep(seg, quotedScalars);
         if (colon < 0) {
@@ -194,7 +209,7 @@ public final class NodeLogTokenizer {
         Scalar key = scalar(rawKey, quotedScalars);
         Scalar value = scalar(seg.substring(colon + 2).strip(), quotedScalars);
         // Reserved keys: only the declared grammar has them, and only a BARE one is the reader's.
-        if (quotedScalars && !key.quoted) {
+        if (quotedScalars && reservedKeys && !key.quoted) {
             if (TRACE_KEY.equals(key.text)) {
                 return new Pair(null, true);
             }
@@ -223,11 +238,12 @@ public final class NodeLogTokenizer {
         if (s.length() < 2 || s.charAt(0) != '"' || s.charAt(s.length() - 1) != '"') {
             return new Scalar(s, false);
         }
+        int end = s.length() - 1;   // index of the closing quote
         StringBuilder out = new StringBuilder(s.length());
-        for (int i = 1; i < s.length() - 1; i++) {
+        for (int i = 1; i < end; i++) {
             char c = s.charAt(i);
             if (c == '\\') {
-                if (i + 1 >= s.length() - 1) return new Scalar(s, false);   // dangling escape: not ours
+                if (i + 1 >= end) return new Scalar(s, false);   // dangling escape: not ours
                 char e = s.charAt(++i);
                 switch (e) {
                     case '\\': out.append('\\'); break;
@@ -235,6 +251,36 @@ public final class NodeLogTokenizer {
                     case 'n': out.append('\n'); break;
                     case 'r': out.append('\r'); break;
                     case 't': out.append('\t'); break;
+                    case '0': out.append('\0'); break;
+                    case 'x': {
+                        int v = hex(s, i + 1, 2, end);
+                        if (v < 0) { out.append(c).append(e); break; }   // malformed: kept verbatim
+                        out.append((char) v);
+                        i += 2;
+                        break;
+                    }
+                    case 'u': {
+                        int v = hex(s, i + 1, 4, end);
+                        if (v < 0) { out.append(c).append(e); break; }   // malformed: kept verbatim
+                        char unit = (char) v;
+                        if (Character.isHighSurrogate(unit)) {
+                            // a pair is two consecutive escapes; half of one is not a character
+                            int low = i + 5 + 1 < end && s.charAt(i + 5) == '\\' && s.charAt(i + 6) == 'u'
+                                    ? hex(s, i + 7, 4, end) : -1;
+                            if (low >= 0 && Character.isLowSurrogate((char) low)) {
+                                out.append(unit).append((char) low);
+                                i += 10;
+                            } else {
+                                out.append(c).append(e);   // lone high surrogate: kept verbatim
+                            }
+                        } else if (Character.isLowSurrogate(unit)) {
+                            out.append(c).append(e);       // lone low surrogate: kept verbatim
+                        } else {
+                            out.append(unit);
+                            i += 4;
+                        }
+                        break;
+                    }
                     default: out.append(c).append(e);   // unknown escape kept verbatim
                 }
             } else if (c == '"') {
@@ -244,6 +290,18 @@ public final class NodeLogTokenizer {
             }
         }
         return new Scalar(out.toString(), true);
+    }
+
+    /** The value of {@code digits} hex digits at {@code from}, all before {@code end}; -1 when they are not there. */
+    private static int hex(String s, int from, int digits, int end) {
+        if (from + digits > end) return -1;
+        int v = 0;
+        for (int k = from; k < from + digits; k++) {
+            int d = Character.digit(s.charAt(k), 16);
+            if (d < 0 || s.charAt(k) > 'f') return -1;   // ASCII hex only
+            v = (v << 4) | d;
+        }
+        return v;
     }
 
     /**

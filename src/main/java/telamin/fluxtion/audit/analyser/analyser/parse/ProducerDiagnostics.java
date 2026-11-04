@@ -102,7 +102,14 @@ public record ProducerDiagnostics(List<Finding> findings) {
          * read only up to the break and its node logs are not read, so this is what explains a node or event type that
          * would otherwise have been forged.
          */
-        BROKEN_VALUE
+        BROKEN_VALUE,
+        /**
+         * §3a: a record declares its own grammar ({@code textEncoding:} as the first line of its mapping) with a value
+         * this analyser does not know. The record is read under the legacy grammar, as an undeclared one is - nothing
+         * fails - and this says so ONCE for the log, naming the first such record, because quoted values in it may read
+         * with their quote marks and escapes as literal text.
+         */
+        UNKNOWN_TEXT_ENCODING
     }
 
     /** Findings that state a limit rather than report a fault: they reach the tooltip and context, never a glyph. */
@@ -244,6 +251,7 @@ public record ProducerDiagnostics(List<Finding> findings) {
         // MA-6 is independent of the three above: a document with no record key is a producer fault
         // whatever else the file shows, and it is what lets a marker vouch for AFMT-3's output.
         noRecordKey(idx, rawText).ifPresent(out::add);
+        unknownTextEncoding(idx, rawText).ifPresent(out::add);
         return new ProducerDiagnostics(List.copyOf(out));
     }
 
@@ -372,6 +380,32 @@ public record ProducerDiagnostics(List<Finding> findings) {
                         + "known producer-side cause is a per-node audit level of NONE, which can "
                         + "corrupt the record that follows it; this file does not say which cause "
                         + "applies here."));
+    }
+
+    /** §3a: one finding for every record whose own grammar declaration names a grammar this analyser does not know. */
+    private static java.util.Optional<Finding> unknownTextEncoding(LogIndex idx, IntFunction<String> rawText) {
+        if (rawText == null) return java.util.Optional.empty();
+        int firstRow = -1;
+        int affected = 0;
+        String firstValue = null;
+        for (int row = 0; row < idx.size(); row++) {
+            RecordParser.Declaration declaration = RecordParser.declaration(rawText.apply(row));
+            if (declaration == null || declaration.honoured()) continue;
+            if (firstRow < 0) {
+                firstRow = row;
+                firstValue = declaration.value();
+            }
+            affected++;
+        }
+        if (firstRow < 0) return java.util.Optional.empty();
+        return java.util.Optional.of(new Finding(Kind.UNKNOWN_TEXT_ENCODING,
+                (affected == 1
+                        ? "Record " + (firstRow + 1) + " declares"
+                        : affected + " records declare, the first at " + (firstRow + 1) + ","
+                        ) + " " + quoted("textEncoding: " + firstValue) + ", which this analyser does "
+                        + "not know; only QUOTED_SCALARS is read. " + (affected == 1 ? "It is" : "They are")
+                        + " read as legacy text, so a quoted value may show its quote marks and escapes literally. "
+                        + "A newer analyser may know the grammar; nothing was dropped."));
     }
 
     /** A line shown back to the reader: bounded, and with control characters made visible. */
