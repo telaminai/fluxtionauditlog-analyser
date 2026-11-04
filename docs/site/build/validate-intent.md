@@ -57,7 +57,8 @@ records"* gets a computed answer; *"does the spread look right?"* may get a read
 ## 3. Record each result as a finding
 
 Mark the record that settles a criterion with a **flag**. A flag of kind `confirmation` is labelled **Observation** and
-**Assessment**, for a criterion that holds; the default kind, `fault`, is for one that fails
+**Assessment**, for a criterion that holds; kind `fault` is for one that fails. Say which: a flag with no `kind` is
+saved as a neutral `note`
 ([Investigation reports](../user-guide/reports.md#references-never-a-document)).
 
 Flags belong to this run: opening another log clears them, local session recovery restores them only for the same

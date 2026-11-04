@@ -15,9 +15,19 @@ package telamin.fluxtion.audit.analyser.analyser.report;
  * @param recordIndex the cycle this is about
  * @param note        the explanation — what is wrong and why it matters
  * @param fix         the assessment or suggested fix; {@code null} when nobody has said yet
- * @param kind        fault or confirmation; absent legacy values default to fault
+ * @param kind        fault, confirmation or note; absent legacy values default to fault
  */
 public record Finding(int recordIndex, String note, String fix, String kind) {
+
+    /** The categories a finding may have. {@code note} is neutral: neither a fault nor a confirmation. */
+    public static final java.util.Set<String> KINDS = java.util.Set.of("fault", "confirmation", "note");
+
+    /**
+     * The category of a NEW finding written by the {@code flag} verb without a {@code kind}. Neutral on purpose: an
+     * agent that flags the record proving a correct refusal must not have it saved as a fault (it was, on first use).
+     * A saved finding with no kind is still read as {@code fault}, which is what every finding was before categories.
+     */
+    public static final String FLAG_DEFAULT_KIND = "note";
 
     public Finding(int recordIndex, String note, String fix) {
         this(recordIndex, note, fix, "fault");
@@ -25,17 +35,28 @@ public record Finding(int recordIndex, String note, String fix, String kind) {
 
     public Finding {
         kind = kind == null ? "fault" : kind;
-        if (!java.util.Set.of("fault", "confirmation").contains(kind))
-            throw new IllegalArgumentException("finding kind must be fault or confirmation");
+        if (!KINDS.contains(kind))
+            throw new IllegalArgumentException("finding kind must be fault, confirmation or note");
         note = note == null ? "" : note;
         fix = fix == null || fix.isBlank() ? null : fix;
     }
 
+    /**
+     * What the {@code flag} verb stores on a record: a new finding takes {@code kind}, or {@link #FLAG_DEFAULT_KIND}
+     * when none was given; an existing one is refined by {@link #merge(String, String, String)}, which keeps its kind.
+     */
+    public static Finding flagged(Finding existing, int recordIndex, String note, String fix, String kind) {
+        return existing == null
+                ? new Finding(recordIndex, note, fix, kind == null ? FLAG_DEFAULT_KIND : kind)
+                : existing.merge(note, fix, kind);
+    }
+
     public boolean confirmation() { return "confirmation".equals(kind); }
-    public String noteLabel() { return confirmation() ? "Observation" : "What is wrong"; }
-    public String fixLabel() { return confirmation() ? "Assessment" : "Likely cause / suggested fix"; }
+    public boolean fault() { return "fault".equals(kind); }
+    public String noteLabel() { return confirmation() ? "Observation" : fault() ? "What is wrong" : "Note"; }
+    public String fixLabel() { return fault() ? "Likely cause / suggested fix" : "Assessment"; }
     public String tableText() {
-        if (!confirmation()) return hasNote() ? note : null;
+        if (fault()) return hasNote() ? note : null;
         return noteLabel() + ": " + note + (hasFix() ? "\n" + fixLabel() + ": " + fix : "");
     }
     public java.util.Map<String, Object> toMap() {

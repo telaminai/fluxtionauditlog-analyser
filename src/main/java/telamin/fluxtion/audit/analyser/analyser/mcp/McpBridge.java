@@ -165,21 +165,120 @@ public final class McpBridge {
     }
 
     /**
+     * The real {@code --mcp} launch: {@link #main}, then process exit. A bridge whose client has gone must not outlive
+     * it — a dozen bridges from earlier sessions were found still running days later. So the process exits as soon as
+     * the loop returns (whatever threads remain), and also when the process that launched it dies: a client that is
+     * killed can leave its stdin pipe held open by another process, and then EOF never arrives.
+     */
+    public static void launch(String[] args) {
+        ProcessHandle.current().parent().ifPresent(parent ->
+                exitWhenOrphaned(parent::isAlive, ORPHAN_POLL, () -> {
+                    System.err.println("[analyser-mcp] the launching process has exited; stopping");
+                    System.exit(0);
+                }));
+        main(args);
+        System.exit(0);
+    }
+
+    /** How often the {@code --mcp} process checks that whoever launched it is still alive. */
+    static final Duration ORPHAN_POLL = Duration.ofSeconds(5);
+
+    /** Start a daemon watchdog that runs {@code exit} once {@code parentAlive} turns false. */
+    static Thread exitWhenOrphaned(java.util.function.BooleanSupplier parentAlive, Duration poll, Runnable exit) {
+        Thread watchdog = new Thread(() -> {
+            try {
+                while (parentAlive.getAsBoolean()) Thread.sleep(poll.toMillis());
+                exit.run();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }, "analyser-mcp-orphan-watch");
+        watchdog.setDaemon(true);
+        watchdog.start();
+        return watchdog;
+    }
+
+    /**
+     * After the client closes stdin, how long a call already in flight (or still queued) may take before it is
+     * abandoned. Long enough that {@code printf '<request>' | analyser --mcp} still gets its answer from a running
+     * analyser, short enough that a closed client never waits on {@link #CALL_TIMEOUT}.
+     */
+    static final Duration EOF_GRACE = Duration.ofSeconds(2);
+
+    private static final Object END_OF_INPUT = new Object();
+
+    void run(InputStream in, OutputStream out) throws IOException {
+        run(in, out, EOF_GRACE);
+    }
+
+    /**
      * Read newline-delimited JSON-RPC from {@code in}, write responses to {@code out}. Returns when the
      * stream ends — a client shuts a stdio server down by closing its stdin, so EOF means exit.
+     *
+     * <p>stdin is read on its own daemon thread, so EOF is seen even while this thread is blocked on a call to the
+     * analyser. Messages already received are still answered, but only for {@code grace} after EOF: then whatever is
+     * in flight is interrupted (the HTTP call with it) and the loop returns without answering the rest.
      */
-    void run(InputStream in, OutputStream out) throws IOException {
+    void run(InputStream in, OutputStream out, Duration grace) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.isBlank()) continue;
-            String response = handle(line);
-            if (response != null) {          // notifications get no response, ever
-                writer.write(response);
-                writer.write('\n');
-                writer.flush();
+        java.util.concurrent.BlockingQueue<Object> inbox = new java.util.concurrent.LinkedBlockingQueue<>();
+        Thread loop = Thread.currentThread();
+        Object lock = new Object();
+        boolean[] state = new boolean[2];          // [0] loop still running, [1] grace expired (we interrupted it)
+        state[0] = true;
+        Thread stdin = new Thread(() -> {
+            try {
+                String line;
+                while ((line = reader.readLine()) != null) inbox.add(line);
+            } catch (IOException e) {
+                System.err.println("[analyser-mcp] stdin closed: " + e);
             }
+            inbox.add(END_OF_INPUT);
+            try {
+                Thread.sleep(grace.toMillis());
+            } catch (InterruptedException e) {
+                return;
+            }
+            synchronized (lock) {
+                if (!state[0]) return;
+                state[1] = true;
+                loop.interrupt();
+            }
+        }, "analyser-mcp-stdin");
+        stdin.setDaemon(true);
+        stdin.start();
+        try {
+            while (true) {
+                Object next;
+                try {
+                    next = inbox.take();
+                } catch (InterruptedException e) {
+                    return;                          // the grace after EOF expired while idle
+                }
+                if (next == END_OF_INPUT || abandoned(lock, state)) return;
+                String line = (String) next;
+                if (line.isBlank()) continue;
+                String response = handle(line);
+                if (abandoned(lock, state)) return;  // the client is gone and the grace is spent
+                if (response != null) {          // notifications get no response, ever
+                    writer.write(response);
+                    writer.write('\n');
+                    writer.flush();
+                }
+            }
+        } finally {
+            synchronized (lock) {
+                state[0] = false;
+                if (state[1]) Thread.interrupted();   // clear only the interrupt this loop raised
+            }
+            stdin.interrupt();
+        }
+    }
+
+    private static boolean abandoned(Object lock, boolean[] state) {
+        synchronized (lock) {
+            return state[1];
         }
     }
 

@@ -89,6 +89,9 @@ class SpotlightLineRangeApiDeltaTest {
      */
     @SuppressWarnings("unchecked")
     static <T> T withoutLineRange(T value) {
+        // the LATER flag-kind delta (FlagKindApiDeltaTest) is peeled first, so every chain that starts here still
+        // lands on its own pins
+        value = FlagKindApiDeltaTest.withoutFlagKind(value);
         if (value instanceof String text) return (T) text.replace(NEW_JAVA_BLOCK, OLD_JAVA_BLOCK).replace(SpotlightVocabulary.TEXT, OLD_TARGETS_TEXT);
         if (value instanceof Map<?, ?> map) {
             Map<Object, Object> out = new LinkedHashMap<>();
@@ -115,8 +118,9 @@ class SpotlightLineRangeApiDeltaTest {
         String manifest = PromptBuilder.inProcessActionManifest(3);
         assertTrue(manifest.contains(SpotlightVocabulary.TEXT), "the in-process manifest embeds the live target grammar directly");
         assertEquals(BEFORE.get("PromptBuilder.inProcessActionManifest"), WorkModeKeepsTheApiTest.sha(withoutLineRange(manifest)));
+        // the pin after this layer, before the later flag-kind layer (FlagKindApiDeltaTest holds the pin now)
         for (var e : AFTER.entrySet()) {
-            assertEquals(e.getValue(), WorkModeKeepsTheApiTest.PINNED.get(e.getKey()), "the pin now: " + e.getKey());
+            assertEquals(e.getValue(), FlagKindApiDeltaTest.BEFORE.get(e.getKey()), "the pin after it: " + e.getKey());
         }
     }
 

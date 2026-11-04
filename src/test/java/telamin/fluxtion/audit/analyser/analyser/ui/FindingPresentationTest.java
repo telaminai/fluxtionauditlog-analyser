@@ -44,21 +44,62 @@ class FindingPresentationTest {
         });
     }
 
-    @Test void faultRemainsTheDefaultAndInvalidKindsNeverReachTheSink() {
+    /**
+     * S7: a flag without {@code kind} once saved a FAULT, so correct refusals an agent flagged as evidence were stored
+     * as faults. A new finding without a kind is now a neutral note; explicit kinds still work; an existing finding
+     * keeps its kind when a later flag omits it. Wrong-result witness: default {@link Finding#flagged} to fault again.
+     */
+    @Test void aFlagWithoutKindIsANeutralNoteAndExplicitKindsStillWork() {
         var store = new HeapLogStore("---\neventLogRecord:\n  event: Tick\n  logTime: 1000\n---\n");
         var filter = new FilterState();
         var tabs = new GraphTabs();
         tabs.bind(store, filter);
-        java.util.concurrent.atomic.AtomicReference<Finding> saved = new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.Map<Integer, Finding> findings = new java.util.HashMap<>();
         var ex = new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(),
-                (rows, note, fix, kind) -> saved.set(new Finding(rows[0], note, fix, kind)));
-        assertTrue(ex.render("flag", Map.of("recordIndexes", List.of(0), "note", "fault")).ok());
-        assertEquals("fault", saved.get().kind());
-        assertEquals("What is wrong", saved.get().noteLabel());
+                (rows, note, fix, kind) -> findings.put(rows[0],
+                        Finding.flagged(findings.get(rows[0]), rows[0], note, fix, kind)));
+        assertTrue(ex.render("flag", Map.of("recordIndexes", List.of(0), "note", "refused, as designed")).ok());
+        assertEquals("note", findings.get(0).kind());
+        assertEquals("Note", findings.get(0).noteLabel());
+        assertEquals("Note: refused, as designed", findings.get(0).tableText());
+
+        findings.clear();
+        assertTrue(ex.render("flag", Map.of("recordIndexes", List.of(0), "note", "broken", "kind", "fault")).ok());
+        assertEquals("fault", findings.get(0).kind());
+        assertEquals("What is wrong", findings.get(0).noteLabel());
+        assertTrue(ex.render("flag", Map.of("recordIndexes", List.of(0), "fix", "check the limit")).ok());
+        assertEquals("fault", findings.get(0).kind(), "omitting kind keeps an existing finding's category");
+        assertEquals("broken", findings.get(0).note());
+
         assertFalse(ex.render("flag", Map.of("recordIndexes", List.of(0), "kind", "invalid")).ok());
-        assertEquals("fault", saved.get().kind());
+        assertEquals("fault", findings.get(0).kind());
         assertTrue(ex.render("flag", Map.of("recordIndexes", List.of(0), "kind", "confirmation")).ok());
-        assertEquals("confirmation", saved.get().kind());
+        assertEquals("confirmation", findings.get(0).kind());
+        assertTrue(ex.render("flag", Map.of("recordIndexes", List.of(0), "kind", "note")).ok());
+        assertEquals("note", findings.get(0).kind());
+    }
+
+    @Test void aNoteUsesNeutralLabelsOnTheTopologyCallout() {
+        Finding f = new Finding(0, "limit reached", "as configured", "note");
+        BufferedImage image = new BufferedImage(600, 400, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        try {
+            String text = String.join("\n", TopologyCanvas.calloutLines(f, graphics.getFontMetrics(), 550)
+                    .stream().map(TopologyCanvas.CalloutLine::text).toList());
+            assertTrue(text.contains("Note · limit reached"), text);
+            assertTrue(text.contains("Assessment · as configured"), text);
+            assertFalse(text.contains("Fix ·"), text);
+        } finally { graphics.dispose(); }
+    }
+
+    @Test void theFlagSchemaNamesTheNeutralDefaultAndEveryKind() {
+        String schema = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(
+                telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.hosted().get("flag"));
+        for (String kind : Finding.KINDS) assertTrue(schema.contains("\"" + kind + "\""), schema);
+        assertTrue(schema.contains("saved as 'note'"), schema);
+        assertEquals("note", Finding.FLAG_DEFAULT_KIND);
+        assertEquals("fault", Finding.fromMap(Map.of("recordIndex", 0, "note", "legacy")).kind(),
+                "a finding saved before categories is still read as a fault");
     }
 
     private static String componentText(Component component) {

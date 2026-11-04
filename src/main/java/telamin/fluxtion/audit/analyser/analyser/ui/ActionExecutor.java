@@ -1004,8 +1004,9 @@ public final class ActionExecutor implements RenderExecutor {
         String note = asText(p.get("note"));
         String fix = asText(p.get("fix"));
         String kind = asText(p.get("kind"));
-        if (p.containsKey("kind") && !Set.of("fault", "confirmation").contains(kind == null ? "" : kind))
-            return ActionResult.error("flag kind must be fault or confirmation");
+        if (p.containsKey("kind") && !telamin.fluxtion.audit.analyser.analyser.report.Finding.KINDS
+                .contains(kind == null ? "" : kind))
+            return ActionResult.error("flag kind must be fault, confirmation or note");
         int[] rowArr = rows.stream().mapToInt(Integer::intValue).toArray();
         return onEdt(() -> {
             flagRows.flag(rowArr, note, fix, kind);

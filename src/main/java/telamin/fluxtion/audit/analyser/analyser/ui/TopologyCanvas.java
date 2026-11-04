@@ -791,12 +791,12 @@ public final class TopologyCanvas extends JPanel {
     static java.util.List<CalloutLine> calloutLines(
             telamin.fluxtion.audit.analyser.analyser.report.Finding callout, FontMetrics fm, int width) {
         java.util.List<CalloutLine> lines = new java.util.ArrayList<>();
-        for (String text : wrapText(fm, callout.confirmation()
+        for (String text : wrapText(fm, !callout.fault()
                 ? callout.noteLabel() + " · " + callout.note() : callout.note(), width))
             lines.add(new CalloutLine(text, false));
         if (callout.hasFix()) {
             if (!lines.isEmpty()) lines.add(new CalloutLine("", true));
-            for (String text : wrapText(fm, (callout.confirmation() ? callout.fixLabel() : "Fix")
+            for (String text : wrapText(fm, (!callout.fault() ? callout.fixLabel() : "Fix")
                     + " · " + callout.fix(), width)) lines.add(new CalloutLine(text, true));
         }
         return lines;

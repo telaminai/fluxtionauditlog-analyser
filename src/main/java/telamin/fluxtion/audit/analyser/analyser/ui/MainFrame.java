@@ -1343,9 +1343,7 @@ public final class MainFrame extends JFrame {
             flaggedRows.add(r);
             if (note != null || fix != null || kind != null) {
                 var existing = findings.get(r);
-                findings.put(r, existing == null
-                        ? new telamin.fluxtion.audit.analyser.analyser.report.Finding(r, note, fix, kind)
-                        : existing.merge(note, fix, kind));
+                findings.put(r, telamin.fluxtion.audit.analyser.analyser.report.Finding.flagged(existing, r, note, fix, kind));
             }
         }
         tablePanel.repaintRows();
@@ -1377,7 +1375,7 @@ public final class MainFrame extends JFrame {
 
         JPanel form = new JPanel(new java.awt.BorderLayout(0, 6));
         JPanel top = new JPanel(new java.awt.BorderLayout(0, 4));
-        JComboBox<String> kind = new JComboBox<>(new String[]{"fault", "confirmation"});
+        JComboBox<String> kind = new JComboBox<>(new String[]{"fault", "confirmation", "note"});
         kind.setSelectedItem(existing == null ? "fault" : existing.kind());
         JLabel noteLabel = UiText.plain(new JLabel());
         JLabel fixLabel = UiText.plain(new JLabel());
@@ -11622,7 +11620,9 @@ public final class MainFrame extends JFrame {
                 Map<String, Object> flag = new java.util.LinkedHashMap<>();
                 flag.put("recordIndex", row);
                 var finding = findings.get(row);
-                flag.put("kind", finding == null ? "fault" : finding.kind());
+                // a bare flag (no note, fix or kind) is a bookmark, not a fault
+                flag.put("kind", finding == null
+                        ? telamin.fluxtion.audit.analyser.analyser.report.Finding.FLAG_DEFAULT_KIND : finding.kind());
                 if (finding != null && finding.hasNote()) flag.put("note", finding.note());
                 if (finding != null && finding.hasFix()) flag.put("fix", finding.fix());
                 flags.add(flag);
@@ -11771,7 +11771,8 @@ public final class MainFrame extends JFrame {
             view.put("filter", savedFilter);
         }
         view.put("findings", flaggedRows.stream().sorted().map(row -> findings.getOrDefault(row,
-                new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, null, null)).toMap()).toList());
+                new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, null, null,
+                        telamin.fluxtion.audit.analyser.analyser.report.Finding.FLAG_DEFAULT_KIND)).toMap()).toList());
         view.put("selectedRecords", java.util.Arrays.stream(tablePanel.selectedModelRows()).boxed().toList());
         view.put("topology", topologyPanel.recoveryView());
         view.put("selectedGraph", graphTabs.selectedGraphName());

@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- `flag` without a `kind` now saves a neutral `note` (labelled Note / Assessment) instead of a fault, so evidence of correct behaviour is no longer recorded as a fault; `fault` and `confirmation` work as before, an existing finding keeps its kind, and the tool description names the default and all three kinds.
+- The `--mcp` bridge exits promptly when its client closes stdin, even while a call to the analyser is in flight (at most a 2-second grace instead of the 60-second call timeout), and also exits when the process that launched it has died, so bridges from ended sessions no longer linger.
+
 ## [1.40.3] - 2026-11-04
 
 ### Fixed
