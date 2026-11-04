@@ -40,7 +40,7 @@ import java.util.function.Function;
  * ({@link #MARKERS}: each file, its whole block byte for byte, what fills it). Once every selected byte matched its pin,
  * each marker block the analyser's own first-run record for the starter can answer — and nothing else — is replaced by
  * fixed text: the record ({@code TemplateArchive.commandsFor}, the post-install command list) contributes only known
- * command strings, the template's {@code keyNeed} only one of four fixed key notes. That is {@code add-a-node}'s
+ * command strings, the template's {@code keyNeed} only a fixed authentication note. That is {@code add-a-node}'s
  * regeneration ({@link #regenerationBlock}), {@code run-mongoose-server}'s start command ({@link #mongooseStartBlock}) and
  * {@code run-embedded}'s run command ({@link #embeddedRunBlock}). A marker the record cannot answer — the export command,
  * log and GraphML paths, the stop command, or any marker with no record (Windows today) — is kept as it is.
@@ -100,7 +100,7 @@ public final class StarterSkills {
     public static final String REGENERATION_MARKER = """
             ```
             TODO(bundle): substitute this project's exact regeneration command (the Maven profile or script that
-            invokes the Fluxtion source generator), and say whether it needs a Fluxtion API key.
+            invokes the Fluxtion source generator), and point to the project's Compiler sign-in instructions.
             ```
             """;
 
@@ -186,6 +186,8 @@ public final class StarterSkills {
     static final List<String> REGENERATION_STEPS = List.of("./check-fluxtion-key.sh", "./setup.sh", "./validate.sh",
             "./generate.sh");
 
+    public static final String SIGN_IN_BUILD = "**Compiler sign-in: needed at build.** Follow the project's "
+            + "Compiler sign-in instructions in README and its RUNBOOK; Maven validates the saved credential.";
     public static final String KEY_BUILD = "**Fluxtion API key: needed.** The starter declares that its build needs a "
             + "Fluxtion API key (`keyNeed: build`), so regenerating needs one.";
     public static final String KEY_RUN = "**Fluxtion API key:** the starter declares that one is needed when the "
@@ -199,7 +201,7 @@ public final class StarterSkills {
     /**
      * The starter's own first-run record and key declaration — what the marker is substituted from. {@code firstRun} is
      * the post-install command list ({@code TemplateArchive.commandsFor}); {@code keyNeed} the template's word
-     * ({@code build}, {@code run}, {@code none}, {@code other} or "").
+     * ({@code build}, {@code sign-in-build}, {@code run}, {@code none}, {@code other} or "").
      */
     public record FirstRun(List<String> firstRun, String keyNeed) {
         public FirstRun {
@@ -278,9 +280,12 @@ public final class StarterSkills {
     public static String regenerationBlock(FirstRun record) {
         if (record == null) return null;
         List<String> steps = known(record, REGENERATION_STEPS);
+        if ("sign-in-build".equals(record.keyNeed()))
+            steps = steps.stream().filter(step -> !"./check-fluxtion-key.sh".equals(step)).toList();
         if (!steps.contains("./generate.sh")) return null;
         String key = switch (record.keyNeed()) {
             case "build" -> KEY_BUILD;
+            case "sign-in-build" -> SIGN_IN_BUILD;
             case "run" -> KEY_RUN;
             case "none" -> KEY_NONE;
             default -> KEY_UNDECLARED;

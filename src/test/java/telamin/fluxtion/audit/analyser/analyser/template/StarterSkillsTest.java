@@ -105,6 +105,18 @@ class StarterSkillsTest {
         }
     }
 
+    @Test
+    void signInRegenerationUsesMavenAuthenticationWithoutALegacyGate() {
+        var record = new StarterSkills.FirstRun(List.of("./check-fluxtion-key.sh", "./setup.sh",
+                "./validate.sh", "./generate.sh", "./run.sh"), "sign-in-build");
+        String block = StarterSkills.regenerationBlock(record);
+        assertTrue(block.contains("./setup.sh\n./validate.sh\n./generate.sh"));
+        assertTrue(block.contains(StarterSkills.SIGN_IN_BUILD));
+        assertFalse(block.contains("check-fluxtion-key"));
+        assertFalse(block.contains("API key"));
+        assertFalse(block.contains("./run.sh"));
+    }
+
     // ---- add-a-node's regeneration marker (owner, 2026-10-18) ------------------------------------------------------------
 
     static final String MARKER_LEAD = "TODO(bundle)";

@@ -13836,7 +13836,7 @@ public final class MainFrame extends JFrame {
         progress.attach(Background.run(() -> {
             byte[] zip = source.download(request0);
             try {
-                return templateArchive.install(zip, target);
+                return templateArchive.install(zip, target, request0.template().keyNeed());
             } catch (java.io.IOException ex) {
                 throw new TemplateClient.Failure("could not install the starter: " + ex.getMessage(), ex);
             }

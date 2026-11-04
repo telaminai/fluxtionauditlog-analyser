@@ -67,10 +67,12 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
         }
 
         private static String keyDisclosure(String label, String value) {
-            return label + ": " + switch (value.toLowerCase(java.util.Locale.ROOT)) {
+            return ("sign-in-build".equalsIgnoreCase(value) ? label.replace("key", "authentication") : label)
+                    + ": " + switch (value.toLowerCase(java.util.Locale.ROOT)) {
                 case "" -> "not declared";
                 case "none" -> "none required (catalogue declaration)";
                 case "build" -> "required at build (catalogue declaration)";
+                case "sign-in-build" -> "compiler sign-in at build (catalogue declaration)";
                 case "run" -> "required at runtime (catalogue declaration)";
                 default -> "unrecognised catalogue value '" + value + "'";
             };

@@ -6,15 +6,13 @@ x-analyser-min-version: 1.12.0
 
 # Run the local Mongoose server
 
-## Start here — no key is needed to run
+## Start here — no compiler sign-in is needed to run
 
-The generated processor **ships with the project**, so it builds and runs with no Fluxtion API key. Do
-not run a key preflight before starting: an earlier version of this skill did, the check exits non-zero
-when no key exists, and a model following it stopped before the project ever ran — turning the intended
-first success into a first failure. A review caught it before it shipped.
+The generated processor **ships with the project**, so its initial build and run need no compiler
+sign-in. Do not make an authentication preflight a prerequisite for this first run.
 
-The key is needed **only to REGENERATE** the processor after you change the graph. That procedure is at
-the bottom of this file, and the check belongs immediately before it.
+Changing the graph requires regeneration and compiler sign-in. Follow the project's **Compiler sign-in**
+instructions and `RUNBOOK.md`, then `./generate.sh`; the recovery procedure is at the bottom of this file.
 
 ## Steps
 

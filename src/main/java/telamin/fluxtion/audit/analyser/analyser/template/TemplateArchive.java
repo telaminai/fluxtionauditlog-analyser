@@ -102,6 +102,11 @@ public final class TemplateArchive {
      * into {@code destination}. Existing non-empty destinations, links and non-directories are refused.
      */
     public Installed install(byte[] zip, Path destination) throws IOException {
+        return install(zip, destination, "");
+    }
+
+    /** The catalogue declaration chooses authentication guidance; archive filenames never prove a sign-in route. */
+    public Installed install(byte[] zip, Path destination, String keyNeed) throws IOException {
         if (zip == null || zip.length == 0) throw new IOException("starter archive is empty");
         Path target = destination == null ? null : destination.toAbsolutePath().normalize();
         if (target == null || target.getParent() == null) throw new IOException("choose a project destination");
@@ -125,7 +130,7 @@ public final class TemplateArchive {
                     telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, settings);
                 }
             }
-            List<String> commands = commandsFor(root);
+            List<String> commands = commandsFor(root, System.getProperty("os.name", "").toLowerCase().contains("win"), keyNeed);
 
             // An empty directory is allowed by D-4, but move-without-replace requires it not to exist.
             if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) Files.delete(target);
@@ -257,11 +262,13 @@ public final class TemplateArchive {
      *       keyless on the shipped processor — then {@code ./run-and-export.sh}, the ONE command its CLAUDE.md
      *       names, which replaces run-server/export-audit/stop-server. {@code setup.sh} is for graph changes.</li>
      *   <li>a Spring authoring starter ({@code setup.sh}, {@code validate.sh}, {@code generate.sh}):
-     *       {@code ./check-fluxtion-key.sh}, those three, then its run script. It ships only an AOT shell
-     *       processor, so its default build is remote generation and needs the key its README's "Build &amp; run"
-     *       checks first; the three scripts are its README's "follow RUNBOOK.md: setup.sh, validate.sh,
+     *       those three, then its run script. A legacy catalogue adds {@code ./check-fluxtion-key.sh} first;
+     *       {@code sign-in-build} omits it and delegates authentication to Maven. It ships only an AOT shell
+     *       processor, so its default build is remote generation; the three scripts are its README's
+     *       "follow RUNBOOK.md: setup.sh, validate.sh,
      *       generate.sh … Then run".</li>
-     *   <li>any other starter: {@code ./check-fluxtion-key.sh} when shipped, then {@code ./run.sh} or
+     *   <li>any other starter: {@code ./check-fluxtion-key.sh} when shipped unless the catalogue declares
+     *       {@code sign-in-build}, then {@code ./run.sh} or
      *       {@code ./run-server.sh}, which build on first use — its README's "Build &amp; run".</li>
      * </ul>
      * On Windows a sequence is offered only when every step has a {@code .cmd} form; otherwise nothing is, and
@@ -273,13 +280,18 @@ public final class TemplateArchive {
     }
 
     static List<String> commandsFor(Path root, boolean windows) {
+        return commandsFor(root, windows, "");
+    }
+
+    static List<String> commandsFor(Path root, boolean windows, String keyNeed) {
         List<String> steps = new ArrayList<>(); // POSIX names: "mvnw" means "./mvnw package"
         String run = present(root, "run.sh") ? "run.sh" : present(root, "run-server.sh") ? "run-server.sh" : null;
         if (present(root, "run-and-export.sh")) {
             if (present(root, "mvnw")) steps.add("mvnw");
             steps.add("run-and-export.sh");
         } else if (run != null) {
-            if (present(root, "check-fluxtion-key.sh")) steps.add("check-fluxtion-key.sh");
+            if (!"sign-in-build".equals(keyNeed) && present(root, "check-fluxtion-key.sh"))
+                steps.add("check-fluxtion-key.sh");
             if (present(root, "setup.sh") && present(root, "validate.sh") && present(root, "generate.sh")) {
                 // a separate add(run): POSIX_EXECUTABLES' text for these three names is a mutation anchor
                 // (installer-authoring-executables) and must occur once in this file

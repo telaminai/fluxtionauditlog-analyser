@@ -14,6 +14,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TemplateCatalogueTest {
 
     @Test
+    void compilerSignInDeclarationsSurviveTheCatalogueAndReviewFacts() {
+        var catalogue = TemplateCatalogue.parse("""
+                {"catalogue":1,"templates":[
+                  {"name":"AOT","description":"AOT","file":"aot.starter.json","mode":"aot","keyNeed":"sign-in-build"},
+                  {"name":"Bundle","description":"Bundle","file":"bundle.starter.json","mode":"aot","keyNeed":"none",
+                   "regenerationKeyNeed":"sign-in-build"}
+                ]}
+                """, "dev");
+        var aot = catalogue.templates().getFirst();
+        assertTrue(aot.disclosure().contains("Build authentication: compiler sign-in at build"));
+        assertEquals("sign-in-build", Starters.of(aot, null).keyNeed());
+        String facts = Starters.facts("spring", "mongoose", "aot", "sign-in-build", false);
+        assertTrue(facts.contains("build needs compiler sign-in"));
+        assertEquals(facts, Starters.facts("spring", "mongoose", "aot", "sign-in-build", true),
+                "a legacy key's presence says nothing about Maven sign-in");
+        assertTrue(catalogue.templates().getLast().disclosure()
+                .contains("Regeneration authentication: compiler sign-in at build"));
+    }
+
+    @Test
     void recommendationDoesNotHideOtherTemplates() {
         var catalogue = TemplateCatalogue.parse("""
                 {"catalogue":1,"templates":[

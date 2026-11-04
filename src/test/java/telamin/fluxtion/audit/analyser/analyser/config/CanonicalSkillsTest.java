@@ -48,6 +48,24 @@ class CanonicalSkillsTest {
     }
 
     @Test
+    void serverFirstRunAndRegenerationHaveDistinctAuthenticationGuidance() throws Exception {
+        String run = Files.readString(ROOT.resolve("mongoose/run-mongoose-server/SKILL.md"));
+        String opening = run.substring(0, run.indexOf("## Steps"));
+        assertTrue(opening.contains("initial build and run need no compiler"));
+        assertTrue(opening.contains("Do not make an authentication preflight a prerequisite"));
+        assertTrue(opening.contains("Compiler sign-in"));
+        assertTrue(opening.contains("`RUNBOOK.md`, then `./generate.sh`"));
+        for (String path : List.of("common/load-audit-log/SKILL.md", "common/guided-start/SKILL.md",
+                "common/point-at-the-fault/SKILL.md", "mongoose/run-mongoose-server/SKILL.md",
+                "spring/add-a-node/SKILL.md")) {
+            String text = Files.readString(ROOT.resolve(path));
+            for (String obsolete : List.of("the check belongs immediately before it", "key preflight",
+                    "whether it needs a Fluxtion API key", "./check-fluxtion-key.sh"))
+                assertFalse(text.contains(obsolete), path + ": obsolete authentication gate: " + obsolete);
+        }
+    }
+
+    @Test
     void exactlyTheCanonicalSkillsAreDiscoverableWithRequiredFrontmatter() throws Exception {
         SkillDiscovery.Found found = SkillDiscovery.find(ROOT, Map.of());
         assertEquals(Set.of("load-audit-log", "replay-a-run", "run-embedded", "run-mongoose-server",

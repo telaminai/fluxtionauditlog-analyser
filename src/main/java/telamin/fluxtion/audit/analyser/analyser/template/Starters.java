@@ -63,7 +63,7 @@ public final class Starters {
     public static Entry of(TemplateCatalogue.Entry e, TemplateClient.Template template) {
         return new Entry(idOf(e), e.name(), e.shownDescription(), template == null ? "" : template.authoring(),
                 hostOf(e, template != null && template.mongoose()), word(e.mode(), "aot", "interpreted"),
-                word(e.keyNeed(), "build", "run", "none"), e);
+                word(e.keyNeed(), "build", "sign-in-build", "run", "none"), e);
     }
 
     /** A catalogue declaration as one of its known words, "" when absent, {@code other} for anything else. */
@@ -87,11 +87,7 @@ public final class Starters {
         return SPRING.equals(authoring) ? "Spring XML" : "Java";
     }
 
-    /**
-     * The review row's facts in one line — "Spring XML · embedded · AOT · build needs a Fluxtion key; none found on this
-     * machine". The commercial rule (owner, 2026-10-18): there are no keyless runs, so a starter whose build needs a key
-     * says so whether or not one is found; it is never hidden and never stops Spring being recommended.
-     */
+    /** The review row reports the catalogue's authentication contract; legacy key presence cannot prove Maven sign-in. */
     public static String facts(String authoring, String host, String mode, String keyNeed, boolean keyPresent) {
         List<String> parts = new ArrayList<>();
         parts.add(authoringWords(authoring));
@@ -100,11 +96,12 @@ public final class Starters {
         else if ("interpreted".equals(mode)) parts.add("interpreted");
         String key = switch (keyNeed) {
             case "build" -> "build needs a Fluxtion key";
+            case "sign-in-build" -> "build needs compiler sign-in (see README)";
             case "run" -> "running needs a Fluxtion key";
             case "none" -> "no Fluxtion key needed";
             default -> "";
         };
-        if (!key.isEmpty() && !"none".equals(keyNeed)) {
+        if (!key.isEmpty() && !"none".equals(keyNeed) && !"sign-in-build".equals(keyNeed)) {
             key += keyPresent ? "; one is on this machine" : "; none found on this machine";
         }
         if (!key.isEmpty()) parts.add(key);

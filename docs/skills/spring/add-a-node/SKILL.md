@@ -54,7 +54,7 @@ Then **regenerate** — a graph change needs it, a change inside a method body d
 
 ```
 TODO(bundle): substitute this project's exact regeneration command (the Maven profile or script that
-invokes the Fluxtion source generator), and say whether it needs a Fluxtion API key.
+invokes the Fluxtion source generator), and point to the project's Compiler sign-in instructions.
 ```
 
 Then read only the compiler's own messages — the validation report (its node and edge counts), the

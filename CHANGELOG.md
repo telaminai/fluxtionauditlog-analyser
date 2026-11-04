@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- Starters declared as compiler sign-in builds no longer show a legacy-key status or prepend the legacy key-check command; legacy runtime modes keep their own guidance.
+- The server-running skill starts with the shipped processor without an authentication gate and directs graph regeneration to compiler sign-in and the project authoring command.
 - Automatic project-reopen dialogs withdraw when a newer open supersedes them, so assistant-loaded evidence is visible; stale chooser answers are ignored.
 - Legacy key guidance distinguishes Maven build sign-in, and the assistant guide names the onboard setup route for Both.
 - Authoring skills now distinguish saved build sign-in from legacy key status, explain recovery after a failed authoring build, and describe single-run exports and optional screenshot verification.
