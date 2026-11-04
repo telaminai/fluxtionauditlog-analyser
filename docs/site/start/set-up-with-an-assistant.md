@@ -1,14 +1,14 @@
 # Set up with your AI assistant
 
-!!! warning "Preview: macOS and the Claude Code terminal"
-    This preview has been tested on macOS with Claude Code in an interactive terminal.
+!!! note "Supported automatic setup: macOS and the Claude Code terminal"
+    Automatic setup is available for macOS with Claude Code in an interactive terminal.
     Automatic setup currently supports that host and OS only. Linux and Windows use the
     [manual install](../install.md). The manual route stays fully supported, for example for teams that do not let an
     assistant install software.
 
-**Preview target:** from a Mac with nothing installed to your first audited run in under ten minutes.
+**Timing target:** from a Mac with nothing installed to your first audited run in under ten minutes.
 One setup question, one reconnect and a browser sign-in (optional for setup; needed for processor generation, free).
-The production Manual-mode trial passed, but did not establish this timing target. Browser approval, downloads and the task affect elapsed time.
+The earlier production Manual-mode preview trial passed, but did not establish this timing target. Browser approval, downloads and the task affect elapsed time.
 
 Ask your assistant to set the analyser up, answer **one question**, and it installs the analyser, opens it and
 then checks its connection. You do not need to install Java or JBang first. Your host and operating system
@@ -60,7 +60,7 @@ See [Claude Code permissions](https://code.claude.com/docs/en/permissions).
 2. **Install.** If JBang is missing, it is installed. When a usable Java 21 is not selected, JBang downloads one Java 21 (approximately 190 MB compressed / 335 MB on disk),
    used by JBang, setup and the analyser, and by your builds if you have no JDK 21+. An explicit
    JBang Java-version override can change the download. The analyser
-   **1.40.2** is installed and its download is checked against a pinned checksum. You see progress as each step
+   **1.40.3** is installed and its download is checked against a pinned checksum. You see progress as each step
    finishes. Installation may also add PATH, the j! alias and JAVA_HOME to shell startup files; the
    question discloses this because it can affect future Java builds. The Java-free production trial downloaded approximately 420 MB in total and used about 580 MB on disk, including the analyser. Sizes vary by platform and version.
 3. **Open.** The analyser window opens with external access turned on. While the app is closed, setup records
@@ -210,3 +210,9 @@ do not create another user-scope registration to complete the onboard setup.
 The legacy **Fluxtion API key** display and `context.fluxtionKey` inspect only the old key file.
 They do not inspect Maven's saved build sign-in in `~/.fluxtion/credentials`; an absent legacy key
 is not evidence that a signed-in Maven build cannot authenticate.
+
+## Upgrading from Analyser 1.40.2
+
+Upgrade to Analyser 1.40.3 before creating projects from the updated starter catalogue. Version 1.40.2
+does not understand the new build-sign-in declaration and may offer a failing legacy check as the
+first step for an AOT starter.

@@ -15,7 +15,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
-- **Set up with your AI assistant (preview).** A docs page for the one-question install: the Claude Code plugin
+- Automatic setup is a normal macOS Claude Code release; upgrade from Analyser 1.40.2 before using the updated compiler-sign-in starter catalogue.
+
+- **Set up with your AI assistant.** A docs page for the one-question install: the Claude Code plugin
   or the published setup instructions install, open and connect the analyser, with optional compiler sign-in,
   day-2 recovery and building without a system JDK. macOS and the Claude Code terminal only for now.
   Publication, the shared Java 21 download and starter-export prerequisites, consent exceptions,

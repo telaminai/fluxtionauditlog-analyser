@@ -51,7 +51,7 @@ class DocsExternalAccessClaimsTest {
         assertTrue(page.contains("analyser-setup apply *"));
         assertFalse(page.contains("Shift+Tab"));
         assertFalse(Pattern.compile("`[0-9a-f]{7,40}`").matcher(page).find(), "no private commit IDs in the user guide");
-        assertTrue(page.contains("**Preview target:**"));
+        assertTrue(page.contains("**Timing target:**"));
         assertTrue(page.contains("four setup command approvals plus one native MCP approval"));
         assertTrue(page.contains("did not establish this timing target"));
         assertFalse(page.contains("Publication pending"));
