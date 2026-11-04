@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.40.3] - 2026-11-04
+
 ### Fixed
 - Starters declared as compiler sign-in builds no longer show a legacy-key status or prepend the legacy key-check command; legacy runtime modes keep their own guidance.
 - The server-running skill starts with the shipped processor without an authentication gate and directs graph regeneration to compiler sign-in and the project authoring command.
