@@ -63,8 +63,9 @@ See [Claude Code permissions](https://code.claude.com/docs/en/permissions).
 1. **One question.** Before it changes anything, the assistant lists every change and where it goes (JBang, the
    analyser, its settings folder, the optional sign-in), and asks:
    *yes / yes, but without the Fluxtion sign-in / no*. **No** changes nothing.
-2. **Install.** If JBang is missing, it is installed. On a machine without a usable JDK, JBang downloads one Java 21 (approximately 190 MB),
-   used by JBang, setup and the analyser, and by your builds if you have no JDK 21+. The analyser
+2. **Install.** If JBang is missing, it is installed. On a machine without JDK 21 or newer, JBang downloads one Java 21 (approximately 190 MB),
+   used by JBang, setup and the analyser, and by your builds if you have no JDK 21+. An explicit
+   JBang Java-version override can change the download. The analyser
    **1.40.2** is installed and its download is checked against a pinned checksum. You see progress as each step
    finishes. Installation may also add PATH, the j! alias and JAVA_HOME to shell startup files; the
    question discloses this because it can affect future Java builds.
@@ -117,8 +118,8 @@ an audited [starter template](templates-and-examples.md), builds and runs it, th
     documents for records published after Init; Init remains on stdout. Release this journey only with that
     fix deployed and an untouched export checked against its generated GraphML.
 
-**No Java on your machine?** That is fine. Setup's Java belongs to JBang, so the assistant runs each build with
-that same Java 21 download for each build and run command only when no JDK 21+ is available. This Java selection does not change your
+**No Java on your machine?** If no JDK 21+ is available, the assistant selects the same Java 21 that
+JBang downloaded, separately for each build or run command. This Java selection does not change your
 shell profile. To build outside the assistant, select this JDK with JAVA_HOME and PATH, or install a JDK 21 or newer.
 
 ## Next day: the analyser is closed
