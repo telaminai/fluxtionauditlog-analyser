@@ -1376,6 +1376,9 @@ public final class MainFrame extends JFrame {
         JPanel form = new JPanel(new java.awt.BorderLayout(0, 6));
         JPanel top = new JPanel(new java.awt.BorderLayout(0, 4));
         JComboBox<String> kind = new JComboBox<>(new String[]{"fault", "confirmation", "note"});
+        // Intentional: a PERSON writing a finding here sees the category and chooses it, so the form keeps opening on
+        // "fault" (what this dialog has always written). The neutral default (Finding.FLAG_DEFAULT_KIND) is for the
+        // flag verb, where an agent that omits kind must never have its evidence saved as a fault.
         kind.setSelectedItem(existing == null ? "fault" : existing.kind());
         JLabel noteLabel = UiText.plain(new JLabel());
         JLabel fixLabel = UiText.plain(new JLabel());
@@ -2452,7 +2455,9 @@ public final class MainFrame extends JFrame {
         LogRecord record = store.record(row);
         var finding = findings.get(row);
         if (finding == null) {
-            finding = new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, "", null);
+            // the same kind the flags list reports for a record with no finding (a bare bookmark is a note)
+            finding = new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, "", null,
+                    telamin.fluxtion.audit.analyser.analyser.report.Finding.FLAG_DEFAULT_KIND);
         }
 
         java.util.List<String> eventLines = new java.util.ArrayList<>();

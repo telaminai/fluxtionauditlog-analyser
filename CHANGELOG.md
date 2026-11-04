@@ -8,7 +8,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 - `flag` without a `kind` now saves a neutral `note` (labelled Note / Assessment) instead of a fault, so evidence of correct behaviour is no longer recorded as a fault; `fault` and `confirmation` work as before, an existing finding keeps its kind, and the tool description names the default and all three kinds.
-- The `--mcp` bridge exits promptly when its client closes stdin, even while a call to the analyser is in flight (at most a 2-second grace instead of the 60-second call timeout), and also exits when the process that launched it has died, so bridges from ended sessions no longer linger.
+- The `--mcp` bridge exits when its client closes stdin, even while a call to the analyser is in flight: requests received before stdin closed are still answered, each within 10 seconds rather than the 60-second call timeout. It also exits when the process that launched it has gone. A bridge whose client is still running is kept, however long it sits idle, by design.
+- A bare flag (no note or fix) no longer shows an empty "Note:" in the records table or topology callout, and session recovery saves it in the form earlier releases can restore.
 
 ## [1.40.3] - 2026-11-04
 

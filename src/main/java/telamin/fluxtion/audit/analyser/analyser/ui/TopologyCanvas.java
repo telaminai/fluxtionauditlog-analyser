@@ -791,7 +791,8 @@ public final class TopologyCanvas extends JPanel {
     static java.util.List<CalloutLine> calloutLines(
             telamin.fluxtion.audit.analyser.analyser.report.Finding callout, FontMetrics fm, int width) {
         java.util.List<CalloutLine> lines = new java.util.ArrayList<>();
-        for (String text : wrapText(fm, !callout.fault()
+        // an empty finding (a bare bookmark) paints nothing, whatever its kind — never a lone "Note · "
+        if (callout.hasNote()) for (String text : wrapText(fm, !callout.fault()
                 ? callout.noteLabel() + " · " + callout.note() : callout.note(), width))
             lines.add(new CalloutLine(text, false));
         if (callout.hasFix()) {

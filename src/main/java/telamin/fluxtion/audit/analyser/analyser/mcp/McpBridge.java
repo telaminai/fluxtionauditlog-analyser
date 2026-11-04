@@ -166,28 +166,41 @@ public final class McpBridge {
 
     /**
      * The real {@code --mcp} launch: {@link #main}, then process exit. A bridge whose client has gone must not outlive
-     * it — a dozen bridges from earlier sessions were found still running days later. So the process exits as soon as
-     * the loop returns (whatever threads remain), and also when the process that launched it dies: a client that is
-     * killed can leave its stdin pipe held open by another process, and then EOF never arrives.
+     * it. So the process exits as soon as the loop returns (whatever threads remain), and also when the process that
+     * launched it has gone: a client that is killed can leave its stdin pipe held open by another process, and then EOF
+     * never arrives. A bridge whose client is still running is kept, however long it sits idle — by design.
      */
     public static void launch(String[] args) {
-        ProcessHandle.current().parent().ifPresent(parent ->
-                exitWhenOrphaned(parent::isAlive, ORPHAN_POLL, () -> {
-                    System.err.println("[analyser-mcp] the launching process has exited; stopping");
-                    System.exit(0);
-                }));
+        ProcessHandle.current().parent().ifPresent(original ->
+                exitWhenOrphaned(() -> attached(original.pid(), original.isAlive(),
+                                ProcessHandle.current().parent().map(ProcessHandle::pid)),
+                        ORPHAN_POLL, () -> {
+                            System.err.println("[analyser-mcp] the launching process has gone; stopping");
+                            System.exit(0);
+                        }));
         main(args);
         System.exit(0);
     }
 
-    /** How often the {@code --mcp} process checks that whoever launched it is still alive. */
+    /** How often the {@code --mcp} process checks that whoever launched it is still its parent. */
     static final Duration ORPHAN_POLL = Duration.ofSeconds(5);
 
-    /** Start a daemon watchdog that runs {@code exit} once {@code parentAlive} turns false. */
-    static Thread exitWhenOrphaned(java.util.function.BooleanSupplier parentAlive, Duration poll, Runnable exit) {
+    /**
+     * Whether the bridge is still attached to the process that launched it. {@code originalAlive} is
+     * {@link ProcessHandle#isAlive()} of the handle taken at launch, which also checks the start time, so a reused pid
+     * never counts as the original. It alone is not enough: an exited parent nobody has reaped yet (a zombie) still
+     * reads as alive — but the moment a parent exits its children are re-parented, so the CURRENT parent pid changes
+     * (or is unknown), and either ends the attachment.
+     */
+    static boolean attached(long originalPid, boolean originalAlive, java.util.Optional<Long> currentParentPid) {
+        return originalAlive && currentParentPid.map(pid -> pid == originalPid).orElse(false);
+    }
+
+    /** Start a daemon watchdog that runs {@code exit} once {@code stillAttached} turns false. */
+    static Thread exitWhenOrphaned(java.util.function.BooleanSupplier stillAttached, Duration poll, Runnable exit) {
         Thread watchdog = new Thread(() -> {
             try {
-                while (parentAlive.getAsBoolean()) Thread.sleep(poll.toMillis());
+                while (stillAttached.getAsBoolean()) Thread.sleep(poll.toMillis());
                 exit.run();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -199,13 +212,22 @@ public final class McpBridge {
     }
 
     /**
-     * After the client closes stdin, how long a call already in flight (or still queued) may take before it is
-     * abandoned. Long enough that {@code printf '<request>' | analyser --mcp} still gets its answer from a running
-     * analyser, short enough that a closed client never waits on {@link #CALL_TIMEOUT}.
+     * After the client closes stdin, how long EACH request still to be answered may take — the budget restarts for
+     * every request taken after EOF (and at EOF for the one in flight). Long enough that a client that pipes several
+     * requests and closes stdin ({@code tools/spring-demo.py} does) is answered by a busy analyser, short enough that a
+     * closed client never waits on {@link #CALL_TIMEOUT}.
      */
-    static final Duration EOF_GRACE = Duration.ofSeconds(2);
+    static final Duration EOF_GRACE = Duration.ofSeconds(10);
 
     private static final Object END_OF_INPUT = new Object();
+
+    /** The loop's shared state, guarded by itself. */
+    private static final class LoopState {
+        boolean running = true;     // the loop has not returned
+        boolean eof;                // stdin has ended
+        boolean abandoned;          // a grace expired and the loop thread was interrupted for it
+        long deadline;              // System.nanoTime() by which the current request must finish, once eof
+    }
 
     void run(InputStream in, OutputStream out) throws IOException {
         run(in, out, EOF_GRACE);
@@ -216,17 +238,16 @@ public final class McpBridge {
      * stream ends — a client shuts a stdio server down by closing its stdin, so EOF means exit.
      *
      * <p>stdin is read on its own daemon thread, so EOF is seen even while this thread is blocked on a call to the
-     * analyser. Messages already received are still answered, but only for {@code grace} after EOF: then whatever is
-     * in flight is interrupted (the HTTP call with it) and the loop returns without answering the rest.
+     * analyser. Every message received before EOF is still answered, each within {@code grace} of being taken (or of
+     * EOF, for the one in flight then); a request that overruns it is interrupted, its HTTP call with it, and the loop
+     * returns without answering the rest.
      */
     void run(InputStream in, OutputStream out, Duration grace) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
         java.util.concurrent.BlockingQueue<Object> inbox = new java.util.concurrent.LinkedBlockingQueue<>();
         Thread loop = Thread.currentThread();
-        Object lock = new Object();
-        boolean[] state = new boolean[2];          // [0] loop still running, [1] grace expired (we interrupted it)
-        state[0] = true;
+        LoopState state = new LoopState();
         Thread stdin = new Thread(() -> {
             try {
                 String line;
@@ -234,16 +255,28 @@ public final class McpBridge {
             } catch (IOException e) {
                 System.err.println("[analyser-mcp] stdin closed: " + e);
             }
-            inbox.add(END_OF_INPUT);
-            try {
-                Thread.sleep(grace.toMillis());
-            } catch (InterruptedException e) {
-                return;
+            synchronized (state) {
+                state.eof = true;
+                state.deadline = System.nanoTime() + grace.toNanos();
             }
-            synchronized (lock) {
-                if (!state[0]) return;
-                state[1] = true;
-                loop.interrupt();
+            inbox.add(END_OF_INPUT);
+            // the grace timer: wait out the current deadline, which the loop moves on for each request it takes
+            while (true) {
+                long wait;
+                synchronized (state) {
+                    if (!state.running) return;
+                    wait = state.deadline - System.nanoTime();
+                    if (wait <= 0) {
+                        state.abandoned = true;
+                        loop.interrupt();
+                        return;
+                    }
+                }
+                try {
+                    Thread.sleep(Math.max(1, java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(wait)));
+                } catch (InterruptedException e) {
+                    return;
+                }
             }
         }, "analyser-mcp-stdin");
         stdin.setDaemon(true);
@@ -254,13 +287,18 @@ public final class McpBridge {
                 try {
                     next = inbox.take();
                 } catch (InterruptedException e) {
-                    return;                          // the grace after EOF expired while idle
+                    return;                          // a grace expired while idle
                 }
-                if (next == END_OF_INPUT || abandoned(lock, state)) return;
+                synchronized (state) {
+                    if (next == END_OF_INPUT || state.abandoned) return;
+                    if (state.eof) state.deadline = System.nanoTime() + grace.toNanos();   // a fresh budget each
+                }
                 String line = (String) next;
                 if (line.isBlank()) continue;
                 String response = handle(line);
-                if (abandoned(lock, state)) return;  // the client is gone and the grace is spent
+                synchronized (state) {
+                    if (state.abandoned) return;     // the client is gone and this request's grace is spent
+                }
                 if (response != null) {          // notifications get no response, ever
                     writer.write(response);
                     writer.write('\n');
@@ -268,17 +306,11 @@ public final class McpBridge {
                 }
             }
         } finally {
-            synchronized (lock) {
-                state[0] = false;
-                if (state[1]) Thread.interrupted();   // clear only the interrupt this loop raised
+            synchronized (state) {
+                state.running = false;
+                if (state.abandoned) Thread.interrupted();   // clear only the interrupt this loop raised
             }
             stdin.interrupt();
-        }
-    }
-
-    private static boolean abandoned(Object lock, boolean[] state) {
-        synchronized (lock) {
-            return state[1];
         }
     }
 

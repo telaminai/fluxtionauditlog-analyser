@@ -11,13 +11,16 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import com.sun.net.httpserver.HttpServer;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -139,39 +142,118 @@ class McpBridgeExitTest {
 
     @Test
     void theWatchdogExitsWhenTheLaunchingProcessDies() throws Exception {
-        AtomicBoolean parentAlive = new AtomicBoolean(true);
+        AtomicBoolean attached = new AtomicBoolean(true);
         CountDownLatch exited = new CountDownLatch(1);
-        Thread watchdog = McpBridge.exitWhenOrphaned(parentAlive::get, Duration.ofMillis(10), exited::countDown);
+        Thread watchdog = McpBridge.exitWhenOrphaned(attached::get, Duration.ofMillis(10), exited::countDown);
         assertTrue(watchdog.isDaemon(), "the watchdog never keeps the process alive itself");
-        assertFalse(exited.await(100, TimeUnit.MILLISECONDS), "a live parent keeps the bridge running");
-        parentAlive.set(false);
-        assertTrue(exited.await(2, TimeUnit.SECONDS), "a dead parent ends the bridge");
+        assertFalse(exited.await(100, TimeUnit.MILLISECONDS), "an attached bridge keeps running");
+        attached.set(false);
+        assertTrue(exited.await(2, TimeUnit.SECONDS), "a gone parent ends the bridge");
     }
 
-    /** The whole process, through the real entry point: no thread the bridge leaves behind may keep the JVM up. */
+    /**
+     * The attachment rule the watchdog polls. Wrong-result witness: test only {@code isAlive} — the zombie case (an
+     * exited, unreaped parent still reads alive, but its child is already re-parented) then stays attached.
+     */
     @Test
-    void theMcpProcessExitsWhenItsStdinClosesMidCall() throws Exception {
+    void theBridgeIsAttachedOnlyWhileItsOriginalParentIsStillItsParent() {
+        assertTrue(McpBridge.attached(100, true, Optional.of(100L)), "the launching client, alive and still the parent");
+        assertFalse(McpBridge.attached(100, true, Optional.of(1L)), "an unreaped (zombie) parent: re-parented to init");
+        assertFalse(McpBridge.attached(100, true, Optional.of(200L)), "re-parented to anything else");
+        assertFalse(McpBridge.attached(100, true, Optional.empty()), "no parent any more");
+        assertFalse(McpBridge.attached(100, false, Optional.of(100L)),
+                "the original handle is gone: a reused pid with another start time is not the launcher");
+    }
+
+    /**
+     * The grace restarts for each request taken after EOF: three calls piped in, stdin closed at once, each answered
+     * by an analyser that takes 400 ms, all answered under a 700 ms grace — one shared budget from EOF would answer
+     * only the first. Wrong-result witness: drop the per-request deadline reset; the third reply is missing.
+     */
+    @Test
+    void everyRequestReceivedBeforeEndOfInputIsAnsweredEvenWhenTheAnalyserIsSlow() throws Exception {
+        HttpServer slow = answering(Duration.ofMillis(400));
+        try {
+            RestEndpointFile file = new RestEndpointFile(dir.resolve("slow-endpoint"));
+            file.write("http://127.0.0.1:" + slow.getAddress().getPort(), "t");
+            McpBridge bridge = new McpBridge(file);
+            String in = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}\n"
+                    + "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n"
+                    + CALL.replace("\"id\":7", "\"id\":2") + CALL.replace("\"id\":7", "\"id\":3")
+                    + CALL.replace("\"id\":7", "\"id\":4");
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            bridge.run(new java.io.ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8)), out, Duration.ofMillis(700));
+            List<String> lines = out.toString(StandardCharsets.UTF_8).lines().toList();
+            assertEquals(4, lines.size(), "initialize and all three calls are answered: " + lines);
+            for (int id = 2; id <= 4; id++) {
+                String reply = lines.get(id - 1);
+                assertTrue(reply.contains("\"id\":" + id) && reply.contains("\"isError\":false"), reply);
+            }
+        } finally {
+            slow.stop(0);
+        }
+    }
+
+    /** An "analyser" that answers every {@code /action} with {@code {"ok":true}} after {@code delay}. */
+    private static HttpServer answering(Duration delay) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/action", exchange -> {
+            try {
+                Thread.sleep(delay.toMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            exchange.getRequestBody().readAllBytes();
+            byte[] body = "{\"ok\":true}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r, "slow-analyser");
+            t.setDaemon(true);
+            return t;
+        }));
+        server.start();
+        return server;
+    }
+
+    /**
+     * The whole process, through the real entry point: after a completed call (so the HTTP client's threads exist), no
+     * thread the bridge leaves behind may keep the JVM up once stdin closes.
+     */
+    @Test
+    void theMcpProcessExitsWhenItsStdinCloses() throws Exception {
+        HttpServer analyser = answering(Duration.ZERO);
         Path endpoint = dir.resolve("hosted-endpoint");
-        silentEndpoint();
-        new RestEndpointFile(endpoint).write("http://127.0.0.1:" + silent.getLocalPort(), "t");
+        new RestEndpointFile(endpoint).write("http://127.0.0.1:" + analyser.getAddress().getPort(), "t");
         String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
         ProcessBuilder pb = new ProcessBuilder(java, "-Djava.awt.headless=true", "-Duser.home=" + dir,
                 "-cp", System.getProperty("java.class.path"), "telamin.fluxtion.audit.analyser.Main",
                 "--mcp", McpBridge.ENDPOINT_FILE_FLAG, endpoint.toString());
         pb.environment().remove("JAVA_TOOL_OPTIONS");
+        pb.environment().remove("JDK_JAVA_OPTIONS");
         pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-        pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
         Process process = pb.start();
         try {
             process.getOutputStream().write(CALL.getBytes(StandardCharsets.UTF_8));
             process.getOutputStream().flush();
-            assertTrue(connected.await(30, TimeUnit.SECONDS), "the bridge's call reached the silent analyser");
-            assertTrue(process.isAlive(), "blocked on the call");
+            java.io.BufferedReader replies = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+            String reply = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return replies.readLine();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }).get(30, TimeUnit.SECONDS);
+            assertTrue(reply != null && reply.contains("\"id\":7"), "the call was answered: " + reply);
             process.getOutputStream().close();
             assertTrue(process.waitFor(10, TimeUnit.SECONDS), "the --mcp process exited after its stdin closed");
             assertEquals(0, process.exitValue());
         } finally {
             process.destroyForcibly();
+            analyser.stop(0);
         }
     }
 }

@@ -55,20 +55,36 @@ public record Finding(int recordIndex, String note, String fix, String kind) {
     public boolean fault() { return "fault".equals(kind); }
     public String noteLabel() { return confirmation() ? "Observation" : fault() ? "What is wrong" : "Note"; }
     public String fixLabel() { return fault() ? "Likely cause / suggested fix" : "Assessment"; }
+    /** The records table's note text; {@code null} for an empty finding (a bare bookmark), whatever its kind. */
     public String tableText() {
+        if (isEmpty()) return null;
         if (fault()) return hasNote() ? note : null;
-        return noteLabel() + ": " + note + (hasFix() ? "\n" + fixLabel() + ": " + fix : "");
+        String noteText = hasNote() ? noteLabel() + ": " + note : null;
+        String fixText = hasFix() ? fixLabel() + ": " + fix : null;
+        return noteText == null ? fixText : fixText == null ? noteText : noteText + "\n" + fixText;
     }
+
+    /**
+     * The persisted shape (session recovery). An empty {@code note} finding — a bare bookmark — is saved WITHOUT a
+     * {@code kind}, exactly as builds before the {@code note} kind can read it (they reject {@code "note"}, and one
+     * rejected entry withholds every finding); {@link #fromMap} reads it back as a {@code note}.
+     */
     public java.util.Map<String, Object> toMap() {
         var out = new java.util.LinkedHashMap<String,Object>();
-        out.put("recordIndex", recordIndex); out.put("kind", kind); out.put("note", note); out.put("fix", fix);
+        out.put("recordIndex", recordIndex);
+        if (!(isEmpty() && FLAG_DEFAULT_KIND.equals(kind))) out.put("kind", kind);
+        out.put("note", note); out.put("fix", fix);
         return out;
     }
     public static Finding fromMap(java.util.Map<?,?> raw) {
         Object row = raw.get("recordIndex");
         if (!(row instanceof Number n) || n.doubleValue() != n.intValue() || n.intValue() < 0)
             throw new IllegalArgumentException("invalid finding recordIndex");
-        return new Finding(n.intValue(), (String)raw.get("note"), (String)raw.get("fix"), (String)raw.get("kind"));
+        String note = (String) raw.get("note"), fix = (String) raw.get("fix"), kind = (String) raw.get("kind");
+        // no kind and no text: a bare bookmark (see toMap); no kind WITH text: a finding from before categories, a fault
+        boolean bare = (note == null || note.isBlank()) && (fix == null || fix.isBlank());
+        if (kind == null && bare) kind = FLAG_DEFAULT_KIND;
+        return new Finding(n.intValue(), note, fix, kind);
     }
 
     public boolean hasNote() {

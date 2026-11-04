@@ -102,6 +102,54 @@ class FindingPresentationTest {
                 "a finding saved before categories is still read as a fault");
     }
 
+    /**
+     * A bare bookmark (an empty finding) renders nothing — no table text and no callout — whatever its kind; a lone
+     * "Note: " / "Note · " once showed after a restore. Wrong-result witness: drop the isEmpty/hasNote guards.
+     */
+    @Test void anEmptyFindingRendersNothingWhateverItsKind() {
+        BufferedImage image = new BufferedImage(600, 400, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        try {
+            for (String kind : Finding.KINDS) {
+                Finding bare = new Finding(3, null, null, kind);
+                assertTrue(bare.isEmpty());
+                assertNull(bare.tableText(), kind);
+                assertTrue(TopologyCanvas.calloutLines(bare, graphics.getFontMetrics(), 550).isEmpty(), kind);
+            }
+            Finding fixOnly = new Finding(3, null, "check the cap", "note");
+            assertEquals("Assessment: check the cap", fixOnly.tableText());
+            String text = String.join("\n", TopologyCanvas.calloutLines(fixOnly, graphics.getFontMetrics(), 550)
+                    .stream().map(TopologyCanvas.CalloutLine::text).toList());
+            assertFalse(text.contains("Note ·"), text);
+            assertTrue(text.contains("Assessment · check the cap"), text);
+        } finally { graphics.dispose(); }
+    }
+
+    /**
+     * Session recovery's persisted shape. A bare bookmark is saved WITHOUT a kind — the shape a build that predates
+     * the note kind restores (it rejects "note", and one rejected entry withholds every finding) — and reads back as
+     * a note. A finding with text keeps its kind; one with text and no kind is a pre-category fault.
+     */
+    @Test void aBareBookmarkPersistsWithoutAKindAndRestoresAsANote() {
+        Map<String, Object> bare = new Finding(3, null, null, Finding.FLAG_DEFAULT_KIND).toMap();
+        assertFalse(bare.containsKey("kind"), "no kind an older build would reject: " + bare);
+        assertEquals(Map.of("recordIndex", 3, "note", ""), Map.of("recordIndex", bare.get("recordIndex"), "note", bare.get("note")));
+        assertNull(bare.get("fix"));
+        assertEquals(new Finding(3, null, null, "note"), Finding.fromMap(bare));
+
+        Map<String, Object> written = new Finding(4, "refused, as designed", null, "note").toMap();
+        assertEquals("note", written.get("kind"));
+        assertEquals("note", Finding.fromMap(written).kind());
+        for (String kind : List.of("fault", "confirmation")) {
+            Map<String, Object> m = new Finding(5, null, null, kind).toMap();
+            assertEquals(kind, m.get("kind"), "an explicitly categorised empty finding keeps its kind");
+            assertEquals(kind, Finding.fromMap(m).kind());
+        }
+        assertEquals("fault", Finding.fromMap(Map.of("recordIndex", 0, "note", "legacy")).kind());
+        assertEquals("fault", Finding.fromMap(Map.of("recordIndex", 0, "note", "", "kind", "fault")).kind(),
+                "a bare flag saved by 1.40.3 (kind fault) restores as it was saved");
+    }
+
     private static String componentText(Component component) {
         StringBuilder text = new StringBuilder();
         if (component instanceof JTextComponent field) text.append(field.getText()).append('\n');
