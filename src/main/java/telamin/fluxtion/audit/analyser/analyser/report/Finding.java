@@ -15,7 +15,9 @@ package telamin.fluxtion.audit.analyser.analyser.report;
  * @param recordIndex the cycle this is about
  * @param note        the explanation — what is wrong and why it matters
  * @param fix         the assessment or suggested fix; {@code null} when nobody has said yet
- * @param kind        fault, confirmation or note; absent legacy values default to fault
+ * @param kind        fault, confirmation or note; {@code null} means fault (what every finding was before categories).
+ *                    A SAVED finding with no kind is read by {@link #fromMap}: as fault when it has text, as note when
+ *                    it is empty (a bare bookmark, which {@link #toMap} saves without a kind)
  */
 public record Finding(int recordIndex, String note, String fix, String kind) {
 
@@ -25,7 +27,10 @@ public record Finding(int recordIndex, String note, String fix, String kind) {
     /**
      * The category of a NEW finding written by the {@code flag} verb without a {@code kind}. Neutral on purpose: an
      * agent that flags the record proving a correct refusal must not have it saved as a fault (it was, on first use).
-     * A saved finding with no kind is still read as {@code fault}, which is what every finding was before categories.
+     * A saved finding with no kind is read as {@code fault} only when it has text (what every finding was before
+     * categories); an empty one is a bare bookmark and reads as {@code note}. Accepted inconsistency: a bare flag saved
+     * by 1.40.3 or earlier carries an explicit {@code kind: "fault"} and so restores as an empty fault, while a bare flag
+     * made now reports {@code note} — the saved kind is honoured rather than guessed at.
      */
     public static final String FLAG_DEFAULT_KIND = "note";
 

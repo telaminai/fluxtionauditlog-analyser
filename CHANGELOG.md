@@ -7,9 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
-- `flag` without a `kind` now saves a neutral `note` (labelled Note / Assessment) instead of a fault, so evidence of correct behaviour is no longer recorded as a fault; `fault` and `confirmation` work as before, an existing finding keeps its kind, and the tool description names the default and all three kinds.
-- The `--mcp` bridge exits when its client closes stdin, even while a call to the analyser is in flight: requests received before stdin closed are still answered, each within 10 seconds rather than the 60-second call timeout. It also exits when the process that launched it has gone. A bridge whose client is still running is kept, however long it sits idle, by design.
-- A bare flag (no note or fix) no longer shows an empty "Note:" in the records table or topology callout, and session recovery saves it in the form earlier releases can restore.
+- `flag` without a `kind` now saves a neutral `note` (labelled Note / Assessment) instead of a fault, so evidence of correct behaviour is no longer recorded as a fault; `fault` and `confirmation` work as before, an existing finding keeps its kind, and the tool description names the default and all three kinds. Session recovery is forward-only once a `note` finding with text exists: 1.40.3 and earlier reject the `note` kind and then restore no findings at all from that snapshot. A bare flag (no note or fix) is still saved in the form earlier releases restore.
+- The `--mcp` bridge exits when its client closes stdin, even while a call to the analyser is in flight: requests received before stdin closed are still answered as long as each completes within 10 seconds; one that takes longer is dropped, together with any after it (before, a blocked call held the bridge for up to the 60-second call timeout). It also exits when the process that launched it has gone. A bridge whose client is still running is kept, however long it sits idle, by design.
+- A finding with no note no longer shows an empty label: a bare `confirmation` flag showed a lone "Observation:" in the records table and on the topology callout, and a fix-only confirmation an empty "Observation:" line above its assessment.
 - The point-at-the-fault skill flags a found fault with `"kind": "fault"`, and says to flag a proving record as `confirmation` when it shows correct behaviour or to omit `kind` for a neutral note.
 
 ## [1.40.3] - 2026-11-04

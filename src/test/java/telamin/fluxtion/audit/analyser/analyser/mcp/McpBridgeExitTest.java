@@ -167,12 +167,13 @@ class McpBridgeExitTest {
 
     /**
      * The grace restarts for each request taken after EOF: three calls piped in, stdin closed at once, each answered
-     * by an analyser that takes 400 ms, all answered under a 700 ms grace — one shared budget from EOF would answer
-     * only the first. Wrong-result witness: drop the per-request deadline reset; the third reply is missing.
+     * by an analyser that takes 500 ms, all answered under a 1200 ms grace. One shared budget from EOF (1500 ms of
+     * calls against 1200 ms) would drop the third. Wrong-result witness: drop the per-request deadline reset; the third
+     * reply is missing.
      */
     @Test
     void everyRequestReceivedBeforeEndOfInputIsAnsweredEvenWhenTheAnalyserIsSlow() throws Exception {
-        HttpServer slow = answering(Duration.ofMillis(400));
+        HttpServer slow = answering(Duration.ofMillis(500));
         try {
             RestEndpointFile file = new RestEndpointFile(dir.resolve("slow-endpoint"));
             file.write("http://127.0.0.1:" + slow.getAddress().getPort(), "t");
@@ -182,7 +183,7 @@ class McpBridgeExitTest {
                     + CALL.replace("\"id\":7", "\"id\":2") + CALL.replace("\"id\":7", "\"id\":3")
                     + CALL.replace("\"id\":7", "\"id\":4");
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            bridge.run(new java.io.ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8)), out, Duration.ofMillis(700));
+            bridge.run(new java.io.ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8)), out, Duration.ofMillis(1200));
             List<String> lines = out.toString(StandardCharsets.UTF_8).lines().toList();
             assertEquals(4, lines.size(), "initialize and all three calls are answered: " + lines);
             for (int id = 2; id <= 4; id++) {
