@@ -607,7 +607,10 @@ class QuotedScalarsTest(unittest.TestCase):
             self.assertEqual(1, code, out)
             self.assertNotIn('quoted scalars:', out)
         # review r14: text the quoting runtime writes bare is no proof of age either (core d601af6/dae594b)
-        for bare in ('d: -dash', 'e: ', 't: ~', 'h: .hidden', 'p: +x', 'n: 3', 'b: true'):
+        # and (core 3c1ee83) an inner `:` - times, timestamps, URLs, drive paths, IPv6 - is written bare too
+        for bare in ('d: -dash', 'e: ', 't: ~', 'h: .hidden', 'p: +x', 'n: 3', 'b: true',
+                     'at: 12:30:00', 'ts: 2026-11-04T10:00:00Z', 'url: http://x:8/a', 'ab: a:b', 'dir: C:\\temp',
+                     'ip: fe80::1'):
             same_runtime = (self.probe('a: x, b: y, ' + bare), self.probe('a: "x, b: y", ' + bare, marked=True))
             for before, after in (same_runtime, same_runtime[::-1]):
                 code, out = self.run_compare(before, after)
@@ -624,7 +627,8 @@ class QuotedScalarsTest(unittest.TestCase):
             self.assertTrue(proves(body), body)
         for body in ('reason: a, b: c', 'n: 3', 'd: -2.5', 'b: true', 'x: null', 'f: NaN', 'w: plain words', 'k: f(x)',
                      'e: ', 'm: -x', 'dash: -dash', 't: ~', 'h: .hidden', 'p: +x', 'y: yes', 'z: 0x1F',
-                     'at: 12:30', 'url: http://x:8/a'):   # a `:` without a space after it is left bare
+                     'at: 12:30', 'url: http://x:8/a', 'ts: 2026-11-04T10:00:00Z', 'ab: a:b', 'ip: fe80::1'):
+            # a `:` without a space after it is left bare (core 3c1ee83)
             self.assertFalse(proves(body), body)
 
     def test_header_whitespace_a_bare_header_lost_matches_across_the_upgrade(self):
