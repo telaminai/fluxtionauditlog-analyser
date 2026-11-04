@@ -58,7 +58,8 @@
     "RE-PINNED 2026-10-26 (trial r2, branch fix/starter-analyser-routing): load-audit-log and point-at-the-fault say to flag the proving record after spotlighting it, in their first lines. Same contract, same selection; the revision and two hashes moved. The revision is a feature-branch commit: if the branch is squashed or rebased, re-pin to the rewritten commit. The playground must re-vendor.",
     "RE-PINNED 2026-11-04: saved build sign-in, partial-authoring recovery, one-run exports and optional screenshot permission guidance. Same contract and selection.",
     "RE-PINNED 2026-11-04 (journey review R2): run-mongoose-server distinguishes the shipped processor first run from compiler sign-in for regeneration, and add-a-node points to compiler sign-in. Same contract and selection; the revision and two hashes moved. Preserve this revision when integrating, or re-pin after rewriting history.",
-    "RE-PINNED 2026-11-04 (S7, flag kinds): a flag without kind now saves a neutral note, so point-at-the-fault flags a found fault with \"kind\": \"fault\" (the fault-found step and the worked example) and its proving-a-claim line says when to use fault, confirmation or no kind. load-audit-log and guided-start flag evidence and stay notes. Same contract and selection; the revision and one hash moved. The revision is a feature-branch commit (fix/gym-flag-kind-bridge-exit): preserve it when integrating, or re-pin after rewriting history. The playground must re-vendor."
+    "RE-PINNED 2026-11-04 (S7, flag kinds): a flag without kind now saves a neutral note, so point-at-the-fault flags a found fault with \"kind\": \"fault\" (the fault-found step and the worked example) and its proving-a-claim line says when to use fault, confirmation or no kind. load-audit-log and guided-start flag evidence and stay notes. Same contract and selection; the revision and one hash moved. The revision is a feature-branch commit (fix/gym-flag-kind-bridge-exit): preserve it when integrating, or re-pin after rewriting history. The playground must re-vendor.",
+    "RE-PINNED 2026-11-04 (runtime quoted audit scalars): audit-compare.py reads records that declare quoted scalars (textEncoding: QUOTED_SCALARS as the first line, format-spec 3a, Format 1 rev 1.2): the declaration is never compared, a marked record decodes its quoted keys, values and header fields, and a capture from before the runtime upgrade matches one from after for the same logged values; unmarked records read as before. Same contract and selection; the revision and the audit-compare.py hash moved. The revision is a feature-branch commit (fix/gym-flag-kind-bridge-exit): preserve it when integrating, or re-pin after rewriting history. The playground must re-vendor."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -94,7 +95,7 @@
       ]
     }
   },
-  "revision": "2e304e10103dfd31a5c72f5148bd550a0a77937b",
+  "revision": "04b7799318723482051d21a73c7be7befec38d76",
   "sha256": {
     "common/load-audit-log/SKILL.md": "6663abe2f24426281a0bd7afcc042f5ad2fde7006c5f83987e8421ff67848ef1",
     "common/guided-start/SKILL.md": "2f8ad19004f2e145a7fc442392b8530a77b77e773a29a8774036b0abbe3cb6f3",
@@ -102,7 +103,7 @@
     "mongoose/run-mongoose-server/SKILL.md": "84c9097eab88ad9c1b5051fc34ff7890e419b4a2b383f1a7c3411a8fbc664431",
     "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
     "spring/add-a-node/SKILL.md": "ca21f7bba67d46029d5276affe7dd75bb04ec808c9205a04adf7a6347d4b3a52",
-    "spring/add-a-node/audit-compare.py": "c3b5fae86ad418f4311ce446896a796a75f79da2697d000ce5c6bd0b0a5de5fb",
+    "spring/add-a-node/audit-compare.py": "3b9c848f49c068f11ad07342e2120969eef29a41ec8571cdca87a5a76b076d5f",
     "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
   }
 }
