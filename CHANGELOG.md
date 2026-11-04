@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- A project's authoring evidence opens without granting the project root: `fluxtion-authoring.json`,
+  `target/fluxtion-validation.json`, `target/fluxtion-reconciliation.json`, `target/fluxtion-run.json` and
+  `target/classes/fluxtion-diagnostics.json` are readable at exactly those paths below the open project, so
+  `open {diagnostics: "target/fluxtion-validation.json"}` works with only `src/` source roots, and the run-receipt and
+  authoring-record checks are no longer "unavailable". The list is closed and read-only: no other file or directory
+  becomes readable, a linked file is refused, and a home or credential folder project grants none of it.
+- Design discovery no longer walks `.git/`, `node_modules/` or `.idea/` below a source root, nor `target/` or `build/`
+  beside a build file (`pom.xml`, Gradle or Ant), so the build's copy of a Spring design in `target/classes/` is not a
+  second candidate and the single design still opens automatically. A file removed or unreadable during the scan (a
+  build running alongside) is skipped or named, instead of making the whole discovery unavailable.
+
 ## [1.40.3] - 2026-11-04
 
 ### Fixed

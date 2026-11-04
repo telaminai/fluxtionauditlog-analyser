@@ -6,9 +6,27 @@ import java.nio.file.*;
 import java.security.MessageDigest;
 import java.util.*;
 
-/** The read adapter for M66. A project supplies a relative-path base, never an implicit read grant. */
+/**
+ * The read adapter for M66. A project supplies a relative-path base, never an implicit read grant — with one closed
+ * exception, {@link #AUTHORING_EVIDENCE}.
+ */
 public final class DesignFiles {
     public static final int MAX_BYTES = 2 * 1024 * 1024;
+    /**
+     * S4 (2026-11-04): the authoring loop's evidence files, readable at exactly these paths below the open project's
+     * root with no source root covering them. A gym project granted only its {@code src/} roots, so
+     * {@code open {diagnostics: target/fluxtion-validation.json}} was refused and the authoring-record hash checks read
+     * "unavailable"; granting the project root instead made discovery walk {@code target/} (a second, copied design) and
+     * {@code .git/}. The list is closed: no other file and no directory becomes readable through it, a path whose real
+     * location differs (a link) is not on it, and a project that is the home or a credential folder (tier 1 of
+     * {@link telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy}) grants none of it.
+     */
+    public static final List<String> AUTHORING_EVIDENCE = List.of(
+            "fluxtion-authoring.json",
+            "target/fluxtion-validation.json",
+            "target/fluxtion-reconciliation.json",
+            "target/fluxtion-run.json",
+            "target/classes/fluxtion-diagnostics.json");
     private final List<Path> roots;
     private final Path project;
 
@@ -46,6 +64,7 @@ public final class DesignFiles {
             for (Path root : roots) {
                 if (Files.isDirectory(root) && real.startsWith(root.toRealPath())) matches.add(real);
             }
+            if (authoringEvidence(real)) matches.add(real);
         }
         if (matches.size() > 1) throw new IOException("ambiguous file under authorised roots: " + matches);
         if (matches.isEmpty()) {
@@ -60,6 +79,25 @@ public final class DesignFiles {
                     + (path.isAbsolute() ? projectHint(path) : relativeHint()));
         }
         return matches.iterator().next();
+    }
+
+    /**
+     * Whether {@code real} (a real path) is one of the open project's {@link #AUTHORING_EVIDENCE} files: equal to the
+     * project's real root resolved by a listed name, so a link — the file's or an intermediate directory's — never
+     * qualifies, and nothing escapes the project.
+     */
+    private boolean authoringEvidence(Path real) {
+        if (project == null) return false;
+        try {
+            Path base = project.toRealPath();
+            if (!Files.isDirectory(base)) return false;
+            if (telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(base,
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home()) != null) return false;
+            for (String name : AUTHORING_EVIDENCE) if (real.equals(base.resolve(name))) return true;
+        } catch (IOException | SecurityException | InvalidPathException unreadable) {
+            return false;
+        }
+        return false;
     }
 
     /** "; it is inside the project D — open {project: D} …", when the file belongs to a project that is not open. */

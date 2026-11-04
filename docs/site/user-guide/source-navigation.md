@@ -58,10 +58,15 @@ ambiguous names are refused rather than guessed. A line-based anchor retires on 
 rebind only when that literal name still resolves uniquely in the refreshed design.
 
 No generated processor header is inspected. A project is not a read grant: discovery reads only authorised roots,
-does not follow directory links and rechecks file containment. It counts at most 10,000 regular files and 20,000
-filesystem entries, with the existing 2 MiB/UTF-8 source limit. Exceeding a scan limit reports unavailable with the
-specific limit and returns no partial candidate list. Individual unreadable, undecodable or oversized files do not
-erase the readable candidates: up to ten names and the total appear in the Design pane and `context.design.note`
+does not follow directory links and rechecks file containment. Below a root it never descends into `.git/`,
+`node_modules/` or `.idea/`, nor into `target/` or `build/` beside a build file (`pom.xml`, `build.gradle[.kts]`,
+`settings.gradle[.kts]`, `build.xml`) — every build copies the Spring design to `target/classes/`, and that copy is
+not a second definition. A Java package named `build` or `target`, and a root that is itself named one of these, are
+still scanned. It counts at most 10,000
+regular files and 20,000 filesystem entries, with the existing 2 MiB/UTF-8 source limit. Exceeding a scan limit
+reports unavailable with the specific limit and returns no partial candidate list. A file or folder removed while
+the scan runs (a build beside the analyser) is skipped; one that cannot be opened is named as unreadable. Individual
+unreadable, undecodable or oversized files do not erase the readable candidates: up to ten names and the total appear in the Design pane and `context.design.note`
 as “2 files could not be read: …”, with “and N more” when names are omitted. With no readable candidate the message says so, rather than claiming no design
 exists. A failed first explicit read omits `kind` until a form has actually loaded; a failed refresh may retain
 the last good revision and its known form. Working definitions remain **relationship unverified**, never paired
