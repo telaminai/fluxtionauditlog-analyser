@@ -582,6 +582,60 @@ class QuotedScalarsTest(unittest.TestCase):
         self.assertEqual(('plain', False), u('plain'))
         self.assertEqual([('k@1', 'v, w'), ('e', ''), (None, 'flag')], audit_compare.split_quoted('"k@1": "v, w", e:, flag'))
 
+    PROBE = textwrap.dedent("""
+        ---
+        eventLogRecord: 
+        {marker}    event: Ev
+            eventToString: {text}
+            nodeLogs: 
+                - gate: {{ {body}}}
+            endTime: 2
+        ---
+        """).lstrip('\n')
+
+    def probe(self, body, text='Ev{x}', marked=False):
+        return self.PROBE.format(marker='    textEncoding: QUOTED_SCALARS\n' if marked else '', text=text, body=body)
+
+    def test_WRONG_RESULT_CONTROL_a_quoting_runtime_capture_that_needed_no_quotes_is_not_taken_for_an_old_one(self):
+        # review r11: two captures from the quoting runtime - reason="a, b: c" (one value, marked) and reason="a",
+        # b="c" (two values, nothing to quote, so unmarked) - read alike under the legacy grammar. The unmarked record
+        # proves nothing about its age, so they are compared exactly.
+        one = self.probe('reason: "a, b: c"', marked=True)
+        two = self.probe('reason: a, b: c')
+        for before, after in ((one, two), (two, one)):
+            code, out = self.run_compare(before, after)
+            self.assertEqual(1, code, out)
+            self.assertNotIn('quoted scalars:', out)
+
+    def test_an_unmarked_record_proves_its_age_only_by_text_a_quoting_runtime_would_quote(self):
+        proves = lambda body: audit_compare.proves_pre_quoting(audit_compare.parse(self._write(self.probe(body)))[0])
+        for body in ('reason: membership not active, balance due 30.0',   # a keyless fragment
+                     'o: Order(id=1, px=2.0)', 'tags: [a, b]', 'at: 12:30', 'q: say "hi"', 'e: ', 'p: open(',
+                     'h: #1', 'm: -x'):
+            self.assertTrue(proves(body), body)
+        for body in ('reason: a, b: c', 'n: 3', 'd: -2.5', 'b: true', 'x: null', 'f: NaN', 'w: plain words', 'k: f(x)'):
+            self.assertFalse(proves(body), body)
+
+    def test_header_whitespace_a_bare_header_lost_matches_across_the_upgrade(self):
+        # review r11: the old runtime wrote `eventToString: Ev{x} ` and the reader stripped it; the new one quotes it
+        old, new = self.probe('reason: ok', text='Ev{x} '), self.probe('reason: ok', text='"Ev{x} "', marked=True)
+        code, out = self.run_compare(old, new)
+        self.assertEqual(0, code, out)
+        self.assertIn('quoted scalars: 1 business record(s)', out)
+        # accepted residual: a quoting runtime's bare `Ev{x}` reads the same as the old runtime's stripped one, so header
+        # edge whitespace is matched without proof; entries that merge under the legacy grammar always need it
+        self.assertEqual(0, self.run_compare(self.probe('reason: ok'), new)[0])
+        self.assertEqual(1, self.run_compare(self.probe('reason: ok', text='Ev{y} '), new)[0])
+
+    def test_one_real_change_across_the_upgrade_is_reported_once(self):
+        # review r11: one changed record made every record fall back to the exact view and report as changed
+        changed = NEW_RUNTIME.replace('{ granted: true}', '{ granted: false}')
+        code, out = self.run_compare(OLD_RUNTIME, changed)
+        self.assertEqual(1, code, out)
+        self.assertIn('business: DIFFERENT (1 change(s))', out)
+        self.assertIn('quoted scalars: 1 business record(s)', out)
+        self.assertEqual(1, out.count('    - '), out)
+
     def _write(self, text):
         handle = tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False, encoding='utf-8')
         with handle:

@@ -37,9 +37,12 @@ by position only and is never compared; the same spelling anywhere else is an or
 read exactly as before: quotes kept, nothing decoded. A runtime that quotes writes a record bare unless a value needs
 quoting, so one capture may mix marked and unmarked records. A marked record and an unmarked one whose entries
 differ only as the old grammar would read the same values written bare (`reason: "a, b"` against `reason: a, b`)
-match, when the unmarked record's capture declares quoted scalars nowhere: that is a capture from before a runtime
-upgrade against one from after, and the count of such records is printed. Otherwise records are compared exactly: a
-capture holding any marked record comes from a runtime that quotes, so its bare records are unambiguous.
+match, but only when the unmarked record itself shows it was written before the runtime quoted - it holds an entry a
+quoting runtime would have quoted (a keyless fragment, or a value with a separator, bracket, quote or unbalanced
+parenthesis) - or when the legacy reading changes nothing but surrounding whitespace in a header field. That is a
+capture from before a runtime upgrade against one from after; the count of such records is printed, and the choice is
+made record by record. Otherwise records are compared exactly: `a: "x, b: y"` and `a: x, b: y` from a runtime that
+quotes are different.
 
 An `annotation` straight after the method is ambiguous (tracing's from runtime 1.1.1, or an older node's own key):
 when the match depends on it the verdict is INCONCLUSIVE (exit 3) unless --annotations-are-trace says it is
@@ -516,7 +519,9 @@ def split_record(record, normalise, annotations_are_trace=True, legacy=False):
             business.append((node, own))
         if trace:
             framework.append((node, trace))
-    head = (record["event"], normalise(record["text"] or ""), tuple((k, normalise(v)) for k, v in record.get("other", ())))
+    strip = astrip if legacy and record.get("marked") else (lambda v: v)   # a bare header lost its edge whitespace
+    head = (strip(record["event"]) if record["event"] is not None else None, normalise(strip(record["text"] or "")),
+            tuple((k, normalise(strip(v) if k in DECODED_HEADERS else v)) for k, v in record.get("other", ())))
     return ((head, tuple(business)) if business else None), (head, tuple(framework))
 
 
@@ -574,29 +579,81 @@ def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.std
 
 
 def business_views(before, after, normalise, annotations_are_trace=True):
-    """(before views, after views, upgraded): the business views the verdict compares. Exact when they are equal.
-    Otherwise, when every record that differs pairs a marked record with an unmarked one from a capture that marks
-    no record (a capture from before the runtime quoted), and the two read alike under the legacy grammar: the legacy
-    reading of both sides, and how many records needed it. Two marked or two unmarked records, or an unmarked one from
-    a quoting runtime's capture, are never matched that way: the quoted grammar tells `a: "x, b: y"` from `a: x, b: y`."""
-    pre_quoting = [not any(r.get("marked") for r in records) for records in (before, after)]
+    """(before views, after views, upgraded): the business views the verdict compares, chosen record by record.
+    A record is read exactly unless it pairs - in the alignment of both captures under the legacy grammar - with a
+    record whose declaration differs, the two read alike under the legacy grammar, and the legacy reading is safe:
+    the marked record's entries read the same in both grammars (only header whitespace differs), or the unmarked
+    record proves it was written before the runtime quoted (proves_pre_quoting). Then both are read under the legacy
+    grammar; `upgraded` counts those pairs. Everything else is exact, so a real change is reported once and an
+    upgrade-only record beside it is not."""
     sides = []
     for records in (before, after):
-        rows = [(split_record(r, normalise, annotations_are_trace)[0],
-                 split_record(r, normalise, annotations_are_trace, legacy=True)[0], r.get("marked", False))
-                for r in records]
-        sides.append([row for row in rows if row[0] is not None])
-    exact = ([row[0] for row in sides[0]], [row[0] for row in sides[1]])
-    if exact[0] == exact[1] or len(sides[0]) != len(sides[1]):
-        return exact[0], exact[1], 0
+        rows = []
+        for r in records:
+            exact = split_record(r, normalise, annotations_are_trace)[0]
+            if exact is None:
+                continue
+            legacy = split_record(r, normalise, annotations_are_trace, legacy=True)[0]
+            marked = r.get("marked", False)
+            rows.append((exact, legacy, marked, marked and exact[1] != legacy[1], not marked and proves_pre_quoting(r)))
+        sides.append(rows)
+    views = [[row[0] for row in rows] for rows in sides]
     upgraded = 0
-    for (b_exact, b_legacy, b_marked), (a_exact, a_legacy, a_marked) in zip(*sides):
-        if b_exact == a_exact:
+    matcher = difflib.SequenceMatcher(None, [row[1] for row in sides[0]], [row[1] for row in sides[1]], autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag != "equal":
             continue
-        if b_marked == a_marked or b_legacy != a_legacy or not pre_quoting[1 if b_marked else 0]:
-            return exact[0], exact[1], 0
-        upgraded += 1
-    return [row[1] for row in sides[0]], [row[1] for row in sides[1]], upgraded
+        for i, j in zip(range(i1, i2), range(j1, j2)):
+            b, a = sides[0][i], sides[1][j]
+            if b[0] == a[0] or b[2] == a[2]:
+                continue                                 # already equal, or both in one grammar: exact
+            marked_row, bare_row = (b, a) if b[2] else (a, b)
+            if marked_row[3] and not bare_row[4]:
+                continue                                 # the legacy reading would merge entries a quoting runtime split
+            views[0][i], views[1][j] = b[1], a[1]
+            upgraded += 1
+    return views[0], views[1], upgraded
+
+
+_INDICATOR_START = set("-?:,[]{}#&*!|>'\"%@`+.=<~")
+_FLOW_SPECIAL = set(",:{}[]#\"'?")
+
+
+def _number_like(v):
+    try:
+        float(v)
+        return True
+    except ValueError:
+        return v in ("NaN", "Infinity", "-Infinity")
+
+
+def would_quote(value):
+    """True when a runtime that quotes would have written this bare value quoted, by a rule only TEXT can trigger: it
+    is empty, starts with an indicator, or holds a flow separator, bracket, quote, control character or unbalanced
+    parenthesis. A number, boolean or null spelling proves nothing: a typed value is written bare by every runtime."""
+    if value == "":
+        return True
+    if _number_like(value):
+        return False
+    if value[0] in _INDICATOR_START:
+        return True
+    depth = 0
+    for c in value:
+        if c in _FLOW_SPECIAL or ord(c) < 32 or 0x7F <= ord(c) <= 0x9F:
+            return True
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth < 0:
+                return True
+    return depth != 0
+
+
+def proves_pre_quoting(record):
+    """True when an unmarked record could not have been written by a runtime that quotes: one of its entries is a
+    keyless fragment (a bare comma split a value) or a value such a runtime would have quoted, and so marked."""
+    return any(k is None or would_quote(v) for _, entries in record.get("items", ()) for k, v in entries)
 
 
 def report(title, before, after, max_diffs, out):
