@@ -44,25 +44,16 @@ public final class RecordExporter {
     }
 
     /**
-     * @throws UnsupportedOperationException for a store whose reader declares a grammar the text
-     *         reader cannot re-load. The contract of this export is that the file re-opens in the
-     *         analyser as the same records. Text the binary reader constructs is parsed under a
-     *         grammar the reader declares and the text carries nothing that declares it, so an export
-     *         re-opened as a text log would read every quoted String as its quoted characters (a
-     *         review showed {@code "ok, invented: 99"} reloading with the quotes inside the value).
-     *         The lossless artefact for a binary log is the {@code .flxa} file itself.
-     *
-     * <p>A TEXT log whose records declare the quoted grammar themselves (format-spec §3a) is not refused:
-     * the declaration is part of each record's own text, which this export copies, so marked and
-     * unmarked records re-load exactly as they read. Injecting a declaration into a binary-derived
-     * record's text would re-encode rather than copy (and decode header scalars the reader left raw),
-     * so a reader-declared store stays refused.
-     */
-    /**
      * Why a YAML export of this store would not re-load as the same records, or null when it would.
      * ONE decision for every path that hands record text out as re-loadable - the file export and the
      * clipboard copy - so they cannot diverge again (a review found the copy action bypassing the
      * file export's refusal).
+     *
+     * <p>A TEXT log whose records declare the quoted grammar themselves (format-spec §3a) is not refused:
+     * the declaration is part of each record's own text, which the export copies, so marked and
+     * unmarked records re-load exactly as they read. Injecting a declaration into a binary-derived
+     * record's text would re-encode rather than copy (and decode header scalars the reader left raw),
+     * so a reader-declared store stays refused.
      */
     public static String yamlRefusal(LogStore store) {
         if (store.textEncoding() != telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY) {
@@ -74,6 +65,16 @@ public final class RecordExporter {
         return null;
     }
 
+    /**
+     * The filtered records' raw text, as a YAML log that re-opens in the analyser as the same records.
+     *
+     * @throws UnsupportedOperationException for a store whose reader declares a grammar the text
+     *         reader cannot re-load ({@link #yamlRefusal}). Text the binary reader constructs is parsed
+     *         under a grammar the reader declares and the text carries nothing that declares it, so an
+     *         export re-opened as a text log would read every quoted String as its quoted characters (a
+     *         review showed {@code "ok, invented: 99"} reloading with the quotes inside the value).
+     *         The lossless artefact for a binary log is the {@code .flxa} file itself.
+     */
     public static String toYaml(LogStore store, FilterState filter) {
         String refusal = yamlRefusal(store);
         if (refusal != null) {
