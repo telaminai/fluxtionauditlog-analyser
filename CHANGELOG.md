@@ -14,6 +14,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   malformed escapes are kept verbatim. Recognised only as the first line of the mapping, record by record, so a
   file or Follow stream mixing old and new records reads each correctly; records without it read exactly as
   before. An unknown value reads as legacy and is named once as a producer finding. Fixture C35.
+- **Format 1, revision 1.2.** The format specification names the per-record declaration as revision 1.2 (additive:
+  an unmarked file is unchanged; an older analyser ignores the line and shows quoted values with their quote marks,
+  entry boundaries intact). The *Log format* page shows a marked record and the full escape list.
 
 ## [1.40.3] - 2026-11-04
 

@@ -1,6 +1,11 @@
 # Audit record format — specification
 
-**Format 1 · status: published, open.** *Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2. Revised the same day, before release, after review: the "stopped mid-write" state is withdrawn as unsound, a marker counts per segment, and a marker is recognised by the record's whole contents rather than by a key it mentions. §1a says what each correction cost.* This page is the normative description of the record format
+**Format 1 · status: published, open.** *Revision 1.2, 2026-11-04: §3a lets a text record declare the
+quoted-scalar grammar for itself, with `textEncoding: QUOTED_SCALARS` as the first line after `eventLogRecord:`.
+Additive — an unmarked file is unchanged, byte for byte. A reader without 1.2 ignores the line as an unknown
+field under §2 and reads the record as legacy: quoted values show their quote marks and escapes, but entry
+boundaries hold, because a writer spells a `"` inside a quoted value as `\x22`, which a legacy scanner does not
+see as a quote. Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2. Revised the same day, before release, after review: the "stopped mid-write" state is withdrawn as unsound, a marker counts per segment, and a marker is recognised by the record's whole contents rather than by a key it mentions. §1a says what each correction cost.* This page is the normative description of the record format
 the analyser reads. It exists so that anything that can describe a run — a Fluxtion processor, a
 Mongoose server, a workflow engine, a translator over someone else's trace — can emit records the
 analyser understands, and know *what the analyser will do with them*. The [Log format](log-format.md)
@@ -327,7 +332,8 @@ every `instanceId.key` series.
 - **Quote marks are the producer's characters.** Under this grammar a `"` protects the separators
   inside it while the tokenizer scans, and that is all: nothing is decoded, a backslash is a
   character, `"hello"` keeps its quotes, and `prefix "C:\"` closes at its second quote mark. This is
-  how every text log has always been read, and it does not change. *(Fixture C17.)*
+  how every text log has always been read, and it does not change for any record that does not
+  declare the quoted grammar itself (§3a). *(Fixture C17.)*
 - **An entry is one run of writes, not one callback, and a key may repeat inside it.** Fluxtion's writer opens a
   new `- instanceId: {…}` entry only when the writing node changes, or when invocation tracing starts an invocation
   (§8). A node that logs in two callbacks with no other node writing between them — `@Initialise` then
@@ -439,9 +445,9 @@ Under a record's declaration:
 - the string header scalars — `event`, `eventType`, `eventToString`, `thread`, `groupingId` — that are
   *entirely* one quoted scalar decode the same way, and are text whatever they spell: a quoted
   `"null"` grouping id is the string `null`, while a bare `null` is still absent. (Under a reader's
-  declaration header scalars stay raw, as before.) A producer writes `"` inside a quoted scalar as
-  `\x22`, so a legacy scanner, which knows no escapes, still sees where every value ends; `\"` is
-  accepted too;
+  declaration header scalars stay raw, as before.) A producer SHOULD write `"` inside a quoted scalar
+  as `\x22`, so a legacy scanner, which knows no escapes, still sees where every value ends; `\"` is
+  accepted too, but an analyser older than revision 1.2 would end the value at it;
 - the record is still a **text-runtime record**: the `method`-on-every-node tracing heuristic (§8) and
   the trace-run reading of `read` keep applying to it;
 - the declaration is **metadata**: never a node entry, a key, a series or a header field, and it moves
