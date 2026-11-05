@@ -13,6 +13,13 @@ The field rules and the error triage live in the Fluxtion orientation — read
 <https://fluxtion-playground.dev/CLAUDE.md> when the build rejects a field. This file covers only what is
 specific to a Spring-authored project.
 
+## Shape the graph: one node per owner of state
+
+Before declaring anything, split the work by who owns which state — items, reservations and customers, say —
+one node each, joined by references or derived events. One node with every handler compiles and runs, but its
+audit can only ever say "that node ran"; separate nodes make the log say *which* responsibility acted and why.
+This is guidance, not a gate: more nodes cost more declarations.
+
 ## Declare it in the XML; regeneration writes the class
 
 All three edits are in the designer XML that `fluxtion-authoring.json` names:
@@ -50,7 +57,23 @@ delivers nothing.
 Fluxtion dispatches an event to every node whose `@OnEventHandler` method takes that event type. When you
 explain what happened to an event, cite that method and the audit record, never "the XML routes it".
 
-Then **regenerate** — a graph change needs it, a change inside a method body does not:
+**Filtered handlers.** A binding with a `filterString` makes regeneration write a handler that receives only
+events whose `filterString()` matches. The method is `on<Event>` when the node has one binding for that event,
+and `on<Event>Filter<n>` when it has several, n counting from 0 over this node's bindings of that event in XML
+order (filtered or not). From starter-core 1.0.86, regeneration prints one
+`<bean>.<method> ← <Event> filterString=<value>` line per handler it adds. Two rules: one binding per event and
+filter value (`SPRING_FILTER_DUPLICATE`), and a binding sets `filterString` or `filterId`, not both
+(`SPRING_FILTER_CONFLICT`). The build refuses both; from starter-core 1.0.86, `./validate.sh` refuses them too,
+before anything is generated.
+
+Then **regenerate** — a graph change needs it: an XML change, or a field or annotation that generation
+consumes — a constructor-mapped field, any field or method carrying a Fluxtion annotation (**`@Inject`
+included**, and an annotation's values such as a `filterString`), a constructor or the class's `extends` /
+`implements`. A method body, or a `transient`, `static` or `@FluxtionIgnore` helper field, does not. Each
+regeneration needs Compiler sign-in and spends a compile credit, so do not regenerate for a body change. In a
+project made from the current starter template with starter-core 1.0.86+, the build itself (`./mvnw package`,
+`./validate.sh` and every server start) refuses a node whose consumed structure changed since the last
+generation, naming the class and the change. The regeneration command:
 
 ```
 TODO(bundle): substitute this project's exact regeneration command (the Maven profile or script that
@@ -64,8 +87,9 @@ they cost thousands of tokens to read, and the audit log shows the dispatch orde
 
 **Regeneration writes the class shell**: constructor, fields (a DATA field carries `@NoTriggerReference`),
 a `SinkPublisher` field per sink (`sinkOut`) and the callback methods, annotations fully qualified —
-there are no imports to find. Fill only the method bodies, then rebuild, run and prove it from the audit
-log as below.
+there are no imports to find. Fill only the method bodies — or add a field such as an `@Inject` collaborator
+(see *Raise a derived event*), which is a graph change, so regenerate after it — then rebuild, run and prove it
+from the audit log as below.
 
 **Do not write the class yourself, and do not wire a sink outside the XML** (a hand-written
 `@ServiceRegistered` callback delivers at runtime but is not declared in the design). Either leaves the
@@ -164,13 +188,19 @@ meant to alter them. Prove which happened by comparing two runs of the **same in
    came from — do not write your own on the spot. It splits every node entry into **business** data —
    the keys the node chose to log — and **framework** data — the keys invocation tracing writes FIRST in an
    entry: an optional `thread`, then `method` (or `forkedExecution` and `asyncMethod`), then an optional
-   `annotation` naming an annotation. Only that leading run is framework, as it is in the analyser; a key
-   after it, or a lone `thread` or `annotation`, is the node's own. It compares the business records
+   `annotation` naming an annotation — and the starter's **generated callback audit** at the start of the body
+   (`handledEvent`, then `filterId`, then `filterString`; or `triggerFired: true`; or `lifecycle: <phase>`). A
+   key after those, or a lone `thread` or `annotation`, is the node's own. (The analyser itself shows the
+   callback audit as node data.) **Which nodes ran stays business**: a node that showed it ran only through its
+   callback audit is compared as having run, so a trigger that stops running is a difference.
+   `--strict-trace` compares the callback audit as business data again. It compares the business records
    in order — event, event type, event text, any field the reader does not know, and every node's business
    entries; never times, the thread or the grouping id, which vary between runs — and
    reports framework differences separately. Exit `0`: the logged business entries match; `1`: they
    differ, and the changed records are printed; `3`: inconclusive — they match only if an `annotation`
-   straight after the method is tracing's (runtime 1.1.1+) rather than an older node's own key; pass
+   straight after the method is tracing's (runtime 1.1.1+) rather than an older node's own key, or only if a
+   node shown by tracing alone counts the same as one shown by its callback audit, or the business entries
+   match but another event type or filter reached a node (its `handledEvent`/`filterString` changed); pass
    `--annotations-are-trace` only when both captures come from runtime 1.1.1 or later and no node logs a
    key called `annotation` first; `2`: nothing follows — a log holds no business record, or is in a shape
    the script refuses to guess at (records run together without `---`, a list-shaped export, a value whose
@@ -201,6 +231,27 @@ in the evidence, not the code; fix the capture and compare again before concludi
   and assume it will generate a threshold field. For a fixed rule, a `static final` constant avoids
   constructor mapping. If the value must be configurable, agree the source/ownership change explicitly
   and validate against the pinned authoring contract before changing XML; do not fabricate a recipe.
+
+## Raise a derived event
+
+A node that raises a follow-on event — `ITEM_AVAILABLE` after a return, say — asks for the dispatcher with a
+field `@Inject EventDispatcher dispatcher;` (`com.telamin.fluxtion.runtime.annotations.builder.Inject`,
+`com.telamin.fluxtion.runtime.callback.EventDispatcher`). The field is a graph change: regenerate after adding
+it, or the processor never sets it and the first dispatch fails with a NullPointerException. In the body,
+`dispatcher.queueReentrantEvent(event)` appends the event to the queue, so derived events run one at a time, in
+the order raised, after the current cycle finishes (`processReentrantEvent` puts it at the front instead). Each
+is its own audit record. Queue only from inside a processing cycle — an event handler or trigger; an event queued
+from `@Initialise`/`@Start` or from outside a cycle waits for the next incoming event.
+
+## Replace the starter's sample nodes
+
+Remove the sample beans from the XML and regenerate: an unchanged, unreferenced sample file is deleted
+(starter-core 1.0.86+); an edited one, or one still named by host wiring such as `server-config.yml` or the
+main class, is kept, and the reconciliation report says what references it. To give up a generated class or
+member explicitly: `java -jar .fluxtion/fluxtion-starter-core.jar withdraw --class <fqcn> [--member '<key>']`,
+where `<key>` is the ownership key from `fluxtion-authoring.json` (`field:rootNode`, or a method signature), not
+a bare name (`--still-declared` while the XML still names it). Removed files are moved to
+`.fluxtion/removed/<timestamp>/`, not deleted. Never delete the ownership record by hand.
 
 ## Recover a partial generation attempt
 
@@ -236,6 +287,10 @@ fluent and has typed overloads — prefer the typed one so numbers stay numbers 
 Do not read a method-name-only line as "this node is fine". That line comes from **invocation tracing**,
 which is a separate setting, and with tracing off a node that logs no value **may not appear at all** — so
 its absence means *"said nothing"*, not *"did not run"*.
+
+**Check exact output text in the sink's output, not the audit.** The generated handlers' `filterString`
+entry is made safe for the reader by replacing every character outside `a-zA-Z0-9_. /@+-` with `_`; code that
+copies that pattern for its own values logs `16_30` for `16:30`.
 
 **Log the state behind a decision, not only this event's outcome.** A node that reacts once — on a
 crossing, a first match, a limit — should log the state that explains why it did or did not react

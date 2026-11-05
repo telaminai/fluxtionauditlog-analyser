@@ -94,6 +94,102 @@ class AuditCompareTest(unittest.TestCase):
         self.last_stderr = result.stderr
         return result.returncode, result.stdout
 
+    # AG-5: the starter's generated callback audit (callback-audit.ts / Reconciler.callbackAudit) is trace.
+    GENERATED = textwrap.dedent('''\
+        ---
+        eventLogRecord:
+          logTime: 1000
+          event: RentalEvent
+          eventToString: RentalEvent{RETURN R3 DAMAGED}
+          nodeLogs:
+            - rentalDesk: { thread: main, method: onRentalEventFilter3, annotation: OnEventHandler, handledEvent: com.acme.RentalEvent, filterString: RETURN, charge: 30}
+            - ledger: { thread: main, method: onTrigger, annotation: OnTrigger, triggerFired: true, total: 30}
+        ---
+        ''')
+    HAND_WRITTEN = textwrap.dedent('''\
+        ---
+        eventLogRecord:
+          logTime: 2000
+          event: RentalEvent
+          eventToString: RentalEvent{RETURN R3 DAMAGED}
+          nodeLogs:
+            - rentalDesk: { thread: main, method: onReturn, annotation: OnEventHandler, charge: 30}
+            - ledger: { thread: main, method: onTrigger, annotation: OnTrigger, total: 30}
+        ---
+        ''')
+
+    def test_generated_callback_audit_is_reported_with_the_framework(self):
+        for flags in ((), ('--annotations-are-trace',)):
+            code, out = self._run(self.GENERATED, self.HAND_WRITTEN, *flags)
+            self.assertEqual(0, code, f"{flags}: a generated and a hand-written node logging the same values match\n{out}")
+            self.assertIn('framework (reported, does not decide the verdict)', out)
+
+    def test_generated_callback_audit_never_hides_a_business_change(self):
+        code, out = self.run_compare(self.GENERATED, self.HAND_WRITTEN.replace('charge: 30', 'charge: 31'))
+        self.assertEqual(1, code, out)
+
+    def test_strict_trace_compares_the_callback_audit_as_business(self):
+        code, out = self.run_compare(self.GENERATED, self.HAND_WRITTEN, '--strict-trace')
+        self.assertEqual(1, code, out)
+
+    def test_a_nodes_own_key_is_not_read_as_callback_audit_by_name_alone(self):
+        own = self.HAND_WRITTEN.replace('charge: 30}', 'charge: 30, filterString: RETURN}')
+        code, out = self.run_compare(self.HAND_WRITTEN, own)
+        self.assertEqual(1, code, f"filterString after a business key is the node's own\n{out}")
+        lifecycle = self.HAND_WRITTEN.replace('annotation: OnTrigger, total', 'annotation: OnTrigger, lifecycle: closing, total')
+        code, out = self.run_compare(self.HAND_WRITTEN, lifecycle)
+        self.assertEqual(1, code, f"a lifecycle value that is not a phase is the node's own\n{out}")
+
+    # Reviews of PR #221: which nodes ran stays business, and a changed route is not a silent MATCH.
+    STARTER = textwrap.dedent('''\
+        ---
+        eventLogRecord:
+          logTime: 1000
+          event: PriceEvent
+          eventToString: PriceEvent[symbol=DEMO, price=905.6]
+          nodeLogs:
+            - rootNode: { thread: main, method: onPriceEvent, annotation: OnEventHandler, handledEvent: com.acme.PriceEvent, price: 905.6}
+            - riskCheck: { thread: main, method: onRiskCheck, annotation: OnTrigger, triggerFired: true}
+        ---
+        ''')
+
+    def test_a_trigger_that_logs_only_its_callback_audit_and_stops_running_is_a_difference(self):
+        stopped = '\n'.join(l for l in self.STARTER.split('\n') if 'riskCheck' not in l) + '\n'
+        code, out = self.run_compare(self.STARTER, stopped)
+        self.assertEqual(1, code, f"riskCheck no longer ran: that must not read as MATCH\n{out}")
+
+    def test_a_node_shown_by_tracing_alone_against_its_callback_audit_is_inconclusive(self):
+        traced_only = self.STARTER.replace(', triggerFired: true}', '}')
+        code, out = self.run_compare(self.STARTER, traced_only)
+        self.assertEqual(3, code, out)
+        self.assertIn('shown by tracing alone', out)
+
+    def test_another_event_or_filter_reaching_a_node_is_inconclusive_not_a_match(self):
+        rerouted = self.GENERATED.replace('handledEvent: com.acme.RentalEvent, filterString: RETURN',
+                                          'handledEvent: com.acme.OtherEvent, filterString: RENT')
+        code, out = self.run_compare(self.GENERATED, rerouted)
+        self.assertEqual(3, code, out)
+        self.assertIn('another event type or filter', out)
+
+    def test_untraced_callback_audit_is_still_compared_for_presence_and_route(self):
+        untraced = textwrap.dedent('''\
+            ---
+            eventLogRecord:
+              logTime: 1000
+              event: RentalEvent
+              eventToString: RentalEvent{RETURN R3 OK}
+              nodeLogs:
+                - desk: { handledEvent: com.acme.RentalEvent, filterString: RETURN}
+                - ledger: { total: 30}
+            ---
+            ''')
+        gone = untraced.replace('    - desk: { handledEvent: com.acme.RentalEvent, filterString: RETURN}\n', '')
+        code, out = self.run_compare(untraced, gone)
+        self.assertEqual(1, code, f"desk stopped receiving the event\n{out}")
+        lifecycle = untraced.replace('handledEvent: com.acme.RentalEvent, filterString: RETURN', 'lifecycle: start')
+        code, out = self.run_compare(lifecycle, lifecycle.replace('lifecycle: start', 'lifecycle: stop'))
+        self.assertEqual(3, code, f"a different lifecycle phase at position 0 is not a silent MATCH\n{out}")
+
     def test_identical_logs_did_not_change(self):
         code, out = self.run_compare(BEFORE, BEFORE)
         self.assertEqual(0, code, out)
