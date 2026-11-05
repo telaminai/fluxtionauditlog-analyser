@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **A text audit record can declare quoted values itself.** A record whose `eventLogRecord` mapping opens with
+  `textEncoding: QUOTED_SCALARS` is read with the quoted-scalar grammar (format spec §3a): a value such as
+  `reason: "membership not active, balance due 30.0"` is one value, `"123"` and `"true"` stay text, quoted header
+  values decode, and `\0`, `\xXX`, `\uXXXX` (surrogate pairs included) are decoded alongside `\\ \" \n \r \t`;
+  malformed escapes are kept verbatim. Recognised only as the first line of the mapping, record by record, so a
+  file or Follow stream mixing old and new records reads each correctly; records without it read exactly as
+  before. An unknown value reads as legacy and is named once as a producer finding. Fixture C35.
+- **Format 1, revision 1.2.** The format specification names the per-record declaration as revision 1.2 (additive:
+  an unmarked file is unchanged; an older analyser ignores the line and shows quoted values with their quote marks,
+  entry boundaries intact). The *Log format* page shows a marked record and the full escape list.
+
 ### Changed
 - `flag` without a `kind` now saves a neutral `note` (labelled Note / Assessment) instead of a fault, so evidence of correct behaviour is no longer recorded as a fault; `fault` and `confirmation` work as before, an existing finding keeps its kind, and the tool description names the default and all three kinds. Session recovery is forward-only once a `note` finding with text exists: 1.40.3 and earlier reject the `note` kind and then restore no findings at all from that snapshot. A bare flag (no note or fix) is still saved in the form earlier releases restore.
 

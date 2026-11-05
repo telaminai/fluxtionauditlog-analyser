@@ -69,13 +69,36 @@ leniently and **never fails a whole file** on one odd value. A number nested *in
 (e.g. `bidPrice=` in `QuoteLadder(bidPrice=…)`) is text within one value, not a top-level key — so it
 isn't itself graphable; only top-level numeric/boolean nodeLog keys are.
 
-A **reader** that constructs text from typed values (the binary reader) declares a second grammar
-through the plugin SPI: then a value, key or instance id that is entirely double-quoted (`"…"`, with
-`\"`, `\\`, `\n`, `\r`, `\t` escapes) is a *string* whatever it says — `"42.0"` is not a number and
-`"null"` is not null — and the binary reader writes a logged String or char that way whenever the
-bare text would split, end the line or read as a number, so a string can never pose as a figure.
-Nothing in the text itself selects a grammar. A text file — every log the text runtime writes — is
-read exactly as it always was: quote marks are the producer's characters and nothing decodes.
+There is a second grammar for values that would otherwise *be* syntax. Under it, a value, key or
+instance id that is entirely double-quoted (`"…"`) is a *string* whatever it says — `"42.0"` is not a
+number, `"true"` is not a flag, `"null"` is not null — and the commas and colons inside it split
+nothing. The escapes are `\\`, `\"`, `\x22`, `\n`, `\r`, `\t`, `\0`, `\xXX` and `\uXXXX` (two
+`\u` escapes in a row make a surrogate pair); one the analyser does not recognise is kept as written,
+and never fails the record. Two things can select it:
+
+- a **reader** that constructs text from typed values (the binary reader) declares it for every record,
+  through the plugin SPI, and writes a logged String that way whenever the bare text would split, end
+  the line or read as a number;
+- a **text record** can declare it for itself, with one line straight after `eventLogRecord:`. A
+  writer that quotes awkward values does this, so a reason with a comma in it stays one value:
+
+```yaml
+---
+eventLogRecord:
+    textEncoding: QUOTED_SCALARS
+    logTime: 1786355857001
+    event: MemberEvent
+    nodeLogs:
+        - gymAccess: { reason: "membership not active, balance due 30.0", granted: false}
+    endTime: 1786355857002
+---
+```
+
+Written bare, that reason was cut at its first comma, and `balance due 30.0` turned up as a stray
+entry. The line counts only in that first position — the same words anywhere else are just text — and
+it works record by record, so a log that changes writer part-way through reads correctly. A record
+**without** it is read exactly as it always was: quote marks are the producer's characters and nothing
+decodes. The details are in [§3a of the format specification](format-spec.md#3a-the-quoted-scalar-grammar-declared-never-inferred-from-content).
 
 ## Versions
 
