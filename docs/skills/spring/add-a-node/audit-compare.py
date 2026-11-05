@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare two Fluxtion audit logs captured for the same input, before and after a change.
 
-    python3 audit-compare.py BEFORE.yaml AFTER.yaml [--max-diffs N] [--keep-identity-hashes]
+    python3 audit-compare.py BEFORE.yaml AFTER.yaml [--max-diffs N] [--keep-identity-hashes] [--strict-trace]
 
 Both files are analyser-readable YAML audit exports (Format 1). Every entry a node writes is split into
 BUSINESS data - the keys the node chose to log - and FRAMEWORK data - the keys invocation tracing adds.
@@ -10,7 +10,11 @@ analyser: an optional `thread`, then `method` (or `forkedExecution` then `asyncM
 then an optional `annotation` whose value is an annotation's simple name (`OnTrigger`). Only that leading
 run is framework. Everything after it is the node's own, even when spelled like a trace key, and an entry
 with no leading `method`/`asyncMethod` has no framework keys at all: a lone `thread` or `annotation` is
-business. A record with at least one business entry is a business record, and the
+business. The starter's GENERATED callback audit is trace too: a fresh Spring node's handler opens its body with
+`handledEvent` (then `filterId`, then `filterString`, when the event carries them), a trigger with `triggerFired:
+true`, a lifecycle method with `lifecycle: <phase>`. Those exact runs, straight after the tracing run, are reported
+with the framework data, so a generated node and a hand-written one that log the same business values match;
+--strict-trace compares them as business again. A record with at least one business entry is a business record, and the
 business comparison is the sequence of business records: their event, event type, event text, any field the
 reader does not know, and every node's business entries, in dispatch order. The times, the record's thread and
 the grouping id are never compared: they vary between runs of the same input.
@@ -74,6 +78,28 @@ ANNOTATION_NAME = re.compile(r"[A-Z][A-Za-z0-9_]*")
 
 class Unreadable(Exception):
     """A log in a shape this script does not read: comparing it would prove nothing."""
+
+
+LIFECYCLE_PHASES = {"initialise", "start", "stop", "tearDown"}
+
+
+def callback_run(entries, start):
+    """The number of entries from `start` the starter's generated callback audit wrote (callback-audit.ts,
+    Reconciler.callbackAudit): handledEvent, filterId?, filterString? | triggerFired: true | lifecycle: <phase>.
+    Zero for anything else - a node's own key is never read as one by its name alone."""
+    keys = [k for k, _ in entries[start:]]
+    if keys[:1] == ["handledEvent"]:
+        n = 1
+        if keys[n:n + 1] == ["filterId"]:
+            n += 1
+        if keys[n:n + 1] == ["filterString"]:
+            n += 1
+        return n
+    if keys[:1] == ["triggerFired"] and entries[start][1] == "true":
+        return 1
+    if keys[:1] == ["lifecycle"] and entries[start][1] in LIFECYCLE_PHASES:
+        return 1
+    return 0
 
 
 def trace_run(entries):
@@ -498,7 +524,7 @@ def parse(path):
     return records
 
 
-def split_record(record, normalise, annotations_are_trace=True, legacy=False):
+def split_record(record, normalise, annotations_are_trace=True, legacy=False, callbacks_are_trace=True):
     """Return (business view or None, framework view) of one record.
 
     An `annotation` at the end of the trace run is AMBIGUOUS: Fluxtion 1.1.1 tracing writes the dispatching
@@ -511,11 +537,14 @@ def split_record(record, normalise, annotations_are_trace=True, legacy=False):
     business, framework = [], []
     for node, entries in record["items"]:
         run = trace_run(entries)
+        end = run + (callback_run(entries, run) if callbacks_are_trace else 0)
+        rest, trace = entries[end:], entries[:end]
         if not annotations_are_trace and run and entries[run - 1][0] == "annotation":
-            run -= 1
-        own_entries = as_legacy(entries[run:]) if legacy and record.get("marked") else entries[run:]
+            # The ambiguous annotation stays business; the generated callback run after it is still trace.
+            rest, trace = [entries[run - 1]] + rest, entries[:run - 1] + entries[run:end]
+        own_entries = as_legacy(rest) if legacy and record.get("marked") else rest
         own = tuple((k, normalise(v)) for k, v in own_entries)
-        trace = tuple(entries[:run])
+        trace = tuple(trace)
         if own:
             business.append((node, own))
         if trace:
@@ -535,7 +564,8 @@ def describe(view):
     return f"{event}{extra} [{text[:60]}] {shown}"
 
 
-def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.stdout, annotations_are_trace=False):
+def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.stdout, annotations_are_trace=False,
+            callbacks_are_trace=True):
     masked = [0]
 
     def mask(s):
@@ -546,7 +576,7 @@ def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.std
     normalise = (lambda s: s) if keep_identity_hashes else mask
     sides = []
     for name, records in (("before", before), ("after", after)):
-        split = [split_record(r, normalise) for r in records]
+        split = [split_record(r, normalise, callbacks_are_trace=callbacks_are_trace) for r in records]
         business = [b for b, _ in split if b is not None]
         sides.append((business, [f for _, f in split], sum(1 for b, _ in split if b is None)))
         print(f"{name}: {len(records)} records, {len(business)} business, "
@@ -557,7 +587,8 @@ def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.std
     if not sides[0][0] or not sides[1][0]:
         print("verdict: NOTHING TO COMPARE - a log holds no business record, so no conclusion follows", file=out)
         return 2
-    business_before, business_after, upgraded = business_views(before, after, normalise)
+    business_before, business_after, upgraded = business_views(before, after, normalise,
+                                                                callbacks_are_trace=callbacks_are_trace)
     if upgraded:
         print(f"quoted scalars: {upgraded} business record(s) match only as the legacy grammar reads them - one capture "
               "declares quoted scalars there and the other does not (a runtime upgrade between the captures)", file=out)
@@ -568,7 +599,8 @@ def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.std
     print("note: this compares what nodes LOGGED for these captures; an output or side effect no node logged is not "
           "covered, and a change to what is logged shows as a difference", file=out)
     if not changed and not annotations_are_trace:
-        strict = business_views(before, after, normalise, annotations_are_trace=False)
+        strict = business_views(before, after, normalise, annotations_are_trace=False,
+                                callbacks_are_trace=callbacks_are_trace)
         if strict[0] != strict[1]:
             print("verdict: INCONCLUSIVE - the entries match only if every `annotation` written straight after the "
                   "method is tracing's (Fluxtion 1.1.1+); a node of an older runtime logging its own `annotation` "
@@ -579,7 +611,7 @@ def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.std
     return 1 if changed else 0
 
 
-def business_views(before, after, normalise, annotations_are_trace=True):
+def business_views(before, after, normalise, annotations_are_trace=True, callbacks_are_trace=True):
     """(before views, after views, upgraded): the business views the verdict compares, chosen record by record.
     A record is read exactly unless it pairs - in the alignment of both captures under the legacy grammar - with a
     record whose declaration differs, the two read alike under the legacy grammar, and the legacy reading is safe:
@@ -591,10 +623,10 @@ def business_views(before, after, normalise, annotations_are_trace=True):
     for records in (before, after):
         rows = []
         for r in records:
-            exact = split_record(r, normalise, annotations_are_trace)[0]
+            exact = split_record(r, normalise, annotations_are_trace, callbacks_are_trace=callbacks_are_trace)[0]
             if exact is None:
                 continue
-            legacy = split_record(r, normalise, annotations_are_trace, legacy=True)[0]
+            legacy = split_record(r, normalise, annotations_are_trace, legacy=True, callbacks_are_trace=callbacks_are_trace)[0]
             marked = r.get("marked", False)
             rows.append((exact, legacy, marked, marked and exact[1] != legacy[1], not marked and proves_pre_quoting(r)))
         sides.append(rows)
@@ -686,6 +718,9 @@ def main(argv=None):
                              "Fluxtion runtime 1.1.1+, and no node logs a key called annotation first)")
     parser.add_argument("--keep-identity-hashes", action="store_true",
                         help="compare Object.toString identity hashes (@1a2b3c4d) instead of masking them")
+    parser.add_argument("--strict-trace", action="store_true",
+                        help="compare the starter's generated callback audit (handledEvent, filterId, filterString, "
+                             "triggerFired, lifecycle) as business data instead of reporting it with the framework")
     args = parser.parse_args(argv)
     try:
         before, after = parse(args.before), parse(args.after)
@@ -694,7 +729,7 @@ def main(argv=None):
         print("verdict: NOTHING TO COMPARE - a log could not be read, so no conclusion follows")
         return 2
     return compare(before, after, args.max_diffs, args.keep_identity_hashes,
-                   annotations_are_trace=args.annotations_are_trace)
+                   annotations_are_trace=args.annotations_are_trace, callbacks_are_trace=not args.strict_trace)
 
 
 if __name__ == "__main__":

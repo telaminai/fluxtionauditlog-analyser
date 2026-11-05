@@ -13,6 +13,13 @@ The field rules and the error triage live in the Fluxtion orientation — read
 <https://fluxtion-playground.dev/CLAUDE.md> when the build rejects a field. This file covers only what is
 specific to a Spring-authored project.
 
+## Shape the graph: one node per owner of state
+
+Before declaring anything, split the work by who owns which state — items, reservations and customers, say —
+one node each, joined by references or derived events. One node with every handler compiles and runs, but its
+audit can only ever say "that node ran"; separate nodes make the log say *which* responsibility acted and why.
+This is guidance, not a gate: more nodes cost more declarations.
+
 ## Declare it in the XML; regeneration writes the class
 
 All three edits are in the designer XML that `fluxtion-authoring.json` names:
@@ -50,7 +57,19 @@ delivers nothing.
 Fluxtion dispatches an event to every node whose `@OnEventHandler` method takes that event type. When you
 explain what happened to an event, cite that method and the audit record, never "the XML routes it".
 
-Then **regenerate** — a graph change needs it, a change inside a method body does not:
+**Filtered handlers.** A binding with a `filterString` makes regeneration write a handler that receives only
+events whose `filterString()` matches. The method is `on<Event>` when the node has one binding for that event,
+`on<Event>Filter<n>` (n = the binding's position) when it has several; regeneration prints one
+`<bean>.<method> ← <Event> filterString=<value>` line per handler it adds. Three rules, each refused by
+`./validate.sh` before anything is generated (starter-core 1.0.86+; older ones fail later, at the build):
+one binding per event and filter value (`SPRING_FILTER_DUPLICATE`); a binding sets `filterString` or
+`filterId`, not both (`SPRING_FILTER_CONFLICT`); and one node does not mix filtered and unfiltered bindings
+of the same event (`SPRING_FILTER_MIXED`).
+
+Then **regenerate** — a graph change needs it: an XML change, a field added or removed, or an annotation added
+or changed on a field or method, **`@Inject` included**. Only a change confined to a method body does not. `./validate.sh` and the run scripts refuse to rebuild a node whose fields or annotated
+signatures changed since the last generation (starter-core 1.0.86+), naming the class and the change:
+
 
 ```
 TODO(bundle): substitute this project's exact regeneration command (the Maven profile or script that
@@ -202,6 +221,24 @@ in the evidence, not the code; fix the capture and compare again before concludi
   constructor mapping. If the value must be configurable, agree the source/ownership change explicitly
   and validate against the pinned authoring contract before changing XML; do not fabricate a recipe.
 
+## Raise a derived event
+
+A node that raises a follow-on event — `ITEM_AVAILABLE` after a return, say — asks for the dispatcher with a
+field `@Inject EventDispatcher dispatcher;` (`com.telamin.fluxtion.runtime.annotations.builder.Inject`,
+`com.telamin.fluxtion.runtime.callback.EventDispatcher`). The field is a graph change: regenerate after adding
+it, or the processor never sets it and the first dispatch fails with a NullPointerException. In the body,
+`dispatcher.queueReentrantEvent(event)` appends the event to the queue, so derived events run one at a time, in
+the order raised, after the current cycle finishes (`processReentrantEvent` puts it at the front instead). Each
+is its own audit record.
+
+## Replace the starter's sample nodes
+
+Remove the sample beans from the XML and regenerate: an unchanged, unreferenced sample file is deleted
+(starter-core 1.0.86+); an edited one, or one still named by host wiring such as `server-config.yml` or the
+main class, is kept, and the reconciliation report says what references it. To give up a generated class or
+member explicitly: `java -jar .fluxtion/fluxtion-starter-core.jar withdraw --class <fqcn> [--member <name>]`
+(`--still-declared` while the XML still names it). Never delete the ownership record by hand.
+
 ## Recover a partial generation attempt
 
 Regeneration can write a class shell and update `fluxtion-authoring.json` before the following build
@@ -236,6 +273,11 @@ fluent and has typed overloads — prefer the typed one so numbers stay numbers 
 Do not read a method-name-only line as "this node is fine". That line comes from **invocation tracing**,
 which is a separate setting, and with tracing off a node that logs no value **may not appear at all** — so
 its absence means *"said nothing"*, not *"did not run"*.
+
+**The audit is evidence of dispatch and decisions, not a byte copy of business output.** The generated
+handlers make filter text safe for the reader by replacing every character outside `a-zA-Z0-9_. /@+-` with
+`_`, and code that copies the pattern logs `16_30` for `16:30`. Check exact output text in the sink's output,
+never in the audit.
 
 **Log the state behind a decision, not only this event's outcome.** A node that reacts once — on a
 crossing, a first match, a limit — should log the state that explains why it did or did not react

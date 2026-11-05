@@ -155,6 +155,14 @@ class CanonicalSkillsTest {
         assertTrue(text.contains("`fluxtionSpringConfig`'s `nodeBeans`**, and any bean a binding names."),
                 "step 2 must say a bean a binding names is listed in nodeBeans");
         assertTrue(text.contains("Then **regenerate** — a graph change needs it"), "the regenerate step is pinned");
+        // Gym 2026-11-05 (AG-1): three runs added @Inject EventDispatcher after generation, rebuilt only and hit an NPE,
+        // because "a change inside a method body does not" read as "anything inside the class does not".
+        assertTrue(text.contains("a field added or removed, or an annotation added\nor changed on a field or method, **`@Inject` included**"),
+                "the regenerate step must say a new field or annotation, @Inject included, is a graph change");
+        for (String section : List.of("## Shape the graph", "## Raise a derived event", "## Replace the starter's sample nodes",
+                "**Filtered handlers.**", "SPRING_FILTER_DUPLICATE", "SPRING_FILTER_CONFLICT", "SPRING_FILTER_MIXED",
+                "queueReentrantEvent", "not a byte copy of business output"))
+            assertTrue(text.contains(section), "add-a-node must carry the gym lessons: " + section);
         assertTrue(text.contains("**Regeneration writes the class shell**"));
         assertTrue(text.contains("there are no imports to find"));
         assertTrue(text.contains("**Do not write the class yourself, and do not wire a sink outside the XML**"));

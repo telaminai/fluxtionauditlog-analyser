@@ -94,6 +94,52 @@ class AuditCompareTest(unittest.TestCase):
         self.last_stderr = result.stderr
         return result.returncode, result.stdout
 
+    # AG-5: the starter's generated callback audit (callback-audit.ts / Reconciler.callbackAudit) is trace.
+    GENERATED = textwrap.dedent('''\
+        ---
+        eventLogRecord:
+          logTime: 1000
+          event: RentalEvent
+          eventToString: RentalEvent{RETURN R3 DAMAGED}
+          nodeLogs:
+            - rentalDesk: { thread: main, method: onRentalEventFilter3, annotation: OnEventHandler, handledEvent: com.acme.RentalEvent, filterString: RETURN, charge: 30}
+            - ledger: { thread: main, method: onTrigger, annotation: OnTrigger, triggerFired: true, total: 30}
+        ---
+        ''')
+    HAND_WRITTEN = textwrap.dedent('''\
+        ---
+        eventLogRecord:
+          logTime: 2000
+          event: RentalEvent
+          eventToString: RentalEvent{RETURN R3 DAMAGED}
+          nodeLogs:
+            - rentalDesk: { thread: main, method: onReturn, annotation: OnEventHandler, charge: 30}
+            - ledger: { thread: main, method: onTrigger, annotation: OnTrigger, total: 30}
+        ---
+        ''')
+
+    def test_generated_callback_audit_is_reported_with_the_framework(self):
+        for flags in ((), ('--annotations-are-trace',)):
+            code, out = self._run(self.GENERATED, self.HAND_WRITTEN, *flags)
+            self.assertEqual(0, code, f"{flags}: a generated and a hand-written node logging the same values match\n{out}")
+            self.assertIn('framework (reported, does not decide the verdict)', out)
+
+    def test_generated_callback_audit_never_hides_a_business_change(self):
+        code, out = self.run_compare(self.GENERATED, self.HAND_WRITTEN.replace('charge: 30', 'charge: 31'))
+        self.assertEqual(1, code, out)
+
+    def test_strict_trace_compares_the_callback_audit_as_business(self):
+        code, out = self.run_compare(self.GENERATED, self.HAND_WRITTEN, '--strict-trace')
+        self.assertEqual(1, code, out)
+
+    def test_a_nodes_own_key_is_not_read_as_callback_audit_by_name_alone(self):
+        own = self.HAND_WRITTEN.replace('charge: 30}', 'charge: 30, filterString: RETURN}')
+        code, out = self.run_compare(self.HAND_WRITTEN, own)
+        self.assertEqual(1, code, f"filterString after a business key is the node's own\n{out}")
+        lifecycle = self.HAND_WRITTEN.replace('annotation: OnTrigger, total', 'annotation: OnTrigger, lifecycle: closing, total')
+        code, out = self.run_compare(self.HAND_WRITTEN, lifecycle)
+        self.assertEqual(1, code, f"a lifecycle value that is not a phase is the node's own\n{out}")
+
     def test_identical_logs_did_not_change(self):
         code, out = self.run_compare(BEFORE, BEFORE)
         self.assertEqual(0, code, out)
