@@ -127,8 +127,11 @@ architecture, conventions). This file is only the rules that must never be skipp
 
 ## Current work
 
-**Latest release: 1.40.0 (2026-10-27).** The tracker's delivery order (current as of 2026-10-27, after 1.40.0) is the
-place to start; the notes below are older context and may lag it. Since 1.31.0: **1.40.0** *AI ▸ Compiler account…*
+**Latest release: 1.40.3 (2026-11-04).** The tracker's delivery order (current as of 2026-11-05, after 1.40.3) is the
+place to start; the notes below are older context and may lag it. **1.40.1–1.40.3:** the compiler account offers
+Production and Staging; getting started opens with installing JBang; setup from your AI assistant (the Claude Code
+plugin, fluxtion-web) is a normal macOS release and starters build through compiler sign-in. The legacy RapidAPI route
+is retired (owner, 2026-11-05). Since 1.31.0: **1.40.0** *AI ▸ Compiler account…*
 (device sign-in; compile and interpret credits, the plan and its limits; devices and revoke) and the *Investigate a
 compiler charge* guide (CA, PRs #202/#208); **1.39.0** evidence-first MCP instructions and skills (open the fresh export,
 spotlight and flag the proving record), `read` without an anchor, record spotlights refused while a log loads (PR #207); **1.38.0** project-output offers

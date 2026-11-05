@@ -43,18 +43,32 @@ assistant panel, FIX-1…FIX-10, UX-SC, the OPT-2 Claude-Code-proposed starter, 
 C1–C8 corrections; M74's P1a…P3, UX-unification, r14/r15, and [DOCS-IA]. Archived in
 [completed/tracker.md](completed/tracker.md) ▸ *1.36.0*.
 
-_Refreshed 2026-10-27, after 1.40.0._ **Delivery order:**
+_Refreshed 2026-11-05, after 1.40.3._ **Shipped since 2026-10-27:** **1.40.1** (the compiler account offers
+Production and Staging); **1.40.2** (getting started opens with installing JBang, #216); **1.40.3** (setup from your
+assistant as a normal macOS release; starters build through compiler sign-in, #217). Cross-repo: compiler **1.0.84**,
+fluxtion-maven-plugin **1.3.1** (`mvn fluxtion:login`), the Claude Code plugin **0.1.1** (`telaminai/claude-plugins`),
+and starter Mains that write an analyser-ready audit export (fluxtion-web). **Delivery order:**
 
 0. **Public hygiene (cross-repo).** Scrub a Mongoose release-plan doc of an internal reference (Mongoose PR in progress); commit identity pinned in every local clone (done 2026-10-27; GitHub-button merges still use the account's primary email, so merge locally); close stale shipped issues.
-1. **RapidAPI retirement (compiler, owner).** Production on managed auth since 2026-10-27 (compiler 1.0.82; playground in session mode); legacy routes stay open ~2 days to see stray clients, skipping entitlement and plan checks until then.
-   Then close: revoke the key, remove the listing and the legacy routes, startup no longer requires the proxy secret.
+1. **RapidAPI retirement (compiler, owner).** ☑ Retired (owner, 2026-11-05): nobody uses the legacy route. **Close the
+   path off** [RAPID-OFF]: revoke the key, remove the listing and the legacy routes, startup no longer requires the
+   proxy secret, clients and docs stop offering the key file (the analyser's part is item 4's second line).
 2. **Launch gate (compiler, owner).** External health check with alerting; Cloudflare WAF and rate limits; independent pen test; legal pages and DPAs; load test (compiler test 17); an automated regression check for the 2026-10-27 deploy incident.
-3. **Analyser merge queue:** #196 (M79-1a-i) → #197 (M79-7) → #199 (M79-3) → #198 (#177/#178/#179/#182/#183); each merges main in and regenerates.
+3. **Gym fix set (cross-repo), coordinated release.** Analyser #218 (quoted-scalar records, neutral `flag` default,
+   `--mcp` bridge exit, authoring evidence roots; merge locally with `--no-ff`, the skill pin names its commits);
+   fluxtion-web #43, #44 (plugin 0.1.2), #45; runtime fluxtion#54; the Mongoose and mongoose-plugins fix branches.
+   Release order and conditions: the gym reviews of 2026-11-04/05. Then a plugin **0.1.3** pin that moves the plugin
+   route onto the new Analyser.
+4. **No key anywhere** ◑. Done: starters and the setup journey build through compiler sign-in (1.40.3, compiler 1.0.84,
+   fluxtion-maven-plugin 1.3.1). Open: Canvas's compiler-account sign-in also authorises generation; starter CI and claude.txt; the
+   managed host as the Maven plugin's default; one credential store shared by Maven and Canvas.
+   Analyser docs still routing generation through RapidAPI: `docs/site/spring-authoring-getting-started.md:34`, `docs/site/spring-authoring.md:180`, `src/main/resources/starter-skills/playground/spring-authoring/contract.md:414`; *AI ▸ Fluxtion API key…*; getting-started limits wording becomes nodes, inputs and exported interfaces.
+5. **Analyser merge queue** (no movement since 2026-10-27): #196 (M79-1a-i) → #197 (M79-7) → #199 (M79-3) → #198 (#177/#178/#179/#182/#183); each merges main in and regenerates.
    **Then M79-1b first** (owner, 2026-10-27): the start page under 40 words with *Learn ▸ The diamond*, the only way back to the diamond once the first launch is over.
-4. **No key anywhere.** Canvas's compiler-account sign-in also authorises generation (today it only reads the account); starter bundles, starter CI and claude.txt move from the key file to sign-in; the managed host becomes the Maven plugin's default; one credential store shared by Maven and Canvas.
-   Analyser docs still routing generation through RapidAPI: `docs/site/spring-authoring-getting-started.md:34`, `docs/site/spring-authoring.md:180`, `src/main/resources/starter-skills/playground/spring-authoring/contract.md:414`; getting-started limits wording becomes nodes, inputs and exported interfaces.
-5. **Mongoose 1.1 follow-through.** Fluxtion runtime 1.1.3 and builder ≥1.0.80/1.0.82 (failed cycles now closed in the audit log); read the control-audit export's manifest `complete` claim and its `controlFallback` documents. Producer asks MA-2, MA-5.7, UP-MNG-02 remain unmet.
-6. **Then** 2–3 friendly-team trials, and the M79 remainder (1a-ii, 2, 4–6).
+6. **Mongoose 1.1 follow-through.** Fluxtion runtime 1.1.3 and builder ≥1.0.80/1.0.82 (failed cycles now closed in the audit log); read the control-audit export's manifest `complete` claim and its `controlFallback` documents. Producer asks MA-2, MA-5.7, UP-MNG-02 remain unmet.
+   Open drafts: runtime fluxtion#53 (audit close stable when publication is retried) → then #214 (session processor
+   1.0.83 regeneration; folds in its assertion patch after a runtime release).
+7. **Then** 2–3 friendly-team trials, and the M79 remainder (1a-ii, 2, 4–6).
 
 ⊘ RapidAPI self-serve and a trial/teaching key tier (the 2026-10-19 order's item 2): superseded by managed auth's free allowance.
 
@@ -320,6 +334,17 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - ☐ **Windows first-run records for skill placeholders:** FIX-10's filled-marker approach (flag 22) was built and
   checked on the owner's Mac; confirm the same first-run record answers the markers on Windows (with M74 §11).
 
+### Set up with your AI assistant — the 5-minute start (cross-repo, fluxtion-web + claude-plugins)
+- [SETUP-AI] ☑ One question to Claude Code installs, opens and connects the analyser, with optional compiler sign-in and
+  day-two recovery: plugin 0.1.1 + 1.40.3 ([guide](../site/start/set-up-with-an-assistant.md)). Measured on production
+  (2026-11-04): setup in about 6 min with no Java, about 4 min with Java and JBang; the untouched starter audit opens with
+  its graph. Evidence: fluxtion-web `docs/handoff/analyser_normal_release_2026_11_04.md` and
+  `analyser_plugin_upgrade_0_1_1_2026_11_04.md`.
+- [SETUP-AI.1] ☐ Plugin 0.1.2 (fluxtion-web#44): the relay exits when its Claude Code session has gone.
+- [SETUP-AI.2] ☐ The Analyser says a starter export's completeness cannot be confirmed: the sink writes `---` before
+  each record and none after the last (trial finding F5). Decide which side changes.
+- [SETUP-AI.3] ☐ Beyond macOS and the Claude Code terminal: Linux, Windows, other clients.
+
 ### Playground link — show a locally built design in the browser (cross-repo, fluxtion-web)
 - [PG-LINK] ◐ [fluxtion-web#32](https://github.com/telaminai/fluxtion-web/pull/32): the agent builds locally, then hands over one `/playground#…` link (`playground-link.py` + `playground-link/skill.md`, linked from `llms.txt`); links now show `generated/` source and topology. Open: review, merge, deploy; owner check on live that a script-built link shows GENERATED **and** a signed-out run's audit log.
 - [PG-LINK.2] ☐ Follow-ups: a playground "Download audit log" button so a browser run opens in the Analyser; point the Spring authoring skill at the link step once its pin can move.
@@ -334,7 +359,8 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ### Beta ([proposal](../proposals/beta-testing/README.md))
 - [BETA-6] ◧ Sixth draft; one review round before any approach.
-- [BETA-B1] ◧ A2 needs a generation key; the customer key journey is untested (acquisition is a future item).
+- [BETA-B1] ◧ A2 needs generation access: now compiler sign-in, whose journey passed on production (SETUP-AI,
+  2026-11-04); re-word A2 for sign-in, then close.
 - [BETA-B3] ☐ **(owner)** Template decision, then a dry run of A1–A2 by someone other than the author — the LLM half is covered by the M74 virgin protocol; the human dry run remains.
 - [BETA-B4] ☐ Jar A, jar B and the spec-derived check — publication and integration open.
 - [BETA-8] ◧ The journey on Haiku — A3's scoring gap. ▸ detail: *Beta*.
