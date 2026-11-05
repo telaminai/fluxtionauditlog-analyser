@@ -208,7 +208,9 @@ public class ProjectOutputs implements EventLogSource {
             effects.request(new SessionEffects.ShowStatusEffect(0, "The project change is still pending — finish it before opening this output")); return true;
         }
         Pending accepted = pending.remove(e.offer());
-        if (graphed(accepted.offer().file()))      // answering, either way, makes this content current (§3.5.1 rule 4)
+        // Not now makes this content current at once; Open only once the open succeeds (onOpened), so a failed open
+        // after a same-bytes rewrite still offers again (§3.5.1 rule 4).
+        if (!e.open() && graphed(accepted.offer().file()))
             consumedGraphs.put(group(accepted.offer().file()), accepted.offer().file().revision().contentDigest());
         if (e.open()) {
             opening.put(e.offer(), new Opening(accepted, gate.expectedOpId()));
@@ -227,6 +229,13 @@ public class ProjectOutputs implements EventLogSource {
     @OnEventHandler public boolean onOpened(SessionEvents.ProjectOutputOpenObserved e) {
         if (e.watch() != watch) return false;
         Opening own = opening.remove(e.offer()); if (own == null) return false;
+        var done = own.pending().offer().file();
+        if (e.opened() && graphed(done)) {
+            consumedGraphs.put(group(done), done.revision().contentDigest());
+            // A same-bytes rewrite during the open may have re-offered this content; it is open now.
+            pending.values().removeIf(p -> graphed(p.offer().file()) && group(p.offer().file()).equals(group(done))
+                    && version(p.offer().file()).equals(version(done)));
+        }
         if (!e.opened()) {
             effects.request(new SessionEffects.ShowStatusEffect(0, "The output was not opened — check the load status before trying again"));
             // Failed switches retain the old project, but never resurrect an OLD button or queued act.

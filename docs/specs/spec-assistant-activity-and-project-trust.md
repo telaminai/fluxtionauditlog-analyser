@@ -488,15 +488,22 @@ digest of its logical key, whether it sits in build output, and a digest of its 
 they mean: which copies are one graph, which copy an offer names, and whether anything was regenerated. The panel
 renders.
 
-1. **Logical graph.** A GraphML copy's logical key has three parts:
-   - its **module**: the project-relative path before its first `src`, `target`, `build` or `out` segment;
-   - its **source set**: `test` when any segment is `test` or `test-classes`, otherwise `main`;
-   - the **path below its output root**: everything after the last `resources/`, `classes/` or `test-classes/`
-     segment.
-
-   So `src/main/resources/a/b/P.graphml`, `target/classes/a/b/P.graphml` and
-   `target/fluxtion-staging/resources/a/b/P.graphml` are one graph. Two modules, or main and test resources, are
-   never one graph. A path with no output root keeps its whole relative path. Logs are unchanged: one per path.
+1. **Logical graph.** A GraphML copy's logical key is (module, source set, path below its output root).
+   - **Output roots are recognised by their whole shape:**
+     - `src/<set>/resources`;
+     - Maven `target/classes` (main), `target/test-classes` (test) and `target/fluxtion-staging/resources` (main);
+     - Gradle `build/resources/<set>` and `build/classes/<lang>/<set>`;
+     - IntelliJ `out/production/<module>` (main) and `out/test/<module>` (test).
+   - **Module:** the path before the root. For IntelliJ, the named module counts only when it is a directory of the
+     project (multi-module); a single-module project's module name is not.
+   - **Source set:** taken from the root's shape only. A package directory named `test`, `resources` or `classes` is part
+     of the path.
+   - So `src/main/resources/a/b/P.graphml`, `target/classes/…`, `target/fluxtion-staging/resources/…`,
+     `build/resources/main/…` and `out/production/<m>/…` are one graph.
+   - Two modules, or main and test resources, are never one graph.
+   - A path with no recognised root keeps its whole relative path. Logs are unchanged: one per path.
+   - The adapter computes this key from the path and reports only its digest, because no path enters the node (r6).
+     It is a fact about the file's place. The node decides which copies are one graph by comparing these digests.
 2. **Canonical copy.** Within a logical graph, an offer names, and **Open** opens, the copy with no build-output
    segment (`target`, `build`, `out`). If every copy has one, the first by path-identity digest wins: deterministic,
    though not a path order. A build copy is still observed, because it may be the only copy (a build-generated graph),
@@ -507,7 +514,8 @@ renders.
      revision check before an open compares metadata only.
    - A logical graph raises an offer only when a stable copy holds content that is none of these:
      - the content it was **current at** when the watch began (its canonical copy's digest at baseline);
-     - the content it was last **answered** (Open or Not now) or **opened by the hosted assistant** at;
+     - the content it was last answered **Not now** at, **opened** at (a successful Open), or opened by the hosted
+     assistant at. A click on Open alone does not count: a failed open leaves the content offered;
      - the content already **offered or in flight**.
    - A copy step that reproduces those bytes raises nothing. A real regeneration that changes the bytes raises exactly
      one offer.

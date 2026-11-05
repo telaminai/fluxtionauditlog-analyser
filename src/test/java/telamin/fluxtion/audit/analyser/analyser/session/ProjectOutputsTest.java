@@ -376,4 +376,30 @@ class ProjectOutputsTest {
         f.scan(20000, src(4, "v2"), staging(2, "v2")); f.scan(24000, src(4, "v2"), staging(2, "v2"));
         assertEquals(1, f.state().offers().size(), "reverting to v2 is offered: a stale build copy kept no receipt alive");
     }
+
+    @Test void aFailedOpenAfterASameBytesRewriteStillLeavesAnOffer() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"));
+        f.scan(4000, src(2, "v2")); f.scan(8000, src(2, "v2"));
+        long offer = f.state().offers().getFirst().id();
+        f.adapter.outputOpensPending = true;
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, offer, true));
+        f.scan(12000, src(3, "v2")); f.scan(16000, src(3, "v2"));     // generate.sh again while the open is in flight
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, offer, false, "DEMO failure"));
+        assertEquals(1, f.state().offers().size(), "the v2 regeneration was never opened: it must still be offered");
+    }
+
+    @Test void anIdenticalRewriteAfterASuccessfulOpenRaisesNothing() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"));
+        f.scan(4000, src(2, "v2")); f.scan(8000, src(2, "v2"));
+        long offer = f.state().offers().getFirst().id();
+        f.adapter.outputOpensPending = true;
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, offer, true));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, offer, true, null));
+        f.scan(12000, src(3, "v2")); f.scan(16000, src(3, "v2"));
+        assertTrue(f.state().offers().isEmpty(), "the opened content is current: rewriting the same bytes raises nothing");
+        f.scan(20000, src(4, "v3")); f.scan(24000, src(4, "v3"));
+        assertEquals(1, f.state().offers().size(), "new bytes still offer");
+    }
 }

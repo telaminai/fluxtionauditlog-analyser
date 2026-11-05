@@ -102,27 +102,49 @@ public final class ProjectOutputScanner {
             var metadata = new ProjectOutputsState.Revision(attrs.size(), attrs.lastModifiedTime().to(TimeUnit.NANOSECONDS), key);
             if (kind != ProjectOutputsState.Kind.GRAPHML) return new Observed(real, kind, metadata);
             Path relative = root == null ? real.getFileName() : root.relativize(real);
-            return new Observed(real, kind, content ? withContent(real, metadata) : metadata, logicalPath(relative), buildCopy(relative));
+            return new Observed(real, kind, content ? withContent(real, metadata) : metadata, logicalPath(relative, root), buildCopy(relative));
         } catch (IOException | RuntimeException unavailable) { return null; }
     }
-    /** The same graph wherever the build copied it, and only that: the module (the path before its first
-     *  {@code src}/{@code target}/{@code build}/{@code out} segment), the source set ({@code test} when any segment
-     *  names it, else {@code main}) and the path below the last {@code resources}/{@code classes} segment. A path
-     *  without an output root keeps its whole relative path. */
-    static String logicalPath(Path relative) {
-        int start = 0, module = -1;
-        boolean test = false;
-        for (int i = 0; i < relative.getNameCount() - 1; i++) {
-            String name = relative.getName(i).toString();
-            if (name.equals("resources") || name.equals("classes") || name.equals("test-classes")) start = i + 1;
-            if (module < 0 && (name.equals("src") || BUILD_OUTPUT.contains(name))) module = i;
-            if (name.equals("test") || name.equals("test-classes")) test = true;
+    /** The same graph wherever the build copied it, and only that (§3.5.1 rule 1). An output root is recognised by its
+     *  whole shape, never by a package directory that happens to be called {@code test} or {@code resources}:
+     *  {@code src/<set>/resources}, Maven {@code target/classes} / {@code target/test-classes} /
+     *  {@code target/fluxtion-staging/resources}, Gradle {@code build/resources/<set>} / {@code build/classes/<lang>/<set>},
+     *  IntelliJ {@code out/production|test/<module>}. The key is module | source set | path below the root; a path with
+     *  no recognised root keeps its whole relative path. */
+    static String logicalPath(Path relative) { return logicalPath(relative, null); }
+    static String logicalPath(Path relative, Path root) {
+        int n = relative.getNameCount();
+        java.util.function.IntFunction<String> seg = i -> i < n - 1 ? relative.getName(i).toString() : "";
+        for (int i = 0; i < n - 1; i++) {
+            String set = null, module = i == 0 ? "" : unix(relative.subpath(0, i));
+            int start = -1;
+            switch (seg.apply(i)) {
+                case "src" -> { if (seg.apply(i + 2).equals("resources") && !seg.apply(i + 1).isEmpty()) { set = seg.apply(i + 1); start = i + 3; } }
+                case "target" -> {
+                    if (seg.apply(i + 1).equals("classes")) { set = "main"; start = i + 2; }
+                    else if (seg.apply(i + 1).equals("test-classes")) { set = "test"; start = i + 2; }
+                    else if (seg.apply(i + 1).equals("fluxtion-staging") && seg.apply(i + 2).equals("resources")) { set = "main"; start = i + 3; }
+                }
+                case "build" -> {
+                    if (seg.apply(i + 1).equals("resources") && !seg.apply(i + 2).isEmpty()) { set = seg.apply(i + 2); start = i + 3; }
+                    else if (seg.apply(i + 1).equals("classes") && !seg.apply(i + 3).isEmpty()) { set = seg.apply(i + 3); start = i + 4; }
+                }
+                case "out" -> {
+                    String kind = seg.apply(i + 1), name = seg.apply(i + 2);
+                    if ((kind.equals("production") || kind.equals("test")) && !name.isEmpty()) {
+                        set = kind.equals("test") ? "test" : "main"; start = i + 3;
+                        // IntelliJ names the module; it is a directory of its own only in a multi-module project.
+                        if (root != null && java.nio.file.Files.isDirectory(root.resolve(module).resolve(name)))
+                            module = module.isEmpty() ? name : module + "/" + name;
+                    }
+                }
+                default -> { }
+            }
+            if (start > 0 && start < n) return module + "|" + set + "|" + unix(relative.subpath(start, n));
         }
-        String below = relative.subpath(start, relative.getNameCount()).toString().replace('\\', '/');
-        if (start == 0) return below;
-        String prefix = module <= 0 ? "" : relative.subpath(0, module).toString().replace('\\', '/');
-        return prefix + "|" + (test ? "test" : "main") + "|" + below;
+        return unix(relative);
     }
+    private static String unix(Path p) { return p.toString().replace('\\', '/'); }
     static boolean buildCopy(Path relative) {
         for (int i = 0; i < relative.getNameCount() - 1; i++) if (BUILD_OUTPUT.contains(relative.getName(i).toString())) return true;
         return false;

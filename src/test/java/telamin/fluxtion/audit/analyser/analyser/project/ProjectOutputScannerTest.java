@@ -92,4 +92,22 @@ class ProjectOutputScannerTest {
         assertNotEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("src/test/resources/com/acme/P.graphml"));
         assertEquals(l.apply("src/test/resources/com/acme/P.graphml"), l.apply("target/test-classes/com/acme/P.graphml"));
     }
+
+    @Test void outputRootsAreRecognisedByShapeAcrossBuildTools(@TempDir Path temp) throws Exception {
+        java.util.function.Function<String, String> l = p -> ProjectOutputScanner.logicalPath(Path.of(p));
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("build/resources/main/com/acme/P.graphml"), "Gradle");
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("build/classes/java/main/com/acme/P.graphml"), "Gradle classes");
+        assertEquals(l.apply("src/test/resources/com/acme/P.graphml"), l.apply("build/resources/test/com/acme/P.graphml"));
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("out/production/demo/com/acme/P.graphml"),
+                "IntelliJ, single module: the module name is not a directory of the project");
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        Files.createDirectories(root.resolve("app/src/main/resources"));
+        assertEquals(ProjectOutputScanner.logicalPath(Path.of("app/src/main/resources/com/acme/P.graphml"), root),
+                ProjectOutputScanner.logicalPath(Path.of("out/production/app/com/acme/P.graphml"), root), "IntelliJ, multi-module");
+        assertNotEquals(l.apply("src/main/resources/com/acme/test/P.graphml"), l.apply("src/test/resources/com/acme/test/P.graphml"),
+                "a package directory named test is not the test source set");
+        assertEquals(l.apply("src/main/resources/com/acme/test/P.graphml"), l.apply("target/classes/com/acme/test/P.graphml"));
+        assertEquals(l.apply("src/main/resources/x/resources/P.graphml"), l.apply("target/classes/x/resources/P.graphml"),
+                "a package directory named resources is part of the path, not a root");
+    }
 }
