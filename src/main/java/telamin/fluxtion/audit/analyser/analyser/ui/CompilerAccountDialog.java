@@ -89,7 +89,7 @@ public final class CompilerAccountDialog extends JDialog {
     static final String REVOKE_SELECTED = "Revoke selected";
     static final String THIS_MACHINE = " (this machine)";
     static final String DELETION_NOTE = "Deleting the account is not available in the app yet; ask the service's support.";
-    static final List<String> ACCOUNT_ROWS = List.of("Account", "Type", "Your role", "Plan", "Status");
+    static final List<String> ACCOUNT_ROWS = List.of("Account", "Signed-in email", "Type", "Your role", "Plan", "Status");
     /** The figures of each kind of credit, in order; Remaining is set larger. */
     static final List<String> CREDIT_CAPTIONS = List.of("Remaining", "Used", "In progress", "Completed", "Failures");
     /** The kinds of credit, one row each: compile ({@code /v1/generate}) and interpret ({@code /v1/model}). */
@@ -952,7 +952,8 @@ public final class CompilerAccountDialog extends JDialog {
     /** The Account rows' values, in {@link #ACCOUNT_ROWS} order; the plan rows are left out until usage is read. */
     static List<String> accountRows(Me me, Usage u, CompilerCredential c) {
         String account = u != null ? u.accountId() : me != null ? me.selectedAccount() : c.accountId();
-        List<String> out = new ArrayList<>(List.of(account, me == null ? "Not read" : me.type(),
+        List<String> out = new ArrayList<>(List.of(account, me == null ? "Not read"
+                : me.email() == null ? "Not provided by service" : me.email(), me == null ? "Not read" : me.type(),
                 me == null || me.role() == null ? "Unknown" : me.role()));
         if (u != null) {
             out.add(u.planName());

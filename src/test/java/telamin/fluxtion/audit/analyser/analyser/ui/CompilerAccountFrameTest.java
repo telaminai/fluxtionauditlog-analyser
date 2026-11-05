@@ -209,6 +209,7 @@ class CompilerAccountFrameTest {
 
     @Test
     void thePanelShowsTheAccountAndDevices_revokesAnotherDevice_andCopiesDetailsWithoutTheCredential() throws Exception {
+        service.meBody = "{\"email\":\"self@example.com\"," + service.meBody.substring(1);
         service.token("approved");
         service.credentials.get("cred01")[1] = "Fluxtion analyser on Mac-1454.Home";   // a real machine's length of name
         AppConfig config = new AppConfig();
@@ -218,7 +219,8 @@ class CompilerAccountFrameTest {
         onEdt(() -> dialog.clipboard = copied::add);
         onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
         await(() -> "acct-demo".equals(after("Account")) && "Personal".equals(after("Type"))
-                && "administrator".equals(after("Your role")), "the account is read");
+                && "administrator".equals(after("Your role"))
+                && "self@example.com".equals(after("Signed-in email")), "the account is read");
         await(() -> table().getRowCount() == 2, "the two devices the service still accepts are listed");
         onEdt(() -> {
             assertEquals("Fluxtion analyser on Mac-1454.Home (this machine)", table().getValueAt(0, 0));

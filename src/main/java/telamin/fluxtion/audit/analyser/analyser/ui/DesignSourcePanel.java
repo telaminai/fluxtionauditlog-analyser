@@ -80,6 +80,10 @@ final class DesignSourcePanel extends JPanel {
         node.setEnabled(false); records.setEnabled(false);
     }
     void callbacks(Consumer<Map<String, Object>> navigate, Consumer<String> node, Consumer<String> records) { this.navigate=navigate; showNode=node; showRecords=records; }
+    void setCodeExplainActions(Consumer<String> copy, Consumer<String> ask) {
+        CodeExplainMenu.install(text, () -> file == null ? null
+                : new CodeExplainMenu.Context(file, file.endsWith(".java") ? "java" : "xml"), copy, ask);
+    }
     boolean following() { return follow.isSelected(); }
     DesignDocument document() { return document; }
     void render(DesignWorkspace.View view, String note) {

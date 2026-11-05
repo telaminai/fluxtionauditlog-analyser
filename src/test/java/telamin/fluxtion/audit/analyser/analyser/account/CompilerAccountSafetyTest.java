@@ -55,7 +55,7 @@ class CompilerAccountSafetyTest {
                 new CompilerAccountClient.Balance(481, 18, 1, 17, 2),
                 new CompilerAccountClient.Capabilities("enterprise", 5000L, 80L, 80L, 12L, List.of("java", "cpp"), true,
                         "verification", 30L, 300L, java.util.Map.of("maxNodes", "5000")));
-        CompilerAccountClient.Me me = new CompilerAccountClient.Me("acct-demo", true, "administrator");
+        CompilerAccountClient.Me me = new CompilerAccountClient.Me("acct-demo", true, "administrator", "self@example.com");
         String text = AccountDetails.text(c, me, u, "Fluxtion analyser on demo-host", "1.38.0",
                 java.time.Instant.parse("2026-10-26T09:30:00Z"));
         for (String expected : List.of("Service: https://compiler.example.com", "Account: acct-demo", "Type: Personal",
@@ -72,6 +72,7 @@ class CompilerAccountSafetyTest {
             assertTrue(text.contains(expected), expected + " missing from:\n" + text);
         assertFalse(text.contains("Max event types"), "the retired limit is never a line of its own:\n" + text);
         assertNoCredential(text);
+        assertFalse(text.contains("self@example.com"), "email is not copied into support details");
 
         // a service from before the inputs limit: its maxEventTypes counts event types only, and Copy details says so,
         // with nothing about exported methods (re-check 2026-10-27)

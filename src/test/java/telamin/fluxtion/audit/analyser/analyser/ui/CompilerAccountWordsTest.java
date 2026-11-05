@@ -13,6 +13,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class CompilerAccountWordsTest {
 
     @Test
+    void signedInEmailIsSeparateFromTheAccountId() {
+        var me = new CompilerAccountClient.Me("acct-demo", false, "member", "person@example.com");
+        assertEquals(List.of("acct-demo", "person@example.com", "Organisation", "member"),
+                CompilerAccountDialog.accountRows(me, null, null));
+        assertFalse(me.toString().contains("person@example.com"));
+    }
+
+    @Test
     void aPlanWithoutANextResetShowsNoResetLine_ratherThanAGuess() {
         Usage none = new Usage("acct-demo", "free", true, 120, 30, 2, 3, 1, null);
         assertEquals("One-time allowance (no reset)", CompilerAccountDialog.resetText(none), "a one-time allowance, never a date");
@@ -20,7 +28,7 @@ class CompilerAccountWordsTest {
         assertEquals(List.of("120", "30", "2", "3", "1"), CompilerAccountDialog.creditFigures(none.compile()));
         Usage monthly = new Usage("acct-demo", "team", true, 4000, 0, 0, 0, 0, "2026-11-01T00:00:00Z");
         assertEquals("Next reset: 2026-11-01T00:00:00Z", CompilerAccountDialog.resetText(monthly));
-        assertEquals(List.of("a", "Personal", "member", "free", "Inactive"), CompilerAccountDialog.accountRows(
+        assertEquals(List.of("a", "Not provided by service", "Personal", "member", "free", "Inactive"), CompilerAccountDialog.accountRows(
                 new CompilerAccountClient.Me("a", true, "member"), new Usage("a", "free", false, 0, 0, 0, 0, 0, null), null));
     }
 
@@ -55,7 +63,7 @@ class CompilerAccountWordsTest {
         assertEquals("Provenance", AccountDetails.assurance("provenance"));
         Usage plans = new Usage("acct-demo", "free", true, 120, 30, 0, 3, 0, null,
                 new CompilerAccountClient.Balance(481, 18, 1, 17, 2), enterprise);
-        assertEquals(List.of("acct-demo", "Personal", "member", "enterprise", "Active"), CompilerAccountDialog.accountRows(
+        assertEquals(List.of("acct-demo", "Not provided by service", "Personal", "member", "enterprise", "Active"), CompilerAccountDialog.accountRows(
                 new CompilerAccountClient.Me("acct-demo", true, "member"), plans, null), "the plan named is the profile's");
         assertEquals(List.of("481", "18", "1", "17", "2"), CompilerAccountDialog.creditFigures(plans.interpret()));
         assertEquals(List.of("120", "30", "0", "3", "0"), CompilerAccountDialog.creditFigures(plans.compile()));
@@ -108,12 +116,12 @@ class CompilerAccountWordsTest {
     @Test
     void theAccountLineNamesTheTypeAndRole_andTheDeviceRowMarksThisMachine() {
         Usage u = new Usage("acct-demo", "free", true, 120, 0, 0, 0, 0, null);
-        assertEquals(List.of("Account", "Type", "Your role", "Plan", "Status"), CompilerAccountDialog.ACCOUNT_ROWS);
-        assertEquals(List.of("acct-demo", "Organisation", "member", "free", "Active"),
+        assertEquals(List.of("Account", "Signed-in email", "Type", "Your role", "Plan", "Status"), CompilerAccountDialog.ACCOUNT_ROWS);
+        assertEquals(List.of("acct-demo", "Not provided by service", "Organisation", "member", "free", "Active"),
                 CompilerAccountDialog.accountRows(new CompilerAccountClient.Me("acct-demo", false, "member"), u, null));
-        assertEquals(List.of("acct-demo", "Unknown", "Unknown", "free", "Active"),
+        assertEquals(List.of("acct-demo", "Not provided by service", "Unknown", "Unknown", "free", "Active"),
                 CompilerAccountDialog.accountRows(new CompilerAccountClient.Me("acct-demo", null, null), u, null));
-        assertEquals(List.of("acct-demo", "Not read", "Unknown", "free", "Active"),
+        assertEquals(List.of("acct-demo", "Not read", "Not read", "Unknown", "free", "Active"),
                 CompilerAccountDialog.accountRows(null, u, null), "not read: no guess");
         CompilerAccountClient.Device d = new CompilerAccountClient.Device("cred01", "DEVICE", "Fluxtion analyser on demo-host", 1_790_000_000_000L);
         assertArrayEquals(new Object[]{"Fluxtion analyser on demo-host (this machine)", "cred01", "Device", "2026-09-21 14:13"},

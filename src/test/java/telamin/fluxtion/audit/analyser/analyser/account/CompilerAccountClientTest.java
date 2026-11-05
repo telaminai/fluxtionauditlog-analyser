@@ -278,6 +278,21 @@ class CompilerAccountClientTest {
     }
 
     @Test
+    void ownEmailIsOptionalAndNeverInferredFromAnAccountMember() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        assertNull(client.me(c).email(), "older service provides no email");
+        service.meBody = "{\"email\":\"self@example.com\",\"selectedAccount\":\"acct-demo\","
+                + "\"accounts\":[{\"accountId\":\"acct-demo\",\"email\":\"other@example.com\"}]}";
+        assertEquals("self@example.com", client.me(c).email());
+        assertEquals("includeEmail=true", service.meQuery);
+        service.meBody = service.meBody.replace("\"email\":\"self@example.com\",", "");
+        assertNull(client.me(c).email(), "member data cannot supply the signed-in address");
+        service.meBody = "{\"email\":\" \"}";
+        assertNull(client.me(c).email());
+    }
+
+    @Test
     void theAccountItsUsageAndItsDevicesAreRead() throws Exception {
         service.token("approved");
         CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();

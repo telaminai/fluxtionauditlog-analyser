@@ -158,6 +158,8 @@ class FactFieldsTest {
         // search text by reference only (RecordsViewCounts.textRef) — an assistant may have typed it
         M74.put("RecordsViewMeasured.counts", Holds.LOG_COUNTS);
         M74.put("ProjectOutputsBasisObserved.logDirRefs", Holds.REFERENCES);
+        // Snapshot of numeric pending-offer handles only; no paths or prompt text.
+        M74.put("ProjectOutputOfferAnswered.batch", Holds.REFERENCES);
         M74.put("ProjectOutputsScanned.files", Holds.OUTPUT_METADATA);
         M74.put("ProjectOutputChanged.file", Holds.OUTPUT_METADATA);
         M74.put("HostedProjectOutputOpened.file", Holds.OUTPUT_METADATA);

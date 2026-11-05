@@ -5436,6 +5436,8 @@ public final class MainFrame extends JFrame {
         localAgentPanel.setTranscriptLinks(transcriptChips(), transcriptNavigator());
         // M74 P2 (§5.5): the topology, chart and time-slider questions, from the one registry
         AskMenus asks = askMenus();
+        sourcePanel.setCodeExplainActions(this::copyCodeExplanation, this::askCodeExplanation);
+        topologyPanel.setCodeExplainActions(this::copyCodeExplanation, this::askCodeExplanation);
         topologyPanel.setAskMenus(asks);
         graphTabs.setAskMenus(asks);
         timeSlider.setAskMenus(asks);
@@ -12217,6 +12219,22 @@ public final class MainFrame extends JFrame {
         if (session == null) return "";
         var s = sessionSnapshot().aiSetup();
         return s.nothingSetUp() ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ASK_CUE : "";
+    }
+
+    /** Code-view requests follow the record menu: append a draft, never send implicitly. */
+    private void askCodeExplanation(String text) {
+        composeDraft(new telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft(
+                "CODE_EXPLAIN", text, null, 0), "explain displayed code");
+    }
+
+    private void copyCodeExplanation(String text) {
+        try {
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                    new java.awt.datatransfer.StringSelection(text), null);
+            status.setText("Code explanation prompt copied — nothing sent");
+        } catch (IllegalStateException | java.awt.HeadlessException unavailable) {
+            status.setText("Clipboard unavailable — try Copy prompt again");
+        }
     }
 
     /** The registry's items for {@code surface}: the label in the mode in force, disabled with the reason. */
