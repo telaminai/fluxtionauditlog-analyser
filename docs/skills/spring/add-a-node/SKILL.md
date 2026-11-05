@@ -240,8 +240,8 @@ field `@Inject EventDispatcher dispatcher;` (`com.telamin.fluxtion.runtime.annot
 it, or the processor never sets it and the first dispatch fails with a NullPointerException. In the body,
 `dispatcher.queueReentrantEvent(event)` appends the event to the queue, so derived events run one at a time, in
 the order raised, after the current cycle finishes (`processReentrantEvent` puts it at the front instead). Each
-is its own audit record. Queue only from inside a processing cycle — an event handler or trigger; an event queued
-from `@Initialise`/`@Start` or from outside a cycle waits for the next incoming event.
+is its own audit record. An event queued from a handler, trigger or `@Start` is dispatched in that cycle's turn; one
+queued from `@Initialise` waits for the next incoming event.
 
 ## Replace the starter's sample nodes
 

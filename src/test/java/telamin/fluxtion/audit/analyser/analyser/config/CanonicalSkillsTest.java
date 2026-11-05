@@ -165,6 +165,9 @@ class CanonicalSkillsTest {
         assertTrue(text.contains("--strict-trace") && text.contains("Which nodes ran stays business"));
         assertFalse(text.contains("SPRING_FILTER_MIXED"), "withdrawn: no evidence for it (spec r3)");
         assertFalse(text.contains("--member <name>"), "withdraw takes an ownership key, not a bare name");
+        // Delta review: the generated start() dispatches queued callbacks; only @Initialise waits for the next event.
+        assertTrue(text.contains("queued from `@Initialise` waits for the next incoming event")
+                && !text.contains("`@Initialise`/`@Start`"), "the queue caveat must name @Initialise only");
         for (String section : List.of("## Shape the graph", "## Raise a derived event", "## Replace the starter's sample nodes",
                 "**Filtered handlers.**", "SPRING_FILTER_DUPLICATE", "SPRING_FILTER_CONFLICT",
                 "queueReentrantEvent", "Check exact output text in the sink's output"))
