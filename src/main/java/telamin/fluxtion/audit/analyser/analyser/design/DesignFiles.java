@@ -76,7 +76,7 @@ public final class DesignFiles {
                 Path found = readableCandidates.iterator().next();
                 Path parent = found.getParent();
                 String call = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(Map.of("add", List.of(parent.toString())));
-                throw new IOException("file outside authorised roots: " + requested + projectHint(found)
+                throw new IOException("file outside authorised roots: " + requested + projectHint(found) + evidenceRefusal(found)
                         + "; to authorise its parent only, call source_root " + call + ", then retry open {design}. No root was added.");
             }
             throw new IOException("file unavailable or outside authorised roots: " + requested
@@ -102,6 +102,27 @@ public final class DesignFiles {
             return false;
         }
         return false;
+    }
+
+    /**
+     * Why a file that is named on {@link #AUTHORING_EVIDENCE} for the open project was still refused, or "" when it is
+     * not one of them, so the refusal names the real cause instead of only "outside authorised roots".
+     */
+    private String evidenceRefusal(Path real) {
+        if (project == null) return "";
+        try {
+            Path base = project.toRealPath();
+            if (AUTHORING_EVIDENCE.stream().noneMatch(name -> real.equals(base.resolve(name)))) return "";
+            if (telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(base,
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home()) != null) {
+                return "; it is authoring evidence, but the project folder is or contains your home folder or a"
+                        + " credential folder, so no evidence file is readable without a source root";
+            }
+            if (!singleLink(real)) return "; it is authoring evidence, but the file has a second hard link, so it is refused";
+        } catch (IOException | SecurityException | InvalidPathException unreadable) {
+            return "";
+        }
+        return "";
     }
 
     /**

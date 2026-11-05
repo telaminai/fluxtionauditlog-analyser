@@ -13,7 +13,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `open {diagnostics: "target/fluxtion-validation.json"}` works with only `src/` source roots, and the run-receipt and
   authoring-record checks are no longer "unavailable". The list is closed and read-only: no other file or directory
   becomes readable, a symbolic link (the file's or a folder's) or a second hard link is refused, a source root's own
-  file of the same name takes precedence, and a home or credential folder project grants none of it. The project root
+  file of the same name takes precedence, and a home or credential folder project grants none of it; a refused evidence file says which of these rules applied. The project root
   for a settings file outside `.analyser/` is that file's folder, as everywhere else.
 - Design discovery no longer walks `.git/`, `.svn/`, `.hg/`, `.gradle/`, `node_modules/` or `.idea/` below a source
   root, nor `target/`, `build/` or `out/` beside a build file (`pom.xml`, Gradle or Ant; `.iml` for `out/`), so the build's copy of a Spring design in `target/classes/` is not a

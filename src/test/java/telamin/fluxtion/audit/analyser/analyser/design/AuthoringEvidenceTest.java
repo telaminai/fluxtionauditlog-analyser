@@ -128,6 +128,22 @@ class AuthoringEvidenceTest {
         assertFalse(frame.contains("getParent().getParent()"), "the project root is ProjectProfile.baseDirFor, never assumed");
     }
 
+    @Test void aProjectHoldingTheHomeFolderNamesWhyItsEvidenceIsRefused() throws Exception {
+        // The gym retest ran the analyser with its home inside the project: the refusal must say so.
+        String previous = System.getProperty("user.home");
+        Path home = Files.createDirectories(project.resolve("retest-evidence/analyser-home"));
+        System.setProperty("user.home", home.toString());
+        try {
+            IOException refused = assertThrows(IOException.class,
+                    () -> new DesignFiles(List.of(), project).resolve("target/fluxtion-run.json"));
+            assertTrue(refused.getMessage().contains("is or contains your home folder"), refused.getMessage());
+        } finally {
+            System.setProperty("user.home", previous);
+        }
+        IOException other = assertThrows(IOException.class, () -> new DesignFiles(List.of(), project).resolve("pom.xml"));
+        assertFalse(other.getMessage().contains("authoring evidence"), "only a listed file names the evidence rule");
+    }
+
     @Test void aHomeFolderProjectGrantsNothing() throws Exception {
         String previous = System.getProperty("user.home");
         System.setProperty("user.home", project.toString());
