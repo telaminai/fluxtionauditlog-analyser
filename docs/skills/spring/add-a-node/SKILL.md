@@ -60,10 +60,10 @@ explain what happened to an event, cite that method and the audit record, never 
 **Filtered handlers.** A binding with a `filterString` makes regeneration write a handler that receives only
 events whose `filterString()` matches. The method is `on<Event>` when the node has one binding for that event,
 and `on<Event>Filter<n>` when it has several, n counting from 0 over this node's bindings of that event in XML
-order (filtered or not). From starter-core 1.0.86, regeneration prints one
+order (filtered or not). From starter-core 1.0.87, regeneration prints one
 `<bean>.<method> ← <Event> filterString=<value>` line per handler it adds. Two rules: one binding per event and
 filter value (`SPRING_FILTER_DUPLICATE`), and a binding sets `filterString` or `filterId`, not both
-(`SPRING_FILTER_CONFLICT`). The build refuses both; from starter-core 1.0.86, `./validate.sh` refuses them too,
+(`SPRING_FILTER_CONFLICT`). The build refuses both; from starter-core 1.0.87, `./validate.sh` refuses them too,
 before anything is generated.
 
 Then **regenerate** — a graph change needs it: an XML change, or a field or annotation that generation
@@ -71,7 +71,7 @@ consumes — a constructor-mapped field, any field or method carrying a Fluxtion
 included**, and an annotation's values such as a `filterString`), a constructor or the class's `extends` /
 `implements`. A method body, or a `transient`, `static` or `@FluxtionIgnore` helper field, does not. Each
 regeneration needs Compiler sign-in and spends a compile credit, so do not regenerate for a body change. In a
-project made from the current starter template with starter-core 1.0.86+, the build itself (`./mvnw package`,
+project made from the current starter template with starter-core 1.0.87+, the build itself (`./mvnw package`,
 `./validate.sh` and every server start) refuses a node whose consumed structure changed since the last
 generation, naming the class and the change. The regeneration command:
 
@@ -246,12 +246,12 @@ queued from `@Initialise` waits for the next incoming event.
 ## Replace the starter's sample nodes
 
 Remove the sample beans from the XML and regenerate: an unchanged, unreferenced sample file is deleted
-(starter-core 1.0.86+); an edited one, or one still named by host wiring such as `server-config.yml` or the
+(starter-core 1.0.87+); an edited one, or one still named by host wiring such as `server-config.yml` or the
 main class, is kept, and the reconciliation report says what references it. To give up a generated class or
 member explicitly: `java -jar .fluxtion/fluxtion-starter-core.jar withdraw --class <fqcn> [--member '<key>']`,
 where `<key>` is the ownership key from `fluxtion-authoring.json` (`field:rootNode`, or a method signature), not
-a bare name (`--still-declared` while the XML still names it). Removed files are moved to
-`.fluxtion/removed/<timestamp>/`, not deleted. Never delete the ownership record by hand.
+a bare name (`--still-declared` while the XML still names it). From starter-core 1.0.87, removed files are
+moved to `.fluxtion/removed/<timestamp>/`, not deleted. Never delete the ownership record by hand.
 
 ## Recover a partial generation attempt
 
