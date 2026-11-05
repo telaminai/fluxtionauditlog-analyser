@@ -60,10 +60,12 @@ public final class DesignFiles {
         }
         Set<Path> matches = new LinkedHashSet<>(), evidence = new LinkedHashSet<>();
         Set<Path> readableCandidates = new LinkedHashSet<>();
+        Map<Path, Path> requestedAs = new HashMap<>();
         for (Path candidate : candidates) {
             if (!Files.isRegularFile(candidate)) continue;
             Path real = candidate.toRealPath();
             readableCandidates.add(real);
+            requestedAs.putIfAbsent(real, candidate);
             for (Path root : roots) {
                 if (Files.isDirectory(root) && real.startsWith(root.toRealPath())) matches.add(real);
             }
@@ -76,7 +78,7 @@ public final class DesignFiles {
                 Path found = readableCandidates.iterator().next();
                 Path parent = found.getParent();
                 String call = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(Map.of("add", List.of(parent.toString())));
-                throw new IOException("file outside authorised roots: " + requested + projectHint(found) + evidenceRefusal(found)
+                throw new IOException("file outside authorised roots: " + requested + projectHint(found) + evidenceRefusal(requestedAs.get(found), found)
                         + "; to authorise its parent only, call source_root " + call + ", then retry open {design}. No root was added.");
             }
             throw new IOException("file unavailable or outside authorised roots: " + requested
@@ -105,21 +107,33 @@ public final class DesignFiles {
     }
 
     /**
-     * Why a file that is named on {@link #AUTHORING_EVIDENCE} for the open project was still refused, or "" when it is
-     * not one of them, so the refusal names the real cause instead of only "outside authorised roots".
+     * Why a request for one of the open project's {@link #AUTHORING_EVIDENCE} files was refused, or "" when the request
+     * does not name one, so the refusal names the rule that applied instead of only "outside authorised roots":
+     * a project that is, holds or is inside the home folder (naming the home compared against) or a credential folder,
+     * a path that reaches the file through a symbolic link, or a file with a second hard link.
      */
-    private String evidenceRefusal(Path real) {
-        if (project == null) return "";
+    private String evidenceRefusal(Path requested, Path real) {
+        if (project == null || requested == null) return "";
         try {
-            Path base = project.toRealPath();
-            if (AUTHORING_EVIDENCE.stream().noneMatch(name -> real.equals(base.resolve(name)))) return "";
-            if (telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(base,
-                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home()) != null) {
-                return "; it is authoring evidence, but the project folder is or contains your home folder or a"
-                        + " credential folder, so no evidence file is readable without a source root";
+            Path base = project.toAbsolutePath().normalize();
+            Path asked = requested.toAbsolutePath().normalize();
+            if (AUTHORING_EVIDENCE.stream().noneMatch(name -> asked.equals(base.resolve(name)))) return "";
+            Path home = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home();
+            var tier1 = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(base.toRealPath(), home);
+            if (tier1 == telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Reason.HOME_FOLDER) {
+                return "; it is authoring evidence, but the project folder is or holds the home folder (" + home
+                        + "), so no evidence file is readable without a source root";
+            }
+            if (tier1 != null) {
+                return "; it is authoring evidence, but the project folder is, holds or is inside a credential folder,"
+                        + " so no evidence file is readable without a source root";
+            }
+            if (!real.equals(base.toRealPath().resolve(base.relativize(asked)))) {
+                return "; it is authoring evidence, but the path reaches it through a symbolic link (the file's or a"
+                        + " folder's), so it is refused";
             }
             if (!singleLink(real)) return "; it is authoring evidence, but the file has a second hard link, so it is refused";
-        } catch (IOException | SecurityException | InvalidPathException unreadable) {
+        } catch (IOException | SecurityException | IllegalArgumentException unreadable) {
             return "";
         }
         return "";

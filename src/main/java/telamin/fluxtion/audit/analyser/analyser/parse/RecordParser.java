@@ -205,8 +205,8 @@ public final class RecordParser {
         if (text == null || text.indexOf(TEXT_ENCODING_KEY) < 0) return null;   // the common case: no analysis
         String[] lines = text.split("\n", -1);
         RecordBreak.Structure structure = RecordBreak.analyse(text);
-        RecordBreak broken = structure.broken();
-        return declaration(lines, structure.roles(), broken == null ? lines.length : broken.keepBefore());
+        RecordBreak cut = structure.broken();
+        return declaration(lines, structure.roles(), cut == null ? lines.length : cut.keepBefore());
     }
 
     private static Declaration declaration(String[] lines, RecordBreak.Role[] roles, int readLines) {

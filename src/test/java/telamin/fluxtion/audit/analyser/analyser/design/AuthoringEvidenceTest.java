@@ -82,14 +82,16 @@ class AuthoringEvidenceTest {
         Path listed = project.resolve("target/fluxtion-validation.json");
         Files.delete(listed);
         Files.createSymbolicLink(listed, secret);
-        assertThrows(IOException.class, () -> srcOnly().resolve("target/fluxtion-validation.json"), "file link out of the project");
+        IOException linked = assertThrows(IOException.class, () -> srcOnly().resolve("target/fluxtion-validation.json"), "file link out of the project");
+        assertTrue(linked.getMessage().contains("through a symbolic link"), linked.getMessage());
         Files.delete(project.resolve("fluxtion-authoring.json"));
         Files.createSymbolicLink(project.resolve("fluxtion-authoring.json"), project.resolve(".env"));
         assertThrows(IOException.class, () -> srcOnly().resolve("fluxtion-authoring.json"), "file link to an unlisted project file");
         Path classes = project.resolve("target/classes");
         Path moved = Files.move(classes, tmp.resolve("classes-elsewhere"));
         Files.createSymbolicLink(classes, moved);
-        assertThrows(IOException.class, () -> srcOnly().resolve("target/classes/fluxtion-diagnostics.json"), "directory link");
+        IOException folder = assertThrows(IOException.class, () -> srcOnly().resolve("target/classes/fluxtion-diagnostics.json"), "directory link");
+        assertTrue(folder.getMessage().contains("through a symbolic link"), folder.getMessage());
         Path alias = Files.createSymbolicLink(tmp.resolve("demo-project-alias"), project);
         assertEquals(project.toRealPath().resolve("target/fluxtion-run.json"),
                 new DesignFiles(List.of(), alias).resolve("target/fluxtion-run.json"), "a project opened through an alias still reads its own files");
@@ -111,7 +113,8 @@ class AuthoringEvidenceTest {
         Path listed = project.resolve("target/fluxtion-run.json");
         Assumptions.assumeTrue(Files.getFileStore(listed).supportsFileAttributeView("unix"), "needs link counts");
         Files.createLink(tmp.resolve("other-name"), listed);
-        assertThrows(IOException.class, () -> srcOnly().resolve("target/fluxtion-run.json"));
+        IOException refused = assertThrows(IOException.class, () -> srcOnly().resolve("target/fluxtion-run.json"));
+        assertTrue(refused.getMessage().contains("second hard link"), refused.getMessage());
     }
 
     /** The project root of a settings file outside .analyser/ is that file's own folder (ProjectProfile.baseDirFor). */
@@ -136,7 +139,7 @@ class AuthoringEvidenceTest {
         try {
             IOException refused = assertThrows(IOException.class,
                     () -> new DesignFiles(List.of(), project).resolve("target/fluxtion-run.json"));
-            assertTrue(refused.getMessage().contains("is or contains your home folder"), refused.getMessage());
+            assertTrue(refused.getMessage().contains("is or holds the home folder (" + home + ")"), refused.getMessage());
         } finally {
             System.setProperty("user.home", previous);
         }
