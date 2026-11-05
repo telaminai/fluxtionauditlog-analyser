@@ -12,11 +12,11 @@ class DesignDiscoveryTest {
         var found=new DesignDiscovery("none",List.of(),"source-scan",unreadable);
         String warning=found.warning();
         assertFalse(warning.contains("DEMO-10.java"),"warning disclosure must stop after ten file names");
-        assertEquals("13 files could not be read: "+String.join(", ",unreadable.subList(0,10))+", and 3 more",warning);
+        assertEquals("13 entries could not be read: "+String.join(", ",unreadable.subList(0,10))+", and 3 more",warning);
         assertEquals(13,found.unreadableFiles().size(),"only the presentation is capped, not the recorded failures");
         var ten=new DesignDiscovery("none",List.of(),"source-scan",unreadable.subList(0,10));
-        assertEquals("10 files could not be read: "+String.join(", ",unreadable.subList(0,10)),ten.warning());
-        assertEquals("1 file could not be read: DEMO-0.java",
+        assertEquals("10 entries could not be read: "+String.join(", ",unreadable.subList(0,10)),ten.warning());
+        assertEquals("1 entry could not be read: DEMO-0.java",
                 new DesignDiscovery("none",List.of(),"source-scan",unreadable.subList(0,1)).warning());
         assertEquals("",DesignDiscovery.none().warning());
     }
@@ -70,7 +70,7 @@ class DesignDiscoveryTest {
                 new telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue());
         assertTrue(state.discovered(new DesignEvents.DiscoveryCompleted(found,state.discoveryGeneration())));
         String note = String.valueOf(state.echo().get("note"));
-        assertTrue(note.contains("2 files could not be read:"),note);
+        assertTrue(note.contains("2 entries could not be read:"),note);
         assertTrue(note.contains("bad.java") && note.contains("large.xml"),note);
         assertFalse(note.contains("10,000-file scan limit"),"file failures are not the cap");
     }
@@ -84,7 +84,7 @@ class DesignDiscoveryTest {
                 new telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue());
         state.discovered(new DesignEvents.DiscoveryCompleted(found,state.discoveryGeneration()));
         assertTrue(state.discoveryNote().startsWith("No readable design found."));
-        assertTrue(state.discoveryNote().contains("1 file could not be read:"));
+        assertTrue(state.discoveryNote().contains("1 entry could not be read:"));
         assertTrue(state.echo().get("note").toString().contains("unreadable.java"));
     }
     @Test void theFileBudgetHasNoDeadRootCountGuard() throws Exception {

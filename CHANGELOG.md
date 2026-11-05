@@ -26,6 +26,19 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - A finding with no note no longer shows an empty label: a bare `confirmation` flag showed a lone "Observation:" in the records table and on the topology callout, and a fix-only confirmation an empty "Observation:" line above its assessment.
 - The point-at-the-fault skill flags a found fault with `"kind": "fault"`, and says to flag a proving record as `confirmation` when it shows correct behaviour or to pass `kind: note` for a neutral observation only when the connected tool supports it; older releases default an omitted kind to a fault.
 - The add-a-node skill's `audit-compare.py` reads records that declare quoted scalars (`textEncoding: QUOTED_SCALARS` as the first line, format revision 1.2): the declaration is never compared, quoted keys, values and header fields are decoded, and a capture from before a runtime upgrade matches one from after when the logged values are the same (before, the marker and a quoted `reason: "a, b"` gave a false DIFFER). That match is made record by record, and only when the unmarked record shows it predates quoting, so two captures from the quoting runtime are compared exactly and one real change is reported once. Unmarked records are read as before.
+- A project's authoring evidence opens without granting the project root: `fluxtion-authoring.json`,
+  `target/fluxtion-validation.json`, `target/fluxtion-reconciliation.json`, `target/fluxtion-run.json` and
+  `target/classes/fluxtion-diagnostics.json` are readable at exactly those paths below the open project, so
+  `open {diagnostics: "target/fluxtion-validation.json"}` works with only `src/` source roots, and the run-receipt and
+  authoring-record checks are no longer "unavailable". The list is closed and read-only: no other file or directory
+  becomes readable, a symbolic link (the file's or a folder's) or a second hard link is refused, a source root's own
+  file of the same name takes precedence, and a home or credential folder project grants none of it; a refused evidence file says which of these rules applied. The project root
+  for a settings file outside `.analyser/` is that file's folder, as everywhere else.
+- Design discovery no longer walks `.git/`, `.svn/`, `.hg/`, `.gradle/`, `node_modules/` or `.idea/` below a source
+  root, nor `target/`, `build/` or `out/` beside a build file (`pom.xml`, Gradle or Ant; `.iml` for `out/`), so the build's copy of a Spring design in `target/classes/` is not a
+  second candidate and the single design still opens automatically. A file removed or unreadable during the scan (a
+  build running alongside), or a folder removed or replaced, is skipped or named, instead of making the whole discovery
+  unavailable. The warning counts "entries" rather than "files", since folders can be among them.
 
 ## [1.40.3] - 2026-11-04
 

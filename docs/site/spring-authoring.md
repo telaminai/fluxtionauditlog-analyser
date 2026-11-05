@@ -250,7 +250,8 @@ The design view and findings separate three facts:
 - **XML input-current / input-stale / unknown:** the result hash or run receipt compared with the rendered XML.
 - **Java/authoring-record input checks and build outcome:** read at diagnostic intake, timestamped, with
   receipt outputs preferred when available. Reopen diagnostics after editing Java or running the build.
-  Hashing is bounded to authorised roots and 10,000 Java files; unavailable comparisons stay unknown.
+  Hashing is bounded to authorised roots and 10,000 Java files; unavailable comparisons stay unknown. The record
+  and receipt are [authoring evidence](#authoring-evidence-needs-no-extra-source-root), readable without a root.
 - **Loaded run relationship: unverified:** a matching bean name permits navigation, never a claim that
   the working copy produced the loaded log. A sidecar retained when the latest build did not run the compiler
   says that it predates that attempt, even if the XML is unchanged.
@@ -258,6 +259,27 @@ The design view and findings separate three facts:
 Producer findings are session state, separate from saved investigation reports. Switching projects clears
 the design and findings. Opening a log outside the current project also clears them. Nothing here edits,
 validates, generates, or runs the project.
+
+### Authoring evidence needs no extra source root
+
+The authoring loop's evidence files are readable at exactly these paths below the open project's root, with only the
+project's `src/` folders as source roots:
+
+| File | Read for |
+| --- | --- |
+| `fluxtion-authoring.json` | the authoring-record hash check |
+| `target/fluxtion-validation.json` | diagnostics intake |
+| `target/fluxtion-reconciliation.json` | diagnostics intake |
+| `target/fluxtion-run.json` | the run receipt beside a result |
+| `target/classes/fluxtion-diagnostics.json` | diagnostics intake |
+
+The list is closed and read-only. It grants no directory and no other file: `.env`, `pom.xml` and every other
+`target/` file stay unreadable unless a source root covers them. A listed path that is a symbolic link, or whose folder
+is one, is refused, and so is a listed file with a second hard link (where the filesystem reports link counts); so is
+every listed file of a project that is the home folder or a credential folder. A source root that holds a file of the
+same relative name — a module's own `target/fluxtion-validation.json` — takes precedence over the project's. The
+project root is the folder holding `.analyser/`, or, for a settings file opened from elsewhere, that file's folder. Do not add the project root as a
+source root to reach these files: that grants every file in the project, and design discovery then scans all of it.
 
 ## Change the design without losing the implementation
 
