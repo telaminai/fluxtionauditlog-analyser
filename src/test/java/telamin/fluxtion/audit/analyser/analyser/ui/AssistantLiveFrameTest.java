@@ -215,4 +215,24 @@ class AssistantLiveFrameTest {
             assertEquals(0, provider.bodies.size(), "placing sends nothing");
         }
     }
+    @Test
+    void codeExplanationPreservesTheDraftAndDoesNotSend(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (FakeProvider provider = new FakeProvider(); var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            configure(f.frame, provider);
+            String prompt = CodeExplainMenu.prompt("class Example {}", 0, 0,
+                    new CodeExplainMenu.Context("/project/Example.java", "java"));
+            var ask = MainFrame.class.getDeclaredMethod("askCodeExplanation", String.class);
+            ask.setAccessible(true);
+            onEdt(() -> {
+                panel(f.frame).composerArea().setText("my existing draft");
+                try { ask.invoke(f.frame, prompt); }
+                catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+            });
+            onEdt(() -> assertEquals("my existing draft\n\n" + prompt, panel(f.frame).composerArea().getText()));
+            Thread.sleep(300);
+            assertEquals(0, provider.bodies.size(), "explaining code only composes; Send remains explicit");
+        }
+    }
+
 }

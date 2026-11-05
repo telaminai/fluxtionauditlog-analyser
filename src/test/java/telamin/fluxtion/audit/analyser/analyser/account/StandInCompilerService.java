@@ -64,6 +64,7 @@ public final class StandInCompilerService implements AutoCloseable {
             + "\"policyVersion\":\"p1\",\"as_of_sequence\":42}";
     public volatile String usageBody = PLANS_USAGE_BODY;
     public volatile int revokeStatus = 204;
+    public volatile String meQuery;
     public volatile String meBody = "{\"userId\":\"user-demo\",\"selectedAccount\":\"acct-demo\",\"accounts\":["
             + "{\"accountId\":\"acct-other\",\"personal\":false,\"role\":\"member\"},"
             + "{\"accountId\":\"acct-demo\",\"personal\":true,\"role\":\"administrator\"}]}";
@@ -120,6 +121,7 @@ public final class StandInCompilerService implements AutoCloseable {
     private void handle(HttpExchange ex) throws IOException {
         String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         String path = ex.getRequestURI().getPath();
+        if (path.equals("/v1/me")) meQuery = ex.getRequestURI().getRawQuery();
         requests.add(new Request(ex.getRequestMethod(), path, ex.getRequestHeaders().getFirst("Authorization"), body));
         int status;
         String out;

@@ -6,6 +6,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- The Compiler account screen shows **Signed-in email** when the service provides the authenticated user's verified address. Older services show **Not provided by service**; the address is omitted from Copy details.
+- Right-click Java or XML code and choose **Explain this** to copy an explanation prompt or add it to the assistant draft. It uses the selected text, or the displayed code when nothing is selected, without sending automatically.
+
+### Changed
+- Project output notifications now appear in the Canvas **Messages (N)** tab, with the pending count and an amber unread indicator. Viewing the tab clears the unread colour; Open and Not now still act on the individual output. Notifications no longer stack above the workspace. **Accept all** opens the current outputs in sequence, stopping on failure; **Clear all** dismisses the current messages without opening them.
+
+### Fixed
+- Identical GraphML copies in Maven's `target/classes` and `target/fluxtion-staging/resources` no longer produce extra regeneration messages when the corresponding source resource exists. Different graphs and standalone build outputs remain discoverable.
+
 ## [1.40.4] - 2026-11-05
 
 ### Added

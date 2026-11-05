@@ -152,7 +152,16 @@ public final class CompilerAccountClient {
      * Who the credential belongs to: the selected account, whether it is a personal one, and the person's role in it.
      * {@code personal} and {@code role} are null when the service's answer did not list the selected account.
      */
-    public record Me(String selectedAccount, Boolean personal, String role) {
+    public record Me(String selectedAccount, Boolean personal, String role, String email) {
+        public Me(String selectedAccount, Boolean personal, String role) {
+            this(selectedAccount, personal, role, null);
+        }
+
+        /** The address is for the account screen, not diagnostic output. */
+        @Override public String toString() {
+            return "Me[selectedAccount=" + selectedAccount + ", personal=" + personal + ", role=" + role + "]";
+        }
+
         /** "Personal" or "Organisation", from the service's {@code personal} flag; "Unknown" when it was not given. */
         public String type() {
             return personal == null ? "Unknown" : personal ? "Personal" : "Organisation";
@@ -355,16 +364,18 @@ public final class CompilerAccountClient {
 
     /** Read who the credential belongs to: the selected account, its type and the person's role. Reads only. */
     public Me me(CompilerCredential credential) throws AccountException {
-        Map<?, ?> body = object(get(credential, "/v1/me", "account"));
+        Map<?, ?> body = object(get(credential, "/v1/me?includeEmail=true", "account"));
+        String email = string(body, "email");
+        if (email != null && email.isBlank()) email = null;
         String selected = string(body, "selectedAccount");
         if (selected == null) selected = credential.accountId();
         if (body.get("accounts") instanceof List<?> accounts) {
             for (Object a : accounts) {
                 if (a instanceof Map<?, ?> m && selected.equals(m.get("accountId")))
-                    return new Me(selected, m.get("personal") instanceof Boolean p ? p : null, string(m, "role"));
+                    return new Me(selected, m.get("personal") instanceof Boolean p ? p : null, string(m, "role"), email);
             }
         }
-        return new Me(selected, null, null);
+        return new Me(selected, null, null, email);
     }
 
     /** The account's credentials the service still accepts (a revoked one is left out), in the service's order. */

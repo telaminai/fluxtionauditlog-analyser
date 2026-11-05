@@ -52,4 +52,66 @@ class ProjectOutputScannerTest {
             Files.writeString(Files.createDirectories(root.resolve(ignored)).resolve("DEMO.graphml"), "DEMO");
         assertTrue(ProjectOutputScanner.scan(root, List.of(), null).files().isEmpty());
     }
+
+    @Test void oneGeneratedGraphWithTwoMavenCopiesProducesOneCandidate(@TempDir Path root) throws Exception {
+        Path source = writeGraph(root, "src/main/resources/com/example/Processor.graphml", "graph-v1");
+        writeGraph(root, "target/classes/com/example/Processor.graphml", "graph-v1");
+        writeGraph(root, "target/fluxtion-staging/resources/com/example/Processor.graphml", "graph-v1");
+        var scan = ProjectOutputScanner.scan(root, List.of(), null);
+        assertTrue(scan.complete());
+        assertEquals(List.of(source.toRealPath()), scan.files().stream().map(ProjectOutputScanner.Observed::realPath).toList());
+    }
+
+    @Test void differentOrStandaloneBuildGraphsAreNotHidden(@TempDir Path root) throws Exception {
+        writeGraph(root, "src/main/resources/com/example/Processor.graphml", "graph-v1");
+        writeGraph(root, "target/classes/com/example/Processor.graphml", "graph-v2");
+        writeGraph(root, "target/fluxtion-staging/resources/Other.graphml", "graph-v1");
+        writeGraph(root, "other/Processor.graphml", "graph-v1");
+        assertEquals(4, ProjectOutputScanner.scan(root, List.of(), null).files().size());
+    }
+
+    @Test void sourceOutsideTheProjectCannotSuppressAnInProjectBuildGraph(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectories(temp.resolve("project"));
+        Path outside = writeGraph(temp, "outside/Processor.graphml", "graph-v1");
+        Path source = root.resolve("src/main/resources/Processor.graphml");
+        Files.createDirectories(source.getParent());
+        Files.createSymbolicLink(source, outside);
+        Path built = writeGraph(root, "target/classes/Processor.graphml", "graph-v1");
+        assertEquals(List.of(built.toRealPath()), ProjectOutputScanner.scan(root, List.of(), null).files()
+                .stream().map(ProjectOutputScanner.Observed::realPath).toList());
+    }
+
+    @Test void sourceBeyondScanDepthCannotHideTheDiscoverableBuildGraph(@TempDir Path root) throws Exception {
+        String nested = "a/b/c/d/e/f/g/h/i/Processor.graphml";
+        writeGraph(root, "src/main/resources/" + nested, "graph-v1");
+        Path built = writeGraph(root, "target/classes/" + nested, "graph-v1");
+        var scan = ProjectOutputScanner.scan(root, List.of(), null);
+        assertTrue(scan.complete());
+        assertEquals(List.of(built.toRealPath()), scan.files().stream().map(ProjectOutputScanner.Observed::realPath).toList());
+    }
+
+    @Test void sourceInIgnoredDirectoryCannotHideTheDiscoverableBuildGraph(@TempDir Path root) throws Exception {
+        Path hidden = writeGraph(root, ".git/resources/Processor.graphml", "graph-v1");
+        Files.createDirectories(root.resolve("src/main"));
+        Files.createSymbolicLink(root.resolve("src/main/resources"), hidden.getParent());
+        Path built = writeGraph(root, "target/classes/Processor.graphml", "graph-v1");
+        var scan = ProjectOutputScanner.scan(root, List.of(), null);
+        assertTrue(scan.complete());
+        assertEquals(List.of(built.toRealPath()), scan.files().stream().map(ProjectOutputScanner.Observed::realPath).toList());
+    }
+
+    @Test void sourceAliasOfBuildOutputCannotSuppressItself(@TempDir Path root) throws Exception {
+        Path built = writeGraph(root, "target/classes/Processor.graphml", "graph-v1");
+        Files.createDirectories(root.resolve("src/main"));
+        Files.createSymbolicLink(root.resolve("src/main/resources"), built.getParent());
+        var scan = ProjectOutputScanner.scan(root, List.of(), null);
+        assertTrue(scan.complete());
+        assertEquals(List.of(built.toRealPath()), scan.files().stream().map(ProjectOutputScanner.Observed::realPath).toList());
+    }
+
+    private static Path writeGraph(Path root, String name, String content) throws Exception {
+        Path path = root.resolve(name);
+        Files.createDirectories(path.getParent());
+        return Files.writeString(path, content);
+    }
 }

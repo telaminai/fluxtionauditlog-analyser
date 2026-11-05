@@ -2085,7 +2085,12 @@ public final class SessionEvents {
                                         ProjectOutputsState.File file) implements Result {
         @Override public long opId() { return 0; }
     }
-    public record ProjectOutputOfferAnswered(long watch, long offer, boolean open) { }
+    public record ProjectOutputOfferAnswered(long watch, long offer, boolean open, java.util.List<Long> batch) {
+        public ProjectOutputOfferAnswered { batch = java.util.List.copyOf(batch); }
+        public ProjectOutputOfferAnswered(long watch, long offer, boolean open) {
+            this(watch, offer, open, java.util.List.of());
+        }
+    }
     public record ProjectOutputOpenObserved(long opId, long watch, long offer, boolean opened, String why)
             implements Result { }
     public record ProjectOutputsEffectStarted(long opId, long watch, String what) implements Result { }

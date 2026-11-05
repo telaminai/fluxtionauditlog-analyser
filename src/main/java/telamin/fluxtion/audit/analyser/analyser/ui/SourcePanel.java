@@ -70,6 +70,12 @@ public final class SourcePanel extends JPanel {
     public enum Mode { PROCESSOR, NODE, SPLIT, DESIGN }
 
     private Runnable sourceViewChanged = () -> { };
+    private java.util.function.Consumer<String> copyExplanation = text -> { }, askExplanation = text -> { };
+    public void setCodeExplainActions(java.util.function.Consumer<String> copy, java.util.function.Consumer<String> ask) {
+        copyExplanation = copy;
+        askExplanation = ask;
+        designPane.setCodeExplainActions(copy, ask);
+    }
     public void onSourceViewChanged(Runnable listener) { sourceViewChanged = listener == null ? () -> { } : listener; }
     private void sourceViewChanged() { sourceViewChanged.run(); }
     /** View identity for a pending preparation; layout extent alone is not a user navigation. */
@@ -984,6 +990,9 @@ public final class SourcePanel extends JPanel {
             super(new BorderLayout());
             text.setEditable(false);
             text.setFont(UiTheme.mono(12));
+            CodeExplainMenu.install(text, () -> source.isEmpty() || !source.equals(text.getText()) ? null
+                            : new CodeExplainMenu.Context(snapshot == null ? fqn : snapshot.identity(), "java"),
+                    words -> copyExplanation.accept(words), words -> askExplanation.accept(words));
             scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
             scroll.getViewport().addChangeListener(e -> sourceViewChanged());
             addHierarchyListener(e -> sourceViewChanged());
@@ -1005,7 +1014,8 @@ public final class SourcePanel extends JPanel {
 
             MouseAdapter nav = new MouseAdapter() {
                 @Override public void mousePressed(MouseEvent e) {
-                    if (e.isControlDown() || e.isMetaDown()) navigateAt(text.viewToModel2D(e.getPoint()));
+                    if (!e.isPopupTrigger() && SwingUtilities.isLeftMouseButton(e)
+                            && (e.isControlDown() || e.isMetaDown())) navigateAt(text.viewToModel2D(e.getPoint()));
                 }
                 @Override public void mouseMoved(MouseEvent e) {
                     text.setCursor(Cursor.getPredefinedCursor(

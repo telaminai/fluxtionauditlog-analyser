@@ -36,6 +36,60 @@ class ProjectOutputsTest {
                 new ProjectOutputsState.Revision(revision, revision, "DEMO-file-key"));
     }
 
+    @Test void acceptAllOpensOnlyItsSnapshotInSequence() {
+        Fixture f = new Fixture(false);
+        f.adapter.outputOpensPending = true;
+        f.scan(0); f.scan(4000, graph(1), log(1)); f.scan(8000, graph(1), log(1));
+        var ids = f.state().offers().stream().map(ProjectOutputsState.Offer::id).toList();
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, true, ids));
+        var opens = f.effects(SessionEffects.OpenProjectOutputEffect.class);
+        assertEquals(1, opens.size(), "only one output is opened at a time");
+        assertEquals(ids.getFirst().longValue(), opens.getFirst().offer());
+        var extra = file(LOG, 99, "later", 1);
+        f.scan(12000, graph(1), log(1), extra); f.scan(16000, graph(1), log(1), extra);
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, ids.getFirst(), true, null));
+        opens = f.effects(SessionEffects.OpenProjectOutputEffect.class);
+        assertEquals(2, opens.size());
+        assertEquals(ids.getLast().longValue(), opens.getLast().offer());
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, ids.getLast(), true, null));
+        assertEquals(2, f.effects(SessionEffects.OpenProjectOutputEffect.class).size(), "a later notification is not consented by an earlier click");
+        assertEquals("later", f.state().offers().getFirst().file().pathKey());
+    }
+
+    @Test void clearAllDismissesOnlyItsSnapshotWithoutOpening() {
+        Fixture f = new Fixture(false);
+        f.scan(0); f.scan(4000, graph(1), log(1)); f.scan(8000, graph(1), log(1));
+        var ids = f.state().offers().stream().map(ProjectOutputsState.Offer::id).toList();
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch + 1, 0, false, ids));
+        assertEquals(2, f.state().offers().size());
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, false, ids));
+        assertTrue(f.state().offers().isEmpty());
+        assertTrue(f.effects(SessionEffects.OpenProjectOutputEffect.class).isEmpty());
+    }
+
+    @Test void failedBulkOpenStopsAndLeavesRemainingMessagesPending() {
+        Fixture f = new Fixture(false);
+        f.adapter.outputOpensPending = true;
+        f.scan(0); f.scan(4000, graph(1), log(1)); f.scan(8000, graph(1), log(1));
+        var ids = f.state().offers().stream().map(ProjectOutputsState.Offer::id).toList();
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, true, ids));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, ids.getFirst(), false, "OPEN_FAILED"));
+        assertEquals(1, f.effects(SessionEffects.OpenProjectOutputEffect.class).size());
+        assertEquals(2, f.state().offers().size(), "failed open is offered again, next output is untouched");
+    }
+
+    @Test void clearAllCancelsRemainingBulkOpens() {
+        Fixture f = new Fixture(false);
+        f.adapter.outputOpensPending = true;
+        f.scan(0); f.scan(4000, graph(1), log(1)); f.scan(8000, graph(1), log(1));
+        var ids = f.state().offers().stream().map(ProjectOutputsState.Offer::id).toList();
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, true, ids));
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, false, List.of(ids.getLast())));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, ids.getFirst(), true, null));
+        assertEquals(1, f.effects(SessionEffects.OpenProjectOutputEffect.class).size());
+        assertTrue(f.state().offers().isEmpty());
+    }
+
     @Test void normalProjectsUseTheGeneralWatch() {
         Fixture f = new Fixture(false);
         var watches = f.effects(SessionEffects.WatchProjectOutputsEffect.class);

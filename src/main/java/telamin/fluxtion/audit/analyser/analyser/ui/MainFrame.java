@@ -4938,6 +4938,7 @@ public final class MainFrame extends JFrame {
         reportsPanel.addWalks(walksPanel);
         walksPanel.refresh();
         sideTabs.addTab("Reports", reportsPanel);
+        projectOutputsPanel.installTab(sideTabs);
         reportsPanel.refresh();
         assistantDock.add(assistantPanel, BorderLayout.CENTER);
         sideTabs.addTab("Analyser assistant", assistantDock);
@@ -4949,7 +4950,7 @@ public final class MainFrame extends JFrame {
         // to suit whichever tab is showing, so the divider walks about as you switch between them. Pinning
         // the minimums stops the content forcing a move; restoring the location below covers the rest.
         for (java.awt.Component tab : new java.awt.Component[]{
-                summaryPanel, sourcePanel, graphTabs, topologyPanel, assistantDock}) {
+                summaryPanel, sourcePanel, graphTabs, topologyPanel, projectOutputsPanel, assistantDock}) {
             if (tab instanceof JComponent c) c.setMinimumSize(new Dimension(200, 120));
         }
         startPanel = new StartPanel(new StartPanel.Actions() {
@@ -5161,7 +5162,6 @@ public final class MainFrame extends JFrame {
         JPanel workspaceNotices = new JPanel();
         workspaceNotices.setLayout(new javax.swing.BoxLayout(workspaceNotices, javax.swing.BoxLayout.Y_AXIS));
         workspaceNotices.add(proposalCue);
-        workspaceNotices.add(projectOutputsPanel);
         workspaceArea.add(workspaceNotices, BorderLayout.NORTH);
         workspaceArea.add(workspaceCards, BorderLayout.CENTER);
         add(workspaceArea, BorderLayout.CENTER);
@@ -5436,6 +5436,8 @@ public final class MainFrame extends JFrame {
         localAgentPanel.setTranscriptLinks(transcriptChips(), transcriptNavigator());
         // M74 P2 (§5.5): the topology, chart and time-slider questions, from the one registry
         AskMenus asks = askMenus();
+        sourcePanel.setCodeExplainActions(this::copyCodeExplanation, this::askCodeExplanation);
+        topologyPanel.setCodeExplainActions(this::copyCodeExplanation, this::askCodeExplanation);
         topologyPanel.setAskMenus(asks);
         graphTabs.setAskMenus(asks);
         timeSlider.setAskMenus(asks);
@@ -11680,7 +11682,8 @@ public final class MainFrame extends JFrame {
     private boolean selectTab(String name) {
         if (sideTabs == null || name == null) return false;
         for (int i = 0; i < sideTabs.getTabCount(); i++) {
-            if (sideTabs.getTitleAt(i).equalsIgnoreCase(name)) {
+            if (sideTabs.getTitleAt(i).equalsIgnoreCase(name)
+                    || ("messages".equalsIgnoreCase(name) && sideTabs.getComponentAt(i) == projectOutputsPanel)) {
                 sideTabs.setSelectedIndex(i);
                 return true;
             }
@@ -12216,6 +12219,22 @@ public final class MainFrame extends JFrame {
         if (session == null) return "";
         var s = sessionSnapshot().aiSetup();
         return s.nothingSetUp() ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ASK_CUE : "";
+    }
+
+    /** Code-view requests follow the record menu: append a draft, never send implicitly. */
+    private void askCodeExplanation(String text) {
+        composeDraft(new telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft(
+                "CODE_EXPLAIN", text, null, 0), "explain displayed code");
+    }
+
+    private void copyCodeExplanation(String text) {
+        try {
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                    new java.awt.datatransfer.StringSelection(text), null);
+            status.setText("Code explanation prompt copied — nothing sent");
+        } catch (IllegalStateException | java.awt.HeadlessException unavailable) {
+            status.setText("Clipboard unavailable — try Copy prompt again");
+        }
     }
 
     /** The registry's items for {@code surface}: the label in the mode in force, disabled with the reason. */
