@@ -64,7 +64,8 @@
     "RE-PINNED 2026-11-04 (review r14): audit-compare.py's proof that an unmarked record predates quoting follows the runtime's final rule - typed-looking, empty and `-x`/`+x`/`.x`/`~` values are written bare and prove nothing; a `:` counts only as `: ` or at the end. Same contract and selection; the revision and the audit-compare.py hash moved. The revision is a feature-branch commit (fix/gym-flag-kind-bridge-exit): preserve it when integrating, or re-pin after rewriting history. The playground must re-vendor.",
     "RE-PINNED 2026-11-05 (authoring gym, AG-1/5/6/9/10): add-a-node says a new field or annotation, @Inject included, needs regeneration, shows raising a derived event, shapes a graph as one node per owner of state, names filtered handlers and their three validate-time rules, replaces the starter's sample nodes, and says the audit is not a byte copy of business output; audit-compare.py reports the starter's generated callback audit with the framework (--strict-trace restores the old reading). Same contract, same selection; the revision and the add-a-node and audit-compare.py hashes moved. The playground must re-vendor.",
     "RE-PINNED 2026-11-05 (two reviews of PR 221): audit-compare.py keeps which nodes ran as business (a trigger that logs only triggerFired and stops running is a difference; a changed route is inconclusive); add-a-node narrows regeneration to what generation consumes, qualifies 1.0.86 behaviour, drops the withdrawn SPRING_FILTER_MIXED and gives the withdraw key syntax. The revision is a feature-branch commit: merge --no-ff, never squash or rebase, or re-pin. Same contract, same selection; the revision and two hashes moved.",
-    "RE-PINNED 2026-11-05 (delta review of PR 221): add-a-node says an event queued from @Start is dispatched (the generated start() dispatches queued callbacks) and only one queued from @Initialise waits. Feature-branch revision: merge --no-ff, never squash or rebase, or re-pin. Same contract, same selection; the revision and the add-a-node hash moved."
+    "RE-PINNED 2026-11-05 (delta review of PR 221): add-a-node says an event queued from @Start is dispatched (the generated start() dispatches queued callbacks) and only one queued from @Initialise waits. Feature-branch revision: merge --no-ff, never squash or rebase, or re-pin. Same contract, same selection; the revision and the add-a-node hash moved.",
+    "RE-PINNED 2026-11-05: add-a-node's starter-core qualifiers say 1.0.87 (1.0.86 shipped without the authoring gym work). Feature-branch revision: merge --no-ff, never squash or rebase, or re-pin. Same contract, same selection; the revision and the add-a-node hash moved."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -100,14 +101,14 @@
       ]
     }
   },
-  "revision": "05800997c2b5e1e3ea839a11ea51348ed59ea035",
+  "revision": "5b9bb522cae03c1ca8a9a31262ad1c9957a79df4",
   "sha256": {
     "common/load-audit-log/SKILL.md": "6663abe2f24426281a0bd7afcc042f5ad2fde7006c5f83987e8421ff67848ef1",
     "common/guided-start/SKILL.md": "2f8ad19004f2e145a7fc442392b8530a77b77e773a29a8774036b0abbe3cb6f3",
     "common/point-at-the-fault/SKILL.md": "40af6e75ac6b5c0ba6ffac79c3d52b43cf8c9d720f4f1d2a699a501ef3d36655",
     "mongoose/run-mongoose-server/SKILL.md": "84c9097eab88ad9c1b5051fc34ff7890e419b4a2b383f1a7c3411a8fbc664431",
     "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
-    "spring/add-a-node/SKILL.md": "421eb62018cf394fd0fe3eafa37ffcc509380a8c2df37d40360e506ba9097917",
+    "spring/add-a-node/SKILL.md": "26be5ae11a12603dda3af5cd17244b3186c941b836d392180d12e9e706434a15",
     "spring/add-a-node/audit-compare.py": "98c73cd32dd2f838556d45e1efb48d5a6c19d49576191c6bf4816a77f1a0843d",
     "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
   }
