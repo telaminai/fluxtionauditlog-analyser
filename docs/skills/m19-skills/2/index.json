@@ -97,11 +97,11 @@
       ]
     }
   },
-  "revision": "c4d1bb1a6c815a8a7fb0e79d04462aa2b7c3bfcc",
+  "revision": "b0efa73cfc7175cfc4a02f5f2f684b8ae288cbcf",
   "sha256": {
     "common/load-audit-log/SKILL.md": "6663abe2f24426281a0bd7afcc042f5ad2fde7006c5f83987e8421ff67848ef1",
     "common/guided-start/SKILL.md": "2f8ad19004f2e145a7fc442392b8530a77b77e773a29a8774036b0abbe3cb6f3",
-    "common/point-at-the-fault/SKILL.md": "29e9b1dfe4e67ed8ab24916d8ab6f101df7203103564def1e25e983288ca87d4",
+    "common/point-at-the-fault/SKILL.md": "40af6e75ac6b5c0ba6ffac79c3d52b43cf8c9d720f4f1d2a699a501ef3d36655",
     "mongoose/run-mongoose-server/SKILL.md": "84c9097eab88ad9c1b5051fc34ff7890e419b4a2b383f1a7c3411a8fbc664431",
     "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
     "spring/add-a-node/SKILL.md": "ca21f7bba67d46029d5276affe7dd75bb04ec808c9205a04adf7a6347d4b3a52",
