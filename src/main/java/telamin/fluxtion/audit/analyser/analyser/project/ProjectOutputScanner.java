@@ -47,8 +47,6 @@ public final class ProjectOutputScanner {
                     String name = path.getFileName().toString();
                     ProjectOutputsState.Kind kind = name.endsWith(".graphml") ? ProjectOutputsState.Kind.GRAPHML
                             : logDirs.stream().anyMatch(path::startsWith) && logName(name) ? ProjectOutputsState.Kind.LOG : null;
-                    if (kind == ProjectOutputsState.Kind.GRAPHML && identicalBuildCopy(real, path, comparisonBudget))
-                        return FileVisitResult.CONTINUE;
                     if (kind != null) {
                         var observed = observe(path, kind, real);
                         if (observed != null) {
@@ -65,12 +63,15 @@ public final class ProjectOutputScanner {
                 }
             });
         } catch (IOException | RuntimeException failure) { complete[0] = false; }
-        return new Scan(out.values().stream().sorted(Comparator.comparing(o -> o.realPath().toString())).toList(), complete[0]);
+        return new Scan(out.values().stream()
+                .filter(o -> o.kind() != ProjectOutputsState.Kind.GRAPHML
+                        || !identicalBuildCopy(real, o.realPath(), out.keySet(), comparisonBudget))
+                .sorted(Comparator.comparing(o -> o.realPath().toString())).toList(), complete[0]);
     }
 
-    /** Only known Maven resource copies with an identical, in-project source are redundant.
+    /** Only known Maven resource copies with an identical source retained in this scan are redundant.
      * Different contents, standalone build outputs, links outside the project and oversized files stay distinct. */
-    private static boolean identicalBuildCopy(Path root, Path path, long[] comparisonBudget) {
+    private static boolean identicalBuildCopy(Path root, Path path, Set<Path> observed, long[] comparisonBudget) {
         Path relative = root.relativize(path);
         Path source = null;
         for (String prefix : List.of("target/classes", "target/fluxtion-staging/resources")) {
@@ -83,7 +84,10 @@ public final class ProjectOutputScanner {
         if (source == null) return false;
         var copyBefore = observe(path, ProjectOutputsState.Kind.GRAPHML, root);
         var sourceBefore = observe(source, ProjectOutputsState.Kind.GRAPHML, root);
-        if (copyBefore == null || sourceBefore == null || copyBefore.revision().size() > MAX_COPY_COMPARE_BYTES
+        if (copyBefore == null || sourceBefore == null
+                || !sourceBefore.realPath().startsWith(root.resolve("src/main/resources"))
+                || !observed.contains(sourceBefore.realPath())
+                || copyBefore.revision().size() > MAX_COPY_COMPARE_BYTES
                 || copyBefore.revision().size() != sourceBefore.revision().size()
                 || copyBefore.revision().size() * 2 > comparisonBudget[0]) return false;
         comparisonBudget[0] -= copyBefore.revision().size() * 2;
