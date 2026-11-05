@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- `flag` without a `kind` now saves a neutral `note` (labelled Note / Assessment) instead of a fault, so evidence of correct behaviour is no longer recorded as a fault; `fault` and `confirmation` work as before, an existing finding keeps its kind, and the tool description names the default and all three kinds. Session recovery is forward-only once a `note` finding with text exists: 1.40.3 and earlier reject the `note` kind and then restore no findings at all from that snapshot. A bare flag (no note or fix) is still saved in the form earlier releases restore.
+
+### Fixed
+- The `--mcp` bridge exits when its client closes stdin, even while a call to the analyser is in flight: requests received before stdin closed are still answered as long as each completes within 10 seconds; one that takes longer is dropped, together with any after it (before, a blocked call held the bridge for up to the 60-second call timeout). It also exits when the process that launched it has gone, including when that process exits before Java starts. A bridge whose client is still running is kept, however long it sits idle, by design.
+- A finding with no note no longer shows an empty label: a bare `confirmation` flag showed a lone "Observation:" in the records table and on the topology callout, and a fix-only confirmation an empty "Observation:" line above its assessment.
+- The point-at-the-fault skill flags a found fault with `"kind": "fault"`, and says to flag a proving record as `confirmation` when it shows correct behaviour or to pass `kind: note` for a neutral observation only when the connected tool supports it; older releases default an omitted kind to a fault.
+- The add-a-node skill's `audit-compare.py` reads records that declare quoted scalars (`textEncoding: QUOTED_SCALARS` as the first line, format revision 1.2): the declaration is never compared, quoted keys, values and header fields are decoded, and a capture from before a runtime upgrade matches one from after when the logged values are the same (before, the marker and a quoted `reason: "a, b"` gave a false DIFFER). That match is made record by record, and only when the unmarked record shows it predates quoting, so two captures from the quoting runtime are compared exactly and one real change is reported once. Unmarked records are read as before.
+
 ## [1.40.3] - 2026-11-04
 
 ### Fixed
