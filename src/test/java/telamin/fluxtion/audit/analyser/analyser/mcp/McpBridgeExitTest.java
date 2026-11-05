@@ -183,9 +183,13 @@ class McpBridgeExitTest {
     void aLauncherThatDiesBeforeJavaStartsCannotLeaveAnOrphanBridge() throws Exception {
         Path pidFile = dir.resolve("child.pid");
         Path errors = dir.resolve("child.err");
+        Path fifo = dir.resolve("stdin.fifo");
+        Process mkfifo = new ProcessBuilder("mkfifo", fifo.toString()).start();
+        assertTrue(mkfifo.waitFor(5, TimeUnit.SECONDS));
+        assertEquals(0, mkfifo.exitValue());
         String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
         ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c",
-                "exec 3<&0; \"$@\" <&3 3<&- & echo $! > \"$0\"; exit 0", pidFile.toString(),
+                "exec 3<\"$1\"; shift; \"$@\" <&3 3<&- & echo $! > \"$0\"; exit 0", pidFile.toString(), fifo.toString(),
                 java, "-Djava.awt.headless=true", "-Duser.home=" + dir, "-cp",
                 System.getProperty("java.class.path"), OrphanBeforeLaunch.class.getName());
         for (String variable : List.of("JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS"))
@@ -194,7 +198,9 @@ class McpBridgeExitTest {
         pb.redirectError(errors.toFile());
         Process launcher = pb.start();
         ProcessHandle child = null;
-        try {
+        // Process.getOutputStream() is closed by Java when its process exits. Own the FIFO writer separately,
+        // so the launching shell's exit cannot deliver EOF to the bridge and hide a broken orphan watchdog.
+        try (OutputStream heldInput = Files.newOutputStream(fifo)) {
             assertTrue(launcher.waitFor(5, TimeUnit.SECONDS), "the shell launcher exits immediately");
             long pid = Long.parseLong(Files.readString(pidFile).trim());
             child = ProcessHandle.of(pid).orElse(null);
