@@ -4938,6 +4938,7 @@ public final class MainFrame extends JFrame {
         reportsPanel.addWalks(walksPanel);
         walksPanel.refresh();
         sideTabs.addTab("Reports", reportsPanel);
+        projectOutputsPanel.installTab(sideTabs);
         reportsPanel.refresh();
         assistantDock.add(assistantPanel, BorderLayout.CENTER);
         sideTabs.addTab("Analyser assistant", assistantDock);
@@ -4949,7 +4950,7 @@ public final class MainFrame extends JFrame {
         // to suit whichever tab is showing, so the divider walks about as you switch between them. Pinning
         // the minimums stops the content forcing a move; restoring the location below covers the rest.
         for (java.awt.Component tab : new java.awt.Component[]{
-                summaryPanel, sourcePanel, graphTabs, topologyPanel, assistantDock}) {
+                summaryPanel, sourcePanel, graphTabs, topologyPanel, projectOutputsPanel, assistantDock}) {
             if (tab instanceof JComponent c) c.setMinimumSize(new Dimension(200, 120));
         }
         startPanel = new StartPanel(new StartPanel.Actions() {
@@ -5161,7 +5162,6 @@ public final class MainFrame extends JFrame {
         JPanel workspaceNotices = new JPanel();
         workspaceNotices.setLayout(new javax.swing.BoxLayout(workspaceNotices, javax.swing.BoxLayout.Y_AXIS));
         workspaceNotices.add(proposalCue);
-        workspaceNotices.add(projectOutputsPanel);
         workspaceArea.add(workspaceNotices, BorderLayout.NORTH);
         workspaceArea.add(workspaceCards, BorderLayout.CENTER);
         add(workspaceArea, BorderLayout.CENTER);
@@ -11680,7 +11680,8 @@ public final class MainFrame extends JFrame {
     private boolean selectTab(String name) {
         if (sideTabs == null || name == null) return false;
         for (int i = 0; i < sideTabs.getTabCount(); i++) {
-            if (sideTabs.getTitleAt(i).equalsIgnoreCase(name)) {
+            if (sideTabs.getTitleAt(i).equalsIgnoreCase(name)
+                    || ("messages".equalsIgnoreCase(name) && sideTabs.getComponentAt(i) == projectOutputsPanel)) {
                 sideTabs.setSelectedIndex(i);
                 return true;
             }

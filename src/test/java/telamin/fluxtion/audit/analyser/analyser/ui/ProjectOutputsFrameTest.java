@@ -169,6 +169,9 @@ class ProjectOutputsFrameTest {
                 assertFalse(driver.snapshot().graphOpen(), "stability alone never opens a graph");
                 assertEquals(own.toString(), driver.processor().openLog.logPath(), "the person's log remains open");
                 assertTrue(StarterProposalFrameTest.text(f.frame).contains("The graph was regenerated — open it?"));
+                JTabbedPane tabs = (JTabbedPane) field(f.frame, "sideTabs");
+                assertFalse(button(f.frame, "projectOutputOpen-" + graphOffer).isShowing(), "messages do not cover the canvas");
+                tabs.setSelectedComponent((Component) field(f.frame, "projectOutputsPanel"));
                 assertTrue(button(f.frame, "projectOutputOpen-" + graphOffer).isShowing());
                 button(f.frame, "projectOutputOpen-" + graphOffer).doClick();
             });

@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- Project output notifications now appear in the Canvas **Messages (N)** tab, with the pending count and an amber unread indicator. Viewing the tab clears the unread colour; Open and Not now still act on the individual output. Notifications no longer stack above the workspace.
+
+### Fixed
+- Identical GraphML copies in Maven's `target/classes` and `target/fluxtion-staging/resources` no longer produce extra regeneration messages when the corresponding source resource exists. Different graphs and standalone build outputs remain discoverable.
+
+## [Unreleased]
+
 ## [1.40.4] - 2026-11-05
 
 ### Added
