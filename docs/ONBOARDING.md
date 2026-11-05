@@ -26,6 +26,13 @@ mvn -o clean verify                                     # offline full build + t
 
 ## Fast iteration and mutation evidence
 
+Once per clone, enable the versioned pre-push hook: `git config --local core.hooksPath .githooks`.
+Check for an existing custom hooks path or pre-push hook first and preserve it rather than replacing it.
+Normal `git push` then runs the offline registry/frame-list preflight and its cheap policy/evidence tests;
+it starts no Maven, Java, display or mutation run. Push the clean checked-out HEAD (including an annotated
+tag of it); other commits must be checked out and pushed separately. To check edits before committing,
+run `python3 tools/pre_push_checks.py`. CI runs the same checks, since hooks are local to each clone.
+
 Run relevant ordinary tests while editing. Do not run mutations after every edit or repeat the full
 local gate for a normal feature review. At correction milestones, use the fast engine with explicit
 `--case NAME` for new/changed and implicated controls; each must fail at its named assertion and

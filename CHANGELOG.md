@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- Developer pushes can run the cheap registry/frame-list and policy checks through the versioned pre-push hook; CI uses the same runner.
+
 ## [1.40.3] - 2026-11-04
 
 ### Fixed
