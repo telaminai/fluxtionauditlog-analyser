@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline registry/frame preflight and its cheap regression suites; no Maven or display.
+"""Offline POSIX registry/frame preflight and its cheap suites; no Maven or display.
 
 The installed Git hook checks only a clean HEAD, and refuses a push of other commits rather
 than certifying an unrelated checkout. Run without --hook while editing to check the worktree.
@@ -34,6 +34,8 @@ def check_push(updates):
     for ref, oid in candidates:
         if git('rev-parse', '--verify', oid + '^{commit}') != head:
             raise ValueError(f'{ref} is not the checked-out HEAD; check out its commit and push separately')
+    if git('ls-files', '--others', '--exclude-standard', '-z'):
+        raise ValueError('untracked files are not part of HEAD; add or preserve them before pushing')
     for args in (['diff', '--quiet', '--'], ['diff', '--cached', '--quiet', '--']):
         if subprocess.run(['git', *args], cwd=ROOT).returncode:
             raise ValueError('tracked worktree/index differs from HEAD; commit or preserve those edits before pushing')
@@ -61,9 +63,13 @@ def main():
     parser.add_argument('--hook', action='store_true', help='validate Git ref updates from stdin before checking HEAD')
     args = parser.parse_args()
     try:
-        if args.hook and not check_push(sys.stdin.read()):
+        updates = sys.stdin.read() if args.hook else ''
+        if args.hook and not check_push(updates):
             return 0
-        return run_checks()
+        result = run_checks()
+        if result == 0 and args.hook:
+            check_push(updates)  # detect edits/commits made during the checks against the SAME requested refs
+        return result
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print('pre-push: ' + str(error), file=sys.stderr)
         return 1

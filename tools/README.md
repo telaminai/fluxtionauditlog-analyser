@@ -2,13 +2,17 @@
 
 ## Cheap pre-push checks
 
-Enable `.githooks/pre-push` once per clone with `git config --local core.hooksPath .githooks`, preserving
+On macOS/Linux, enable `.githooks/pre-push` once per clone with `git config --local core.hooksPath .githooks`, preserving
 any existing custom hook setup first. Normal `git push` runs `tools/pre_push_checks.py`: registry anchors,
 named tests, both CI frame lists and the cheap gate/policy/evidence regression suites. No Maven, Java,
 display, network or mutation execution is used by these checks. CI uses the same runner.
 
-The hook refuses dirty tracked contents or a pushed commit other than the checked-out HEAD, so a green
-checkout cannot certify another commit. Annotated tags of HEAD work; deletion-only pushes need no checks.
+The hook refuses dirty tracked contents, non-ignored untracked files or a pushed commit other than the
+checked-out HEAD. An untracked test could otherwise satisfy a disk check without being published.
+Ignored build outputs are allowed. Annotated tags of HEAD work; deletion-only pushes need no checks.
+The same requested ref updates and cleanliness are rechecked after the suites to detect concurrent edits
+or commits. The existing process tests require POSIX signals, so the developer hook is POSIX-only;
+Windows contributors use CI without installing it.
 Run `python3 tools/pre_push_checks.py` directly to validate uncommitted edits before committing.
 
 ## `bench/` — cross-repository conformance benches

@@ -118,6 +118,64 @@ sys.exit(1 if Path('fail-' + name).exists() else 0)
         self.assertEqual([], self.checks())
         self.assert_no_remote_refs()
 
+    def test_an_untracked_frame_test_cannot_make_a_broken_commit_pass(self):
+        # The committed preflight requires a test the commit does not contain. A local-only
+        # file satisfies the disk scan, so running the checks successfully is not enough.
+        relative = 'src/test/java/com/acme/FooFrameTest.java'
+        self.preflight.write_text(self.preflight.read_text().replace(
+            "if Path('broken-anchor').exists():", f"if not Path('{relative}').is_file():"))
+        self.commit()
+        source = self.repo / relative
+        source.parent.mkdir(parents=True)
+        source.write_text('package com.acme; class FooFrameTest {}\n')
+        self.assertNotEqual(0, self.git('cat-file', '-e', 'HEAD:' + relative, check=False).returncode)
+        manual = subprocess.run([sys.executable, 'tools/pre_push_checks.py'], cwd=self.repo,
+                                text=True, capture_output=True)
+        self.assertEqual(0, manual.returncode, 'control: disk checks see the untracked test')
+        (self.repo / 'checks.log').unlink()
+        result = self.pushed()
+        self.assertNotEqual(0, result.returncode, 'an untracked frame test must not certify the published commit')
+        self.assertIn('untracked files', result.stderr)
+        self.assertEqual([], self.checks(), 'reject before scanning the misleading worktree')
+        self.assert_no_remote_refs()
+
+    def test_ignored_build_outputs_do_not_block_push(self):
+        (self.repo / '.gitignore').write_text('checks.log\ntarget/\n')
+        self.commit()
+        output = self.repo / 'target/build.log'
+        output.parent.mkdir()
+        output.write_text('DEMO build output\n')
+        result = self.pushed()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(4, len(self.checks()))
+
+    def test_a_tracked_edit_during_checks_cannot_certify_the_commit(self):
+        self.preflight.write_text(self.preflight.read_text()
+                                 + "\nPath('DEMO.txt').write_text('fixed only in the worktree\\n')\n")
+        self.commit()
+        result = self.pushed()
+        self.assertNotEqual(0, result.returncode, 'a tracked edit during checks must prevent publication')
+        self.assertIn('differs from HEAD', result.stderr)
+        self.assertEqual('fixed only in the worktree\n', (self.repo / 'DEMO.txt').read_text())
+        self.assertEqual(4, len(self.checks()), 'the change occurred inside the checks')
+        self.assert_no_remote_refs()
+
+    def test_a_commit_during_checks_does_not_change_which_candidate_was_requested(self):
+        self.preflight.write_text(self.preflight.read_text() + """
+import subprocess
+Path('DEMO.txt').write_text('committed during checks\\n')
+subprocess.run(['git', 'add', 'DEMO.txt'], check=True)
+subprocess.run(['git', 'commit', '-qm', 'DEMO concurrent edit'], check=True)
+""")
+        self.commit()
+        requested = self.git('rev-parse', 'HEAD').stdout
+        result = self.pushed()
+        self.assertNotEqual(0, result.returncode, 'a changed HEAD must not certify the old requested candidate')
+        self.assertIn('not the checked-out HEAD', result.stderr)
+        self.assertNotEqual(requested, self.git('rev-parse', 'HEAD').stdout)
+        self.assertEqual(4, len(self.checks()))
+        self.assert_no_remote_refs()
+
     def test_any_unchecked_ref_rejects_the_whole_push(self):
         (self.repo / 'DEMO.txt').write_text('second commit\n')
         self.commit()
