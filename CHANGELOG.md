@@ -6,6 +6,40 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **A text audit record can declare quoted values itself.** A record whose `eventLogRecord` mapping opens with
+  `textEncoding: QUOTED_SCALARS` is read with the quoted-scalar grammar (format spec §3a): a value such as
+  `reason: "membership not active, balance due 30.0"` is one value, `"123"` and `"true"` stay text, quoted header
+  values decode, and `\0`, `\xXX`, `\uXXXX` (surrogate pairs included) are decoded alongside `\\ \" \n \r \t`;
+  malformed escapes are kept verbatim. Recognised only as the first line of the mapping, record by record, so a
+  file or Follow stream mixing old and new records reads each correctly; records without it read exactly as
+  before. An unknown value reads as legacy and is named once as a producer finding. Fixture C35.
+- **Format 1, revision 1.2.** The format specification names the per-record declaration as revision 1.2 (additive:
+  an unmarked file is unchanged; an older analyser ignores the line and shows quoted values with their quote marks,
+  entry boundaries intact). The *Log format* page shows a marked record and the full escape list.
+
+### Changed
+- `flag` without a `kind` now saves a neutral `note` (labelled Note / Assessment) instead of a fault, so evidence of correct behaviour is no longer recorded as a fault; `fault` and `confirmation` work as before, an existing finding keeps its kind, and the tool description names the default and all three kinds. Session recovery is forward-only once a `note` finding with text exists: 1.40.3 and earlier reject the `note` kind and then restore no findings at all from that snapshot. A bare flag (no note or fix) is still saved in the form earlier releases restore.
+
+### Fixed
+- The `--mcp` bridge exits when its client closes stdin, even while a call to the analyser is in flight: requests received before stdin closed are still answered as long as each completes within 10 seconds; one that takes longer is dropped, together with any after it (before, a blocked call held the bridge for up to the 60-second call timeout). It also exits when the process that launched it has gone, including when that process exits before Java starts. A bridge whose client is still running is kept, however long it sits idle, by design.
+- A finding with no note no longer shows an empty label: a bare `confirmation` flag showed a lone "Observation:" in the records table and on the topology callout, and a fix-only confirmation an empty "Observation:" line above its assessment.
+- The point-at-the-fault skill flags a found fault with `"kind": "fault"`, and says to flag a proving record as `confirmation` when it shows correct behaviour or to pass `kind: note` for a neutral observation only when the connected tool supports it; older releases default an omitted kind to a fault.
+- The add-a-node skill's `audit-compare.py` reads records that declare quoted scalars (`textEncoding: QUOTED_SCALARS` as the first line, format revision 1.2): the declaration is never compared, quoted keys, values and header fields are decoded, and a capture from before a runtime upgrade matches one from after when the logged values are the same (before, the marker and a quoted `reason: "a, b"` gave a false DIFFER). That match is made record by record, and only when the unmarked record shows it predates quoting, so two captures from the quoting runtime are compared exactly and one real change is reported once. Unmarked records are read as before.
+- A project's authoring evidence opens without granting the project root: `fluxtion-authoring.json`,
+  `target/fluxtion-validation.json`, `target/fluxtion-reconciliation.json`, `target/fluxtion-run.json` and
+  `target/classes/fluxtion-diagnostics.json` are readable at exactly those paths below the open project, so
+  `open {diagnostics: "target/fluxtion-validation.json"}` works with only `src/` source roots, and the run-receipt and
+  authoring-record checks are no longer "unavailable". The list is closed and read-only: no other file or directory
+  becomes readable, a symbolic link (the file's or a folder's) or a second hard link is refused, a source root's own
+  file of the same name takes precedence, and a home or credential folder project grants none of it; a refused evidence file says which of these rules applied. The project root
+  for a settings file outside `.analyser/` is that file's folder, as everywhere else.
+- Design discovery no longer walks `.git/`, `.svn/`, `.hg/`, `.gradle/`, `node_modules/` or `.idea/` below a source
+  root, nor `target/`, `build/` or `out/` beside a build file (`pom.xml`, Gradle or Ant; `.iml` for `out/`), so the build's copy of a Spring design in `target/classes/` is not a
+  second candidate and the single design still opens automatically. A file removed or unreadable during the scan (a
+  build running alongside), or a folder removed or replaced, is skipped or named, instead of making the whole discovery
+  unavailable. The warning counts "entries" rather than "files", since folders can be among them.
+
 ## [1.40.3] - 2026-11-04
 
 ### Fixed

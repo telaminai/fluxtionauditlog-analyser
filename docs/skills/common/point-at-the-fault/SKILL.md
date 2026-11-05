@@ -16,7 +16,12 @@ This skill is the **shape**. Copy it for your own fault class; the worked exampl
 ## Showing which record proves a claim (the short version)
 
 Find the record (the table in step 2 below), `analyser_spotlight` it (`records:row:<n>`), then
-**`analyser_flag {"recordIndexes": [<n>], "note": "<what it proves>"}`** so the finding is kept, then explain.
+**`analyser_flag {"recordIndexes": [<n>], "kind": "confirmation", "note": "<what it proves>"}`**
+when it proves correct behaviour (a correct refusal, say), then explain. Use `"kind": "fault"` only
+when the record shows something wrong. For a neutral observation, use `"kind": "note"` only if the
+connected tool's schema lists `note`. Analyser 1.40.3 and earlier default an omitted `kind` to `fault`
+and do not accept `note`; on those versions, keep a neutral observation in your explanation instead.
+Do not omit `kind` to request a neutral note from an older analyser.
 To explain a working run, use load-audit-log.
 
 ## If you are fixing a fault — read this first
@@ -106,8 +111,11 @@ with `analyser_goto {"recordIndex": <n>}` and say where to look in words. Everyt
 ### And make it last
 
 A spotlight is gone at the next click. If the finding is worth keeping, write it where it stays:
-`analyser_flag {"recordIndexes": [<n>], "note": "<what>", "fix": "<where to look>"}` — `recordIndexes`
-is an **array**. A flag shows in the table, on the graph and in an exported report. Pointing is how you
+`analyser_flag {"recordIndexes": [<n>], "kind": "fault", "note": "<what>", "fix": "<where to look>"}` —
+`recordIndexes` is an **array**, and `"kind": "fault"` is what records it as a fault: a flag without
+`kind` defaults to a fault on Analyser 1.40.3 and earlier. Newer tools whose schema includes `note`
+save an omitted kind as a neutral note. Always pass the intended kind explicitly; see the compatibility
+rule above for neutral observations. A flag shows in the table, on the graph and in an exported report. Pointing is how you
 show someone; flagging is how they find it again.
 
 ## What your captions may and may not say
@@ -131,7 +139,7 @@ analyser_read   {"recordIndex": 15, "count": 1, "fields": ["riskMonitor.*"]}
 analyser_spotlight {"targets": [
   {"target": "records:row:15",            "caption": "liveOrders 2 = limit 2 - first time it is reached"},
   {"target": "topology:node:riskMonitor", "caption": "the node that reports it"}]}
-analyser_flag   {"recordIndexes": [15], "note": "live orders reached the risk limit (2 = 2)",
+analyser_flag   {"recordIndexes": [15], "kind": "fault", "note": "live orders reached the risk limit (2 = 2)",
                  "fix": "riskMonitor.limit - is 2 the intended cap?"}
 ```
 

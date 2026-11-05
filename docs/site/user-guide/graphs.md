@@ -65,8 +65,8 @@ askMakerOrder.price − bidMakerOrder.price
   +1/-1 boolean representation. Compare flags explicitly: bare `false` is -1, not the numeric
   zero used by conditional results. `node.status == "rejected"` or `!= "rejected"` compares text
   exactly, without converting booleans or numbers to strings. Missing/null values remain unknown.
-  A quoted-scalar reader preserves `"true"` as text; the legacy text reader keeps quote characters
-  literally. Strings support equality/inequality only; quoted durations still name rolling windows.
+  A quoted-scalar reader, or a text record that declares quoted scalars itself, preserves `"true"` as
+  text; an undeclared text record keeps quote characters literally. Strings support equality/inequality only; quoted durations still name rolling windows.
 - **Rolling windows** — formulas can remember recent samples: `lag(x, N)` (the value N samples ago),
   `delta(x)` (change since the previous sample), and `mean` / `sum` / `rollingMin` / `rollingMax`
   `(x, N)` over the last N samples. A window fills before it speaks (no point until N samples), a

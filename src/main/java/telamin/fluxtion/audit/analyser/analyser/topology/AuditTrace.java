@@ -73,7 +73,7 @@ public final class AuditTrace {
     /**
      * True when this record traces every invocation — every logged node carries a {@code method}
      * entry, which only the TEXT runtime's tracing adds — AND the record is one that heuristic applies
-     * to. Applicability comes from the record's grammar ({@link LogRecord#textEncoding()}), i.e. from
+     * to. Applicability comes from the record's reader ({@link LogRecord#textReaderRecord()}), i.e. from
      * the reader that produced it, never from any property spelling: a binary log's business
      * {@code method} property is a business property. The binary format carries no completeness
      * declaration (FLXA §11.7, §16), so for a binary log this is false and absence stays unknown - the
@@ -84,7 +84,7 @@ public final class AuditTrace {
      */
     public static boolean tracesEveryInvocation(LogRecord record) {
         if (record == null) return false;
-        if (record.textEncoding() != telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY) {
+        if (!record.textReaderRecord()) {   // a text record that declared quoted scalars itself is still the text runtime's
             return false;
         }
         List<NodeLog> nodeLogs = record.nodeLogs();

@@ -6,9 +6,30 @@ import java.nio.file.*;
 import java.security.MessageDigest;
 import java.util.*;
 
-/** The read adapter for M66. A project supplies a relative-path base, never an implicit read grant. */
+/**
+ * The read adapter for M66. A project supplies a relative-path base, never an implicit read grant — with one closed
+ * exception, {@link #AUTHORING_EVIDENCE}.
+ */
 public final class DesignFiles {
     public static final int MAX_BYTES = 2 * 1024 * 1024;
+    /**
+     * The authoring loop's evidence files (2026-11-04), readable at exactly these paths below the open project's root
+     * with no source root covering them. A test project that granted only its {@code src/} roots could not open
+     * {@code open {diagnostics: target/fluxtion-validation.json}}, and the authoring-record hash checks read
+     * "unavailable"; granting the project root instead made discovery walk {@code target/} (a second, copied design) and
+     * {@code .git/}. The list is closed: no other file and no directory becomes readable through it; a path whose real
+     * location differs (a symbolic link, the file's or a folder's) is not on it; a listed file with more than one hard
+     * link is refused where the filesystem reports link counts; and a project that is the home or a credential folder
+     * (tier 1 of {@link telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy}) grants none of it. A source
+     * root that matches a relative request takes precedence, so a module root's own {@code target/} file is not
+     * ambiguous with the project's.
+     */
+    public static final List<String> AUTHORING_EVIDENCE = List.of(
+            "fluxtion-authoring.json",
+            "target/fluxtion-validation.json",
+            "target/fluxtion-reconciliation.json",
+            "target/fluxtion-run.json",
+            "target/classes/fluxtion-diagnostics.json");
     private final List<Path> roots;
     private final Path project;
 
@@ -37,29 +58,107 @@ public final class DesignFiles {
             if (project != null) candidates.add(project.resolve(path));
             for (Path root : roots) candidates.add(root.resolve(path));
         }
-        Set<Path> matches = new LinkedHashSet<>();
+        Set<Path> matches = new LinkedHashSet<>(), evidence = new LinkedHashSet<>();
         Set<Path> readableCandidates = new LinkedHashSet<>();
+        Map<Path, Path> requestedAs = new HashMap<>();
         for (Path candidate : candidates) {
             if (!Files.isRegularFile(candidate)) continue;
             Path real = candidate.toRealPath();
             readableCandidates.add(real);
+            requestedAs.putIfAbsent(real, candidate);
             for (Path root : roots) {
                 if (Files.isDirectory(root) && real.startsWith(root.toRealPath())) matches.add(real);
             }
+            if (authoringEvidence(real)) evidence.add(real);
         }
+        if (matches.isEmpty()) matches.addAll(evidence); // evidence only when no source root matched
         if (matches.size() > 1) throw new IOException("ambiguous file under authorised roots: " + matches);
         if (matches.isEmpty()) {
             if (readableCandidates.size() == 1) {
                 Path found = readableCandidates.iterator().next();
                 Path parent = found.getParent();
                 String call = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(Map.of("add", List.of(parent.toString())));
-                throw new IOException("file outside authorised roots: " + requested + projectHint(found)
+                throw new IOException("file outside authorised roots: " + requested + projectHint(found) + evidenceRefusal(requestedAs.get(found), found)
                         + "; to authorise its parent only, call source_root " + call + ", then retry open {design}. No root was added.");
             }
             throw new IOException("file unavailable or outside authorised roots: " + requested
                     + (path.isAbsolute() ? projectHint(path) : relativeHint()));
         }
         return matches.iterator().next();
+    }
+
+    /**
+     * Whether {@code real} (a real path) is one of the open project's {@link #AUTHORING_EVIDENCE} files: equal to the
+     * project's real root resolved by a listed name, so a link — the file's or an intermediate directory's — never
+     * qualifies, and nothing escapes the project.
+     */
+    private boolean authoringEvidence(Path real) {
+        if (project == null) return false;
+        try {
+            Path base = project.toRealPath();
+            if (!Files.isDirectory(base)) return false;
+            if (telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(base,
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home()) != null) return false;
+            for (String name : AUTHORING_EVIDENCE) if (real.equals(base.resolve(name))) return singleLink(real);
+        } catch (IOException | SecurityException | InvalidPathException unreadable) {
+            return false;
+        }
+        return false;
+    }
+
+    /**
+     * Why a request for one of the open project's {@link #AUTHORING_EVIDENCE} files was refused, or "" when the request
+     * does not name one, so the refusal names the rule that applied instead of only "outside authorised roots":
+     * a project that is, holds or is inside the home folder (naming the home compared against) or a credential folder,
+     * a path that reaches the file through a symbolic link, or a file with a second hard link.
+     */
+    private String evidenceRefusal(Path requested, Path real) {
+        if (project == null || requested == null) return "";
+        try {
+            Path base = project.toAbsolutePath().normalize();
+            Path asked = requested.toAbsolutePath().normalize();
+            if (AUTHORING_EVIDENCE.stream().noneMatch(name -> asked.equals(base.resolve(name)))) return "";
+            Path home = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home();
+            var tier1 = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(base.toRealPath(), home);
+            if (tier1 == telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Reason.HOME_FOLDER) {
+                return "; it is authoring evidence, but the project folder is or holds the home folder (" + home
+                        + "), so no evidence file is readable without a source root";
+            }
+            if (tier1 != null) {
+                return "; it is authoring evidence, but the project folder is, holds or is inside a credential folder,"
+                        + " so no evidence file is readable without a source root";
+            }
+            if (!real.equals(base.toRealPath().resolve(base.relativize(asked)))) {
+                return "; it is authoring evidence, but the path reaches it through a symbolic link (the file's or a"
+                        + " folder's), so it is refused";
+            }
+            if (!singleLink(real)) return "; it is authoring evidence, but the file has a second hard link, so it is refused";
+        } catch (IOException | SecurityException | IllegalArgumentException unreadable) {
+            return "";
+        }
+        return "";
+    }
+
+    /**
+     * A hard link is indistinguishable from the file it names, so a listed file with a second link could expose
+     * another file's content. Refused where the filesystem reports a link count; elsewhere (no {@code unix} view)
+     * accepted, as for source roots.
+     */
+    private static boolean singleLink(Path real) {
+        try {
+            return !(Files.getAttribute(real, "unix:nlink", LinkOption.NOFOLLOW_LINKS) instanceof Integer n) || n <= 1;
+        } catch (UnsupportedOperationException | IllegalArgumentException | IOException | SecurityException unknown) {
+            return true;
+        }
+    }
+
+    /**
+     * The design files for the project whose settings file is {@code profile} (or none): the project root is
+     * {@link telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile#baseDirFor}, the parent of
+     * {@code .analyser/} for a canonical profile and the file's own folder for a loose settings file.
+     */
+    public static DesignFiles forProfile(List<String> roots, Path profile) {
+        return new DesignFiles(roots, telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(profile));
     }
 
     /** "; it is inside the project D — open {project: D} …", when the file belongs to a project that is not open. */
@@ -92,7 +191,9 @@ public final class DesignFiles {
     }
 
     public String read(Path path) throws IOException {
-        // Recheck on EVERY read, including Follow, so a replaced symlink cannot preserve an old grant.
+        // Recheck on EVERY read, including Follow, so a replaced symlink cannot preserve an old grant. Accepted, as for
+        // source roots: a folder above the file swapped for a link between this check and the open is not detected
+        // (NOFOLLOW guards only the last name, and Java exposes no file key for an open stream to compare).
         Path permitted = resolve(path.toString());
         try (var input = Files.newInputStream(permitted, LinkOption.NOFOLLOW_LINKS)) {
             byte[] bytes = input.readNBytes(MAX_BYTES + 1);

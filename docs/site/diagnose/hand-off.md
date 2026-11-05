@@ -18,8 +18,9 @@ topology for that record, and in every report that cites it.
   and why it matters) and a fix (the likely cause, or where to look). The toolbar's **Flag** button and the **F** key
   only flag or unflag the selected rows; they write no note.
 - **From your client:** `analyser_flag` with `note` and `fix`. Sending only one of them keeps the other, so adding a
-  fix cannot wipe the explanation it is a fix for. Use `kind: "confirmation"` for behaviour that is correct; a report
-  then labels it *Observation / Assessment* rather than as a fault.
+  fix cannot wipe the explanation it is a fix for. Use `kind: "fault"` for behaviour that is wrong and
+  `kind: "confirmation"` for behaviour that is correct (a report then labels it *Observation / Assessment*). Without
+  a `kind`, a new finding is saved as a neutral `note` (*Note / Assessment*), never as a fault.
 
 Flags belong to the session: opening another log clears them, and they do not travel in an evidence bundle. A
 finding that must travel goes into the PDF you render now, or into a walk step's caption. A saved report re-reads the
