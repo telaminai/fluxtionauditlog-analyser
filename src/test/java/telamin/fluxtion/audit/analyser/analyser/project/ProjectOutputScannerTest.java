@@ -60,7 +60,7 @@ class ProjectOutputScannerTest {
             Files.writeString(Files.createDirectories(root.resolve(place).resolve("com/acme")).resolve("P.graphml"), "<graphml/>");
         var scan = ProjectOutputScanner.scan(root, List.of(), null);
         assertEquals(3, scan.files().size(), "every copy is still observed; the node decides they are one graph");
-        assertEquals(List.of("com/acme/P.graphml"), scan.files().stream().map(ProjectOutputScanner.Observed::logicalPath).distinct().toList());
+        assertEquals(List.of("|main|com/acme/P.graphml"), scan.files().stream().map(ProjectOutputScanner.Observed::logicalPath).distinct().toList());
         assertEquals(1, scan.files().stream().map(o -> o.revision().contentDigest()).distinct().count());
         assertEquals(List.of(false, true, true), scan.files().stream().map(ProjectOutputScanner.Observed::buildCopy).toList());
         Path copy = root.resolve("target/classes/com/acme/P.graphml");
@@ -81,5 +81,15 @@ class ProjectOutputScannerTest {
         var log = ProjectOutputScanner.scan(root, List.of(logs), null).files().getFirst();
         assertNull(log.revision().contentDigest(), "a log's bytes are never read by the watcher");
         assertNull(log.logicalPath());
+    }
+
+    @Test void logicalPathsSeparateModulesAndSourceSets() {
+        java.util.function.Function<String, String> l = p -> ProjectOutputScanner.logicalPath(Path.of(p));
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("target/classes/com/acme/P.graphml"));
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("target/fluxtion-staging/resources/com/acme/P.graphml"));
+        assertNotEquals(l.apply("module-a/src/main/resources/com/acme/P.graphml"), l.apply("module-b/src/main/resources/com/acme/P.graphml"));
+        assertEquals(l.apply("module-a/src/main/resources/com/acme/P.graphml"), l.apply("module-a/target/classes/com/acme/P.graphml"));
+        assertNotEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("src/test/resources/com/acme/P.graphml"));
+        assertEquals(l.apply("src/test/resources/com/acme/P.graphml"), l.apply("target/test-classes/com/acme/P.graphml"));
     }
 }

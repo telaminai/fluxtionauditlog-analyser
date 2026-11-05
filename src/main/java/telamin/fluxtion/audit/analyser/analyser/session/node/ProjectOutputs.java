@@ -25,8 +25,10 @@ public class ProjectOutputs implements EventLogSource {
     private long lastScan = Long.MIN_VALUE;
     private Map<String, Candidate> candidates = new LinkedHashMap<>();
     private Map<String, ProjectOutputsState.Revision> consumed = new HashMap<>();
-    /** §3.5.1: the last content each logical graph offered or consumed; its build copies re-offer nothing. */
+    /** §3.5.1: the content each logical graph was current at (baseline) or last answered/opened at; copies of it re-offer nothing. */
     private Map<String, String> consumedGraphs = new HashMap<>();
+    /** The logical graph and digest {@code latestGraph} named, kept while no copy of it is settled, so pairing comes back. */
+    private String latestGroup, latestDigest;
     private Map<Long, Candidate> announced = new HashMap<>();
     private Map<Long, Pending> pending = new LinkedHashMap<>();
     private Map<Long, Opening> opening = new HashMap<>();
@@ -67,7 +69,7 @@ public class ProjectOutputs implements EventLogSource {
     private void clear() {
         if (watch != 0) effects.request(new SessionEffects.StopProjectOutputsWatchEffect(0, watch));
         watching = false; baseline = false; lastScan = Long.MIN_VALUE;
-        candidates.clear(); consumed.clear(); consumedGraphs.clear(); announced.clear(); pending.clear(); opening.clear();
+        candidates.clear(); consumed.clear(); consumedGraphs.clear(); latestGroup = null; latestDigest = null; announced.clear(); pending.clear(); opening.clear();
         shown.clear(); opened.clear(); latestGraph = null;
     }
     @OnEventHandler public boolean onBasis(SessionEvents.ProjectOutputsBasisObserved e) {
@@ -98,33 +100,58 @@ public class ProjectOutputs implements EventLogSource {
             if (!baseline) consumed.put(key, file.revision());
             if (baseline && !file.revision().equals(consumed.get(key)) && e.atMillis() - before.since() >= POLL_MILLIS) {
                 consumed.put(key, file.revision());
-                if (graphed(file) && file.revision().contentDigest().equals(consumedGraphs.get(group(file)))) {
+                if (graphed(file) && (file.revision().contentDigest().equals(consumedGraphs.get(group(file)))
+                        || offeredOrAnnounced(file))) {
+                    // A copy of bytes already current, answered, offered or in flight: re-point, never re-offer (§3.5.1).
                     promoteCopy(before.file());
                     auditLog.info("projectOutput", "SAME_GRAPH").info("kind", file.kind());
                     continue;
                 }
                 Candidate offered = graphed(file) ? canonical(file) : before;
-                if (graphed(file)) consumedGraphs.put(group(file), file.revision().contentDigest());
                 long change = ++counter; announced.put(change, offered);
                 effects.request(new SessionEffects.PublishProjectOutputChangedEffect(0, watch, projectGeneration, change, offered.file()));
                 auditLog.info("projectOutput", "STABLE_METADATA").info("change", change).info("kind", file.kind());
             }
         }
+        // Baseline: the graph is current at the content of its canonical copy, not of whichever copy is iterated last.
         if (!baseline) for (Candidate c : candidates.values())
-            if (graphed(c.file())) consumedGraphs.put(group(c.file()), canonical(c.file()).file().revision().contentDigest());
+            if (graphed(c.file())) consumedGraphs.put(group(c.file()), canonicalAny(group(c.file())).file().revision().contentDigest());
         for (String missing : new ArrayList<>(candidates.keySet())) if (!present.contains(missing)) {
             candidates.remove(missing); consumed.remove(missing); invalidate(missing);
         }
         // A complete observation retires receipts for absent/superseded revisions, not arbitrary live candidates.
+        // A graph's receipt lives only while its canonical copy still holds that content (a stale build copy cannot keep it).
         Map<String, Set<Object>> versions = new HashMap<>();
-        for (Candidate c : candidates.values()) versions.computeIfAbsent(group(c.file()), k -> new HashSet<>()).add(version(c.file()));
+        for (Candidate c : candidates.values())
+            versions.computeIfAbsent(group(c.file()), k -> new HashSet<>())
+                    .add(version(graphed(c.file()) ? canonicalAny(group(c.file())).file() : c.file()));
         opened.removeIf(o -> !versions.getOrDefault(o.key(), Set.of()).contains(o.version()));
         baseline = true; show(); return true;
     }
     private void invalidate(String key) {
+        // A graph offer or pairing on a rewritten copy moves to another settled copy of the same bytes when there is one;
+        // otherwise it goes, and the rewritten copy re-offers when it settles, unless its bytes were answered (§3.5.1).
+        pending.replaceAll((id, p) -> key(p.offer().file()).equals(key) && sameBytesElsewhere(p.offer().file(), key) != null
+                ? new Pending(new ProjectOutputsState.Offer(id, sameBytesElsewhere(p.offer().file(), key), p.offer().graph()), p.owner()) : p);
         pending.values().removeIf(p -> key(p.offer().file()).equals(key));
         opening.values().removeIf(p -> key(p.pending().offer().file()).equals(key));
-        if (latestGraph != null && key(latestGraph).equals(key)) { latestGraph = null; pairPendingLogs(null); }
+        if (latestGraph != null && key(latestGraph).equals(key)) {
+            var moved = sameBytesElsewhere(latestGraph, key);
+            latestGraph = moved; pairPendingLogs(moved);
+        }
+    }
+    private ProjectOutputsState.File sameBytesElsewhere(ProjectOutputsState.File file, String except) {
+        if (!graphed(file)) return null;
+        return candidates.values().stream().filter(c -> !key(c.file()).equals(except) && graphed(c.file())
+                        && group(c.file()).equals(group(file)) && version(c.file()).equals(version(file)))
+                .min(Comparator.comparing((Candidate c) -> c.file().buildCopy()).thenComparing(c -> c.file().pathKey()))
+                .map(Candidate::file).orElse(null);
+    }
+    private boolean offeredOrAnnounced(ProjectOutputsState.File file) {
+        return pending.values().stream().anyMatch(p -> graphed(p.offer().file()) && group(p.offer().file()).equals(group(file))
+                        && version(p.offer().file()).equals(version(file)))
+                || announced.values().stream().anyMatch(c -> graphed(c.file()) && group(c.file()).equals(group(file))
+                        && version(c.file()).equals(version(file)));
     }
     private void refreshReferences(ProjectOutputsState.File file) {
         if (latestGraph != null && key(latestGraph).equals(key(file))) latestGraph = file;
@@ -141,7 +168,10 @@ public class ProjectOutputs implements EventLogSource {
                 || !latest.file().revision().equals(e.file().revision())) return false;
         // A better-placed copy of the same bytes may have settled since the change was announced (§3.5.1).
         var file = graphed(latest.file()) ? canonical(latest.file()).file() : latest.file();
-        if (file.kind() == ProjectOutputsState.Kind.GRAPHML) { latestGraph = file; pairPendingLogs(latestGraph); }
+        if (file.kind() == ProjectOutputsState.Kind.GRAPHML) {
+            latestGraph = file; pairPendingLogs(latestGraph);
+            if (graphed(file)) { latestGroup = group(file); latestDigest = file.revision().contentDigest(); }
+        }
         if (!opened.contains(new Opened(candidate.owner(), group(file), version(file)))) {
             // One logical graph, one banner: a newer change replaces its pending offer, never adds a second (§3.5.1).
             if (graphed(file)) pending.values().removeIf(p -> graphed(p.offer().file()) && group(p.offer().file()).equals(group(file)));
@@ -178,6 +208,8 @@ public class ProjectOutputs implements EventLogSource {
             effects.request(new SessionEffects.ShowStatusEffect(0, "The project change is still pending — finish it before opening this output")); return true;
         }
         Pending accepted = pending.remove(e.offer());
+        if (graphed(accepted.offer().file()))      // answering, either way, makes this content current (§3.5.1 rule 4)
+            consumedGraphs.put(group(accepted.offer().file()), accepted.offer().file().revision().contentDigest());
         if (e.open()) {
             opening.put(e.offer(), new Opening(accepted, gate.expectedOpId()));
             effects.request(new SessionEffects.OpenProjectOutputEffect(0, watch, projectGeneration, e.offer(), accepted.offer().file(), accepted.offer().graph()));
@@ -199,7 +231,10 @@ public class ProjectOutputs implements EventLogSource {
             effects.request(new SessionEffects.ShowStatusEffect(0, "The output was not opened — check the load status before trying again"));
             // Failed switches retain the old project, but never resurrect an OLD button or queued act.
             Candidate latest = candidates.get(key(own.pending().offer().file()));
-            if (latest != null && latest.file().revision().equals(own.pending().offer().file().revision())) {
+            var failed = own.pending().offer().file();
+            boolean newer = graphed(failed) && pending.values().stream()
+                    .anyMatch(p -> graphed(p.offer().file()) && group(p.offer().file()).equals(group(failed)));
+            if (!newer && latest != null && latest.file().revision().equals(failed.revision())) {
                 long id = ++counter;
                 pending.put(id, new Pending(new ProjectOutputsState.Offer(id, latest.file(),
                         latest.file().kind() == ProjectOutputsState.Kind.LOG ? latestGraph : null), own.pending().owner())); show();
@@ -213,6 +248,7 @@ public class ProjectOutputs implements EventLogSource {
         Turn owner = new Turn(e.generation(), e.ticket());
         if (e.ticket() == 0 || !turns.contains(owner)) return false;
         opened.add(new Opened(owner, group(e.file()), version(e.file())));
+        if (graphed(e.file())) consumedGraphs.put(group(e.file()), e.file().revision().contentDigest());
         // Eight known turns × one hundred bounded scan candidates; don't truncate a supported hundred-file burst.
         while (opened.size() > 800) opened.remove(opened.iterator().next());
         return pending.values().removeIf(p -> p.owner().equals(owner) && group(p.offer().file()).equals(group(e.file()))
@@ -251,6 +287,15 @@ public class ProjectOutputs implements EventLogSource {
                 && version(p.offer().file()).equals(version(copy)) && !p.offer().file().equals(best.file())
                 ? new Pending(new ProjectOutputsState.Offer(id, best.file(), p.offer().graph()), p.owner()) : p);
         if (latestGraph != null && group(latestGraph).equals(group(copy)) && version(latestGraph).equals(version(copy))) latestGraph = best.file();
+        else if (latestGraph == null && group(copy).equals(latestGroup) && version(copy).equals(latestDigest)) {
+            latestGraph = best.file(); pairPendingLogs(latestGraph);     // a re-touched graph keeps pairing its logs
+        }
+    }
+    /** The copy an offer for this logical graph names, whatever its content: outside build output, then path identity. */
+    private Candidate canonicalAny(String group) {
+        return candidates.values().stream().filter(c -> graphed(c.file()) && group(c.file()).equals(group))
+                .min(Comparator.comparing((Candidate c) -> c.file().buildCopy()).thenComparing(c -> c.file().pathKey()))
+                .orElseThrow();
     }
     private static boolean valid(ProjectOutputsState.File f) {
         return f != null && f.kind() != null && f.pathRef() != 0 && f.pathKey() != null && f.revision() != null && f.revision().size() > 0;

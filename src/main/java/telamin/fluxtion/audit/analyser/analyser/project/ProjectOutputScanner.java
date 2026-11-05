@@ -88,7 +88,10 @@ public final class ProjectOutputScanner {
         } catch (IOException | RuntimeException unavailable) { /* no speculative scope */ }
     }
     /** Fresh identity for a successful-open receipt or an effect's revision precondition; a log's contents are never read. */
-    public static Observed observe(Path path, ProjectOutputsState.Kind kind, Path fence) {
+    public static Observed observe(Path path, ProjectOutputsState.Kind kind, Path fence) { return observe(path, kind, fence, true); }
+    /** Identity without reading any bytes, for a check on the EDT; a GraphML's revision then has no content digest. */
+    public static Observed observeMetadata(Path path, ProjectOutputsState.Kind kind, Path fence) { return observe(path, kind, fence, false); }
+    private static Observed observe(Path path, ProjectOutputsState.Kind kind, Path fence, boolean content) {
         try {
             Path real = path.toRealPath();
             Path root = fence == null ? null : fence.toRealPath();
@@ -99,17 +102,26 @@ public final class ProjectOutputScanner {
             var metadata = new ProjectOutputsState.Revision(attrs.size(), attrs.lastModifiedTime().to(TimeUnit.NANOSECONDS), key);
             if (kind != ProjectOutputsState.Kind.GRAPHML) return new Observed(real, kind, metadata);
             Path relative = root == null ? real.getFileName() : root.relativize(real);
-            return new Observed(real, kind, withContent(real, metadata), logicalPath(relative), buildCopy(relative));
+            return new Observed(real, kind, content ? withContent(real, metadata) : metadata, logicalPath(relative), buildCopy(relative));
         } catch (IOException | RuntimeException unavailable) { return null; }
     }
-    /** The path below the last {@code resources/} or {@code classes/} segment: the same graph wherever the build copied it. */
+    /** The same graph wherever the build copied it, and only that: the module (the path before its first
+     *  {@code src}/{@code target}/{@code build}/{@code out} segment), the source set ({@code test} when any segment
+     *  names it, else {@code main}) and the path below the last {@code resources}/{@code classes} segment. A path
+     *  without an output root keeps its whole relative path. */
     static String logicalPath(Path relative) {
-        int start = 0;
+        int start = 0, module = -1;
+        boolean test = false;
         for (int i = 0; i < relative.getNameCount() - 1; i++) {
             String name = relative.getName(i).toString();
-            if (name.equals("resources") || name.equals("classes")) start = i + 1;
+            if (name.equals("resources") || name.equals("classes") || name.equals("test-classes")) start = i + 1;
+            if (module < 0 && (name.equals("src") || BUILD_OUTPUT.contains(name))) module = i;
+            if (name.equals("test") || name.equals("test-classes")) test = true;
         }
-        return relative.subpath(start, relative.getNameCount()).toString().replace('\\', '/');
+        String below = relative.subpath(start, relative.getNameCount()).toString().replace('\\', '/');
+        if (start == 0) return below;
+        String prefix = module <= 0 ? "" : relative.subpath(0, module).toString().replace('\\', '/');
+        return prefix + "|" + (test ? "test" : "main") + "|" + below;
     }
     static boolean buildCopy(Path relative) {
         for (int i = 0; i < relative.getNameCount() - 1; i++) if (BUILD_OUTPUT.contains(relative.getName(i).toString())) return true;

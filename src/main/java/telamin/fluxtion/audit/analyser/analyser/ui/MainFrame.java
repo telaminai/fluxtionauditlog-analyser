@@ -14165,10 +14165,13 @@ public final class MainFrame extends JFrame {
     private boolean outputStillMatches(telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File expected) {
         if (expected == null || projectRoot() == null) return false;
         String path = factRefs.get(expected.pathRef());
-        var now = path == null ? null : telamin.fluxtion.audit.analyser.analyser.project.ProjectOutputScanner.observe(
+        var now = path == null ? null : telamin.fluxtion.audit.analyser.analyser.project.ProjectOutputScanner.observeMetadata(
                 Path.of(path), expected.kind(), projectRoot());
+        // Metadata only: this runs on the EDT, and the scan already tied this metadata to its content digest (§3.5.1).
         return now != null && expected.pathKey().equals(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(now.realPath().toString()))
-                && expected.revision().equals(now.revision());
+                && expected.revision().size() == now.revision().size()
+                && expected.revision().modifiedNanos() == now.revision().modifiedNanos()
+                && java.util.Objects.equals(expected.revision().fileKeyDigest(), now.revision().fileKeyDigest());
     }
 
     private OpenRequest.OutputOrigin hostedOutputOrigin(String path,
