@@ -95,7 +95,7 @@ class CanonicalSkillsTest {
 
     /**
      * Flag kind default change: a flag without {@code kind} now saves a neutral note, so the fault-found path must say
-     * {@code "kind": "fault"} or a real fault is recorded as a note. The proving-a-claim line stays neutral.
+     * {@code "kind": "fault"} or a real fault is recorded as a note. The proving-a-claim line explicitly confirms correct behaviour and explains older defaults.
      */
     @Test
     void pointAtTheFaultFlagsAFoundFaultAsAFault() throws Exception {
@@ -112,6 +112,8 @@ class CanonicalSkillsTest {
         assertFalse(claim.contains("analyser_flag {\"recordIndexes\": [<n>], \"kind\": \"fault\""),
                 "proving a claim is not a fault by default");
         assertTrue(claim.contains("\"kind\": \"confirmation\"") && claim.contains("neutral note"));
+        assertTrue(claim.contains("1.40.3 and earlier") && claim.contains("do not accept `note`"));
+        assertTrue(claim.contains("tool's schema lists `note`") && claim.contains("explanation instead"));
     }
 
     @Test

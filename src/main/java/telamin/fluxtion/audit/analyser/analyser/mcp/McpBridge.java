@@ -171,13 +171,13 @@ public final class McpBridge {
      * never arrives. A bridge whose client is still running is kept, however long it sits idle — by design.
      */
     public static void launch(String[] args) {
-        ProcessHandle.current().parent().ifPresent(original ->
-                exitWhenOrphaned(() -> attached(original.pid(), original.isAlive(),
-                                ProcessHandle.current().parent().map(ProcessHandle::pid)),
+        var original = ProcessHandle.current().parent();
+        exitWhenOrphaned(() -> original.map(parent -> attached(parent.pid(), parent.isAlive(),
+                                ProcessHandle.current().parent().map(ProcessHandle::pid))).orElse(false),
                         ORPHAN_POLL, () -> {
                             System.err.println("[analyser-mcp] the launching process has gone; stopping");
                             System.exit(0);
-                        }));
+                        });
         main(args);
         System.exit(0);
     }
@@ -190,10 +190,11 @@ public final class McpBridge {
      * {@link ProcessHandle#isAlive()} of the handle taken at launch, which also checks the start time, so a reused pid
      * never counts as the original. It alone is not enough: an exited parent nobody has reaped yet (a zombie) still
      * reads as alive — but the moment a parent exits its children are re-parented, so the CURRENT parent pid changes
-     * (or is unknown), and either ends the attachment.
+     * (or is unknown), and either ends the attachment. PID 1 at launch means the launcher died before Java
+     * sampled its parent; an unavailable parent also ends the attachment.
      */
     static boolean attached(long originalPid, boolean originalAlive, java.util.Optional<Long> currentParentPid) {
-        return originalAlive && currentParentPid.map(pid -> pid == originalPid).orElse(false);
+        return originalPid != 1 && originalAlive && currentParentPid.map(pid -> pid == originalPid).orElse(false);
     }
 
     /** Start a daemon watchdog that runs {@code exit} once {@code stillAttached} turns false. */

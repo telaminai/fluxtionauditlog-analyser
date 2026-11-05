@@ -18,6 +18,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -157,12 +158,56 @@ class McpBridgeExitTest {
      */
     @Test
     void theBridgeIsAttachedOnlyWhileItsOriginalParentIsStillItsParent() {
+        assertFalse(McpBridge.attached(1, true, Optional.of(1L)), "launcher died before Java sampled its parent");
         assertTrue(McpBridge.attached(100, true, Optional.of(100L)), "the launching client, alive and still the parent");
         assertFalse(McpBridge.attached(100, true, Optional.of(1L)), "an unreaped (zombie) parent: re-parented to init");
         assertFalse(McpBridge.attached(100, true, Optional.of(200L)), "re-parented to anything else");
         assertFalse(McpBridge.attached(100, true, Optional.empty()), "no parent any more");
         assertFalse(McpBridge.attached(100, false, Optional.of(100L)),
                 "the original handle is gone: a reused pid with another start time is not the launcher");
+    }
+
+    /** Enter the real bridge only after the short-lived launcher is gone, with stdin still held open. */
+    public static class OrphanBeforeLaunch {
+        public static void main(String[] args) throws Exception {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            while (ProcessHandle.current().parent().map(p -> p.pid() != 1).orElse(false)) {
+                if (System.nanoTime() > deadline) throw new IllegalStateException("launcher did not exit");
+                Thread.sleep(10);
+            }
+            McpBridge.launch(new String[0]);
+        }
+    }
+
+    @Test
+    void aLauncherThatDiesBeforeJavaStartsCannotLeaveAnOrphanBridge() throws Exception {
+        Path pidFile = dir.resolve("child.pid");
+        Path errors = dir.resolve("child.err");
+        String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+        ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c",
+                "exec 3<&0; \"$@\" <&3 3<&- & echo $! > \"$0\"; exit 0", pidFile.toString(),
+                java, "-Djava.awt.headless=true", "-Duser.home=" + dir, "-cp",
+                System.getProperty("java.class.path"), OrphanBeforeLaunch.class.getName());
+        for (String variable : List.of("JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS"))
+            pb.environment().remove(variable);
+        pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+        pb.redirectError(errors.toFile());
+        Process launcher = pb.start();
+        ProcessHandle child = null;
+        try {
+            assertTrue(launcher.waitFor(5, TimeUnit.SECONDS), "the shell launcher exits immediately");
+            long pid = Long.parseLong(Files.readString(pidFile).trim());
+            child = ProcessHandle.of(pid).orElse(null);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(12);
+            while (child != null && child.isAlive() && System.nanoTime() < deadline) Thread.sleep(50);
+            assertTrue(child == null || !child.isAlive(), "bridge exits even though the test still holds its stdin open");
+            assertTrue(Files.readString(errors).contains("the launching process has gone; stopping"),
+                    "the watchdog, not EOF or a launch failure, stopped the bridge");
+        } finally {
+            launcher.getOutputStream().close();
+            if (child != null && child.isAlive()) child.destroyForcibly();
+            launcher.destroyForcibly();
+        }
     }
 
     /**
