@@ -17,10 +17,24 @@ final class ProjectOutputsPanel extends JPanel {
     private JTabbedPane tabs;
     private final Set<Long> read = new HashSet<>();
     private final JLabel empty = new JLabel("No pending messages.");
+    private final JButton acceptAll = new JButton("Accept all");
+    private final JButton clearAll = new JButton("Clear all");
     private ProjectOutputsState rendered = ProjectOutputsState.NONE;
     ProjectOutputsPanel(Consumer<SessionEvents.ProjectOutputOfferAnswered> answered) {
         this.answered = answered;
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(0, 8));
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEADING, 6, 0));
+        acceptAll.setName("projectOutputAcceptAll");
+        clearAll.setName("projectOutputClearAll");
+        acceptAll.setToolTipText("Open the currently pending outputs in order; stop if an open fails");
+        clearAll.setToolTipText("Dismiss the currently pending messages without opening any output");
+        acceptAll.setEnabled(false);
+        clearAll.setEnabled(false);
+        acceptAll.addActionListener(e -> answerAll(true));
+        clearAll.addActionListener(e -> answerAll(false));
+        actions.add(acceptAll);
+        actions.add(clearAll);
+        add(actions, BorderLayout.NORTH);
         rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
         scroll.setBorder(BorderFactory.createEmptyBorder());
         JPanel content = new JPanel(new BorderLayout());
@@ -30,6 +44,12 @@ final class ProjectOutputsPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         rows.add(empty);
         setName("projectOutputOffers");
+    }
+    private void answerAll(boolean open) {
+        ProjectOutputsState snapshot = rendered;
+        if (!snapshot.offers().isEmpty())
+            answered.accept(new SessionEvents.ProjectOutputOfferAnswered(snapshot.watch(), 0, open,
+                    snapshot.offers().stream().map(ProjectOutputsState.Offer::id).toList()));
     }
     void installTab(JTabbedPane tabs) {
         this.tabs = tabs;
@@ -57,6 +77,8 @@ final class ProjectOutputsPanel extends JPanel {
         if (rendered.equals(state)) { refreshTab(); return; }
         if (rendered.watch() != state.watch()) read.clear();
         rendered = state;
+        acceptAll.setEnabled(!state.offers().isEmpty());
+        clearAll.setEnabled(!state.offers().isEmpty());
         read.retainAll(state.offers().stream().map(ProjectOutputsState.Offer::id).toList());
         rows.removeAll();
         if (state.offers().isEmpty()) rows.add(empty);

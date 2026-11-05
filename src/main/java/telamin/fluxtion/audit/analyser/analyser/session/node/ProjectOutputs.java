@@ -29,6 +29,8 @@ public class ProjectOutputs implements EventLogSource {
     private Map<Long, Pending> pending = new LinkedHashMap<>();
     private Map<Long, Opening> opening = new HashMap<>();
     private Set<Long> shown = new HashSet<>();
+    private Set<Long> acceptedBatch = new LinkedHashSet<>();
+    private long batchOpening;
     private Set<Opened> opened = new LinkedHashSet<>();
     private Set<Turn> turns = new LinkedHashSet<>();
     private ProjectOutputsState.File latestGraph;
@@ -65,7 +67,7 @@ public class ProjectOutputs implements EventLogSource {
         if (watch != 0) effects.request(new SessionEffects.StopProjectOutputsWatchEffect(0, watch));
         watching = false; baseline = false; lastScan = Long.MIN_VALUE;
         candidates.clear(); consumed.clear(); announced.clear(); pending.clear(); opening.clear();
-        shown.clear(); opened.clear(); latestGraph = null;
+        shown.clear(); opened.clear(); latestGraph = null; acceptedBatch.clear(); batchOpening = 0;
     }
     @OnEventHandler public boolean onBasis(SessionEvents.ProjectOutputsBasisObserved e) {
         if (e.watch() != watch || e.projectGeneration() != projectGeneration || watching) return false;
@@ -154,7 +156,27 @@ public class ProjectOutputs implements EventLogSource {
     @OnEventHandler public boolean onTurnEnded(SessionEvents.LocalAgentTurnEnded e) { show(); return true; }
     @OnEventHandler public boolean onExited(SessionEvents.LocalAgentExited e) { show(); return true; }
     @OnEventHandler public boolean onAnswered(SessionEvents.ProjectOutputOfferAnswered e) {
-        if (e.watch() != watch || !watching || !pending.containsKey(e.offer())) return false;
+        if (e.watch() != watch || !watching) return false;
+        if (!e.batch().isEmpty()) {
+            if (e.open()) {
+                if (boundary.projectTransitionPending()) {
+                    effects.request(new SessionEffects.ShowStatusEffect(0, "The project change is still pending — finish it before opening these outputs"));
+                    return true;
+                }
+                e.batch().stream().filter(pending::containsKey).forEach(acceptedBatch::add);
+                openNextAccepted();
+            } else {
+                acceptedBatch.removeAll(e.batch());
+                e.batch().forEach(pending::remove);
+            }
+            return true;
+        }
+        if (!pending.containsKey(e.offer())) return false;
+        // An individual choice supersedes any remaining bulk navigation.
+        acceptedBatch.clear();
+        return answerOne(e);
+    }
+    private boolean answerOne(SessionEvents.ProjectOutputOfferAnswered e) {
         if (e.open() && boundary.projectTransitionPending()) {
             effects.request(new SessionEffects.ShowStatusEffect(0, "The project change is still pending — finish it before opening this output")); return true;
         }
@@ -164,6 +186,18 @@ public class ProjectOutputs implements EventLogSource {
             effects.request(new SessionEffects.OpenProjectOutputEffect(0, watch, projectGeneration, e.offer(), accepted.offer().file(), accepted.offer().graph()));
         }
         auditLog.info("projectOutputAnswer", e.open() ? "OPEN" : "NOT_NOW").info("offer", e.offer()); return true;
+    }
+    private void openNextAccepted() {
+        if (!opening.isEmpty() || batchOpening != 0) return;
+        if (!watching || boundary.projectTransitionPending()) { acceptedBatch.clear(); return; }
+        while (!acceptedBatch.isEmpty()) {
+            long id = acceptedBatch.iterator().next();
+            acceptedBatch.remove(id);
+            if (!pending.containsKey(id)) continue;
+            batchOpening = id;
+            answerOne(new SessionEvents.ProjectOutputOfferAnswered(watch, id, true));
+            return;
+        }
     }
     /** Revocable node permission for a deferred EDT effect; a later request cannot lend its context. */
     public boolean permitsOpen(long epoch, long offer, long generation) {
@@ -175,7 +209,13 @@ public class ProjectOutputs implements EventLogSource {
     public boolean permitsWatch(long epoch, long generation) { return current(epoch, generation); }
     @OnEventHandler public boolean onOpened(SessionEvents.ProjectOutputOpenObserved e) {
         if (e.watch() != watch) return false;
-        Opening own = opening.remove(e.offer()); if (own == null) return false;
+        Opening own = opening.remove(e.offer());
+        boolean batchCompletion = batchOpening == e.offer();
+        if (batchCompletion) batchOpening = 0;
+        if (own == null) {
+            if (batchCompletion) acceptedBatch.clear();
+            return batchCompletion;
+        }
         if (!e.opened()) {
             effects.request(new SessionEffects.ShowStatusEffect(0, "The output was not opened — check the load status before trying again"));
             // Failed switches retain the old project, but never resurrect an OLD button or queued act.
@@ -186,6 +226,9 @@ public class ProjectOutputs implements EventLogSource {
                         latest.file().kind() == ProjectOutputsState.Kind.LOG ? latestGraph : null), own.pending().owner())); show();
             }
         }
+        // Only a completed open advances the click's original snapshot; failure leaves the rest pending.
+        if (batchCompletion && !e.opened()) acceptedBatch.clear();
+        else openNextAccepted();
         return true;
     }
     @OnEventHandler public boolean onHostedOpened(SessionEvents.HostedProjectOutputOpened e) {

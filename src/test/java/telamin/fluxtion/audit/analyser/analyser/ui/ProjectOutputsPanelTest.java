@@ -66,6 +66,22 @@ class ProjectOutputsPanelTest {
         });
     }
 
+    @Test void bulkButtonsCaptureTheVisibleMessagesAndDisableWhenEmpty() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            var answers = new ArrayList<SessionEvents.ProjectOutputOfferAnswered>();
+            var panel = new ProjectOutputsPanel(answers::add);
+            JButton accept = button(panel, "projectOutputAcceptAll");
+            JButton clear = button(panel, "projectOutputClearAll");
+            assertFalse(accept.isEnabled()); assertFalse(clear.isEnabled());
+            panel.render(state(7, 2, 3));
+            accept.doClick(); clear.doClick();
+            assertEquals(List.of(new SessionEvents.ProjectOutputOfferAnswered(7, 0, true, List.of(2L, 3L)),
+                    new SessionEvents.ProjectOutputOfferAnswered(7, 0, false, List.of(2L, 3L))), answers);
+            panel.render(state(7));
+            assertFalse(accept.isEnabled()); assertFalse(clear.isEnabled());
+        });
+    }
+
     private static JButton button(Container root, String name) {
         for (Component c : root.getComponents()) {
             if (c instanceof JButton b && name.equals(b.getName())) return b;
