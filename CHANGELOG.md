@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.40.4] - 2026-11-05
+
 ### Added
 - **A text audit record can declare quoted values itself.** A record whose `eventLogRecord` mapping opens with
   `textEncoding: QUOTED_SCALARS` is read with the quoted-scalar grammar (format spec §3a): a value such as
