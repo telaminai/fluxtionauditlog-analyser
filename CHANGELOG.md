@@ -8,8 +8,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Changed
 
-- The add-a-node skill carries the lessons of the 2026-11-05 authoring gym: a new field or annotation, `@Inject` included, needs regeneration; how to raise a derived event; shaping a graph as one node per owner of state; the filtered-handler naming and its three validate-time rules; replacing the starter's sample nodes; and that the audit is not a byte copy of business output.
-- `audit-compare.py` reports the starter's generated callback audit (`handledEvent`, `filterId`, `filterString`, `triggerFired`, `lifecycle`) with the framework data, so a generated node and a hand-written one that log the same values match; `--strict-trace` compares them as business again.
+- The add-a-node skill carries the lessons of the 2026-11-05 authoring gym: a field or annotation that generation consumes, `@Inject` included, needs regeneration (a transient helper field does not); how to raise a derived event; shaping a graph as one node per owner of state; the filtered-handler naming and its three validate-time rules; replacing the starter's sample nodes; and that the audit is not a byte copy of business output.
+- `audit-compare.py` reports the starter's generated callback audit (`handledEvent`, `filterId`, `filterString`, `triggerFired`, `lifecycle`) with the framework data, so a generated node and a hand-written one that log the same values match, while which nodes ran stays business: a trigger that logs only `triggerFired` and stops running is still a difference, and a node reached by another event type or filter is inconclusive. `--strict-trace` compares the callback audit as business again.
 
 ## [1.40.4] - 2026-11-05
 

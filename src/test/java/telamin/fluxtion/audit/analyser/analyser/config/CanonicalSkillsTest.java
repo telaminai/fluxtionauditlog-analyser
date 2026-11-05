@@ -157,11 +157,17 @@ class CanonicalSkillsTest {
         assertTrue(text.contains("Then **regenerate** — a graph change needs it"), "the regenerate step is pinned");
         // Gym 2026-11-05 (AG-1): three runs added @Inject EventDispatcher after generation, rebuilt only and hit an NPE,
         // because "a change inside a method body does not" read as "anything inside the class does not".
-        assertTrue(text.contains("a field added or removed, or an annotation added\nor changed on a field or method, **`@Inject` included**"),
-                "the regenerate step must say a new field or annotation, @Inject included, is a graph change");
+        assertTrue(text.contains("**`@Inject`\nincluded**"), "the regenerate step must say a new @Inject field is a graph change");
+        assertTrue(text.contains("`transient`, `static` or `@FluxtionIgnore` helper field, does not"),
+                "and that a helper field generation ignores is not (each regeneration spends a compile credit)");
+        // Reviews of PR #221: the script's description must say what it now does, and no rule that never shipped.
+        assertFalse(text.contains("Only that leading run is framework"), "the callback audit is framework too now");
+        assertTrue(text.contains("--strict-trace") && text.contains("Which nodes ran stays business"));
+        assertFalse(text.contains("SPRING_FILTER_MIXED"), "withdrawn: no evidence for it (spec r3)");
+        assertFalse(text.contains("--member <name>"), "withdraw takes an ownership key, not a bare name");
         for (String section : List.of("## Shape the graph", "## Raise a derived event", "## Replace the starter's sample nodes",
-                "**Filtered handlers.**", "SPRING_FILTER_DUPLICATE", "SPRING_FILTER_CONFLICT", "SPRING_FILTER_MIXED",
-                "queueReentrantEvent", "not a byte copy of business output"))
+                "**Filtered handlers.**", "SPRING_FILTER_DUPLICATE", "SPRING_FILTER_CONFLICT",
+                "queueReentrantEvent", "Check exact output text in the sink's output"))
             assertTrue(text.contains(section), "add-a-node must carry the gym lessons: " + section);
         assertTrue(text.contains("**Regeneration writes the class shell**"));
         assertTrue(text.contains("there are no imports to find"));

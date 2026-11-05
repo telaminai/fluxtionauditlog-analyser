@@ -14,7 +14,11 @@ business. The starter's GENERATED callback audit is trace too: a fresh Spring no
 `handledEvent` (then `filterId`, then `filterString`, when the event carries them), a trigger with `triggerFired:
 true`, a lifecycle method with `lifecycle: <phase>`. Those exact runs, straight after the tracing run, are reported
 with the framework data, so a generated node and a hand-written one that log the same business values match;
---strict-trace compares them as business again. A record with at least one business entry is a business record, and the
+--strict-trace compares them as business again. With tracing off the callback run is simply the start of the entry.
+Which nodes ran stays business: a node that showed it ran ONLY through its callback audit (a trigger that logs just
+`triggerFired`) is compared as having run, so one that stops running is a difference. A difference that disappears
+when a node shown by tracing alone counts the same is INCONCLUSIVE (exit 3), and so is a match where a node that ran
+in both captures was reached by another event type or filter (its `handledEvent`/`filterString` changed). A record with at least one business entry is a business record, and the
 business comparison is the sequence of business records: their event, event type, event text, any field the
 reader does not know, and every node's business entries, in dispatch order. The times, the record's thread and
 the grouping id are never compared: they vary between runs of the same input.
@@ -524,7 +528,17 @@ def parse(path):
     return records
 
 
-def split_record(record, normalise, annotations_are_trace=True, legacy=False, callbacks_are_trace=True):
+RAN = ("(ran)", "")    # business marker: a node that showed it ran only through its generated callback audit
+
+
+def callback_entries(entries):
+    """The generated callback audit of one node entry: the callback run after the tracing run."""
+    run = trace_run(entries)
+    return tuple(entries[run:run + callback_run(entries, run)])
+
+
+def split_record(record, normalise, annotations_are_trace=True, legacy=False, callbacks_are_trace=True,
+                 presence="callback"):
     """Return (business view or None, framework view) of one record.
 
     An `annotation` at the end of the trace run is AMBIGUOUS: Fluxtion 1.1.1 tracing writes the dispatching
@@ -547,6 +561,10 @@ def split_record(record, normalise, annotations_are_trace=True, legacy=False, ca
         trace = tuple(trace)
         if own:
             business.append((node, own))
+        elif callbacks_are_trace and (end > run or presence == "any" and trace):
+            # Which nodes ran stays business: a trigger that logs only `triggerFired` and stops running is a change.
+            # presence="any" also counts a node shown by tracing alone, to tell that apart from a real difference.
+            business.append((node, (RAN,)))
         if trace:
             framework.append((node, trace))
     strip = astrip if legacy and record.get("marked") else (lambda v: v)   # a bare header lost its edge whitespace
@@ -607,11 +625,48 @@ def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.std
                   "reads the same. Pass --annotations-are-trace when both captures come from runtime 1.1.1 or later "
                   "and no node logs a key called annotation first.", file=out)
             return 3
+    if changed and callbacks_are_trace:
+        relaxed = business_views(before, after, normalise, callbacks_are_trace=True, presence="any")
+        if relaxed[0] == relaxed[1]:
+            print("verdict: INCONCLUSIVE - the entries match only if a node shown by tracing alone counts the same as one "
+                  "shown by its generated callback audit (handledEvent, triggerFired, lifecycle). Read the business "
+                  "differences above; --strict-trace compares the callback audit as business.", file=out)
+            return 3
+    if not changed and callbacks_are_trace:
+        routed = routing_changes(before, after, normalise)
+        if routed:
+            print("verdict: INCONCLUSIVE - the business entries match, but the generated callback audit of a node that "
+                  "ran in both captures changed (another event type or filter reached it):", file=out)
+            for line in routed[:max_diffs]:
+                print("  " + line, file=out)
+            print("  rerun with --strict-trace to compare the callback audit as business", file=out)
+            return 3
     print("verdict: logged business entries " + ("DIFFER" if changed else "MATCH") + " for these captures", file=out)
     return 1 if changed else 0
 
 
-def business_views(before, after, normalise, annotations_are_trace=True, callbacks_are_trace=True):
+def routing_changes(before, after, normalise):
+    """Callback-audit VALUES that differ for a node that ran in both captures, record by record. Called only when the
+    business views match, so the business records pair one to one; a node with callback audit on one side only (a
+    generated node against a hand-written one) is not a routing change."""
+    sides = []
+    for records in (before, after):
+        rows = []
+        for r in records:
+            if "raw" in r or split_record(r, normalise)[0] is None:
+                continue
+            rows.append({node: tuple((k, normalise(v)) for k, v in callback_entries(entries))
+                         for node, entries in r["items"] if callback_entries(entries)})
+        sides.append(rows)
+    changes = []
+    for number, (b, a) in enumerate(zip(*sides), 1):
+        for node in b.keys() & a.keys():
+            if b[node] != a[node]:
+                changes.append(f"business record {number}, {node}: {dict(b[node])} -> {dict(a[node])}")
+    return changes
+
+
+def business_views(before, after, normalise, annotations_are_trace=True, callbacks_are_trace=True, presence="callback"):
     """(before views, after views, upgraded): the business views the verdict compares, chosen record by record.
     A record is read exactly unless it pairs - in the alignment of both captures under the legacy grammar - with a
     record whose declaration differs, the two read alike under the legacy grammar, and the legacy reading is safe:
@@ -623,10 +678,12 @@ def business_views(before, after, normalise, annotations_are_trace=True, callbac
     for records in (before, after):
         rows = []
         for r in records:
-            exact = split_record(r, normalise, annotations_are_trace, callbacks_are_trace=callbacks_are_trace)[0]
+            exact = split_record(r, normalise, annotations_are_trace, callbacks_are_trace=callbacks_are_trace,
+                                 presence=presence)[0]
             if exact is None:
                 continue
-            legacy = split_record(r, normalise, annotations_are_trace, legacy=True, callbacks_are_trace=callbacks_are_trace)[0]
+            legacy = split_record(r, normalise, annotations_are_trace, legacy=True, callbacks_are_trace=callbacks_are_trace,
+                                  presence=presence)[0]
             marked = r.get("marked", False)
             rows.append((exact, legacy, marked, marked and exact[1] != legacy[1], not marked and proves_pre_quoting(r)))
         sides.append(rows)
