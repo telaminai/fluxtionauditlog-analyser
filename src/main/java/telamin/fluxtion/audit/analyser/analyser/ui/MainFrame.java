@@ -14156,7 +14156,10 @@ public final class MainFrame extends JFrame {
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File(observation.kind(), ref,
                 telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(path),
-                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(path), observation.revision());
+                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(path), observation.revision(),
+                observation.logicalPath() == null ? null
+                        : telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(observation.logicalPath()),
+                observation.buildCopy());
     }
 
     private boolean outputStillMatches(telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File expected) {

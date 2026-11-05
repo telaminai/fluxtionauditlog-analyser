@@ -52,4 +52,34 @@ class ProjectOutputScannerTest {
             Files.writeString(Files.createDirectories(root.resolve(ignored)).resolve("DEMO.graphml"), "DEMO");
         assertTrue(ProjectOutputScanner.scan(root, List.of(), null).files().isEmpty());
     }
+
+    @Test void buildCopiesOfOneGraphShareALogicalPathAndContentDigest(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        List<String> places = List.of("src/main/resources", "target/classes", "target/fluxtion-staging/resources");
+        for (String place : places)
+            Files.writeString(Files.createDirectories(root.resolve(place).resolve("com/acme")).resolve("P.graphml"), "<graphml/>");
+        var scan = ProjectOutputScanner.scan(root, List.of(), null);
+        assertEquals(3, scan.files().size(), "every copy is still observed; the node decides they are one graph");
+        assertEquals(List.of("com/acme/P.graphml"), scan.files().stream().map(ProjectOutputScanner.Observed::logicalPath).distinct().toList());
+        assertEquals(1, scan.files().stream().map(o -> o.revision().contentDigest()).distinct().count());
+        assertEquals(List.of(false, true, true), scan.files().stream().map(ProjectOutputScanner.Observed::buildCopy).toList());
+        Path copy = root.resolve("target/classes/com/acme/P.graphml");
+        Files.writeString(copy, "<graphml/>");
+        Files.setLastModifiedTime(copy, java.nio.file.attribute.FileTime.fromMillis(1_000));
+        var recopied = ProjectOutputScanner.observe(copy, telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.GRAPHML, root);
+        assertEquals(scan.files().getFirst().revision().contentDigest(), recopied.revision().contentDigest(),
+                "a fresh copy of the same bytes keeps its content digest");
+        Files.writeString(copy, "<graphml>changed</graphml>");
+        assertNotEquals(recopied.revision().contentDigest(), ProjectOutputScanner.observe(copy,
+                telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.GRAPHML, root).revision().contentDigest());
+    }
+
+    @Test void logsKeepMetadataIdentityOnly(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        Path logs = Files.createDirectories(root.resolve("logs"));
+        Files.writeString(logs.resolve("DEMO.yml"), "DEMO");
+        var log = ProjectOutputScanner.scan(root, List.of(logs), null).files().getFirst();
+        assertNull(log.revision().contentDigest(), "a log's bytes are never read by the watcher");
+        assertNull(log.logicalPath());
+    }
 }

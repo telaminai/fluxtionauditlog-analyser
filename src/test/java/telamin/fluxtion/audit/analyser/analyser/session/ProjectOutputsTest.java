@@ -31,6 +31,15 @@ class ProjectOutputsTest {
     }
     static ProjectOutputsState.File graph(long revision) { return file(GRAPHML, 31, "graph", revision); }
     static ProjectOutputsState.File log(long revision) { return file(LOG, 32, "log", revision); }
+    /** §3.5.1: one logical graph DEMO/P.graphml held at a source path and two build copies, each with its own metadata. */
+    static ProjectOutputsState.File copy(long ref, String key, boolean build, long mtime, String content) {
+        return new ProjectOutputsState.File(GRAPHML, ref, key, "DEMO.graphml",
+                new ProjectOutputsState.Revision(100, mtime, "DEMO-file-key-" + ref, content), "DEMO-logical-graph", build);
+    }
+    static ProjectOutputsState.File src(long mtime, String content) { return copy(41, "a-src", false, mtime, content); }
+    static ProjectOutputsState.File classes(long mtime, String content) { return copy(42, "b-classes", true, mtime, content); }
+    static ProjectOutputsState.File staging(long mtime, String content) { return copy(43, "c-staging", true, mtime, content); }
+
     static ProjectOutputsState.File file(ProjectOutputsState.Kind kind, long ref, String key, long revision) {
         return new ProjectOutputsState.File(kind, ref, key, "DEMO." + kind.name().toLowerCase(),
                 new ProjectOutputsState.Revision(revision, revision, "DEMO-file-key"));
@@ -234,5 +243,48 @@ class ProjectOutputsTest {
         f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, oldOffer, true));
         assertTrue(f.effects(SessionEffects.OpenProjectOutputEffect.class).isEmpty(), "a switched project's old button cannot open");
         assertEquals(nextWatch, f.state().watch());
+    }
+
+    @Test void oneRegenerationCopiedByTheBuildIsOneOfferNamingTheSourceCopy() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), classes(1, "v1"), staging(1, "v1"));
+        // generate.sh rewrites the source graph; mvn package then copies the same bytes into target/.
+        f.scan(4000, src(2, "v2"), classes(1, "v1"), staging(1, "v1"));
+        f.scan(8000, src(2, "v2"), classes(3, "v2"), staging(3, "v2"));
+        f.scan(12000, src(2, "v2"), classes(3, "v2"), staging(3, "v2"));
+        f.scan(16000, src(2, "v2"), classes(3, "v2"), staging(3, "v2"));
+        assertEquals(1, f.state().offers().size(), "three copies of one regenerated graph are one offer, not three banners");
+        assertEquals(41, f.state().offers().getFirst().file().pathRef(), "the offer names the source copy, not a build copy");
+        assertEquals(1, f.effects(SessionEffects.OfferProjectOutputEffect.class).size());
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, f.state().offers().getFirst().id(), false));
+        // A later package re-copies identical bytes with fresh timestamps.
+        f.scan(20000, src(2, "v2"), classes(5, "v2"), staging(5, "v2"));
+        f.scan(24000, src(2, "v2"), classes(5, "v2"), staging(5, "v2"));
+        assertTrue(f.state().offers().isEmpty(), "a copy of a graph already answered is not a regeneration");
+        f.scan(28000, src(6, "v3"), classes(5, "v2"), staging(5, "v2"));
+        f.scan(32000, src(6, "v3"), classes(5, "v2"), staging(5, "v2"));
+        assertEquals(1, f.state().offers().size(), "changed bytes are a real regeneration and offer once more");
+    }
+
+    @Test void aBuildCopySettlingFirstHandsItsOfferToTheSourceCopy() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"));
+        f.scan(4000, src(1, "v1"), staging(2, "v2"));
+        f.scan(8000, src(1, "v1"), staging(2, "v2"));
+        assertEquals(43, f.state().offers().getFirst().file().pathRef(), "only the build copy holds the new bytes so far");
+        long id = f.state().offers().getFirst().id();
+        f.scan(12000, src(3, "v2"), staging(2, "v2"));
+        f.scan(16000, src(3, "v2"), staging(2, "v2"));
+        assertEquals(1, f.state().offers().size(), "the source copy of the same bytes adds no second banner");
+        assertEquals(41, f.state().offers().getFirst().file().pathRef(), "it takes over the pending offer");
+        assertEquals(id, f.state().offers().getFirst().id(), "keeping the button the person can already see");
+    }
+
+    @Test void aGraphOnlyInBuildOutputIsStillOffered() {
+        Fixture f = new Fixture(false);
+        f.scan(0);
+        f.scan(4000, classes(1, "v1"));
+        f.scan(8000, classes(1, "v1"));
+        assertEquals(1, f.state().offers().size(), "a build-generated graph with no source copy must still be offered");
     }
 }

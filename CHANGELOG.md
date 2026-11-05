@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+
+- One regenerated graph now raises one "The graph was regenerated — open it?" banner, not one per build copy (`target/classes`, `target/fluxtion-staging`); a build that re-copies an unchanged graph raises none.
+
 ## [1.40.4] - 2026-11-05
 
 ### Added
