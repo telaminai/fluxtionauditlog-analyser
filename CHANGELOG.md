@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.40.5] - 2026-11-05
+
 ### Added
 - The Compiler account screen shows **Signed-in email** when the service provides the authenticated user's verified address. Older services show **Not provided by service**; the address is omitted from Copy details.
 - Right-click Java or XML code and choose **Explain this** to copy an explanation prompt or add it to the assistant draft. It uses the selected text, or the displayed code when nothing is selected, without sending automatically.
