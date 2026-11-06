@@ -40,7 +40,7 @@ public final class TemplateArchive {
     // TemplateExecutablesTest against src/test/resources/template/playground-executables.txt (upstream ask UP-PG-07).
     static final Set<String> POSIX_EXECUTABLES = Set.of(
             "mvnw", "run-server.sh", "export-audit.sh", "stop-server.sh", "check-fluxtion-key.sh",
-            "setup.sh", "validate.sh", "generate.sh",
+            "setup.sh", "validate.sh", "generate.sh", "feed-position.sh",
             "run-and-export.sh", "run.sh", "setup-java.sh", "runWasm.sh");
 
     /**
