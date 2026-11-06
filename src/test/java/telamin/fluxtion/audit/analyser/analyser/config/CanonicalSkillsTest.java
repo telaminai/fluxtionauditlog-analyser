@@ -165,8 +165,8 @@ class CanonicalSkillsTest {
         assertTrue(text.contains("--strict-trace") && text.contains("Which nodes ran stays business"));
         assertFalse(text.contains("SPRING_FILTER_MIXED"), "withdrawn: no evidence for it (spec r3)");
         assertFalse(text.contains("--member <name>"), "withdraw takes an ownership key, not a bare name");
-        // starter-core 1.0.86 shipped without the authoring gym work; the skill must not promise it there.
-        assertFalse(text.contains("1.0.86"), "the authoring gym's starter-core behaviour ships in 1.0.87");
+        // starter-core 1.0.86 and 1.0.87 shipped without the authoring gym work; the skill must not promise it there.
+        assertFalse(text.contains("1.0.86") || text.contains("1.0.87"), "the authoring gym's starter-core behaviour ships in 1.0.88");
         // Delta review: the generated start() dispatches queued callbacks; only @Initialise waits for the next event.
         assertTrue(text.contains("queued from `@Initialise` waits for the next incoming event")
                 && !text.contains("`@Initialise`/`@Start`"), "the queue caveat must name @Initialise only");
