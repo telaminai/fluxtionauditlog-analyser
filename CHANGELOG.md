@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.40.6] - 2026-11-06
+
 ### Fixed
 
 - Creating an analyser bundle keeps its feed-position helper executable, so saved-position run and restart commands work without a manual permission change.
