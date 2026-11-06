@@ -8,7 +8,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
-- A regenerated graph raises one message however many build copies it lands in, whichever copy the scan sees first; the message names the copy outside build output. Copies under Gradle's `build/` and IntelliJ's `out/` count as the same graph too, while two modules' graphs stay two messages. A build or regeneration that rewrites the same bytes raises none, including after **Not now** or **Clear all**, and **Accept all** still opens a log whose graph was rewritten with the same bytes.
+- A regenerated graph raises one message however many build copies it lands in, whichever copy the scan sees first; the message names the copy outside build output. Recognised Gradle `build/` and unambiguous IntelliJ `out/` copies count as the same graph too; ambiguous or truncated module layouts keep graphs distinct. A build or regeneration that rewrites the same bytes raises none, including after **Not now** or **Clear all**, and **Accept all** still opens a log whose graph was rewritten with the same bytes. If a file disappears during an open, a settled surviving copy remains available through a fresh message.
 
 ## [1.40.5] - 2026-11-05
 

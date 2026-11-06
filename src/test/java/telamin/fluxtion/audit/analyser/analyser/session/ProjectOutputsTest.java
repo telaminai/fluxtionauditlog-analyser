@@ -507,5 +507,36 @@ class ProjectOutputsTest {
         f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, offer, false, "DEMO failure"));
         assertEquals(1, f.state().offers().size(), "a failed open still leaves the graph offered");
     }
+    @Test void disappearingOpeningReoffersSettledSurvivorWithFreshConsent() {
+        Fixture f = new Fixture(false);
+        f.adapter.outputOpensPending = true;
+        f.scan(0, src(1, "v1"), classes(1, "v1"));
+        f.scan(4000, src(2, "v2"), classes(1, "v1")); f.scan(8000, src(2, "v2"), classes(1, "v1"));
+        long accepted = f.state().offers().getFirst().id();
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, true, List.of(accepted)));
+        f.scan(12000, src(2, "v2"), classes(3, "v2")); f.scan(16000, src(2, "v2"), classes(3, "v2"));
+        assertTrue(f.state().offers().isEmpty());
+        f.scan(20000, classes(3, "v2"));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, accepted, false, "DEMO failure"));
+        assertEquals(1, f.state().offers().size(), "settled surviving bytes must not disappear with the original path");
+        var replacement = f.state().offers().getFirst();
+        assertNotEquals(accepted, replacement.id(), "the old batch cannot authorize the replacement");
+        assertEquals(classes(3, "v2"), replacement.file());
+        assertEquals(1, f.effects(SessionEffects.OpenProjectOutputEffect.class).size(), "no automatic retry");
+    }
+
+    @Test void disappearingOpeningDoesNotOfferAnUnsettledSurvivorEarly() {
+        Fixture f = new Fixture(false);
+        f.adapter.outputOpensPending = true;
+        f.scan(0, src(1, "v1")); f.scan(4000, src(2, "v2")); f.scan(8000, src(2, "v2"));
+        long accepted = f.state().offers().getFirst().id();
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, accepted, true));
+        f.scan(12000, classes(3, "v2"));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, accepted, false, "DEMO failure"));
+        assertTrue(f.state().offers().isEmpty(), "a new copy must settle before it is offered");
+        f.scan(16000, classes(3, "v2"));
+        assertEquals(1, f.state().offers().size());
+    }
+
 }
 

@@ -41,6 +41,7 @@ public final class ProjectOutputScanner {
         // An explicitly open local log adds its directory, not the rest of the machine. Other projects stay outside.
         if (currentLog != null && currentLog.getParent() != null) addDirectory(logDirs, currentLog.getParent(), real);
         Map<Path, Observed> out = new LinkedHashMap<>();
+        Map<Path, Optional<String>> singleModules = new HashMap<>();
         boolean[] complete = {true};
         int[] visited = {0};
         try {
@@ -59,7 +60,7 @@ public final class ProjectOutputScanner {
                     ProjectOutputsState.Kind kind = name.endsWith(".graphml") ? ProjectOutputsState.Kind.GRAPHML
                             : logDirs.stream().anyMatch(path::startsWith) && logName(name) ? ProjectOutputsState.Kind.LOG : null;
                     if (kind != null) {
-                        var observed = observe(path, kind, real);
+                        var observed = observe(path, kind, real, true, singleModules);
                         if (observed != null) {
                             if (!out.containsKey(observed.realPath()) && out.size() >= MAX_FILES) {
                                 complete[0] = false; return FileVisitResult.TERMINATE;
@@ -92,6 +93,9 @@ public final class ProjectOutputScanner {
     /** Identity without reading any bytes, for a check on the EDT; a GraphML's revision then has no content digest. */
     public static Observed observeMetadata(Path path, ProjectOutputsState.Kind kind, Path fence) { return observe(path, kind, fence, false); }
     private static Observed observe(Path path, ProjectOutputsState.Kind kind, Path fence, boolean content) {
+        return observe(path, kind, fence, content, new HashMap<>());
+    }
+    private static Observed observe(Path path, ProjectOutputsState.Kind kind, Path fence, boolean content, Map<Path, Optional<String>> singleModules) {
         try {
             Path real = path.toRealPath();
             Path root = fence == null ? null : fence.toRealPath();
@@ -102,7 +106,7 @@ public final class ProjectOutputScanner {
             var metadata = new ProjectOutputsState.Revision(attrs.size(), attrs.lastModifiedTime().to(TimeUnit.NANOSECONDS), key);
             if (kind != ProjectOutputsState.Kind.GRAPHML) return new Observed(real, kind, metadata);
             Path relative = root == null ? real.getFileName() : root.relativize(real);
-            return new Observed(real, kind, content ? withContent(real, metadata) : metadata, logicalPath(relative, root), buildCopy(relative));
+            return new Observed(real, kind, content ? withContent(real, metadata) : metadata, logicalPath(relative, root, singleModules), buildCopy(relative));
         } catch (IOException | RuntimeException unavailable) { return null; }
     }
     /** The same graph wherever the build copied it, and only that (§3.5.1 rule 1). An output root is recognised by its
@@ -113,12 +117,15 @@ public final class ProjectOutputScanner {
      *  no recognised root keeps its whole relative path. */
     static String logicalPath(Path relative) { return logicalPath(relative, null); }
     static String logicalPath(Path relative, Path root) {
-        var r = outputRoot(relative, root);
+        return logicalPath(relative, root, new HashMap<>());
+    }
+    private static String logicalPath(Path relative, Path root, Map<Path, Optional<String>> singleModules) {
+        var r = outputRoot(relative, root, singleModules);
         return r == null ? unix(relative) : r.module() + "|" + r.set() + "|" + unix(relative.subpath(r.start(), relative.getNameCount()));
     }
     /** The first recognised source or output root along the path; {@code build} says it is build output. */
     private record Root(String module, String set, int start, boolean build) { }
-    private static Root outputRoot(Path relative, Path root) {
+    private static Root outputRoot(Path relative, Path root, Map<Path, Optional<String>> singleModules) {
         int n = relative.getNameCount();
         java.util.function.IntFunction<String> seg = i -> i < n - 1 ? relative.getName(i).toString() : "";
         for (int i = 0; i < n - 1; i++) {
@@ -144,7 +151,7 @@ public final class ProjectOutputScanner {
                         // the safe failure, merging two modules' graphs is not (D12).
                         if (root != null && java.nio.file.Files.isDirectory(root.resolve(module).resolve(name)))
                             module = module.isEmpty() ? name : module + "/" + name;
-                        else if (root != null && !singleModule(root.resolve(module)))
+                        else if (root != null && !name.equals(singleModules.computeIfAbsent(root.resolve(module), ProjectOutputScanner::singleModule).orElse(null)))
                             module = (module.isEmpty() ? "" : module + "/") + "out:" + name;
                     }
                 }
@@ -154,18 +161,58 @@ public final class ProjectOutputScanner {
         }
         return null;
     }
-    /** A project whose sources sit directly in {@code base/src}, with no child module holding its own {@code src}. */
-    private static boolean singleModule(Path base) {
-        if (!java.nio.file.Files.isDirectory(base.resolve("src"))) return false;
-        try (var children = java.nio.file.Files.list(base)) {
-            return children.limit(1_000).noneMatch(c -> java.nio.file.Files.isDirectory(c.resolve("src")));
-        } catch (IOException | RuntimeException unreadable) { return false; }
+    /** Conservative, bounded filesystem evidence, cached only for this scan. Unknown/truncated layouts
+     * keep IntelliJ names distinct; a spare offer is safer than merging different graphs. */
+    private static Optional<String> singleModule(Path base) {
+        if (!Files.isDirectory(base.resolve("src"), LinkOption.NOFOLLOW_LINKS)) return Optional.empty();
+        Set<String> outputModules = new HashSet<>();
+        try {
+            for (String set : List.of("production", "test")) {
+                Path outputs = base.resolve("out").resolve(set);
+                if (!Files.exists(outputs, LinkOption.NOFOLLOW_LINKS)) continue;
+                if (!Files.isDirectory(outputs, LinkOption.NOFOLLOW_LINKS)) return Optional.empty();
+                try (var children = Files.list(outputs)) {
+                    var entries = children.limit(1_001).toList();
+                    if (entries.size() > 1_000) return Optional.empty();
+                    for (Path entry : entries) {
+                        if (Files.isSymbolicLink(entry)) return Optional.empty();
+                        if (Files.isDirectory(entry, LinkOption.NOFOLLOW_LINKS))
+                            outputModules.add(entry.getFileName().toString());
+                    }
+                }
+            }
+            if (outputModules.size() != 1) return Optional.empty();
+            boolean[] certain = {true};
+            int[] visited = {0};
+            Files.walkFileTree(base, EnumSet.noneOf(FileVisitOption.class), MAX_DEPTH, new SimpleFileVisitor<>() {
+                private FileVisitResult unknown() { certain[0] = false; return FileVisitResult.TERMINATE; }
+                @Override public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                    if (++visited[0] > 1_000) return unknown();
+                    if (dir.equals(base)) return FileVisitResult.CONTINUE;
+                    String name = dir.getFileName().toString();
+                    if (dir.equals(base.resolve("src"))) return FileVisitResult.SKIP_SUBTREE;
+                    if (name.equals("src")) return unknown(); // includes nested modules, not just direct children
+                    if (Set.of(".git", ".claude", "node_modules").contains(name))
+                        return FileVisitResult.SKIP_SUBTREE;
+                    return FileVisitResult.CONTINUE;
+                }
+                @Override public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    return ++visited[0] > 1_000 || attrs.isSymbolicLink() || attrs.isDirectory()
+                            ? unknown() : FileVisitResult.CONTINUE;
+                }
+                @Override public FileVisitResult visitFileFailed(Path file, IOException failure) { return unknown(); }
+                @Override public FileVisitResult postVisitDirectory(Path dir, IOException failure) {
+                    return failure == null ? FileVisitResult.CONTINUE : unknown();
+                }
+            });
+            return certain[0] ? Optional.of(outputModules.iterator().next()) : Optional.empty();
+        } catch (IOException | RuntimeException unreadable) { return Optional.empty(); }
     }
     private static String unix(Path p) { return p.toString().replace('\\', '/'); }
     /** Build output by the recognised root's shape: a package directory named {@code build} below a source root is
      *  not build output. A path with no recognised root falls back to any {@code target}/{@code build}/{@code out}. */
     static boolean buildCopy(Path relative) {
-        var r = outputRoot(relative, null);
+        var r = outputRoot(relative, null, new HashMap<>());
         if (r != null) return r.build();
         for (int i = 0; i < relative.getNameCount() - 1; i++) if (BUILD_OUTPUT.contains(relative.getName(i).toString())) return true;
         return false;

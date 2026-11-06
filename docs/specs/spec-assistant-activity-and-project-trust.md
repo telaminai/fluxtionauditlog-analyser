@@ -497,8 +497,8 @@ renders.
      - Gradle `build/resources/<set>` and `build/classes/<lang>/<set>`;
      - IntelliJ `out/production/<module>` (main) and `out/test/<module>` (test).
    - **Module:** the path before the root. For IntelliJ, the named module is that directory when it is one of the
-     project; it is dropped only for a single-module project (sources in `src/`, no child module with its own
-     `src/`). Any other name stays a distinct module, because a spare offer is the safe failure and merging two
+     project; it is dropped only when bounded, scan-local observations establish one output module name, real sources in
+     `src/`, and no other nested source module. Symlinked, unreadable or truncated layout evidence keeps the name distinct. Any other name stays a distinct module, because a spare offer is the safe failure and merging two
      modules' graphs is not (D12).
    - **Source set:** taken from the root's shape only. A package directory named `test`, `resources` or `classes` is part
      of the path.
@@ -522,7 +522,8 @@ renders.
      - the content it was **current at** when the watch began (its canonical copy's digest at baseline);
      - the content it was last answered **Not now** at (each message cleared by **Clear all** counts as Not now),
        **opened** at (a successful Open), or opened by the hosted
-     assistant at. A click on Open alone does not count: a failed open leaves the content offered;
+     assistant at. A click on Open alone does not count: a failed open leaves the content offered; if the original path disappears,
+       a settled same-content survivor receives a fresh offer, never the old batch’s consent;
      - the content already **offered or in flight** (being opened).
    - A copy step that reproduces those bytes raises nothing. A real regeneration that changes the bytes raises exactly
      one offer.

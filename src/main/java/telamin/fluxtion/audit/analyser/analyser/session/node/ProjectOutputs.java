@@ -136,15 +136,34 @@ public class ProjectOutputs implements EventLogSource {
         pending.replaceAll((id, p) -> key(p.offer().file()).equals(key) && sameBytesElsewhere(p.offer().file(), key) != null
                 ? new Pending(new ProjectOutputsState.Offer(id, sameBytesElsewhere(p.offer().file(), key), p.offer().graph()), p.owner()) : p);
         pending.values().removeIf(p -> key(p.offer().file()).equals(key));
-        opening.values().removeIf(p -> key(p.pending().offer().file()).equals(key));
+        for (var entry : new ArrayList<>(opening.entrySet())) {
+            Opening own = entry.getValue();
+            var invalidated = own.pending().offer().file();
+            if (!key(invalidated).equals(key)) continue;
+            opening.remove(entry.getKey()); // revoke the old effect; a surviving copy needs fresh consent
+            var surviving = sameBytesElsewhere(invalidated, key, true);
+            Candidate settled = surviving == null ? null : candidates.get(key(surviving));
+            if (settled != null && lastScan - settled.since() >= POLL_MILLIS
+                    && !version(surviving).equals(consumedGraphs.get(group(surviving)))
+                    && !offeredOrAnnounced(surviving)
+                    && pending.values().stream().noneMatch(p -> graphed(p.offer().file())
+                            && group(p.offer().file()).equals(group(surviving)))) {
+                long id = ++counter;
+                pending.put(id, new Pending(new ProjectOutputsState.Offer(id, surviving, null), own.pending().owner()));
+            }
+        }
         if (latestGraph != null && key(latestGraph).equals(key)) {
             var moved = sameBytesElsewhere(latestGraph, key);
             latestGraph = moved; pairPendingLogs(moved);
         }
     }
     private ProjectOutputsState.File sameBytesElsewhere(ProjectOutputsState.File file, String except) {
+        return sameBytesElsewhere(file, except, false);
+    }
+    private ProjectOutputsState.File sameBytesElsewhere(ProjectOutputsState.File file, String except, boolean settledOnly) {
         if (!graphed(file)) return null;
-        return candidates.values().stream().filter(c -> !key(c.file()).equals(except) && graphed(c.file())
+        return candidates.values().stream().filter(c -> !settledOnly || lastScan - c.since() >= POLL_MILLIS)
+                .filter(c -> !key(c.file()).equals(except) && graphed(c.file())
                         && group(c.file()).equals(group(file)) && version(c.file()).equals(version(file)))
                 .min(Comparator.comparing((Candidate c) -> c.file().buildCopy()).thenComparing(c -> c.file().pathKey()))
                 .map(Candidate::file).orElse(null);

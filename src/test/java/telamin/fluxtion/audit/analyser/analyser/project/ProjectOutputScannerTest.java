@@ -157,5 +157,46 @@ class ProjectOutputScannerTest {
         assertTrue(ProjectOutputScanner.buildCopy(Path.of("out/production/demo/com/acme/P.graphml")));
         assertTrue(ProjectOutputScanner.buildCopy(Path.of("target/generated/P.graphml")), "an unrecognised build path still counts");
     }
+    @Test void rootSourcesDoNotMergeTwoUnknownIntellijModules(@TempDir Path root) throws Exception {
+        Files.createDirectory(root.resolve("src"));
+        writeGraph(root, "out/production/DEMO-a/com/acme/P.graphml", "a");
+        writeGraph(root, "out/production/DEMO-b/com/acme/P.graphml", "b");
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count());
+    }
+
+    @Test void nestedModuleMakesAnUnknownIntellijNameAmbiguous(@TempDir Path root) throws Exception {
+        writeGraph(root, "src/main/resources/com/acme/P.graphml", "root");
+        Files.createDirectories(root.resolve("modules/DEMO/src"));
+        writeGraph(root, "out/production/DEMO-module/com/acme/P.graphml", "module");
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count(), "nested module is not the root graph");
+    }
+
+    @Test void truncatedLayoutCannotProveASingleModule(@TempDir Path root) throws Exception {
+        writeGraph(root, "src/main/resources/com/acme/P.graphml", "root");
+        writeGraph(root, "out/production/DEMO-module/com/acme/P.graphml", "module");
+        for (int i = 0; i < 1_005; i++) Files.createDirectory(root.resolve("DEMO-child-" + i));
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count(), "exhausted evidence is not proof");
+    }
+
+    @Test void symlinkedSourcesCannotProveASingleModule(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectory(temp.resolve("DEMO"));
+        Files.createSymbolicLink(root.resolve("src"), Files.createDirectory(temp.resolve("DEMO-external")));
+        writeGraph(root, "out/production/DEMO-a/com/acme/P.graphml", "a");
+        writeGraph(root, "out/production/DEMO-b/com/acme/P.graphml", "b");
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count());
+    }
+
+    @Test void sourceModuleInsideAnOutputNamedDirectoryIsStillAmbiguous(@TempDir Path root) throws Exception {
+        writeGraph(root, "src/main/resources/com/acme/P.graphml", "root");
+        Files.createDirectories(root.resolve("out/DEMO-module/src"));
+        writeGraph(root, "out/production/DEMO-module/com/acme/P.graphml", "module");
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count());
+    }
+
 }
 
