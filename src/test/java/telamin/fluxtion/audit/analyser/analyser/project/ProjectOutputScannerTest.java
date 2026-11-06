@@ -53,15 +53,65 @@ class ProjectOutputScannerTest {
         assertTrue(ProjectOutputScanner.scan(root, List.of(), null).files().isEmpty());
     }
 
-    @Test void oneGeneratedGraphWithTwoMavenCopiesProducesOneCandidate(@TempDir Path root) throws Exception {
-        Path source = writeGraph(root, "src/main/resources/com/example/Processor.graphml", "graph-v1");
-        writeGraph(root, "target/classes/com/example/Processor.graphml", "graph-v1");
-        writeGraph(root, "target/fluxtion-staging/resources/com/example/Processor.graphml", "graph-v1");
+    @Test void buildCopiesOfOneGraphShareALogicalPathAndContentDigest(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        List<String> places = List.of("src/main/resources", "target/classes", "target/fluxtion-staging/resources");
+        for (String place : places)
+            Files.writeString(Files.createDirectories(root.resolve(place).resolve("com/acme")).resolve("P.graphml"), "<graphml/>");
         var scan = ProjectOutputScanner.scan(root, List.of(), null);
-        assertTrue(scan.complete());
-        assertEquals(List.of(source.toRealPath()), scan.files().stream().map(ProjectOutputScanner.Observed::realPath).toList());
+        assertEquals(3, scan.files().size(), "every copy is still observed; the node decides they are one graph");
+        assertEquals(List.of("|main|com/acme/P.graphml"), scan.files().stream().map(ProjectOutputScanner.Observed::logicalPath).distinct().toList());
+        assertEquals(1, scan.files().stream().map(o -> o.revision().contentDigest()).distinct().count());
+        assertEquals(List.of(false, true, true), scan.files().stream().map(ProjectOutputScanner.Observed::buildCopy).toList());
+        Path copy = root.resolve("target/classes/com/acme/P.graphml");
+        Files.writeString(copy, "<graphml/>");
+        Files.setLastModifiedTime(copy, java.nio.file.attribute.FileTime.fromMillis(1_000));
+        var recopied = ProjectOutputScanner.observe(copy, telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.GRAPHML, root);
+        assertEquals(scan.files().getFirst().revision().contentDigest(), recopied.revision().contentDigest(),
+                "a fresh copy of the same bytes keeps its content digest");
+        Files.writeString(copy, "<graphml>changed</graphml>");
+        assertNotEquals(recopied.revision().contentDigest(), ProjectOutputScanner.observe(copy,
+                telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.Kind.GRAPHML, root).revision().contentDigest());
     }
 
+    @Test void logsKeepMetadataIdentityOnly(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        Path logs = Files.createDirectories(root.resolve("logs"));
+        Files.writeString(logs.resolve("DEMO.yml"), "DEMO");
+        var log = ProjectOutputScanner.scan(root, List.of(logs), null).files().getFirst();
+        assertNull(log.revision().contentDigest(), "a log's bytes are never read by the watcher");
+        assertNull(log.logicalPath());
+    }
+
+    @Test void logicalPathsSeparateModulesAndSourceSets() {
+        java.util.function.Function<String, String> l = p -> ProjectOutputScanner.logicalPath(Path.of(p));
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("target/classes/com/acme/P.graphml"));
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("target/fluxtion-staging/resources/com/acme/P.graphml"));
+        assertNotEquals(l.apply("module-a/src/main/resources/com/acme/P.graphml"), l.apply("module-b/src/main/resources/com/acme/P.graphml"));
+        assertEquals(l.apply("module-a/src/main/resources/com/acme/P.graphml"), l.apply("module-a/target/classes/com/acme/P.graphml"));
+        assertNotEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("src/test/resources/com/acme/P.graphml"));
+        assertEquals(l.apply("src/test/resources/com/acme/P.graphml"), l.apply("target/test-classes/com/acme/P.graphml"));
+    }
+
+    @Test void outputRootsAreRecognisedByShapeAcrossBuildTools(@TempDir Path temp) throws Exception {
+        java.util.function.Function<String, String> l = p -> ProjectOutputScanner.logicalPath(Path.of(p));
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("build/resources/main/com/acme/P.graphml"), "Gradle");
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("build/classes/java/main/com/acme/P.graphml"), "Gradle classes");
+        assertEquals(l.apply("src/test/resources/com/acme/P.graphml"), l.apply("build/resources/test/com/acme/P.graphml"));
+        assertEquals(l.apply("src/main/resources/com/acme/P.graphml"), l.apply("out/production/demo/com/acme/P.graphml"),
+                "IntelliJ, single module: the module name is not a directory of the project");
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        Files.createDirectories(root.resolve("app/src/main/resources"));
+        assertEquals(ProjectOutputScanner.logicalPath(Path.of("app/src/main/resources/com/acme/P.graphml"), root),
+                ProjectOutputScanner.logicalPath(Path.of("out/production/app/com/acme/P.graphml"), root), "IntelliJ, multi-module");
+        assertNotEquals(l.apply("src/main/resources/com/acme/test/P.graphml"), l.apply("src/test/resources/com/acme/test/P.graphml"),
+                "a package directory named test is not the test source set");
+        assertEquals(l.apply("src/main/resources/com/acme/test/P.graphml"), l.apply("target/classes/com/acme/test/P.graphml"));
+        assertEquals(l.apply("src/main/resources/x/resources/P.graphml"), l.apply("target/classes/x/resources/P.graphml"),
+                "a package directory named resources is part of the path, not a root");
+    }
+
+    // From PR #223: different contents and standalone build outputs are observed too; the node decides what is one graph.
     @Test void differentOrStandaloneBuildGraphsAreNotHidden(@TempDir Path root) throws Exception {
         writeGraph(root, "src/main/resources/com/example/Processor.graphml", "graph-v1");
         writeGraph(root, "target/classes/com/example/Processor.graphml", "graph-v2");
@@ -70,48 +120,83 @@ class ProjectOutputScannerTest {
         assertEquals(4, ProjectOutputScanner.scan(root, List.of(), null).files().size());
     }
 
-    @Test void sourceOutsideTheProjectCannotSuppressAnInProjectBuildGraph(@TempDir Path temp) throws Exception {
-        Path root = Files.createDirectories(temp.resolve("project"));
-        Path outside = writeGraph(temp, "outside/Processor.graphml", "graph-v1");
-        Path source = root.resolve("src/main/resources/Processor.graphml");
-        Files.createDirectories(source.getParent());
-        Files.createSymbolicLink(source, outside);
-        Path built = writeGraph(root, "target/classes/Processor.graphml", "graph-v1");
-        assertEquals(List.of(built.toRealPath()), ProjectOutputScanner.scan(root, List.of(), null).files()
-                .stream().map(ProjectOutputScanner.Observed::realPath).toList());
-    }
-
-    @Test void sourceBeyondScanDepthCannotHideTheDiscoverableBuildGraph(@TempDir Path root) throws Exception {
-        String nested = "a/b/c/d/e/f/g/h/i/Processor.graphml";
-        writeGraph(root, "src/main/resources/" + nested, "graph-v1");
-        Path built = writeGraph(root, "target/classes/" + nested, "graph-v1");
-        var scan = ProjectOutputScanner.scan(root, List.of(), null);
-        assertTrue(scan.complete());
-        assertEquals(List.of(built.toRealPath()), scan.files().stream().map(ProjectOutputScanner.Observed::realPath).toList());
-    }
-
-    @Test void sourceInIgnoredDirectoryCannotHideTheDiscoverableBuildGraph(@TempDir Path root) throws Exception {
-        Path hidden = writeGraph(root, ".git/resources/Processor.graphml", "graph-v1");
-        Files.createDirectories(root.resolve("src/main"));
-        Files.createSymbolicLink(root.resolve("src/main/resources"), hidden.getParent());
-        Path built = writeGraph(root, "target/classes/Processor.graphml", "graph-v1");
-        var scan = ProjectOutputScanner.scan(root, List.of(), null);
-        assertTrue(scan.complete());
-        assertEquals(List.of(built.toRealPath()), scan.files().stream().map(ProjectOutputScanner.Observed::realPath).toList());
-    }
-
-    @Test void sourceAliasOfBuildOutputCannotSuppressItself(@TempDir Path root) throws Exception {
-        Path built = writeGraph(root, "target/classes/Processor.graphml", "graph-v1");
-        Files.createDirectories(root.resolve("src/main"));
-        Files.createSymbolicLink(root.resolve("src/main/resources"), built.getParent());
-        var scan = ProjectOutputScanner.scan(root, List.of(), null);
-        assertTrue(scan.complete());
-        assertEquals(List.of(built.toRealPath()), scan.files().stream().map(ProjectOutputScanner.Observed::realPath).toList());
-    }
-
     private static Path writeGraph(Path root, String name, String content) throws Exception {
         Path path = root.resolve(name);
         Files.createDirectories(path.getParent());
         return Files.writeString(path, content);
     }
+
+    // Delta review M1 (D12): IntelliJ names a module by its artifact, which need not be a project directory.
+    @Test void intellijModulesNamedUnlikeTheirDirectoriesStayTwoGraphs(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        writeGraph(root, "modA/src/main/resources/com/acme/P.graphml", "a");
+        writeGraph(root, "modB/src/main/resources/com/acme/P.graphml", "b");
+        writeGraph(root, "out/production/acme-modA/com/acme/P.graphml", "a");
+        writeGraph(root, "out/production/acme-modB/com/acme/P.graphml", "b");
+        var keys = ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .filter(o -> o.realPath().toString().contains("/out/")).map(ProjectOutputScanner.Observed::logicalPath).toList();
+        assertEquals(2, keys.size());
+        assertNotEquals(keys.get(0), keys.get(1), "two modules' graphs at the same path are two graphs: " + keys);
+    }
+
+    @Test void aSingleModuleIntellijOutputIsTheSameGraphAsItsSource(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        writeGraph(root, "src/main/resources/com/acme/P.graphml", "a");
+        writeGraph(root, "out/production/acme-demo/com/acme/P.graphml", "a");
+        var keys = ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().toList();
+        assertEquals(List.of("|main|com/acme/P.graphml"), keys);
+    }
+
+    // Delta review N1: build output is recognised by the root's shape, not by any directory name.
+    @Test void aSourcePackageNamedBuildIsNotBuildOutput() {
+        assertFalse(ProjectOutputScanner.buildCopy(Path.of("src/main/resources/com/acme/build/P.graphml")));
+        assertFalse(ProjectOutputScanner.buildCopy(Path.of("src/main/resources/com/acme/target/P.graphml")));
+        assertTrue(ProjectOutputScanner.buildCopy(Path.of("target/classes/com/acme/P.graphml")));
+        assertTrue(ProjectOutputScanner.buildCopy(Path.of("build/resources/main/com/acme/P.graphml")));
+        assertTrue(ProjectOutputScanner.buildCopy(Path.of("out/production/demo/com/acme/P.graphml")));
+        assertTrue(ProjectOutputScanner.buildCopy(Path.of("target/generated/P.graphml")), "an unrecognised build path still counts");
+    }
+    @Test void rootSourcesDoNotMergeTwoUnknownIntellijModules(@TempDir Path root) throws Exception {
+        Files.createDirectory(root.resolve("src"));
+        writeGraph(root, "out/production/DEMO-a/com/acme/P.graphml", "a");
+        writeGraph(root, "out/production/DEMO-b/com/acme/P.graphml", "b");
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count());
+    }
+
+    @Test void nestedModuleMakesAnUnknownIntellijNameAmbiguous(@TempDir Path root) throws Exception {
+        writeGraph(root, "src/main/resources/com/acme/P.graphml", "root");
+        Files.createDirectories(root.resolve("modules/DEMO/src"));
+        writeGraph(root, "out/production/DEMO-module/com/acme/P.graphml", "module");
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count(), "nested module is not the root graph");
+    }
+
+    @Test void truncatedLayoutCannotProveASingleModule(@TempDir Path root) throws Exception {
+        writeGraph(root, "src/main/resources/com/acme/P.graphml", "root");
+        writeGraph(root, "out/production/DEMO-module/com/acme/P.graphml", "module");
+        for (int i = 0; i < 1_005; i++) Files.createDirectory(root.resolve("DEMO-child-" + i));
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count(), "exhausted evidence is not proof");
+    }
+
+    @Test void symlinkedSourcesCannotProveASingleModule(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectory(temp.resolve("DEMO"));
+        Files.createSymbolicLink(root.resolve("src"), Files.createDirectory(temp.resolve("DEMO-external")));
+        writeGraph(root, "out/production/DEMO-a/com/acme/P.graphml", "a");
+        writeGraph(root, "out/production/DEMO-b/com/acme/P.graphml", "b");
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count());
+    }
+
+    @Test void sourceModuleInsideAnOutputNamedDirectoryIsStillAmbiguous(@TempDir Path root) throws Exception {
+        writeGraph(root, "src/main/resources/com/acme/P.graphml", "root");
+        Files.createDirectories(root.resolve("out/DEMO-module/src"));
+        writeGraph(root, "out/production/DEMO-module/com/acme/P.graphml", "module");
+        assertEquals(2, ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().count());
+    }
+
 }
+

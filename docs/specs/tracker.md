@@ -128,6 +128,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M81.C/A] ☑ Recovery #173 and activity #176 merged to main 2026-10-19 (`5bb43b57`); each independently reviewed at its exact head.
 - [M81.B] ◧ Explicitly deferred, draft #184 closed unmerged. ▸ [disposition](../handoff/m81-b-deferral.md)
 - [M81.D] ◐ General project-output watcher and person-accepted sync offers in implementation; separate safe branch, no B dependency. Not yet a reviewed or shipping feature.
+- [M81.D9] ◐ One graph, one offer: build copies of a regenerated GraphML raised three banners (gym acceptance 2026-11-05). ▸ [spec §3.5.1](spec-assistant-activity-and-project-trust.md)
 
 ### Onboard assistant and conversation journeys — released in 1.29.0; acceptance open ([spec](spec-onboard-assistant-journeys.md))
 - [OA-1] ◐ Session-owned live loop — the authorised live-provider run (OA-A2) is unverified.

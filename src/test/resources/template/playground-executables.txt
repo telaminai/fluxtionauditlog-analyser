@@ -27,7 +27,7 @@
 # fluxtion-web origin/main 247488f (2026-10-13, starter 1.0.79), where every exec line is unchanged and the first lines
 # were added from each generated template's top-level Markdown. Regenerate when the templates change; the
 # producer side of keeping this in step is upstream ask UP-PG-07.
-exec analyser-bundle: check-fluxtion-key.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
+exec analyser-bundle: check-fluxtion-key.sh export-audit.sh feed-position.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
 doc  analyser-bundle: check-fluxtion-key.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
 first analyser-bundle: mvnw run-and-export.sh
 cmd  analyser-bundle: export-audit.cmd stop-server.cmd

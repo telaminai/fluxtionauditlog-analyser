@@ -31,6 +31,15 @@ class ProjectOutputsTest {
     }
     static ProjectOutputsState.File graph(long revision) { return file(GRAPHML, 31, "graph", revision); }
     static ProjectOutputsState.File log(long revision) { return file(LOG, 32, "log", revision); }
+    /** §3.5.1: one logical graph DEMO/P.graphml held at a source path and two build copies, each with its own metadata. */
+    static ProjectOutputsState.File copy(long ref, String key, boolean build, long mtime, String content) {
+        return new ProjectOutputsState.File(GRAPHML, ref, key, "DEMO.graphml",
+                new ProjectOutputsState.Revision(100, mtime, "DEMO-file-key-" + ref, content), "DEMO-logical-graph", build);
+    }
+    static ProjectOutputsState.File src(long mtime, String content) { return copy(41, "a-src", false, mtime, content); }
+    static ProjectOutputsState.File classes(long mtime, String content) { return copy(42, "b-classes", true, mtime, content); }
+    static ProjectOutputsState.File staging(long mtime, String content) { return copy(43, "c-staging", true, mtime, content); }
+
     static ProjectOutputsState.File file(ProjectOutputsState.Kind kind, long ref, String key, long revision) {
         return new ProjectOutputsState.File(kind, ref, key, "DEMO." + kind.name().toLowerCase(),
                 new ProjectOutputsState.Revision(revision, revision, "DEMO-file-key"));
@@ -289,4 +298,245 @@ class ProjectOutputsTest {
         assertTrue(f.effects(SessionEffects.OpenProjectOutputEffect.class).isEmpty(), "a switched project's old button cannot open");
         assertEquals(nextWatch, f.state().watch());
     }
+
+    @Test void oneRegenerationCopiedByTheBuildIsOneOfferNamingTheSourceCopy() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), classes(1, "v1"), staging(1, "v1"));
+        // generate.sh rewrites the source graph; mvn package then copies the same bytes into target/.
+        f.scan(4000, src(2, "v2"), classes(1, "v1"), staging(1, "v1"));
+        f.scan(8000, src(2, "v2"), classes(3, "v2"), staging(3, "v2"));
+        f.scan(12000, src(2, "v2"), classes(3, "v2"), staging(3, "v2"));
+        f.scan(16000, src(2, "v2"), classes(3, "v2"), staging(3, "v2"));
+        assertEquals(1, f.state().offers().size(), "three copies of one regenerated graph are one offer, not three banners");
+        assertEquals(41, f.state().offers().getFirst().file().pathRef(), "the offer names the source copy, not a build copy");
+        assertEquals(1, f.effects(SessionEffects.OfferProjectOutputEffect.class).size());
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, f.state().offers().getFirst().id(), false));
+        // A later package re-copies identical bytes with fresh timestamps.
+        f.scan(20000, src(2, "v2"), classes(5, "v2"), staging(5, "v2"));
+        f.scan(24000, src(2, "v2"), classes(5, "v2"), staging(5, "v2"));
+        assertTrue(f.state().offers().isEmpty(), "a copy of a graph already answered is not a regeneration");
+        f.scan(28000, src(6, "v3"), classes(5, "v2"), staging(5, "v2"));
+        f.scan(32000, src(6, "v3"), classes(5, "v2"), staging(5, "v2"));
+        assertEquals(1, f.state().offers().size(), "changed bytes are a real regeneration and offer once more");
+    }
+
+    @Test void aBuildCopySettlingFirstHandsItsOfferToTheSourceCopy() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"));
+        f.scan(4000, src(1, "v1"), staging(2, "v2"));
+        f.scan(8000, src(1, "v1"), staging(2, "v2"));
+        assertEquals(43, f.state().offers().getFirst().file().pathRef(), "only the build copy holds the new bytes so far");
+        long id = f.state().offers().getFirst().id();
+        f.scan(12000, src(3, "v2"), staging(2, "v2"));
+        f.scan(16000, src(3, "v2"), staging(2, "v2"));
+        assertEquals(1, f.state().offers().size(), "the source copy of the same bytes adds no second banner");
+        assertEquals(41, f.state().offers().getFirst().file().pathRef(), "it takes over the pending offer");
+        assertEquals(id, f.state().offers().getFirst().id(), "keeping the button the person can already see");
+    }
+
+    @Test void aGraphOnlyInBuildOutputIsStillOffered() {
+        Fixture f = new Fixture(false);
+        f.scan(0);
+        f.scan(4000, classes(1, "v1"));
+        f.scan(8000, classes(1, "v1"));
+        assertEquals(1, f.state().offers().size(), "a build-generated graph with no source copy must still be offered");
+    }
+
+    // Reviews of PR #222.
+    @Test void anUnansweredOfferSurvivesAnIdenticalRewriteOfItsCopy() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"));
+        f.scan(4000, src(2, "v2"), staging(1, "v1")); f.scan(8000, src(2, "v2"), staging(1, "v1"));
+        assertEquals(1, f.state().offers().size());
+        // generate.sh runs again before the person answers: same bytes, new mtime.
+        f.scan(12000, src(3, "v2"), staging(1, "v1")); f.scan(16000, src(3, "v2"), staging(1, "v1"));
+        assertEquals(1, f.state().offers().size(), "an unanswered regeneration must not vanish on an identical rewrite");
+        assertEquals(41, f.state().offers().getFirst().file().pathRef());
+    }
+
+    @Test void anOfferOnABuildCopySurvivesTheBuildCopyingTheSameBytesAgain() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"));
+        f.scan(4000, src(1, "v1"), staging(2, "v2")); f.scan(8000, src(1, "v1"), staging(2, "v2"));
+        assertEquals(1, f.state().offers().size());
+        f.scan(12000, src(1, "v1"), staging(3, "v2")); f.scan(16000, src(1, "v1"), staging(3, "v2"));
+        assertEquals(1, f.state().offers().size(), "re-copying the offered bytes must not drop the offer");
+    }
+
+    @Test void anIdenticalRewriteKeepsALogPairedWithItsGraph() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"));
+        f.scan(4000, src(2, "v2"), log(1)); f.scan(8000, src(2, "v2"), log(1));
+        var graphOffer = f.state().offers().stream().filter(o -> o.file().kind() == GRAPHML).findFirst().orElseThrow();
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, graphOffer.id(), false));
+        f.scan(12000, src(3, "v2"), log(1)); f.scan(16000, src(3, "v2"), log(1));
+        var logOffer = f.state().offers().stream().filter(o -> o.file().kind() == LOG).findFirst().orElseThrow();
+        assertNotNull(logOffer.graph(), "the log keeps its graph after the graph is rewritten with the same bytes");
+        assertEquals(41, logOffer.graph().pathRef());
+        assertTrue(f.state().offers().stream().noneMatch(o -> o.file().kind() == GRAPHML), "and the answered graph is not re-offered");
+    }
+
+    @Test void aStaleBuildCopyAtOpenIsNotARegenerationWhenTheBuildCatchesUp() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v2"), classes(1, "v1"));          // regenerated before the project was opened, not yet packaged
+        f.scan(4000, src(1, "v2"), classes(2, "v2")); f.scan(8000, src(1, "v2"), classes(2, "v2"));
+        assertTrue(f.state().offers().isEmpty(), "the graph was current at open; packaging it is not a regeneration");
+    }
+
+    @Test void differentModulesAreDifferentGraphs() {
+        Fixture f = new Fixture(false);
+        var a1 = new ProjectOutputsState.File(GRAPHML, 51, "module-a", "DEMO.graphml",
+                new ProjectOutputsState.Revision(100, 1, "DEMO-a", "v1"), "DEMO-graph-a", false);
+        var b1 = new ProjectOutputsState.File(GRAPHML, 52, "module-b", "DEMO.graphml",
+                new ProjectOutputsState.Revision(100, 1, "DEMO-b", "v1"), "DEMO-graph-b", false);
+        f.scan(0, a1, b1);
+        var a2 = new ProjectOutputsState.File(GRAPHML, 51, "module-a", "DEMO.graphml",
+                new ProjectOutputsState.Revision(100, 2, "DEMO-a", "a2"), "DEMO-graph-a", false);
+        var b2 = new ProjectOutputsState.File(GRAPHML, 52, "module-b", "DEMO.graphml",
+                new ProjectOutputsState.Revision(100, 2, "DEMO-b", "b2"), "DEMO-graph-b", false);
+        f.scan(4000, a2, b1); f.scan(8000, a2, b2); f.scan(12000, a2, b2);
+        assertEquals(2, f.state().offers().size(), "one module's regeneration never replaces another's offer");
+    }
+
+    @Test void aFailedOpenNeverAddsASecondBannerBesideANewerOneForTheSameGraph() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"));
+        f.scan(4000, src(1, "v1"), staging(2, "v2")); f.scan(8000, src(1, "v1"), staging(2, "v2"));
+        long offer = f.state().offers().getFirst().id();
+        f.adapter.outputOpensPending = true;
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, offer, true));
+        assertEquals(1, f.effects(SessionEffects.OpenProjectOutputEffect.class).size());
+        f.scan(12000, src(3, "v3"), staging(2, "v2")); f.scan(16000, src(3, "v3"), staging(2, "v2"));
+        assertEquals(1, f.state().offers().size());
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, offer, false, "DEMO failure"));
+        assertEquals(1, f.state().offers().size(), "the failed v2 open must not come back next to the v3 offer");
+    }
+
+    @Test void aHostedOpenOfABuildCopyCoversTheGraphAndRetiresWhenTheGraphMoves() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"));
+        var mode = LocalAgentPosture.FullMode.DEFAULT;
+        var start = LocalAgentFullPostureTest.startFull(f.driver, f.adapter, mode);
+        var turn = LocalAgentSessionTest.send(f.driver, f.adapter, 10, LocalAgentFullPostureTest.full(mode));
+        f.driver.post(LocalAgentFullPostureTest.fullInit(start, turn.ticket(), "default", List.of(), "connected"));
+        f.scan(4000, src(2, "v2"), staging(2, "v2"));
+        f.driver.post(new SessionEvents.HostedProjectOutputOpened(f.watch, f.generation, start.generation(), turn.ticket(), staging(2, "v2")));
+        f.scan(8000, src(2, "v2"), staging(2, "v2"));
+        f.driver.post(new SessionEvents.LocalAgentTurnEnded(start.generation(), turn.ticket(), SessionEvents.TurnOutcome.COMPLETED));
+        assertTrue(f.state().offers().isEmpty(), "the assistant opened this graph (via its build copy): no offer for the source copy");
+        f.scan(12000, src(3, "v3"), staging(2, "v2")); f.scan(16000, src(3, "v3"), staging(2, "v2"));
+        assertEquals(1, f.state().offers().size());
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, f.state().offers().getFirst().id(), false));
+        f.scan(20000, src(4, "v2"), staging(2, "v2")); f.scan(24000, src(4, "v2"), staging(2, "v2"));
+        assertEquals(1, f.state().offers().size(), "reverting to v2 is offered: a stale build copy kept no receipt alive");
+    }
+
+    @Test void aFailedOpenAfterASameBytesRewriteStillLeavesAnOffer() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"));
+        f.scan(4000, src(2, "v2")); f.scan(8000, src(2, "v2"));
+        long offer = f.state().offers().getFirst().id();
+        f.adapter.outputOpensPending = true;
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, offer, true));
+        f.scan(12000, src(3, "v2")); f.scan(16000, src(3, "v2"));     // generate.sh again while the open is in flight
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, offer, false, "DEMO failure"));
+        assertEquals(1, f.state().offers().size(), "the v2 regeneration was never opened: it must still be offered");
+    }
+
+    @Test void anIdenticalRewriteAfterASuccessfulOpenRaisesNothing() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"));
+        f.scan(4000, src(2, "v2")); f.scan(8000, src(2, "v2"));
+        long offer = f.state().offers().getFirst().id();
+        f.adapter.outputOpensPending = true;
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, offer, true));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, offer, true, null));
+        f.scan(12000, src(3, "v2")); f.scan(16000, src(3, "v2"));
+        assertTrue(f.state().offers().isEmpty(), "the opened content is current: rewriting the same bytes raises nothing");
+        f.scan(20000, src(4, "v3")); f.scan(24000, src(4, "v3"));
+        assertEquals(1, f.state().offers().size(), "new bytes still offer");
+    }
+
+    @Test void clearAllAnswersAGraphsContentLikeNotNow() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), classes(1, "v1"), staging(1, "v1"));
+        f.scan(4000, src(2, "v2"), classes(3, "v2"), staging(3, "v2"));
+        f.scan(8000, src(2, "v2"), classes(3, "v2"), staging(3, "v2"));
+        var ids = f.state().offers().stream().map(ProjectOutputsState.Offer::id).toList();
+        assertEquals(1, ids.size());
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, false, ids));
+        assertTrue(f.state().offers().isEmpty());
+        // A later package re-copies identical bytes with fresh timestamps.
+        f.scan(12000, src(2, "v2"), classes(5, "v2"), staging(5, "v2"));
+        f.scan(16000, src(2, "v2"), classes(5, "v2"), staging(5, "v2"));
+        assertTrue(f.state().offers().isEmpty(), "Clear all answered this content: a re-copy of it is not a regeneration");
+        f.scan(20000, src(6, "v3"), classes(5, "v2"), staging(5, "v2"));
+        f.scan(24000, src(6, "v3"), classes(5, "v2"), staging(5, "v2"));
+        assertEquals(1, f.state().offers().size(), "changed bytes still offer after Clear all");
+    }
+
+    static ProjectOutputsState.File logB(long revision) { return file(LOG, 33, "log-b", revision); }
+
+    // Delta review L1: a same-bytes rewrite of the paired graph keeps a consented log in its Accept all batch.
+    @Test void acceptAllKeepsAConsentedLogAcrossAnIdenticalGraphRewrite() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"), log(1), logB(1));
+        f.scan(4000, src(2, "v2"), staging(2, "v2"), log(2), logB(2));
+        f.scan(8000, src(2, "v2"), staging(2, "v2"), log(2), logB(2));
+        var logs = f.state().offers().stream().filter(o -> o.file().kind() == LOG).map(ProjectOutputsState.Offer::id).toList();
+        assertEquals(2, logs.size());
+        f.adapter.outputOpensPending = true;
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, true, logs));
+        f.scan(12000, src(3, "v2"), staging(2, "v2"), log(2), logB(2));      // generate.sh rewrites the same bytes
+        f.scan(16000, src(3, "v2"), staging(2, "v2"), log(2), logB(2));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, logs.getFirst(), true, null));
+        assertEquals(logs, f.effects(SessionEffects.OpenProjectOutputEffect.class).stream()
+                .map(SessionEffects.OpenProjectOutputEffect::offer).toList(), "both consented logs open");
+    }
+
+    // Delta review N3: a same-bytes copy settling while that content opens is not a second message.
+    @Test void aSameBytesCopySettlingDuringItsOpenRaisesNoSecondMessage() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"));
+        f.scan(4000, src(2, "v2"), staging(1, "v1")); f.scan(8000, src(2, "v2"), staging(1, "v1"));
+        long offer = f.state().offers().getFirst().id();
+        f.adapter.outputOpensPending = true;
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, offer, true));
+        f.scan(12000, src(2, "v2"), staging(3, "v2")); f.scan(16000, src(2, "v2"), staging(3, "v2"));
+        assertTrue(f.state().offers().isEmpty(), "the content being opened is in flight: its build copy is not a new message");
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, offer, false, "DEMO failure"));
+        assertEquals(1, f.state().offers().size(), "a failed open still leaves the graph offered");
+    }
+    @Test void disappearingOpeningReoffersSettledSurvivorWithFreshConsent() {
+        Fixture f = new Fixture(false);
+        f.adapter.outputOpensPending = true;
+        f.scan(0, src(1, "v1"), classes(1, "v1"));
+        f.scan(4000, src(2, "v2"), classes(1, "v1")); f.scan(8000, src(2, "v2"), classes(1, "v1"));
+        long accepted = f.state().offers().getFirst().id();
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, true, List.of(accepted)));
+        f.scan(12000, src(2, "v2"), classes(3, "v2")); f.scan(16000, src(2, "v2"), classes(3, "v2"));
+        assertTrue(f.state().offers().isEmpty());
+        f.scan(20000, classes(3, "v2"));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, accepted, false, "DEMO failure"));
+        assertEquals(1, f.state().offers().size(), "settled surviving bytes must not disappear with the original path");
+        var replacement = f.state().offers().getFirst();
+        assertNotEquals(accepted, replacement.id(), "the old batch cannot authorize the replacement");
+        assertEquals(classes(3, "v2"), replacement.file());
+        assertEquals(1, f.effects(SessionEffects.OpenProjectOutputEffect.class).size(), "no automatic retry");
+    }
+
+    @Test void disappearingOpeningDoesNotOfferAnUnsettledSurvivorEarly() {
+        Fixture f = new Fixture(false);
+        f.adapter.outputOpensPending = true;
+        f.scan(0, src(1, "v1")); f.scan(4000, src(2, "v2")); f.scan(8000, src(2, "v2"));
+        long accepted = f.state().offers().getFirst().id();
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, accepted, true));
+        f.scan(12000, classes(3, "v2"));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, accepted, false, "DEMO failure"));
+        assertTrue(f.state().offers().isEmpty(), "a new copy must settle before it is offered");
+        f.scan(16000, classes(3, "v2"));
+        assertEquals(1, f.state().offers().size());
+    }
+
 }
+
