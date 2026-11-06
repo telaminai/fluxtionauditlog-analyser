@@ -1,6 +1,6 @@
 # M81 — Live activity, per-project build-script trust, a restart that always works, and staying in sync
 
-**Status:** DRAFT r6, 2026-10-19; **Feature B explicitly deferred by the owner, not shipping** (see disposition below).
+**Status:** DRAFT r7, 2026-11-05 (r7: §3.5.1 one graph, one offer — build copies; D9/D10); r6 2026-10-19; **Feature B explicitly deferred by the owner, not shipping** (see disposition below).
 The B sections remain the historical proposed design, not current permission authority. C/A are merged
 (#173, #176, 2026-10-19); D proceeds without B. (r2 added Feature C, from an investigation of the 1.36.0 release; r3 adds Feature
 D, approved by the owner the same day). Four owner-approved features (2026-10-19) for the onboard Claude Code
@@ -475,6 +475,66 @@ on complete scans; missing or expired proof permits an ordinary offer, never an 
 local-log directories only when they are inside that root. Outside-root configured/current log folders are deferred
 to a later, explicit opt-in design; they are not silently watched by this feature.
 
+#### 3.5.1 One graph, one offer — build copies (r7, 2026-11-05)
+
+**Defect (violates D1).** A Maven starter holds the same GraphML three times: the generator writes
+`src/main/resources/<package>/<Name>.graphml`, and the build copies it to `target/classes/…` and
+`target/fluxtion-staging/resources/…`. The scanner reports every `.graphml` it finds and the node keys candidates
+by `kind:path`, so one regeneration raised **three** identical *"The graph was regenerated — open it?"* banners
+(gym acceptance run, 2026-11-05). A later `mvn package` that only re-copied an unchanged graph raised them again.
+
+**Rule.** The offer is about a *graph*, not a file path. The adapter reports facts about each GraphML copy: a
+digest of its logical key, whether it sits in build output, and a digest of its bytes. The node alone decides what
+they mean: which copies are one graph, which copy an offer names, and whether anything was regenerated. The panel
+renders.
+
+1. **Logical graph.** A GraphML copy's logical key is (module, source set, path below its output root).
+   - **Output roots are recognised by their whole shape:**
+     - `src/<set>/resources`;
+     - Maven `target/classes` (main), `target/test-classes` (test) and `target/fluxtion-staging/resources` (main);
+     - Gradle `build/resources/<set>` and `build/classes/<lang>/<set>`;
+     - IntelliJ `out/production/<module>` (main) and `out/test/<module>` (test).
+   - **Module:** the path before the root. For IntelliJ, the named module counts only when it is a directory of the
+     project (multi-module); a single-module project's module name is not.
+   - **Source set:** taken from the root's shape only. A package directory named `test`, `resources` or `classes` is part
+     of the path.
+   - So `src/main/resources/a/b/P.graphml`, `target/classes/…`, `target/fluxtion-staging/resources/…`,
+     `build/resources/main/…` and `out/production/<m>/…` are one graph.
+   - Two modules, or main and test resources, are never one graph.
+   - A path with no recognised root keeps its whole relative path. Logs are unchanged: one per path.
+   - The adapter computes this key from the path and reports only its digest, because no path enters the node (r6).
+     It is a fact about the file's place. The node decides which copies are one graph by comparing these digests.
+2. **Canonical copy.** Within a logical graph, an offer names, and **Open** opens, the copy with no build-output
+   segment (`target`, `build`, `out`). If every copy has one, the first by path-identity digest wins: deterministic,
+   though not a path order. A build copy is still observed, because it may be the only copy (a build-generated graph),
+   but it never raises a second offer.
+3. **Content, not metadata, decides "regenerated".**
+   - For GraphML only, the adapter adds a SHA-256 of the file's bytes (`Revision.contentDigest`). It is computed off
+     the UI thread, and only when size, mtime or file key changed, so a quiet project re-reads nothing. The EDT's
+     revision check before an open compares metadata only.
+   - A logical graph raises an offer only when a stable copy holds content that is none of these:
+     - the content it was **current at** when the watch began (its canonical copy's digest at baseline);
+     - the content it was last answered **Not now** at, **opened** at (a successful Open), or opened by the hosted
+     assistant at. A click on Open alone does not count: a failed open leaves the content offered;
+     - the content already **offered or in flight**.
+   - A copy step that reproduces those bytes raises nothing. A real regeneration that changes the bytes raises exactly
+     one offer.
+4. **Supersession, and rewrites of the same bytes.**
+   - A newer change of the same logical graph replaces its pending offer (one banner); it never adds a second.
+   - A rewrite of the offered copy with **the same bytes** moves the offer to another settled copy holding them.
+     If there is none, the offer is re-raised when the rewrite settles. It is never dropped.
+   - A better-placed copy of the offered bytes takes over the offer and keeps its button.
+   - A log's pairing with its graph survives such a rewrite.
+   - A failed **Open** never re-adds an offer beside a newer one for the same graph.
+5. **Turn correlation (D7) is per logical graph.** A hosted `open` of any copy counts as having opened that
+   logical graph's content. The receipt lives only while the graph's canonical copy still holds that content, so a
+   stale build copy cannot keep it alive.
+6. **Large graphs.** Above 16 MiB no content digest is computed. Such copies keep per-path identity, and their
+   build copies may each be offered, as before this section.
+
+The scanner keeps its existing bounds and exclusions; nothing above adds a directory exclusion, because a
+project whose only GraphML lives under `target/` must still be offered.
+
 ---
 
 ## 4. The rule-9 node, fact and effect names
@@ -705,6 +765,10 @@ already is today when the person opens a file by hand.
 | D6 | The starter's first-build offer still appears, now sourced from `ProjectOutputChanged` through the generalised watch, not its own retired effect | — |
 | D7 | A change produced by the hosted assistant's own open turn holds its offer until `LocalAgentTurnEnded`; if Full already opened that exact path under the existing in-project pre-allow, the offer for it never appears at all | show the banner mid-turn, or show it again for a path already opened |
 | D8 | `context.project.pendingOutputOffers` names exactly the kinds with a live, unanswered offer, and clears on **Open** or **Not now** | — |
+| ★ D9 | One regeneration that writes `src/main/resources/…/P.graphml` and then copies identical bytes to `target/classes/…` and `target/fluxtion-staging/resources/…` produces **exactly one** offer naming the `src/main/resources` copy; a later copy of the same bytes produces none; a change of bytes produces one more (§3.5.1) | key offers by path (three banners), or decide by size/mtime (re-offer on every copy) |
+| D10 | A project whose only GraphML is under `target/` still gets its offer | exclude `target/` from the scan |
+| ★ D11 | An unanswered offer survives an identical rewrite of its copy (generate.sh re-run, or a build re-copy); a log stays paired with its graph across such a rewrite; a stale build copy at open is not a regeneration when the build catches up (§3.5.1 rules 3–4) | consume the digest when offering (the offer vanishes), or take the baseline digest from the last copy iterated |
+| D12 | Two modules, or main and test resources, holding `…/P.graphml` are two graphs: one module's regeneration never replaces the other's offer | key by the path below the output root alone |
 
 ---
 

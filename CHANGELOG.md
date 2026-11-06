@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+
+- A regenerated graph raises one message however many build copies it lands in, whichever copy the scan sees first; the message names the copy outside build output. Copies under Gradle's `build/` and IntelliJ's `out/` count as the same graph too. A build or regeneration that rewrites the same bytes raises none, including after **Not now** or **Clear all**.
+
 ## [1.40.5] - 2026-11-05
 
 ### Added

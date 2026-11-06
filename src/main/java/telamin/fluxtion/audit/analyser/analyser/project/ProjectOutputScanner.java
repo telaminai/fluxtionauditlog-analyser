@@ -8,13 +8,25 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-/** M81 D filesystem adapter: bounded observations; identical Maven GraphML copies are omitted. No offers or opening. */
+/** M81 D filesystem adapter: bounded observations only; no debounce, offers, selection or execution. Logs are
+ *  metadata only; a GraphML's bytes are hashed when its metadata changes (§3.5.1), never parsed. */
 public final class ProjectOutputScanner {
     public static final int MAX_DEPTH = 12;
     public static final int MAX_VISITS = 10_000;
     public static final int MAX_FILES = 100;
-    private static final long MAX_COPY_COMPARE_BYTES = 8 * 1024 * 1024;
-    public record Observed(Path realPath, ProjectOutputsState.Kind kind, ProjectOutputsState.Revision revision) { }
+    /** Above this a graph keeps metadata identity only; hashing it every change would cost more than a spare offer. */
+    public static final long MAX_DIGEST_BYTES = 16L << 20;
+    private static final Set<String> BUILD_OUTPUT = Set.of("target", "build", "out");
+    private static final Map<Path, ProjectOutputsState.Revision> DIGESTS = Collections.synchronizedMap(new LinkedHashMap<>(16, 0.75f, true) {
+        @Override protected boolean removeEldestEntry(Map.Entry<Path, ProjectOutputsState.Revision> eldest) { return size() > 256; }
+    });
+    /** {@code logicalPath}/{@code buildCopy} are facts about a GraphML copy's place; the node decides what they mean. */
+    public record Observed(Path realPath, ProjectOutputsState.Kind kind, ProjectOutputsState.Revision revision,
+                           String logicalPath, boolean buildCopy) {
+        public Observed(Path realPath, ProjectOutputsState.Kind kind, ProjectOutputsState.Revision revision) {
+            this(realPath, kind, revision, null, false);
+        }
+    }
     public record Scan(List<Observed> files, boolean complete) {
         public Scan { files = List.copyOf(files); }
     }
@@ -31,7 +43,6 @@ public final class ProjectOutputScanner {
         Map<Path, Observed> out = new LinkedHashMap<>();
         boolean[] complete = {true};
         int[] visited = {0};
-        long[] comparisonBudget = {32 * 1024 * 1024};
         try {
             Files.walkFileTree(real, EnumSet.noneOf(FileVisitOption.class), MAX_DEPTH, new SimpleFileVisitor<>() {
                 @Override public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
@@ -63,39 +74,7 @@ public final class ProjectOutputScanner {
                 }
             });
         } catch (IOException | RuntimeException failure) { complete[0] = false; }
-        return new Scan(out.values().stream()
-                .filter(o -> o.kind() != ProjectOutputsState.Kind.GRAPHML
-                        || !identicalBuildCopy(real, o.realPath(), out.keySet(), comparisonBudget))
-                .sorted(Comparator.comparing(o -> o.realPath().toString())).toList(), complete[0]);
-    }
-
-    /** Only known Maven resource copies with an identical source retained in this scan are redundant.
-     * Different contents, standalone build outputs, links outside the project and oversized files stay distinct. */
-    private static boolean identicalBuildCopy(Path root, Path path, Set<Path> observed, long[] comparisonBudget) {
-        Path relative = root.relativize(path);
-        Path source = null;
-        for (String prefix : List.of("target/classes", "target/fluxtion-staging/resources")) {
-            Path buildRoot = Path.of(prefix);
-            if (relative.startsWith(buildRoot) && relative.getNameCount() > buildRoot.getNameCount()) {
-                source = root.resolve("src/main/resources").resolve(buildRoot.relativize(relative));
-                break;
-            }
-        }
-        if (source == null) return false;
-        var copyBefore = observe(path, ProjectOutputsState.Kind.GRAPHML, root);
-        var sourceBefore = observe(source, ProjectOutputsState.Kind.GRAPHML, root);
-        if (copyBefore == null || sourceBefore == null
-                || !sourceBefore.realPath().startsWith(root.resolve("src/main/resources"))
-                || !observed.contains(sourceBefore.realPath())
-                || copyBefore.revision().size() > MAX_COPY_COMPARE_BYTES
-                || copyBefore.revision().size() != sourceBefore.revision().size()
-                || copyBefore.revision().size() * 2 > comparisonBudget[0]) return false;
-        comparisonBudget[0] -= copyBefore.revision().size() * 2;
-        try {
-            return Files.mismatch(copyBefore.realPath(), sourceBefore.realPath()) == -1
-                    && copyBefore.equals(observe(path, ProjectOutputsState.Kind.GRAPHML, root))
-                    && sourceBefore.equals(observe(source, ProjectOutputsState.Kind.GRAPHML, root));
-        } catch (IOException | RuntimeException changed) { return false; }
+        return new Scan(out.values().stream().sorted(Comparator.comparing(o -> o.realPath().toString())).toList(), complete[0]);
     }
 
     private static boolean logName(String name) {
@@ -108,16 +87,81 @@ public final class ProjectOutputScanner {
             if (real.startsWith(fence) && Files.isDirectory(real)) dirs.add(real);
         } catch (IOException | RuntimeException unavailable) { /* no speculative scope */ }
     }
-    /** Fresh identity for a successful-open receipt or an effect's revision precondition; no file contents read. */
-    public static Observed observe(Path path, ProjectOutputsState.Kind kind, Path fence) {
+    /** Fresh identity for a successful-open receipt or an effect's revision precondition; a log's contents are never read. */
+    public static Observed observe(Path path, ProjectOutputsState.Kind kind, Path fence) { return observe(path, kind, fence, true); }
+    /** Identity without reading any bytes, for a check on the EDT; a GraphML's revision then has no content digest. */
+    public static Observed observeMetadata(Path path, ProjectOutputsState.Kind kind, Path fence) { return observe(path, kind, fence, false); }
+    private static Observed observe(Path path, ProjectOutputsState.Kind kind, Path fence, boolean content) {
         try {
             Path real = path.toRealPath();
-            if (fence != null && !real.startsWith(fence.toRealPath())) return null;
+            Path root = fence == null ? null : fence.toRealPath();
+            if (root != null && !real.startsWith(root)) return null;
             var attrs = Files.readAttributes(real, BasicFileAttributes.class);
             if (!attrs.isRegularFile() || attrs.size() == 0) return null;
             String key = attrs.fileKey() == null ? null : LocalAgentPosture.digest(attrs.fileKey().toString());
-            return new Observed(real, kind, new ProjectOutputsState.Revision(attrs.size(),
-                    attrs.lastModifiedTime().to(TimeUnit.NANOSECONDS), key));
+            var metadata = new ProjectOutputsState.Revision(attrs.size(), attrs.lastModifiedTime().to(TimeUnit.NANOSECONDS), key);
+            if (kind != ProjectOutputsState.Kind.GRAPHML) return new Observed(real, kind, metadata);
+            Path relative = root == null ? real.getFileName() : root.relativize(real);
+            return new Observed(real, kind, content ? withContent(real, metadata) : metadata, logicalPath(relative, root), buildCopy(relative));
         } catch (IOException | RuntimeException unavailable) { return null; }
+    }
+    /** The same graph wherever the build copied it, and only that (§3.5.1 rule 1). An output root is recognised by its
+     *  whole shape, never by a package directory that happens to be called {@code test} or {@code resources}:
+     *  {@code src/<set>/resources}, Maven {@code target/classes} / {@code target/test-classes} /
+     *  {@code target/fluxtion-staging/resources}, Gradle {@code build/resources/<set>} / {@code build/classes/<lang>/<set>},
+     *  IntelliJ {@code out/production|test/<module>}. The key is module | source set | path below the root; a path with
+     *  no recognised root keeps its whole relative path. */
+    static String logicalPath(Path relative) { return logicalPath(relative, null); }
+    static String logicalPath(Path relative, Path root) {
+        int n = relative.getNameCount();
+        java.util.function.IntFunction<String> seg = i -> i < n - 1 ? relative.getName(i).toString() : "";
+        for (int i = 0; i < n - 1; i++) {
+            String set = null, module = i == 0 ? "" : unix(relative.subpath(0, i));
+            int start = -1;
+            switch (seg.apply(i)) {
+                case "src" -> { if (seg.apply(i + 2).equals("resources") && !seg.apply(i + 1).isEmpty()) { set = seg.apply(i + 1); start = i + 3; } }
+                case "target" -> {
+                    if (seg.apply(i + 1).equals("classes")) { set = "main"; start = i + 2; }
+                    else if (seg.apply(i + 1).equals("test-classes")) { set = "test"; start = i + 2; }
+                    else if (seg.apply(i + 1).equals("fluxtion-staging") && seg.apply(i + 2).equals("resources")) { set = "main"; start = i + 3; }
+                }
+                case "build" -> {
+                    if (seg.apply(i + 1).equals("resources") && !seg.apply(i + 2).isEmpty()) { set = seg.apply(i + 2); start = i + 3; }
+                    else if (seg.apply(i + 1).equals("classes") && !seg.apply(i + 3).isEmpty()) { set = seg.apply(i + 3); start = i + 4; }
+                }
+                case "out" -> {
+                    String kind = seg.apply(i + 1), name = seg.apply(i + 2);
+                    if ((kind.equals("production") || kind.equals("test")) && !name.isEmpty()) {
+                        set = kind.equals("test") ? "test" : "main"; start = i + 3;
+                        // IntelliJ names the module; it is a directory of its own only in a multi-module project.
+                        if (root != null && java.nio.file.Files.isDirectory(root.resolve(module).resolve(name)))
+                            module = module.isEmpty() ? name : module + "/" + name;
+                    }
+                }
+                default -> { }
+            }
+            if (start > 0 && start < n) return module + "|" + set + "|" + unix(relative.subpath(start, n));
+        }
+        return unix(relative);
+    }
+    private static String unix(Path p) { return p.toString().replace('\\', '/'); }
+    static boolean buildCopy(Path relative) {
+        for (int i = 0; i < relative.getNameCount() - 1; i++) if (BUILD_OUTPUT.contains(relative.getName(i).toString())) return true;
+        return false;
+    }
+    /** Re-reads the bytes only when size/mtime/file key changed since the last observation of this path. */
+    private static ProjectOutputsState.Revision withContent(Path real, ProjectOutputsState.Revision metadata) {
+        if (metadata.size() > MAX_DIGEST_BYTES) return metadata;
+        var known = DIGESTS.get(real);
+        if (known != null && known.size() == metadata.size() && known.modifiedNanos() == metadata.modifiedNanos()
+                && Objects.equals(known.fileKeyDigest(), metadata.fileKeyDigest())) return known;
+        try {
+            byte[] bytes = Files.readAllBytes(real);
+            if (bytes.length != metadata.size()) return metadata;      // rewritten mid-read: the next poll sees it settle
+            var digest = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+            var revision = new ProjectOutputsState.Revision(metadata.size(), metadata.modifiedNanos(), metadata.fileKeyDigest(), digest);
+            DIGESTS.put(real, revision);
+            return revision;
+        } catch (IOException | java.security.NoSuchAlgorithmException unreadable) { return metadata; }
     }
 }
