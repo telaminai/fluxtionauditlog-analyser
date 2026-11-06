@@ -474,4 +474,38 @@ class ProjectOutputsTest {
         f.scan(24000, src(6, "v3"), classes(5, "v2"), staging(5, "v2"));
         assertEquals(1, f.state().offers().size(), "changed bytes still offer after Clear all");
     }
+
+    static ProjectOutputsState.File logB(long revision) { return file(LOG, 33, "log-b", revision); }
+
+    // Delta review L1: a same-bytes rewrite of the paired graph keeps a consented log in its Accept all batch.
+    @Test void acceptAllKeepsAConsentedLogAcrossAnIdenticalGraphRewrite() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"), log(1), logB(1));
+        f.scan(4000, src(2, "v2"), staging(2, "v2"), log(2), logB(2));
+        f.scan(8000, src(2, "v2"), staging(2, "v2"), log(2), logB(2));
+        var logs = f.state().offers().stream().filter(o -> o.file().kind() == LOG).map(ProjectOutputsState.Offer::id).toList();
+        assertEquals(2, logs.size());
+        f.adapter.outputOpensPending = true;
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, 0, true, logs));
+        f.scan(12000, src(3, "v2"), staging(2, "v2"), log(2), logB(2));      // generate.sh rewrites the same bytes
+        f.scan(16000, src(3, "v2"), staging(2, "v2"), log(2), logB(2));
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, logs.getFirst(), true, null));
+        assertEquals(logs, f.effects(SessionEffects.OpenProjectOutputEffect.class).stream()
+                .map(SessionEffects.OpenProjectOutputEffect::offer).toList(), "both consented logs open");
+    }
+
+    // Delta review N3: a same-bytes copy settling while that content opens is not a second message.
+    @Test void aSameBytesCopySettlingDuringItsOpenRaisesNoSecondMessage() {
+        Fixture f = new Fixture(false);
+        f.scan(0, src(1, "v1"), staging(1, "v1"));
+        f.scan(4000, src(2, "v2"), staging(1, "v1")); f.scan(8000, src(2, "v2"), staging(1, "v1"));
+        long offer = f.state().offers().getFirst().id();
+        f.adapter.outputOpensPending = true;
+        f.driver.post(new SessionEvents.ProjectOutputOfferAnswered(f.watch, offer, true));
+        f.scan(12000, src(2, "v2"), staging(3, "v2")); f.scan(16000, src(2, "v2"), staging(3, "v2"));
+        assertTrue(f.state().offers().isEmpty(), "the content being opened is in flight: its build copy is not a new message");
+        f.driver.post(new SessionEvents.ProjectOutputOpenObserved(0, f.watch, offer, false, "DEMO failure"));
+        assertEquals(1, f.state().offers().size(), "a failed open still leaves the graph offered");
+    }
 }
+

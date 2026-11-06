@@ -431,14 +431,16 @@ is said as one (`verdict`/`reason`, not `note(...)`).
 
 ### 3.5 Feature D — the sync offer
 
-One of two banners (M78's conditional-banner pattern, never a modal — §2.7), shown only while a project is open
-and only for a project the person owns (never the sample, never a bundle's working copy):
+One of two offers, never a modal (§2.7), shown only while a project is open and only for a project the person owns
+(never the sample, never a bundle's working copy). Since 1.40.5 each offer is a message in the Canvas **Messages (N)**
+tab, with the pending count and an unread mark; **Accept all** opens the current messages in sequence and **Clear all**
+dismisses them (rule 3 of §3.5.1 says what each answer consumes):
 
 > **The graph was regenerated — open it?** **[Open]** **[Not now]**
 
 > **A new audit log was written — open it with the graph?** **[Open]** **[Not now]**
 
-**Open** opens the file and, for the log banner, pairs it with the regenerated graph through the existing
+**Open** opens the file and, for the log offer, pairs it with the regenerated graph through the existing
 `open {log, graphml}` pairing path (M34) — identical to accepting today's starter offer. **Not now** dismisses
 this one offer; the next distinct change raises a new one. While the person's own log is already open, accepting
 never auto-switches it without this explicit click — the offer **is** the switch, not a background one.
@@ -452,8 +454,8 @@ that file is suppressed outright: it was already opened, and showing "open it?" 
 wrong, not just redundant.
 
 **Implementation boundary (r6).** The node owns watch epochs, stability, per-path revisions, held offers, one-use
-answers and supersession. The adapter observes metadata and reports actual read/display completions; the banner
-only renders. Each accepted open carries its original watch/project lifetime and immutable file revision. A pending
+answers and supersession. The adapter observes metadata and reports actual read/display completions; the Messages
+tab only renders. Each accepted open carries its original watch/project lifetime and immutable file revision. A pending
 project transition blocks acceptance without queuing it; a failed switch retains the old project/watch and requires
 a fresh click. Deferred work cannot borrow a later operation's identity, even when that later operation fails.
 Completed hosted opens carry their original admitted generation/ticket, canonical-path digest and revision through
@@ -494,8 +496,10 @@ renders.
      - Maven `target/classes` (main), `target/test-classes` (test) and `target/fluxtion-staging/resources` (main);
      - Gradle `build/resources/<set>` and `build/classes/<lang>/<set>`;
      - IntelliJ `out/production/<module>` (main) and `out/test/<module>` (test).
-   - **Module:** the path before the root. For IntelliJ, the named module counts only when it is a directory of the
-     project (multi-module); a single-module project's module name is not.
+   - **Module:** the path before the root. For IntelliJ, the named module is that directory when it is one of the
+     project; it is dropped only for a single-module project (sources in `src/`, no child module with its own
+     `src/`). Any other name stays a distinct module, because a spare offer is the safe failure and merging two
+     modules' graphs is not (D12).
    - **Source set:** taken from the root's shape only. A package directory named `test`, `resources` or `classes` is part
      of the path.
    - So `src/main/resources/a/b/P.graphml`, `target/classes/…`, `target/fluxtion-staging/resources/…`,
@@ -504,8 +508,10 @@ renders.
    - A path with no recognised root keeps its whole relative path. Logs are unchanged: one per path.
    - The adapter computes this key from the path and reports only its digest, because no path enters the node (r6).
      It is a fact about the file's place. The node decides which copies are one graph by comparing these digests.
-2. **Canonical copy.** Within a logical graph, an offer names, and **Open** opens, the copy with no build-output
-   segment (`target`, `build`, `out`). If every copy has one, the first by path-identity digest wins: deterministic,
+2. **Canonical copy.** Within a logical graph, an offer names, and **Open** opens, the copy that is not build output.
+   Build output is decided by the recognised root's shape (rule 1): a package directory named `build` below
+   `src/<set>/resources` is part of the path. Only a path with no recognised root falls back to any `target`, `build`
+   or `out` segment. If every copy is build output, the first by path-identity digest wins: deterministic,
    though not a path order. A build copy is still observed, because it may be the only copy (a build-generated graph),
    but it never raises a second offer.
 3. **Content, not metadata, decides "regenerated".**
@@ -514,17 +520,19 @@ renders.
      revision check before an open compares metadata only.
    - A logical graph raises an offer only when a stable copy holds content that is none of these:
      - the content it was **current at** when the watch began (its canonical copy's digest at baseline);
-     - the content it was last answered **Not now** at, **opened** at (a successful Open), or opened by the hosted
+     - the content it was last answered **Not now** at (each message cleared by **Clear all** counts as Not now),
+       **opened** at (a successful Open), or opened by the hosted
      assistant at. A click on Open alone does not count: a failed open leaves the content offered;
-     - the content already **offered or in flight**.
+     - the content already **offered or in flight** (being opened).
    - A copy step that reproduces those bytes raises nothing. A real regeneration that changes the bytes raises exactly
      one offer.
 4. **Supersession, and rewrites of the same bytes.**
-   - A newer change of the same logical graph replaces its pending offer (one banner); it never adds a second.
+   - A newer change of the same logical graph replaces its pending offer (one message); it never adds a second.
    - A rewrite of the offered copy with **the same bytes** moves the offer to another settled copy holding them.
      If there is none, the offer is re-raised when the rewrite settles. It is never dropped.
    - A better-placed copy of the offered bytes takes over the offer and keeps its button.
-   - A log's pairing with its graph survives such a rewrite.
+   - A log's pairing with its graph survives such a rewrite, and keeps its offer id, so an **Accept all** in progress
+     still opens it.
    - A failed **Open** never re-adds an offer beside a newer one for the same graph.
 5. **Turn correlation (D7) is per logical graph.** A hosted `open` of any copy counts as having opened that
    logical graph's content. The receipt lives only while the graph's canonical copy still holds that content, so a
@@ -616,7 +624,7 @@ facts they already receive:
 | Observe basis | `ObserveProjectOutputsEffect` / `ProjectOutputsBasisObserved` | watch epoch, project generation, root/log-directory numeric references, analyser-owned observation | Node requests; frame observes the accepted profile's real project root. |
 | Poll | `WatchProjectOutputsEffect` / `ProjectOutputsScanned` | epoch/generation, bounded immutable file metadata, observation clock, scan-complete flag | Frame schedules 4 s raw observations; the node owns the two-sample stability decision. |
 | Stable change | `PublishProjectOutputChangedEffect` / `ProjectOutputChanged` | epoch/generation, one-use change id, canonical-path reference/digest, redacted name, kind, metadata revision | Node decides; adapter returns the fact. `StarterProject` consumes its own first-build graph cue, never starts a second watcher. |
-| Offer | `OfferProjectOutputEffect` / `ProjectOutputsState` | epoch, one-use offer ids, named log/graph revisions | Node publishes immutable unanswered offers; `ProjectOutputsPanel` renders banners, never a modal or automatic open. |
+| Offer | `OfferProjectOutputEffect` / `ProjectOutputsState` | epoch, one-use offer ids, named log/graph revisions | Node publishes immutable unanswered offers; `ProjectOutputsPanel` renders them as messages in the Messages (N) tab, never a modal or automatic open. |
 | Person acceptance | `ProjectOutputOfferAnswered` / `OpenProjectOutputEffect` / `ProjectOutputOpenObserved` | captured epoch/id, explicit choice, original project lifetime and immutable file/paired-graph revisions, actual outcome | Node consumes the current one-use answer; deferred adapter rechecks its revocable node permission then uses existing local open/pairing. |
 | Hosted completion | `HostedProjectOutputOpened` | original admitted generation/ticket, watch/project lifetime, canonical file identity/revision | Only actual successful application reports it. Node suppresses an exact already-opened revision, never admission alone. |
 | Stop | `StopProjectOutputsWatchEffect` | epoch | Node ends its lifetime; an old stop/completion cannot affect a newer watch. |
@@ -764,11 +772,12 @@ already is today when the person opens a file by hand.
 | ★ D5 | The person's own **open** log is never replaced without their **Open** click — a background `ProjectOutputChanged` for a different log never switches it | auto-switch on the fact alone |
 | D6 | The starter's first-build offer still appears, now sourced from `ProjectOutputChanged` through the generalised watch, not its own retired effect | — |
 | D7 | A change produced by the hosted assistant's own open turn holds its offer until `LocalAgentTurnEnded`; if Full already opened that exact path under the existing in-project pre-allow, the offer for it never appears at all | show the banner mid-turn, or show it again for a path already opened |
-| D8 | `context.project.pendingOutputOffers` names exactly the kinds with a live, unanswered offer, and clears on **Open** or **Not now** | — |
+| D8 | `context.project.pendingOutputOffers` names exactly the kinds with a live, unanswered offer, and clears on **Open**, **Not now** or **Clear all** | — |
 | ★ D9 | One regeneration that writes `src/main/resources/…/P.graphml` and then copies identical bytes to `target/classes/…` and `target/fluxtion-staging/resources/…` produces **exactly one** offer naming the `src/main/resources` copy; a later copy of the same bytes produces none; a change of bytes produces one more (§3.5.1) | key offers by path (three banners), or decide by size/mtime (re-offer on every copy) |
 | D10 | A project whose only GraphML is under `target/` still gets its offer | exclude `target/` from the scan |
 | ★ D11 | An unanswered offer survives an identical rewrite of its copy (generate.sh re-run, or a build re-copy); a log stays paired with its graph across such a rewrite; a stale build copy at open is not a regeneration when the build catches up (§3.5.1 rules 3–4) | consume the digest when offering (the offer vanishes), or take the baseline digest from the last copy iterated |
-| D12 | Two modules, or main and test resources, holding `…/P.graphml` are two graphs: one module's regeneration never replaces the other's offer | key by the path below the output root alone |
+| D12 | Two modules, or main and test resources, holding `…/P.graphml` are two graphs: one module's regeneration never replaces the other's offer, including IntelliJ modules whose names are not project directories | key by the path below the output root alone, or drop an IntelliJ module name that is not a directory |
+| D13 | **Accept all** opens exactly the messages it was given, in order, and nothing newer; a message re-pointed at another copy of the same content (a better-placed copy, or a log re-paired after a same-bytes graph rewrite) keeps its id and still opens. **Clear all** answers each message as **Not now**, so a later copy of the same bytes raises nothing | mint a new id on a same-content re-point (the accepted log is skipped), or clear without consuming (the message returns on the next build) |
 
 ---
 
@@ -814,7 +823,7 @@ followed by a further 60 s of silence (§3.1, §4.1). | accepted (owner, 2026-10
 | **OD-81.7** | **Restart's three outcomes, named.** A stuck phase is recovered by `kill()` alone (never `beginConversation()`), preserving `sessionId`/`resumable`; a healthy session gets an `ALREADY_RUNNING` note instead of silence; an impossible resume refuses plainly and falls back to a new chat with the recovery draft placed, never sent (§3.4, §4.3). | accepted (owner, 2026-10-19) |
 | **OD-81.8** | **Exit and limit wording are honest, not merely present.** An externally caused exit names itself as such when the code decodes to a known signal; the usage-limit note states plainly that it does not block Start; a genuine limit-caused start failure is a refusal, worded distinctly from the advisory note (§3.4). | accepted (owner, 2026-10-19) |
 | **OD-81.9** | **The starter's one-shot GraphML watch is generalised into an ongoing, per-open-project watch of both GraphML and log outputs, retiring `WatchStarterGraphmlEffect`/`StarterGraphmlAppeared` in favour of `WatchProjectOutputsEffect`/`ProjectOutputChanged`; the starter's own offer becomes a consumer of the general fact, not a second watcher** (§1.5, §4.4, D6). | accepted (owner, 2026-10-19) |
-| **OD-81.10** | **Sync offers are banners, never modals; offer, never act.** Accepting pairs through the existing path; declining or ignoring changes nothing; the person's own open log is never auto-switched (§2.7, §3.5). | accepted (owner, 2026-10-19) |
+| **OD-81.10** | **Sync offers are banners, never modals; offer, never act.** (Since 1.40.5 rendered as messages in the Messages (N) tab; the decision is unchanged.) Accepting pairs through the existing path; declining or ignoring changes nothing; the person's own open log is never auto-switched (§2.7, §3.5). | accepted (owner, 2026-10-19) |
 
 | **OD-81.11** | **Truthful modal approval presentation.** Preserve existing application-modal approvals. Do not imply that a composer Show action is clickable while blocked. Test truthful status and native interaction; supersedes the original A5 Show affordance, not the permission policy. | accepted (owner, 2026-10-19) |
 | **OD-81.12** | Both root-reset and no-background safeguards were authorised only for explicitly opted-in Full script-trusting sessions, with no running-session retrofit. A bounded per-call helper investigation was subsequently authorised, not a self-report acceptance claim or execution proxy. | historical authorisation; implementation withheld by OD-81.13 |

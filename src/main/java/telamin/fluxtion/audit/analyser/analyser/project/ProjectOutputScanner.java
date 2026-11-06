@@ -113,6 +113,12 @@ public final class ProjectOutputScanner {
      *  no recognised root keeps its whole relative path. */
     static String logicalPath(Path relative) { return logicalPath(relative, null); }
     static String logicalPath(Path relative, Path root) {
+        var r = outputRoot(relative, root);
+        return r == null ? unix(relative) : r.module() + "|" + r.set() + "|" + unix(relative.subpath(r.start(), relative.getNameCount()));
+    }
+    /** The first recognised source or output root along the path; {@code build} says it is build output. */
+    private record Root(String module, String set, int start, boolean build) { }
+    private static Root outputRoot(Path relative, Path root) {
         int n = relative.getNameCount();
         java.util.function.IntFunction<String> seg = i -> i < n - 1 ? relative.getName(i).toString() : "";
         for (int i = 0; i < n - 1; i++) {
@@ -133,19 +139,34 @@ public final class ProjectOutputScanner {
                     String kind = seg.apply(i + 1), name = seg.apply(i + 2);
                     if ((kind.equals("production") || kind.equals("test")) && !name.isEmpty()) {
                         set = kind.equals("test") ? "test" : "main"; start = i + 3;
-                        // IntelliJ names the module; it is a directory of its own only in a multi-module project.
+                        // IntelliJ names the module. It is a directory of its own in a multi-module project; it is
+                        // dropped only for a single-module one. An unknown name stays distinct: a spare offer is
+                        // the safe failure, merging two modules' graphs is not (D12).
                         if (root != null && java.nio.file.Files.isDirectory(root.resolve(module).resolve(name)))
                             module = module.isEmpty() ? name : module + "/" + name;
+                        else if (root != null && !singleModule(root.resolve(module)))
+                            module = (module.isEmpty() ? "" : module + "/") + "out:" + name;
                     }
                 }
                 default -> { }
             }
-            if (start > 0 && start < n) return module + "|" + set + "|" + unix(relative.subpath(start, n));
+            if (start > 0 && start < n) return new Root(module, set, start, !seg.apply(i).equals("src"));
         }
-        return unix(relative);
+        return null;
+    }
+    /** A project whose sources sit directly in {@code base/src}, with no child module holding its own {@code src}. */
+    private static boolean singleModule(Path base) {
+        if (!java.nio.file.Files.isDirectory(base.resolve("src"))) return false;
+        try (var children = java.nio.file.Files.list(base)) {
+            return children.limit(1_000).noneMatch(c -> java.nio.file.Files.isDirectory(c.resolve("src")));
+        } catch (IOException | RuntimeException unreadable) { return false; }
     }
     private static String unix(Path p) { return p.toString().replace('\\', '/'); }
+    /** Build output by the recognised root's shape: a package directory named {@code build} below a source root is
+     *  not build output. A path with no recognised root falls back to any {@code target}/{@code build}/{@code out}. */
     static boolean buildCopy(Path relative) {
+        var r = outputRoot(relative, null);
+        if (r != null) return r.build();
         for (int i = 0; i < relative.getNameCount() - 1; i++) if (BUILD_OUTPUT.contains(relative.getName(i).toString())) return true;
         return false;
     }

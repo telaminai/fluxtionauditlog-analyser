@@ -153,7 +153,9 @@ public class ProjectOutputs implements EventLogSource {
         return pending.values().stream().anyMatch(p -> graphed(p.offer().file()) && group(p.offer().file()).equals(group(file))
                         && version(p.offer().file()).equals(version(file)))
                 || announced.values().stream().anyMatch(c -> graphed(c.file()) && group(c.file()).equals(group(file))
-                        && version(c.file()).equals(version(file)));
+                        && version(c.file()).equals(version(file)))
+                || opening.values().stream().anyMatch(o -> graphed(o.pending().offer().file())
+                        && group(o.pending().offer().file()).equals(group(file)) && version(o.pending().offer().file()).equals(version(file)));
     }
     private void refreshReferences(ProjectOutputsState.File file) {
         if (latestGraph != null && key(latestGraph).equals(key(file))) latestGraph = file;
@@ -175,7 +177,7 @@ public class ProjectOutputs implements EventLogSource {
             if (graphed(file)) { latestGroup = group(file); latestDigest = file.revision().contentDigest(); }
         }
         if (!opened.contains(new Opened(candidate.owner(), group(file), version(file)))) {
-            // One logical graph, one banner: a newer change replaces its pending offer, never adds a second (§3.5.1).
+            // One logical graph, one message: a newer change replaces its pending offer, never adds a second (§3.5.1).
             if (graphed(file)) pending.values().removeIf(p -> graphed(p.offer().file()) && group(p.offer().file()).equals(group(file)));
             pending.put(e.change(), new Pending(new ProjectOutputsState.Offer(e.change(), file,
                     file.kind() == ProjectOutputsState.Kind.LOG ? latestGraph : null), candidate.owner()));
@@ -183,12 +185,19 @@ public class ProjectOutputs implements EventLogSource {
         show(); return true;
     }
     private void pairPendingLogs(ProjectOutputsState.File graph) {
+        // The same graph content at another copy keeps the log's offer and its id, so an accepted batch still opens it.
+        pending.replaceAll((id, p) -> p.offer().file().kind() == ProjectOutputsState.Kind.LOG
+                && !Objects.equals(p.offer().graph(), graph) && sameContent(p.offer().graph(), graph)
+                ? new Pending(new ProjectOutputsState.Offer(id, p.offer().file(), graph), p.owner()) : p);
         List<Pending> replacements = new ArrayList<>();
         pending.values().removeIf(p -> {
             if (p.offer().file().kind() != ProjectOutputsState.Kind.LOG || Objects.equals(p.offer().graph(), graph)) return false;
             replacements.add(new Pending(new ProjectOutputsState.Offer(++counter, p.offer().file(), graph), p.owner())); return true;
         });
         for (Pending p : replacements) pending.put(p.offer().id(), p);
+    }
+    private static boolean sameContent(ProjectOutputsState.File a, ProjectOutputsState.File b) {
+        return a != null && b != null && graphed(a) && graphed(b) && group(a).equals(group(b)) && version(a).equals(version(b));
     }
     private void show() {
         shown.retainAll(pending.keySet());
@@ -216,11 +225,13 @@ public class ProjectOutputs implements EventLogSource {
                 openNextAccepted();
             } else {
                 acceptedBatch.removeAll(e.batch());
-                // Clear all is Not now for each message: its graph content is answered (§3.5.1 rule 4).
+                // Clear all is Not now for each message: its graph content is answered (§3.5.1 rule 3).
                 for (long id : e.batch()) {
                     Pending cleared = pending.remove(id);
-                    if (cleared != null && graphed(cleared.offer().file()))
+                    if (cleared == null) continue;
+                    if (graphed(cleared.offer().file()))
                         consumedGraphs.put(group(cleared.offer().file()), cleared.offer().file().revision().contentDigest());
+                    auditLog.info("projectOutputAnswer", "CLEAR_ALL").info("offer", id);
                 }
             }
             return true;

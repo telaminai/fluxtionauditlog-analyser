@@ -125,4 +125,37 @@ class ProjectOutputScannerTest {
         Files.createDirectories(path.getParent());
         return Files.writeString(path, content);
     }
+
+    // Delta review M1 (D12): IntelliJ names a module by its artifact, which need not be a project directory.
+    @Test void intellijModulesNamedUnlikeTheirDirectoriesStayTwoGraphs(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        writeGraph(root, "modA/src/main/resources/com/acme/P.graphml", "a");
+        writeGraph(root, "modB/src/main/resources/com/acme/P.graphml", "b");
+        writeGraph(root, "out/production/acme-modA/com/acme/P.graphml", "a");
+        writeGraph(root, "out/production/acme-modB/com/acme/P.graphml", "b");
+        var keys = ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .filter(o -> o.realPath().toString().contains("/out/")).map(ProjectOutputScanner.Observed::logicalPath).toList();
+        assertEquals(2, keys.size());
+        assertNotEquals(keys.get(0), keys.get(1), "two modules' graphs at the same path are two graphs: " + keys);
+    }
+
+    @Test void aSingleModuleIntellijOutputIsTheSameGraphAsItsSource(@TempDir Path temp) throws Exception {
+        Path root = Files.createDirectories(temp.resolve("DEMO"));
+        writeGraph(root, "src/main/resources/com/acme/P.graphml", "a");
+        writeGraph(root, "out/production/acme-demo/com/acme/P.graphml", "a");
+        var keys = ProjectOutputScanner.scan(root, List.of(), null).files().stream()
+                .map(ProjectOutputScanner.Observed::logicalPath).distinct().toList();
+        assertEquals(List.of("|main|com/acme/P.graphml"), keys);
+    }
+
+    // Delta review N1: build output is recognised by the root's shape, not by any directory name.
+    @Test void aSourcePackageNamedBuildIsNotBuildOutput() {
+        assertFalse(ProjectOutputScanner.buildCopy(Path.of("src/main/resources/com/acme/build/P.graphml")));
+        assertFalse(ProjectOutputScanner.buildCopy(Path.of("src/main/resources/com/acme/target/P.graphml")));
+        assertTrue(ProjectOutputScanner.buildCopy(Path.of("target/classes/com/acme/P.graphml")));
+        assertTrue(ProjectOutputScanner.buildCopy(Path.of("build/resources/main/com/acme/P.graphml")));
+        assertTrue(ProjectOutputScanner.buildCopy(Path.of("out/production/demo/com/acme/P.graphml")));
+        assertTrue(ProjectOutputScanner.buildCopy(Path.of("target/generated/P.graphml")), "an unrecognised build path still counts");
+    }
 }
+
