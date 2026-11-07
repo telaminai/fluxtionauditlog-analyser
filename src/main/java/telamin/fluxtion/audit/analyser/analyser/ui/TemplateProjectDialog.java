@@ -199,11 +199,6 @@ final class TemplateProjectDialog {
     }
 
     /**
-     * The picker's list, exactly as shown (owner, 2026-11-07): the selection's entries in their order (the one starter
-     * order — the Java-authoring starter first, the other recommended next), only the recommended ones unless
-     * {@code showAll}; every entry when the catalogue recommends none.
-     */
-    /**
      * The note above the list, saying what it shows: the catalogue's own note ("All templates — …") when every entry is
      * listed, otherwise that only the recommended starting points are, and how to see the rest.
      */
@@ -212,6 +207,11 @@ final class TemplateProjectDialog {
         return "Recommended starting points — tick " + StarterListPreference.LABEL + " to list every template.";
     }
 
+    /**
+     * The picker's list, exactly as shown (owner, 2026-11-07): the selection's entries in their order (the one starter
+     * order — the Java-authoring starter first, the other recommended next), only the recommended ones unless
+     * {@code showAll}; every entry when the catalogue recommends none.
+     */
     static List<TemplateCatalogue.Entry> shownEntries(TemplateCatalogue.Selection selection, boolean showAll) {
         List<TemplateCatalogue.Entry> all = selection.entries();
         if (showAll || all.stream().noneMatch(TemplateCatalogue.Entry::recommended)) return all;
