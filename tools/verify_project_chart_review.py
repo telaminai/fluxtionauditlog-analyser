@@ -345,8 +345,8 @@ CASES += [
     # PR #27 review nit 1: only ROOT entries on the list become executable; a basename-only match would
     # make a nested bundle/tools/generate.sh executable
     ('installer-nested-script-not-executable', TEMPLATE_ARCHIVE,
-     "if (executables && portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {",
-     'if (executables && POSIX_EXECUTABLES.contains(base)) {',
+     "boolean rootScript = portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base);",
+     'boolean rootScript = POSIX_EXECUTABLES.contains(base);',
      'TemplateArchiveTest#archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist'),
     # authoring walk 2026-10-18 (A2): a downloaded example's ./mvnw and ./regen.sh were 0644 — permission denied
     ('example-scripts-keep-archive-mode', TEMPLATE_ARCHIVE,
