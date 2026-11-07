@@ -369,8 +369,7 @@ class UiTextTest {
         public void showTab(String n) { }
         public void openOwnLog() { }
         public void openSettings() { }
-        public void openFluxtionKey() { }
-        public boolean fluxtionKeyPresent() { return false; }
+        public void openCompilerAccount() { }
         public void backToRecords() { }
         public void newProject() { }
         public void newProjectFromTemplate() { }

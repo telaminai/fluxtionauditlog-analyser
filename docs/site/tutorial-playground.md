@@ -5,9 +5,9 @@
 Download a runnable event-processing system, inspect its graph, run it, and let the analyser show
 what the compiled processor actually did — on your machine, with code you can edit.
 
-You need a **JDK 21+**. The project builds and runs with **no Fluxtion API key** because its generated
+You need a **JDK 21+**. The project builds and runs with **no compiler sign-in** because its generated
 processor is committed. On a machine without Maven, the wrapper's first download also needs `curl` or
-`wget`. A key is needed only when you deliberately regenerate after changing the graph.
+`wget`. Sign-in is needed only when you deliberately regenerate after changing the graph.
 
 ## 1. Download the analyser bundle
 
@@ -202,9 +202,8 @@ Regeneration is the one keyed step:
 ./stop-server.sh
 ```
 
-Put the key in `~/.fluxtion/fluxtion.apiKeyFile` as `apiKey=…`, or pass
-`-Dfluxtion.apiKey=…` to that build. The compiler does **not** read `FLUXTION_API_KEY`, so exporting
-that variable alone cannot satisfy regeneration. The ordinary build and run remain keyless.
+Regeneration needs compiler sign-in: run `mvn fluxtion:login` once on this machine (or use
+**AI ▸ Compiler account…**); in CI, set `FLUXTION_API_TOKEN`. The ordinary build and run need no sign-in.
 
 Reopen the exported YAML and examine the new cycles. The analyser has one active log at a time; it does
 not compare two complete runs side by side. A report whose tables and charts you made on the first run re-runs

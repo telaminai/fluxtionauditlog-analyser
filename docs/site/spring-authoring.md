@@ -177,9 +177,10 @@ The stages answer different questions:
 
 Generation follows the builder's selected backend. An installed local provider
 can generate without a key or gateway probe once dependencies are provisioned.
-Custom HTTP endpoints use the existing client's authentication. The RapidAPI route
-requires a key and its gateway preflight. A custom endpoint is not an offline
-provider. Offline XML validation and source reconciliation do not need a key.
+Custom HTTP endpoints use the existing client's authentication. The hosted compiler
+requires compiler sign-in (**AI ▸ Compiler account…**, `mvn fluxtion:login`, or
+`FLUXTION_API_TOKEN` in CI). A custom endpoint is not an offline provider. Offline XML
+validation and source reconciliation do not need sign-in.
 
 The analyser bundle also has host-specific run/export/stop scripts. Follow its
 README for those steps: a Chronicle capture must be exported as analyser-readable

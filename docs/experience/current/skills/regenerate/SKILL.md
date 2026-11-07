@@ -6,27 +6,23 @@ x-analyser-min-version: 1.12.0
 
 # Regenerate after a graph change
 
-Running the project needs **no key**. Regenerating needs one **only when the compiler is not on the
-classpath** — with `fluxtion-builder` present the generation is local and no key is involved. Check the
-project's own dependencies before concluding a build failure is a licence problem; measured rounds have
-produced confident, wrong reports in both directions.
+Running the project needs **no sign-in**. Regenerating needs **compiler sign-in** only when the compiler is
+not on the classpath — with a local generator present the generation is local and no credential is involved.
+Check the project's own dependencies before concluding a build failure is an authentication problem; measured
+rounds have produced confident, wrong reports in both directions.
 
-## Check the key the way the BUILD resolves it
+## Sign in the way the BUILD authenticates
 
-The build reads, in this order:
+Hosted generation goes only through compiler sign-in (the old API key route is closed):
 
 ```
--Dfluxtion.apiKey=…                system property   [WINS when set]
-~/.fluxtion/fluxtion.apiKeyFile    apiKey=…          [used when the property is absent]
+mvn fluxtion:login                 once per machine: approve the sign-in in your browser
+FLUXTION_API_TOKEN                 in CI: a token set as a secret, never committed
 ```
 
-**`FLUXTION_API_KEY` is not read by the build.** A preflight script that checks that variable can report
-success on a value the build never receives, so check the file:
-
-```bash
-grep -s '^apiKey=' ~/.fluxtion/fluxtion.apiKeyFile >/dev/null \
-  && echo "key file present" || echo "NO key file — regeneration will fail"
-```
+In the analyser, **AI ▸ Compiler account…** signs in the same way. Never search for, print or read a
+credential or key file: the Fluxtion Maven plugin reads the saved sign-in itself, and a refused build says
+so.
 
 ## Regenerate
 
@@ -97,7 +93,7 @@ project whose goal is `scan`.
 
 | The error says | Cause |
 |---|---|
-| missing/invalid API key | the key — check the file above |
+| not signed in / sign-in refused | compiler sign-in — run `mvn fluxtion:login` (or set `FLUXTION_API_TOKEN` in CI) |
 | `cannot find matching constructor for: Field{…} failed to match for these fields:[…]` | a node field is **not reachable from a constructor**. Mark your node's own state `transient` — see `CLAUDE.md` §4.3. The message names constructors; the fix is usually `transient`. |
 | a node you added is absent from the generated output | the bean is not in `fluxtionSpringConfig.nodeBeans` |
 

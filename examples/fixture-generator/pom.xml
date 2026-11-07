@@ -12,13 +12,13 @@
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- The SAME pairing as the analyser's root pom (fluxtion.version / fluxtion.builder.version), and
+        <!-- The SAME pairing as the analyser's root pom (fluxtion.version / fluxtion.builder.version / fluxtion.maven-plugin.version), and
              FixtureGeneratorToolchainTest holds it there. The builder is on its own version line. An older
              builder against the current hosted generator emits a processor whose auditEvent is EMPTY: it
              compiles, and it writes no audit log at all (found 2026-09-28, spike README ▸ R0). -->
         <fluxtion.version>1.1.0</fluxtion.version>
-        <fluxtion.builder.version>1.0.76</fluxtion.builder.version>
-        <fluxtion.maven-plugin.version>1.3.0</fluxtion.maven-plugin.version>
+        <fluxtion.builder.version>1.0.89</fluxtion.builder.version>
+        <fluxtion.maven-plugin.version>1.3.3</fluxtion.maven-plugin.version>
     </properties>
 
     <!-- No fluxtion-bom import. It pinned fluxtion-builder-api to 1.0.13 underneath builder 1.0.71; the root pom
@@ -75,7 +75,8 @@
             <!-- AOT generation: scan finds the FluxtionGraphBuilder (in compiled classes),
                  invokes it, and emits MyProcessor (package
                  com.example.myapp.generated). The scan goal calls the cloud source-gen service,
-                 so './mvnw package' needs a free, subscribed Fluxtion API key at build time. -->
+                 so generation needs compiler sign-in at build time: 'mvn fluxtion:login' once
+                 per machine, or FLUXTION_API_TOKEN in CI. -->
             <plugin>
                 <groupId>com.telamin.fluxtion</groupId>
                 <artifactId>fluxtion-maven-plugin</artifactId>

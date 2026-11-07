@@ -17,8 +17,7 @@ class ProjectLandingTest {
                 public void showTab(String n) { }
                 public void openOwnLog() { calls.add("log"); }
                 public void openSettings() { }
-                public void openFluxtionKey() { }
-                public boolean fluxtionKeyPresent() { return false; }
+                public void openCompilerAccount() { }
                 public void backToRecords() { }
                 public void newProject() { calls.add("new"); }
                 public void newProjectFromTemplate() { calls.add("template"); }
@@ -54,8 +53,7 @@ class ProjectLandingTest {
                 public void showTab(String n) { }
                 public void openOwnLog() { calls.add("log"); }
                 public void openSettings() { }
-                public void openFluxtionKey() { }
-                public boolean fluxtionKeyPresent() { return false; }
+                public void openCompilerAccount() { }
                 public void backToRecords() { calls.add("back"); }
                 public void openProjectDesign() { calls.add("design"); }
             }, null);

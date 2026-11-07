@@ -38,10 +38,9 @@ is in both, so there is no rule about which wins.
 | AWS profile and region, theme, window size, recent files, search history, topology display | machine | never | never |
 | Session-recovery candidates | machine | never | never |
 
-The **Fluxtion build key**, for regenerating a processor, is not an analyser setting. It lives in
-`~/.fluxtion/fluxtion.apiKeyFile`, managed from **AI ▸ Fluxtion API key…**, and cannot enter a profile, a settings
-file or a bundle. The Project panel says whether that file has a key; it cannot know whether a build will be given an
-overriding `-Dfluxtion.apiKey`, and says so.
+Regenerating a processor needs **compiler sign-in**, which is not an analyser setting: **AI ▸ Compiler account…**
+keeps its credential in your OS credential store, and it cannot enter a profile, a settings file or a bundle
+([Connect a compiler account](../getting-started.md#connect-a-compiler-account)).
 
 !!! note "A shared settings file cannot turn on External MCP/REST access"
     The *Assistant limits* category carries only the in-app assistant's two action limits, *Max action rounds* and
@@ -77,14 +76,13 @@ configured roots is refused ([Source navigation](source-navigation.md#spring-des
 
 Spring is the preferred route: start with a template, then load the skills. Claude Code in the analyser can list the
 analyser's starter templates (`context.starters`: each one's id, name, description, how its graph is authored, where
-it runs, and whether its build needs a Fluxtion key, Spring first and recommended) and **propose** one. It never
+it runs, and whether its build needs compiler sign-in, Spring first and recommended) and **propose** one. It never
 creates the project itself, and it never names a folder.
 
 1. **The proposal.** A banner says Claude Code has a proposal; **Review…** opens one row: *Create a project from
-   starter* **Fluxtion Spring XML** *(Spring XML · embedded · AOT · build needs a Fluxtion key; none found on this
-   machine)*, Claude's reason in its own words, a **Folder** with **Choose…**, and *Downloads from
+   starter* **Fluxtion Spring XML** *(Spring XML · embedded · AOT · build needs compiler sign-in (see README))*, Claude's reason in its own words, a **Folder** with **Choose…**, and *Downloads from
    fluxtion-playground.dev; nothing is built or run.* The row starts at **No**, and **Apply chosen** stays disabled
-   until you choose a new or empty folder. A starter's build that needs a key says so whether or not one is found.
+   until you choose a new or empty folder. A starter's build that needs sign-in says so.
 2. **The download.** Only your Apply downloads, from the configured HTTPS origin, and unpacks with the same checks as
    *New project from template…*. Nothing is built or run.
 3. **The skills.** The analyser writes the project's skills from its own copy — the canonical set for the starter's
@@ -93,8 +91,7 @@ creates the project itself, and it never names a folder.
    are bundled with the publisher's permission (owner, 2026-10-18); the playground's licence statement is pending (UP-PG-10). Once every pin has
    matched, the placeholders the analyser's first-run record for the starter can answer are filled in, and nothing
    else: *add-a-node*'s regeneration command becomes the starter's own steps (for the Spring starters
-   `./check-fluxtion-key.sh`, `./setup.sh`, `./validate.sh`, `./generate.sh`) and whether they need a Fluxtion API
-   key; *run-mongoose-server*'s start command becomes `./run-server.sh` and *run-embedded*'s becomes `./run.sh`, each
+   `./setup.sh`, `./validate.sh`, `./generate.sh`) and whether they need compiler sign-in; *run-mongoose-server*'s start command becomes `./run-server.sh` and *run-embedded*'s becomes `./run.sh`, each
    with the steps the record runs before it. The placeholders the record cannot answer — the export command, the log
    and GraphML paths, the stop command, the class an embedded run starts — stay as they are, as does every
    placeholder for a starter with no record (on Windows, none has one today). `.claude/skills/.vendored.json` lists
@@ -242,9 +239,9 @@ the relative-path base.
 
 !!! success "Why it's safe to commit"
 
-    **A profile cannot contain either your LLM API key or your Fluxtion build-key value.** The LLM key
-    is outside the project tier, while the build key never enters `AppConfig` at all: its dialog writes
-    straight to the established local Fluxtion file and then forgets the value.
+    **A profile cannot contain either your LLM API key or your compiler-account credential.** The LLM key
+    is outside the project tier, while the credential never enters `AppConfig` at all: it is kept in your
+    OS credential store.
 
     The same holds for your AWS profile, your theme and your window size: all machine-tier, none of them
     written to a profile. And paths under your home directory are stored `~`-relative, so a teammate's

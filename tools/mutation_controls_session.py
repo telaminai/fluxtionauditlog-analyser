@@ -2826,9 +2826,9 @@ CONTROLS += [
      '    String bearer() {', '    public String bearer() {',
      'CompilerAccountSafetyTest#noPublicMethodReturnsTheBearerOrTheDeviceCode'),
     ('ca1-context-never-reads-the-account', UI + 'MainFrame.java',
-     '                fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");\n',
-     '                fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");\n'
-     '                fluxtionKey.put("compilerAccount", telamin.fluxtion.audit.analyser.analyser.account.CredentialStores'
+     '            out.put("project", proj);\n',
+     '            out.put("project", proj);\n'
+     '            proj.put("compilerAccount", telamin.fluxtion.audit.analyser.analyser.account.CredentialStores'
      '.forThisMachine().description());\n',
      'CompilerAccountSafetyTest#onlyTheDialogAndItsMenuItemReachTheAccountPackage'),
     ('ca1-no-reset-line-without-reset', UI + 'CompilerAccountDialog.java',

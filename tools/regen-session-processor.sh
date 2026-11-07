@@ -13,7 +13,7 @@
 # can express one profile per mode, but not "run the same goal three times with a different system
 # property and keep each output", and three near-identical profiles would be three things to drift.
 #
-# Requires a Fluxtion API key (~/.fluxtion/fluxtion.apiKeyFile) and a locally installed builder carrying
+# Requires compiler sign-in (`mvn fluxtion:login`, or FLUXTION_API_TOKEN in CI) and a locally installed builder carrying
 # the fluxtion.* vocabulary. Without the latter the fixtures are left alone and only the processor is
 # regenerated — the committed processor must stay regenerable from a released builder.
 set -euo pipefail

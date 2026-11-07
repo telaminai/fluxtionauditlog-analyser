@@ -66,9 +66,12 @@ public final class StarterSkills {
         m.put("spring-authoring/reference/skill.md", new String[]{
                 "https://fluxtion-playground.dev/spring-authoring/skill.md", "playground/spring-authoring/skill.md",
                 "9875abf6d5ad4f9662ee985e21013c4e6292d8a1843cb7a1ec115610a636929e"});
+        // RAPID-OFF (2026-11-07): one paragraph re-worded locally — the hosted compiler needs compiler sign-in, the
+        // RapidAPI route is closed — so these bytes differ from the published page until the playground republishes
+        // its contract (RAPID-OFF brief 03); re-fetch and re-pin then.
         m.put("spring-authoring/reference/contract.md", new String[]{
                 "https://fluxtion-playground.dev/spring-authoring/contract.md", "playground/spring-authoring/contract.md",
-                "a00cfdecfdf80183491757cf6d93c210bf95b61293c61a45359cd1bdb258f0a8"});
+                "bff3c8db4e0ca4e57e66900887b774d8a56c9f561f2ed0b590cdab9e710eb50d"});
         PLAYGROUND = java.util.Collections.unmodifiableMap(m);
     }
 
@@ -183,20 +186,20 @@ public final class StarterSkills {
      * The first-run steps that regenerate, in the record's order: fixed analyser strings, the only command tokens the
      * substituted text may carry. The run script is not regeneration and never appears.
      */
-    static final List<String> REGENERATION_STEPS = List.of("./check-fluxtion-key.sh", "./setup.sh", "./validate.sh",
-            "./generate.sh");
+    static final List<String> REGENERATION_STEPS = List.of("./setup.sh", "./validate.sh", "./generate.sh");
 
     public static final String SIGN_IN_BUILD = "**Compiler sign-in: needed at build.** Follow the project's "
             + "Compiler sign-in instructions in README and its RUNBOOK; Maven validates the saved credential.";
-    public static final String KEY_BUILD = "**Fluxtion API key: needed.** The starter declares that its build needs a "
-            + "Fluxtion API key (`keyNeed: build`), so regenerating needs one.";
-    public static final String KEY_RUN = "**Fluxtion API key:** the starter declares that one is needed when the "
-            + "processor runs (`keyNeed: run`).";
-    public static final String KEY_NONE = "**Fluxtion API key: not needed.** The starter declares that its build needs "
-            + "no Fluxtion API key (`keyNeed: none`).";
-    public static final String KEY_UNDECLARED = "**Fluxtion API key:** the starter does not declare whether its build "
-            + "needs one.";
-    public static final String KEY_CHECK = "`./check-fluxtion-key.sh` checks whether one is set.";
+    // RAPID-OFF (2026-11-07): the legacy key route is closed. Generation goes only through compiler sign-in, so an older
+    // starter's `keyNeed: build` means sign-in too, and its ./check-fluxtion-key.sh (which looks for the retired key
+    // file) is never offered as a step: it is not in REGENERATION_STEPS, so no record can carry it into a skill.
+    public static final String KEY_BUILD = SIGN_IN_BUILD;
+    public static final String KEY_RUN = "**Compiler sign-in:** the starter declares that it is needed when the "
+            + "processor runs (`keyNeed: run`). Sign in with AI ▸ Compiler account…, or `mvn fluxtion:login`.";
+    public static final String KEY_NONE = "**Compiler sign-in: not needed.** The starter declares that its build needs "
+            + "no generation credential (`keyNeed: none`).";
+    public static final String KEY_UNDECLARED = "**Compiler sign-in:** the starter does not declare whether its build "
+            + "needs it. Regenerating a processor does: sign in with AI ▸ Compiler account…, or `mvn fluxtion:login`.";
 
     /**
      * The starter's own first-run record and key declaration — what the marker is substituted from. {@code firstRun} is
@@ -280,17 +283,13 @@ public final class StarterSkills {
     public static String regenerationBlock(FirstRun record) {
         if (record == null) return null;
         List<String> steps = known(record, REGENERATION_STEPS);
-        if ("sign-in-build".equals(record.keyNeed()))
-            steps = steps.stream().filter(step -> !"./check-fluxtion-key.sh".equals(step)).toList();
         if (!steps.contains("./generate.sh")) return null;
         String key = switch (record.keyNeed()) {
-            case "build" -> KEY_BUILD;
-            case "sign-in-build" -> SIGN_IN_BUILD;
+            case "build", "sign-in-build" -> SIGN_IN_BUILD;
             case "run" -> KEY_RUN;
             case "none" -> KEY_NONE;
             default -> KEY_UNDECLARED;
         };
-        if (!"none".equals(record.keyNeed()) && steps.contains("./check-fluxtion-key.sh")) key += " " + KEY_CHECK;
         return "```\n" + String.join("\n", steps) + "\n```\n\n"
                 + "These are this project's regeneration steps, in order, from the analyser's first-run record for its "
                 + "starter.\n" + key + "\n";

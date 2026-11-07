@@ -29,12 +29,13 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
 /**
  * Authors the session transition graph — M44 slice 1.
  *
- * <p><b>This file is the only thing in the repository that needs a Fluxtion API key.</b> It lives in
- * {@code src/graph/java}, a source root added only by {@code -Pregen}, so the ordinary keyless build
+ * <p><b>This file is the only thing in the repository that needs compiler sign-in.</b> It lives in
+ * {@code src/graph/java}, a source root added only by {@code -Pregen}, so the ordinary build
  * never resolves {@code fluxtion-builder} at all. Regenerate with:
  *
  * <pre>
- *   mvn -Pregen process-classes      # needs ~/.fluxtion/fluxtion.apiKeyFile
+ *   mvn fluxtion:login               # once per machine: compiler sign-in through your browser
+ *   mvn -Pregen process-classes      # needs compiler sign-in (FLUXTION_API_TOKEN in CI)
  *   mvn test                         # GeneratedSourceIsPublishableTest tells you what to strip
  * </pre>
  *
@@ -56,7 +57,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  * so nothing hand-edited survived — but the route above never has a hand-edited state to trust.)
  *
  * The generated processor and its GraphML are <b>committed</b>, so everyone else — CI, a reviewer
- * without a key, a fresh contributor — builds and tests from a bare checkout.
+ * without compiler sign-in, a fresh contributor — builds and tests from a bare checkout.
  *
  * <pre>
  *   OpenProjectRequested ─┐

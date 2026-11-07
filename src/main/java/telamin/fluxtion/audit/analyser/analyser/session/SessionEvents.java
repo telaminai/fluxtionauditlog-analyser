@@ -894,8 +894,16 @@ public final class SessionEvents {
     /**
      * Reported once at start-up with the other start-up facts: the two machine-tier keys of M77 and whether this process
      * was started with {@code --rest} (an agent drives it; nobody at the screen — review R1-16 a, b).
+     *
+     * <p>RAPID-OFF (2026-11-07): {@code legacyKeyFile} — a file still exists where the retired AI ▸ Fluxtion API key…
+     * item wrote one. Existence only: the adapter never opens it, and no path or value travels in this fact.
      */
-    public record AiSetupStartupObserved(boolean dismissed, AiSetupState.Client client, boolean restLaunch) {
+    public record AiSetupStartupObserved(boolean dismissed, AiSetupState.Client client, boolean restLaunch,
+                                         boolean legacyKeyFile) {
+        /** The start-up facts with no legacy key file observed. */
+        public AiSetupStartupObserved(boolean dismissed, AiSetupState.Client client, boolean restLaunch) {
+            this(dismissed, client, restLaunch, false);
+        }
     }
 
     /** Screen 1 (or the first-run block): the person picked a choice. Picking applies nothing. */
@@ -1780,7 +1788,7 @@ public final class SessionEvents {
      * could not be read.
      */
     public record StarterDefaultsObserved(long opId, long request, boolean ok, long defaultsRef, String authoring,
-                                          boolean keyPresent, String failure) implements Result {
+                                          String failure) implements Result {
     }
 
     /**

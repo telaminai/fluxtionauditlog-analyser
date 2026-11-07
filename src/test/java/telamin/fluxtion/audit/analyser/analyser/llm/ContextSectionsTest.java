@@ -28,7 +28,6 @@ class ContextSectionsTest {
         ctx.put("log", Map.of("path", "/work/demo/logs/demo-quote-audit.yaml", "records", 10, "openedBy", "you"));
         ctx.put("provenance", "DEMO-quote-service");
         ctx.put("project", Map.of("active", true, "name", "DemoQuote", "root", "/work/demo"));
-        ctx.put("fluxtionKey", Map.of("canonicalFilePresent", false, "canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile"));
         Map<String, Object> pair = new LinkedHashMap<>();
         pair.put("graph", "demo-quote-processor.graphml");
         pair.put("graphSource", "OPENED");
@@ -179,22 +178,22 @@ class ContextSectionsTest {
     }
 
     /**
-     * PR #29 review finding 3: the description said a selection skips the key file, but
-     * {@code fluxtionKeyStore.keyPresent()} ran on every projection. It is now built only under the
-     * {@code fluxtionKey} guard. Read from source: the store is final and private to the frame, so the read
-     * itself cannot be counted without a seam that exists only for this test.
+     * RAPID-OFF (2026-11-07): the legacy key route is closed, so {@code context} carries no {@code fluxtionKey} key and
+     * {@code context()} reads no key file at all. (PR #29 review finding 3 guarded that read behind its section; the
+     * read is now gone.) Witness: put the {@code fluxtionKey} block back into {@code context()}, or the name back into
+     * the project section — this fails.
      */
     @Test
-    void aProjectionWithoutFluxtionKeyReadsNoKeyFile() throws Exception {
+    void contextCarriesNoLegacyKeySection() throws Exception {
         String mainFrame = Files.readString(Path.of(
                 "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"));
         int start = mainFrame.indexOf("ActionResult context(\n");
+        assertTrue(start > 0, "context() must exist, or this rule checks nothing");
         String body = mainFrame.substring(start, mainFrame.indexOf("public boolean showTab", start));
-        int read = body.indexOf("fluxtionKeyStore.keyPresent()");
-        assertTrue(read > 0 && body.indexOf("fluxtionKeyStore.keyPresent()", read + 1) < 0, "one key-file read in context()");
-        int guard = body.lastIndexOf("if (need.test(\"fluxtionKey\")) {", read);
-        assertTrue(guard > 0 && body.substring(guard, read).indexOf('}') < 0,
-                "the key file is read only inside the fluxtionKey guard, so a projection without it reads no key file");
+        for (String gone : List.of("fluxtionKey", "apiKeyFile", "LegacyKeyFile"))
+            assertFalse(body.contains(gone), "context() must not observe the retired key route: " + gone);
+        assertTrue(ContextSections.SECTIONS.values().stream().noneMatch(keys -> keys.contains("fluxtionKey")),
+                "no section carries the retired fluxtionKey key");
     }
 
     @Test
@@ -238,7 +237,6 @@ class ContextSectionsTest {
     void aProjectTransitionIsReadFreshFromEachState() {
         Map<String, Object> before = new LinkedHashMap<>();
         before.put("project", Map.of("active", false, "note", "your own settings — no project is open"));
-        before.put("fluxtionKey", Map.of("canonicalFilePresent", false));
         before.put("exports", Map.of("enabled", false));
         before.put("filter", Map.of());
         Map<String, Object> after = fixture();
@@ -286,7 +284,7 @@ class ContextSectionsTest {
         assertEquals(List.of(FULL_BYTES, MENUS_BYTES, PAIRING_BYTES), List.of(all, menus, pairing));
     }
 
-    static final int FULL_BYTES = 1709;
+    static final int FULL_BYTES = 1614;
     static final int MENUS_BYTES = 541;
     static final int PAIRING_BYTES = 817;
 

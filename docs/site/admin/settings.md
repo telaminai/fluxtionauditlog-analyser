@@ -47,8 +47,9 @@ The in-app assistant's provider, used only by the *In-app assistant* profile ([A
 | **API key** | empty | stored in **cleartext** in `~/.fluxtion-analyser/config`, and sent only to the provider's endpoint. Never in an exported settings file, a project or a bundle |
 | **Base URL (optional)** | empty | a proxy or a compatible endpoint |
 
-The Fluxtion build key is a different key, for regenerating a processor. It lives in `~/.fluxtion/fluxtion.apiKeyFile`,
-managed from **AI ▸ Fluxtion API key…**, and is not an analyser setting.
+Regenerating a processor needs no key at all: it needs **compiler sign-in**, from **AI ▸ Compiler account…** (or
+`mvn fluxtion:login` in a terminal, and `FLUXTION_API_TOKEN` in CI). Sign-in is not an analyser setting either
+([Connect a compiler account](../getting-started.md#connect-a-compiler-account)).
 
 ## Performance & S3 (machine)
 
@@ -124,7 +125,6 @@ and restart ([Log-source plugins](../user-guide/plugins.md)).
 - **The assistant profile**: **Set up AI…** and the mode chip's quick switch (*Safe ▾*, *◆ Full ▾* …) in the assistant
   panel write the same switches as this tab
   ([Assistant profiles](profiles.md)).
-- **The Fluxtion build key**: **AI ▸ Fluxtion API key…**.
 - **The compiler account**: **AI ▸ Compiler account…**. Its service address is a machine setting
   (`compilerServiceUrl`, empty by default); its credential is not a setting and is kept in the OS credential store
   ([Connect a compiler account](../getting-started.md#connect-a-compiler-account)).

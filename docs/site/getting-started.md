@@ -74,12 +74,10 @@ you press Send ([Ask the assistant](inapp/ask.md)). Which assistant answers, if 
 use. To drive this window from Claude Code, Codex or another client in your terminal, see
 [Connect your client](connect-an-llm.md).
 
-If you later **regenerate a Fluxtion processor**, that build needs a different key: the Fluxtion build key, not an
-assistant's. **AI ▸ Fluxtion API key…** (also on the start page) writes the usual `~/.fluxtion/fluxtion.apiKeyFile`;
-named local profiles let one machine switch between, for example, a work and an evaluation key. The analyser reports
-only whether a key is present; it does not check it or show it again. A `-Dfluxtion.apiKey` passed to the build
-overrides the file, and the builder does not read `FLUXTION_API_KEY`. Existing generated processors and the bundled
-demo run without this key.
+If you later **regenerate a Fluxtion processor**, that build needs **compiler sign-in**, not an assistant's key:
+**AI ▸ Compiler account…** (also **Compiler account** on the start page) signs this machine in through your browser,
+as described below. In a terminal, `mvn fluxtion:login` does the same for Maven; in CI, set `FLUXTION_API_TOKEN`.
+The old Fluxtion API key route is closed. Existing generated processors and the bundled demo run without signing in.
 
 ## Connect a compiler account
 
@@ -112,7 +110,7 @@ Once connected, the dialog shows:
 
 - **Account**: the account id, whether it is a *Personal* or an *Organisation* account, your role in it, the plan,
   and whether the account is *Active*. Below them are the plan's key limits, as the service states them: the most
-  nodes and event types a graph may have, the languages it may generate, whether the WebAssembly (WASM) host bundle
+  nodes, inputs and exported interfaces a graph may have, the languages it may generate, whether the WebAssembly (WASM) host bundle
   is included, and the software assurance it carries (*None*, *Provenance*, or *Provenance + verification report*).
   A limit an operator set for your account says *(set for this account)*. A service that does not report plans
   shows the plan's name only, and says *Plan details unavailable from this service*.

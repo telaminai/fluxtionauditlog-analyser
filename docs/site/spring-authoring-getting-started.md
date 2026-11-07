@@ -31,9 +31,9 @@ runtime mode or separate “guided” project type. You can follow the same step
 | Host a Spring design in Mongoose | Use **Fluxtion Spring in Mongoose** and its hosting/build runbooks. Starter 1.0.74 downloads include the local authoring workflow below; use `run-server.sh` for the host. |
 
 For the Spring path, use JDK 21, network access for provisioning, and analyser **1.16.0 or later**.
-Your local LLM needs access to the downloaded project and a terminal. Generation through RapidAPI
-also needs a configured, subscribed compilation key; an installed local generator is a different
-route. XML validation itself is keyless.
+Your local LLM needs access to the downloaded project and a terminal. Generation through the hosted
+compiler also needs compiler sign-in (**AI ▸ Compiler account…**, or `mvn fluxtion:login`; `FLUXTION_API_TOKEN`
+in CI); an installed local generator is a different route. XML validation itself needs no sign-in.
 
 ## 1. Download a project
 
@@ -243,9 +243,9 @@ across later reconciliation. Always check the emitted audit values after a real 
 The build receipt is `target/fluxtion-run.json`; compilation diagnostics belong to the latest
 attempt only when that receipt says the compiler ran and its input checks still hold.
 
-The default remote route requires a compilation key. Configure it using the project's preflight
-instructions or **AI ▸ Fluxtion API key…**, never by committing it. An installed local provider
-can be keyless; a custom HTTP host is not automatically a local provider.
+The default remote route requires compiler sign-in. Sign in with **AI ▸ Compiler account…** or
+`mvn fluxtion:login` (in CI, set `FLUXTION_API_TOKEN` as a secret), never by committing a credential. An
+installed local provider needs no sign-in; a custom HTTP host is not automatically a local provider.
 
 The screenshots show download, design rendering and XML validation. The separate
 [1.0.73 release check](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/handoff/report_sg1_release_2026_09_21.md)

@@ -25,10 +25,10 @@ class TemplateCatalogueTest {
         var aot = catalogue.templates().getFirst();
         assertTrue(aot.disclosure().contains("Build authentication: compiler sign-in at build"));
         assertEquals("sign-in-build", Starters.of(aot, null).keyNeed());
-        String facts = Starters.facts("spring", "mongoose", "aot", "sign-in-build", false);
+        String facts = Starters.facts("spring", "mongoose", "aot", "sign-in-build");
         assertTrue(facts.contains("build needs compiler sign-in"));
-        assertEquals(facts, Starters.facts("spring", "mongoose", "aot", "sign-in-build", true),
-                "a legacy key's presence says nothing about Maven sign-in");
+        assertEquals(facts, Starters.facts("spring", "mongoose", "aot", "build"),
+                "RAPID-OFF: an older catalogue's build key need is compiler sign-in too");
         assertTrue(catalogue.templates().getLast().disclosure()
                 .contains("Regeneration authentication: compiler sign-in at build"));
     }

@@ -131,10 +131,10 @@ class AssistantVocabularyTest {
     @DisplayName("★ every start-page chip's accessible name contains its visible label")
     void theAccessibleNameContainsTheVisibleLabel() {
         assertTrue(StartPanel.accessibleName("Generic MCP setup", "Other MCP client").contains("Other MCP client"));
-        assertTrue(StartPanel.accessibleName("Fluxtion API key — not found", "Fluxtion key").contains("Fluxtion key"));
+        assertTrue(StartPanel.accessibleName("Compiler account", "Compiler sign-in").contains("Compiler sign-in"));
         assertEquals("Open sample project", StartPanel.accessibleName("Open sample project", "Sample project"),
                 "a title that contains the label is kept as it is");
-        assertEquals("Fluxtion key — found", StartPanel.accessibleName("Fluxtion key — found", "Fluxtion key ✓"),
+        assertEquals("Example — found", StartPanel.accessibleName("Example — found", "Example ✓"),
                 "the tick is not part of the label a person says");
         assertEquals("Off — Assistant: Off, choose how the assistant works",
                 AssistantPanel.assistantControlName(AssistantProfile.OFF));

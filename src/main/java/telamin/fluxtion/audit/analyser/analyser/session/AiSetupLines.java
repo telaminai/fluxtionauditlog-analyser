@@ -32,6 +32,13 @@ public final class AiSetupLines {
     public static final String FOOTER = "Nothing is sent to an AI model from this window.";
     public static final String FIRST_RUN_FOOTER = "Nothing is sent or started until you choose.";
     public static final String SET_UP_LINK = "Set up AI…";
+    /**
+     * RAPID-OFF (2026-11-07): said once per run, on the start page's AI block, while a file is still where the retired
+     * AI ▸ Fluxtion API key… item wrote one. It names no path and never the value; nothing reads the file.
+     */
+    public static final String LEGACY_KEY_NOTICE = "The Fluxtion API key route is closed: the key file on this machine "
+            + "is no longer used. To regenerate a processor, sign in with AI ▸ Compiler account… "
+            + "(or mvn fluxtion:login in a terminal).";
     public static final String CHANGE_LINK = "Change…";
 
     // ---- Screen 1 (§6.1) ---------------------------------------------------------------------------------------------

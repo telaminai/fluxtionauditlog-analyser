@@ -129,7 +129,8 @@ class StarterSkillsTest {
             Files.writeString(shipped.resolve(f), "x");
         }
         List<String> record = TemplateArchive.commandsFor(shipped, false);
-        assertEquals(List.of("./check-fluxtion-key.sh", "./setup.sh", "./validate.sh", "./generate.sh", "./run.sh"),
+        // RAPID-OFF: the starter still ships check-fluxtion-key.sh; the record never runs it
+        assertEquals(List.of("./setup.sh", "./validate.sh", "./generate.sh", "./run.sh"),
                 record, "the post-install list for the Spring starter");
         return new StarterSkills.FirstRun(record, "build");
     }
@@ -151,7 +152,8 @@ class StarterSkillsTest {
         String skill = Files.readString(project.resolve(".claude/skills/add-a-node/SKILL.md"));
         assertTrue(skill.contains("./generate.sh"), skill);
         assertTrue(skill.contains(StarterSkills.KEY_BUILD), "the key note");
-        assertTrue(skill.contains(StarterSkills.KEY_CHECK), "the key check the record names");
+        // RAPID-OFF: the record's ./check-fluxtion-key.sh looks for the retired key file, so it is never a step
+        assertFalse(skill.contains("check-fluxtion-key"), "no key check: the key route is closed");
         assertFalse(skill.contains(MARKER_LEAD), "no marker is left");
         assertFalse(skill.contains("./run.sh"), "running is not regeneration");
         String original = pinned(StarterSkills.ADD_A_NODE);
@@ -289,7 +291,7 @@ class StarterSkillsTest {
         String skill = written(project, "run-embedded");
         assertFalse(skill.contains(StarterSkills.EMBEDDED_START_MARKER), "no marker for the run command");
         assertTrue(skill.contains("   ```\n   ./run.sh\n   ```\n"), skill);
-        assertTrue(skill.contains("runs `./check-fluxtion-key.sh`, `./setup.sh`, `./validate.sh`, `./generate.sh` before it"),
+        assertTrue(skill.contains("runs `./setup.sh`, `./validate.sh`, `./generate.sh` before it"),
                 skill);
         assertTrue(skill.contains("does not name the class it starts"), "the half the record cannot answer is said");
         assertEquals(pinned(StarterSkills.RUN_EMBEDDED).replace(StarterSkills.EMBEDDED_START_MARKER,
@@ -314,7 +316,7 @@ class StarterSkillsTest {
             assertFalse(skill.contains("./scripts/run-server.sh"), template + ": the pinned guess is corrected");
             assertTrue(skill.contains("   ```\n   ./run-server.sh\n   ```\n"), skill);
             assertEquals(template.equals("fluxtion-spring-mongoose"), skill.contains(
-                    "runs `./check-fluxtion-key.sh`, `./setup.sh`, `./validate.sh`, `./generate.sh` before it"), skill);
+                    "runs `./setup.sh`, `./validate.sh`, `./generate.sh` before it"), skill);
             assertEquals(pinned(StarterSkills.RUN_MONGOOSE).replace(StarterSkills.MONGOOSE_START_MARKER,
                     StarterSkills.mongooseStartBlock(record)), skill, template + ": only the start block changed");
             String file = "run-mongoose-server/SKILL.md: ";
@@ -325,17 +327,17 @@ class StarterSkillsTest {
 
     /** ★ Witness: make {@code embeddedRunBlock} answer null — the embedded starter keeps its marker and this fails. */
     @Test
-    @DisplayName("★ an embedded (non-Spring) starter's run-embedded names ./run.sh after its key check")
+    @DisplayName("★ an embedded (non-Spring) starter's run-embedded names ./run.sh")
     void anEmbeddedStarterGetsItsRunCommand() throws Exception {
         Path project = Files.createDirectories(tmp.resolve("project"));
         var record = recordOf("fluxtion-embedded", false, "run");
-        assertEquals(List.of("./check-fluxtion-key.sh", "./run.sh"), record.firstRun());
+        assertEquals(List.of("./run.sh"), record.firstRun(), "RAPID-OFF: no key check before it");
         var r = new StarterSkills().vendor(project, "", "embedded", record);
         assertNull(r.refusal(), r.refusal());
         String skill = written(project, "run-embedded");
         assertEquals(pinned(StarterSkills.RUN_EMBEDDED).replace(StarterSkills.EMBEDDED_START_MARKER,
                 StarterSkills.embeddedRunBlock(record)), skill);
-        assertTrue(skill.contains("runs `./check-fluxtion-key.sh` before it"), skill);
+        assertFalse(skill.contains("check-fluxtion-key"), skill);
         assertFalse(skill.contains("TODO(bundle)"), "run-embedded carries one marker, now filled");
         assertFalse(Files.exists(project.resolve(".claude/skills/add-a-node")), "not a Spring starter");
     }
@@ -463,14 +465,15 @@ class StarterSkillsTest {
     }
 
     @Test
-    @DisplayName("the review row's facts: Spring XML · embedded · AOT · the key need, said whether or not a key is found")
+    @DisplayName("the review row's facts: Spring XML · embedded · AOT · the sign-in need; nothing on this machine is observed")
     void theRowFacts() {
-        assertEquals("Spring XML · embedded · AOT · build needs a Fluxtion key; none found on this machine",
-                Starters.facts("spring", "embedded", "aot", "build", false));
-        assertEquals("Spring XML · in a Mongoose server · AOT · build needs a Fluxtion key; one is on this machine",
-                Starters.facts("spring", "mongoose", "aot", "build", true));
-        assertEquals("Java · embedded · interpreted · no Fluxtion key needed",
-                Starters.facts("", "embedded", "interpreted", "none", false));
+        // RAPID-OFF: an older catalogue's "build" means compiler sign-in too — the key route is closed
+        assertEquals("Spring XML · embedded · AOT · build needs compiler sign-in (see README)",
+                Starters.facts("spring", "embedded", "aot", "build"));
+        assertEquals("Spring XML · in a Mongoose server · AOT · build needs compiler sign-in (see README)",
+                Starters.facts("spring", "mongoose", "aot", "sign-in-build"));
+        assertEquals("Java · embedded · interpreted · no compiler sign-in needed",
+                Starters.facts("", "embedded", "interpreted", "none"));
         assertEquals("other", Starters.word("<b>weird</b>", "aot", "interpreted"));
     }
 }

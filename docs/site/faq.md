@@ -10,7 +10,7 @@ memory-map.
 
 Your own settings are in `~/.fluxtion-analyser/config`, in cleartext (this is a single-user tool), including the
 in-app assistant's API key. A project's settings are in its own `<project>/.analyser/project.fluxtion-settings`. The
-Fluxtion build key is in `~/.fluxtion/fluxtion.apiKeyFile`. [What is stored where, what leaves](admin/data.md) lists
+compiler-account credential is in your OS credential store. [What is stored where, what leaves](admin/data.md) lists
 every file.
 
 ## Will a build replace the log I am looking at?
@@ -26,11 +26,12 @@ See the [security boundary](admin/security.md#project-output-offers) for scope a
 
 ## Is my API key safe? Does it leave my machine?
 
-There are two unrelated keys. The **LLM key** is stored locally, in cleartext in your config file, and used only to
-call the provider you configured. The **Fluxtion build key**, managed from **AI ▸ Fluxtion API key…**, is written
-directly to the builder's canonical file and is used only when you regenerate a processor. Neither value is included
-in a project, an exported settings file or an evidence bundle. The analyser reports build-key presence but never
-validates or redisplays it. See [What is stored where](admin/data.md).
+The **LLM key** is stored locally, in cleartext in your config file, and used only to call the provider you
+configured. Regenerating a processor needs no key: it needs **compiler sign-in**, from **AI ▸ Compiler account…** (or
+`mvn fluxtion:login`), whose credential is kept in your OS credential store. Neither the LLM key nor that credential is
+included in a project, an exported settings file or an evidence bundle. The old Fluxtion API key route is closed; if a
+key file from it is still on your machine, the start page says once that nothing reads it any more. See
+[What is stored where](admin/data.md).
 
 ## Does it work offline?
 

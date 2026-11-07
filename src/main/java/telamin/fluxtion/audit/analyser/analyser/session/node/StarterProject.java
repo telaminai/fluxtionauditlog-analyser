@@ -53,7 +53,6 @@ public class StarterProject implements EventLogSource {
     private long basePackageRef;
     private long defaultsRef;
     private String authoring = "";
-    private boolean keyPresent;
     private long dirRef;
     private String dirShown;
     private String dirVerdict = "";
@@ -232,7 +231,6 @@ public class StarterProject implements EventLogSource {
             return changed();
         }
         defaultsRef = e.defaultsRef();
-        keyPresent = e.keyPresent();
         if (e.authoring() != null && !e.authoring().isBlank()) authoring = e.authoring();
         if ("MENU".equals(origin)) {
             phase = "CONFIGURING";
@@ -240,7 +238,7 @@ public class StarterProject implements EventLogSource {
         } else {
             phase = "READY";
         }
-        auditLog.info("starter", phase).info("keyPresent", keyPresent).info("authoring", authoring);
+        auditLog.info("starter", phase).info("authoring", authoring);
         return changed();
     }
 
@@ -511,7 +509,6 @@ public class StarterProject implements EventLogSource {
         basePackageRef = 0;
         defaultsRef = 0;
         authoring = "";
-        keyPresent = false;
         dirRef = 0;
         dirShown = null;
         dirVerdict = "";
@@ -569,7 +566,7 @@ public class StarterProject implements EventLogSource {
     public StarterState state() {
         if (dirty) {
             published = new StarterState(catalogue, entriesRef, entries, request, origin, phase, idDigest, defaultsRef,
-                    keyPresent, dirRef, dirShown, dirVerdict, rootShown, vendored, kept, graphWatch, note);
+                    dirRef, dirShown, dirVerdict, rootShown, vendored, kept, graphWatch, note);
             dirty = false;
         }
         return published;

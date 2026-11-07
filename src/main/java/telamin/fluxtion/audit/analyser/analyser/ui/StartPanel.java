@@ -45,11 +45,11 @@ public final class StartPanel extends JPanel {
          */
         void openSettings();
 
-        /** Manage the builder key in its canonical file; this page never receives the value. */
-        void openFluxtionKey();
-
-        /** A locally observed presence fact only — never key validity or a future build's winner. */
-        boolean fluxtionKeyPresent();
+        /**
+         * AI ▸ Compiler account…: sign in to regenerate a processor. RAPID-OFF (2026-11-07): it replaced the Fluxtion
+         * key card; the key route is closed and this page reports nothing about any credential.
+         */
+        void openCompilerAccount();
 
         /** Return to the active workspace when Help ▸ Start page was raised over one. */
         void backToRecords();
@@ -167,9 +167,6 @@ public final class StartPanel extends JPanel {
     /** The return row — visible whenever a project, graph, design or log workspace exists. */
     private final JComponent returnRow;
 
-    /** M19.12: the non-gating key offer; mutable only so it follows a save in the one owner dialog. */
-    private final ActionChip fluxtionKeyCard;
-
     public StartPanel(Actions actions, Consumer<String> status) {
         super(new BorderLayout());
         this.actions = actions;
@@ -246,8 +243,6 @@ public final class StartPanel extends JPanel {
                         "Save settings for existing source and processors. No code is generated.", actions::newProject),
                 chip("Create from template", "From template", "Choose a starter template and where to install it.",
                         actions::newProjectFromTemplate)));
-        fluxtionKeyCard = chip("", "", "", actions::openFluxtionKey);
-        refreshFluxtionKeyStatus();
         // M77-4 (§14.4): the Connect an assistant group is gone — the AI block (first run) or the AI line above is the
         // one door, Set up AI…, and its Your own AI client screen says what the group's buttons did
         directStrip.add(group("Settings",
@@ -255,7 +250,9 @@ public final class StartPanel extends JPanel {
                 chip("Settings — source and assistant…", "Settings",
                         "Source settings apply to the open project, or to global defaults when no project is open.",
                         actions::openSettings),
-                fluxtionKeyCard));
+                chip("Compiler account", "Compiler sign-in",
+                        "Sign in through your browser to regenerate a processor; generated projects run without it.",
+                        actions::openCompilerAccount)));
         col.add(directStrip);
         col.add(Box.createVerticalStrut(UiTheme.SPACE_XL));
 
@@ -520,16 +517,6 @@ public final class StartPanel extends JPanel {
             out.add(label);
         }
         return out;
-    }
-
-    /** Refresh after the management dialog closes; the stored value never enters this component. */
-    public void refreshFluxtionKeyStatus() {
-        boolean present = actions.fluxtionKeyPresent();
-        fluxtionKeyCard.setCopy(present ? "Fluxtion key — found" : "Fluxtion key — not found",
-                present ? "Fluxtion key ✓" : "Fluxtion key",
-                present
-                        ? "Available for a future processor regeneration; this analyser does not validate it."
-                        : "Needed to regenerate a processor; existing generated projects still run without one.");
     }
 
     private final JScrollPane scroll;
