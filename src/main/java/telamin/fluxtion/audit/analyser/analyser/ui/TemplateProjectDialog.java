@@ -147,7 +147,7 @@ final class TemplateProjectDialog {
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         north.add(title);
         north.add(javax.swing.Box.createVerticalStrut(4));
-        JTextArea note = Fluid.text(selection.note());
+        JTextArea note = Fluid.text(shownNote(selection, StarterListPreference.showAll()));
         note.setForeground(UiTheme.mutedForeground());
         north.add(note);
         JCheckBox showAll = new JCheckBox(StarterListPreference.LABEL, StarterListPreference.showAll());
@@ -161,6 +161,7 @@ final class TemplateProjectDialog {
             model.addAll(shownEntries(selection, showAll.isSelected()));
             int keep = was == null ? -1 : model.indexOf(was);
             list.setSelectedIndex(keep < 0 ? 0 : keep);
+            note.setText(shownNote(selection, showAll.isSelected()));
         });
         north.add(showAll);
         // D-AX10: an experiment that silently downloads from somewhere else is how a rig artefact gets
@@ -202,6 +203,15 @@ final class TemplateProjectDialog {
      * order — the Java-authoring starter first, the other recommended next), only the recommended ones unless
      * {@code showAll}; every entry when the catalogue recommends none.
      */
+    /**
+     * The note above the list, saying what it shows: the catalogue's own note ("All templates — …") when every entry is
+     * listed, otherwise that only the recommended starting points are, and how to see the rest.
+     */
+    static String shownNote(TemplateCatalogue.Selection selection, boolean showAll) {
+        if (shownEntries(selection, showAll).size() == selection.entries().size()) return selection.note();
+        return "Recommended starting points — tick " + StarterListPreference.LABEL + " to list every template.";
+    }
+
     static List<TemplateCatalogue.Entry> shownEntries(TemplateCatalogue.Selection selection, boolean showAll) {
         List<TemplateCatalogue.Entry> all = selection.entries();
         if (showAll || all.stream().noneMatch(TemplateCatalogue.Entry::recommended)) return all;

@@ -57,6 +57,23 @@ class StarterListShownTest {
                 "ticked: recommended first, then the rest in catalogue order");
     }
 
+    /**
+     * The picker's note said "All templates — Recommended starting points are listed first and marked." while, unticked,
+     * the list held only the recommended ones: the note must say what the list shows, and change with the tick.
+     */
+    @Test
+    void thePickerNoteSaysWhatTheListShows() {
+        var selection = TemplateCatalogue.parse(TemplateCatalogueTest.OLDER, "dev").forPicker();
+        String unticked = TemplateProjectDialog.shownNote(selection, false);
+        assertFalse(unticked.startsWith("All templates"), unticked);
+        assertTrue(unticked.contains(StarterListPreference.LABEL), unticked);
+        assertEquals(selection.note(), TemplateProjectDialog.shownNote(selection, true));
+        var none = TemplateCatalogue.parse("""
+                {"catalogue":1,"templates":[{"name":"A","description":"a","file":"a.starter.json"}]}
+                """, "dev").forPicker();
+        assertEquals(none.note(), TemplateProjectDialog.shownNote(none, false), "nothing hidden: the catalogue's note");
+    }
+
     @Test
     void aCatalogueThatRecommendsNothingShowsEverything() {
         var catalogue = TemplateCatalogue.parse("""
