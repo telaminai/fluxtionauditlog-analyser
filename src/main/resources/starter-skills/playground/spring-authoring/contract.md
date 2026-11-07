@@ -412,8 +412,8 @@ and full binding tables. No local server is required.
 
 The builder selects the generation route. An installed local provider works without a key or network;
 custom HTTP endpoints use the client's existing authentication; the hosted compiler requires compiler
-sign-in (`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`,
-or `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL` in CI). All dependencies must be provisioned before an offline build.
+sign-in (`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`,
+or `FLUXTION_API_TOKEN` in CI; `FLUXTION_COMPILER_URL` only for a compiler other than the managed one). All dependencies must be provisioned before an offline build.
 
 These additional configuration properties are lists on `FluxtionSpringConfig`. Nested beans use the prefix
 `com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.`:

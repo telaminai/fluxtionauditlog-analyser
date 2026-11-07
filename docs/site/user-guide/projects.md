@@ -39,7 +39,7 @@ is in both, so there is no rule about which wins.
 | Session-recovery candidates | machine | never | never |
 
 Regenerating a processor needs **compiler sign-in**, which is not an analyser setting: the build signs in with
-`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev` (in CI, `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`). **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in; its credential is kept in your OS credential store, and neither can enter a profile, a
+`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login` (in CI, `FLUXTION_API_TOKEN`). **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in; its credential is kept in your OS credential store, and neither can enter a profile, a
 settings file or a bundle ([Connect a compiler account](../getting-started.md#connect-a-compiler-account)).
 
 !!! note "A shared settings file cannot turn on External MCP/REST access"

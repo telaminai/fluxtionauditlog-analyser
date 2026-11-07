@@ -202,8 +202,8 @@ Regeneration is the one keyed step:
 ./stop-server.sh
 ```
 
-Regeneration needs compiler sign-in: run `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`
-once on this machine; in CI, set `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`. The ordinary build and run need no sign-in.
+Regeneration needs compiler sign-in: run `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
+once on this machine; in CI, set `FLUXTION_API_TOKEN`. The ordinary build and run need no sign-in.
 
 Reopen the exported YAML and examine the new cycles. The analyser has one active log at a time; it does
 not compare two complete runs side by side. A report whose tables and charts you made on the first run re-runs

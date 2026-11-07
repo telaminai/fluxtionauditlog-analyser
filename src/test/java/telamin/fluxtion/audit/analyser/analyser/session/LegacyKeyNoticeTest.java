@@ -30,13 +30,13 @@ class LegacyKeyNoticeTest {
         SessionDriver d = started(a, true);
         String notice = d.snapshot().aiSetup().keyNotice();
         assertEquals(AiSetupLines.LEGACY_KEY_NOTICE, notice);
-        // review B1/M2: the build sign-in that works on plugin 1.3.3 — never AI ▸ Compiler account…, which does not
-        // sign builds in; review M1/L1: no claim about what other tooling reads, and the file can be deleted
+        // review B1: the build sign-in (plugin 1.3.4) — never AI ▸ Compiler account…, which does not sign builds in;
+        // on builder 1.0.90 nothing reads the key file, so the notice may say so, and that it can be deleted
         assertTrue(notice.contains(telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN), notice);
-        assertTrue(notice.contains("-Dfluxtion.compilerUrl=https://"), notice);
+        assertTrue(notice.contains("fluxtion-maven-plugin:1.3.4:login"), notice);
         assertFalse(notice.contains("Compiler account"), "the in-app sign-in does not authorise builds: " + notice);
         assertTrue(notice.contains("can be deleted"), notice);
-        assertFalse(notice.contains("no longer used"), "1.0.89 still falls back to the file when signed out");
+        assertTrue(notice.contains("no longer read"), notice);
         for (String leak : new String[] {"apiKeyFile", "~", ".fluxtion/", "\\"})
             assertFalse(notice.contains(leak), "the notice names no local path: " + leak);
         // non-modal: the notice is a line in the snapshot, never a warning or a window of its own

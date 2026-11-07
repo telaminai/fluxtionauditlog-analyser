@@ -13,8 +13,7 @@
 # can express one profile per mode, but not "run the same goal three times with a different system
 # property and keep each output", and three near-identical profiles would be three things to drift.
 #
-# Requires build sign-in (mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login
-#   -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev; in CI FLUXTION_API_TOKEN and FLUXTION_COMPILER_URL) and a locally installed builder carrying
+# Requires build sign-in (mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login; in CI FLUXTION_API_TOKEN) and a locally installed builder carrying
 # the fluxtion.* vocabulary. Without the latter the fixtures are left alone and only the processor is
 # regenerated — the committed processor must stay regenerable from a released builder.
 set -euo pipefail

@@ -16,14 +16,12 @@ rounds have produced confident, wrong reports in both directions.
 Hosted generation goes only through compiler sign-in (the old API key route is closed):
 
 ```
-mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev
-                                   once per machine: approve the sign-in in your browser
-FLUXTION_API_TOKEN + FLUXTION_COMPILER_URL
-                                   in CI: the token set as a secret, never committed
+mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login   once per machine: approve the sign-in in your browser
+FLUXTION_API_TOKEN                                           in CI: the token set as a secret, never committed
 ```
 
-In a project whose pom declares the plugin, `./mvnw fluxtion:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`
-is the same. The analyser's **AI ▸ Compiler account…** only shows the account; it does not sign builds in. Never
+In a project whose pom declares the plugin, `./mvnw fluxtion:login` is the same. Maven, Gradle, JBang and in-process
+builds all read that stored login; a build that is not signed in stops with FLX-1023 before it connects. The analyser's **AI ▸ Compiler account…** only shows the account; it does not sign builds in. Never
 search for, print or read a credential or key file: the Fluxtion Maven plugin reads the saved sign-in itself, and a
 refused build says so.
 
@@ -96,7 +94,7 @@ project whose goal is `scan`.
 
 | The error says | Cause |
 |---|---|
-| not signed in / sign-in refused | compiler sign-in — run the login above (in CI, set `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`) |
+| not signed in / sign-in refused | compiler sign-in — run the login above (in CI, set `FLUXTION_API_TOKEN`) |
 | `cannot find matching constructor for: Field{…} failed to match for these fields:[…]` | a node field is **not reachable from a constructor**. Mark your node's own state `transient` — see `CLAUDE.md` §4.3. The message names constructors; the fix is usually `transient`. |
 | a node you added is absent from the generated output | the bean is not in `fluxtionSpringConfig.nodeBeans` |
 

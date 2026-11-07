@@ -17,8 +17,8 @@
              builder against the current hosted generator emits a processor whose auditEvent is EMPTY: it
              compiles, and it writes no audit log at all (found 2026-09-28, spike README ▸ R0). -->
         <fluxtion.version>1.1.0</fluxtion.version>
-        <fluxtion.builder.version>1.0.89</fluxtion.builder.version>
-        <fluxtion.maven-plugin.version>1.3.3</fluxtion.maven-plugin.version>
+        <fluxtion.builder.version>1.0.90</fluxtion.builder.version>
+        <fluxtion.maven-plugin.version>1.3.4</fluxtion.maven-plugin.version>
     </properties>
 
     <!-- No fluxtion-bom import. It pinned fluxtion-builder-api to 1.0.13 underneath builder 1.0.71; the root pom
@@ -76,9 +76,8 @@
                  invokes it, and emits MyProcessor (package
                  com.example.myapp.generated). The scan goal calls the cloud source-gen service,
                  so generation needs compiler sign-in at build time: once per machine
-                 'mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login
-                 -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev', or in CI
-                 FLUXTION_API_TOKEN and FLUXTION_COMPILER_URL. -->
+                 'mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login', or in CI
+                 FLUXTION_API_TOKEN. -->
             <plugin>
                 <groupId>com.telamin.fluxtion</groupId>
                 <artifactId>fluxtion-maven-plugin</artifactId>

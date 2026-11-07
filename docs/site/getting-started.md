@@ -76,9 +76,9 @@ use. To drive this window from Claude Code, Codex or another client in your term
 
 If you later **regenerate a Fluxtion processor**, that build needs **compiler sign-in**, not an assistant's key. Sign
 the build in once per machine, in a terminal:
-`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`
-(in a project whose pom declares the plugin, `./mvnw fluxtion:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`
-works too); in CI, set `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in yet — the connection described below is the account view.
+`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
+(in a project whose pom declares the plugin, `./mvnw fluxtion:login`
+works too); in CI, set `FLUXTION_API_TOKEN`, plus `FLUXTION_COMPILER_URL` only for a compiler other than the managed one. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in yet — the connection described below is the account view.
 The old Fluxtion API key route is closed. Existing generated processors and the bundled demo run without signing in.
 
 ## Connect a compiler account

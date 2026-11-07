@@ -20,9 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * RAPID-OFF (2026-11-07): the legacy RapidAPI key route to the hosted generator is closed. Builds sign in with the
- * Maven plugin's login ({@link CompilerSignIn#LOGIN}), or {@code FLUXTION_API_TOKEN} and {@code FLUXTION_COMPILER_URL}
- * in CI — so no CURRENT user-facing page or skill may still send a reader to the key route, and every sign-in
- * instruction must be one that works on plugin 1.3.3.
+ * Maven plugin's login ({@link CompilerSignIn#LOGIN}), or {@code FLUXTION_API_TOKEN} in CI — so no CURRENT user-facing
+ * page or skill may still send a reader to the key route, and every sign-in instruction must be the 1.0.90/1.3.4 one.
  *
  * <p>Roots: the docs site, the canonical skills, the skills and vendored pages the analyser writes into a project, the
  * current experience-bundle skills — and the string literals of the analyser's own source (the template picker's words
@@ -69,17 +68,33 @@ class LegacyKeyRouteDocsSweepTest {
     }
 
     /**
-     * Review M2: plugin 1.3.3's login fails without a compiler URL, and a CI token fails without
-     * {@code FLUXTION_COMPILER_URL}. A paragraph that gives either must give its URL.
+     * The 1.0.90/1.3.4 rule (coordinator, 2026-11-07): the login is the plugin's 1.3.4 or later (earlier ones need a URL
+     * and their builds fall back to a key); {@code FLUXTION_COMPILER_URL} is needed only for a compiler other than the
+     * managed one, so a paragraph naming it must say so; and runtime builds use the stored login, so no page tells a
+     * reader to pass {@code -Dfluxtion.remote.auth} or {@code -Dfluxtion.remote.host}.
      */
+    static boolean older(String a, String b) {
+        String[] x = a.split("\\."), y = b.split("\\.");
+        for (int i = 0; i < Math.max(x.length, y.length); i++) {
+            int l = i < x.length ? Integer.parseInt(x[i]) : 0, r = i < y.length ? Integer.parseInt(y[i]) : 0;
+            if (l != r) return l < r;
+        }
+        return false;
+    }
+
     static List<String> incompleteSignIn(Map<String, String> texts) {
         List<String> out = new ArrayList<>();
+        Pattern login = Pattern.compile("fluxtion-maven-plugin:(\\d+(?:\\.\\d+)+):login");
         texts.forEach((path, text) -> {
+            Matcher m = login.matcher(text);
+            while (m.find())
+                if (older(m.group(1), CompilerSignIn.PLUGIN_VERSION))
+                    out.add(path + ": login with plugin " + m.group(1) + ", before " + CompilerSignIn.PLUGIN_VERSION);
             for (String paragraph : text.split("\n\\s*\n")) {
-                if (paragraph.contains("fluxtion:login") && !paragraph.contains("fluxtion.compilerUrl"))
-                    out.add(path + ": fluxtion:login without -Dfluxtion.compilerUrl");
-                if (paragraph.contains("FLUXTION_API_TOKEN") && !paragraph.contains("FLUXTION_COMPILER_URL"))
-                    out.add(path + ": FLUXTION_API_TOKEN without FLUXTION_COMPILER_URL");
+                if (paragraph.contains("FLUXTION_COMPILER_URL") && !paragraph.contains("only for"))
+                    out.add(path + ": FLUXTION_COMPILER_URL presented as required");
+                if (paragraph.contains("fluxtion.remote.auth") || paragraph.contains("fluxtion.remote.host"))
+                    out.add(path + ": runtime builds need no -Dfluxtion.remote flags");
             }
         });
         return out;
@@ -149,7 +164,7 @@ class LegacyKeyRouteDocsSweepTest {
                 + ") or, in CI, " + CompilerSignIn.CI);
     }
 
-    /** Witness: drop -Dfluxtion.compilerUrl from a login in tutorial-playground.md — this fails. */
+    /** Witness: put the 1.3.3 login back into tutorial-playground.md — this fails. */
     @Test
     @DisplayName("every build sign-in instruction carries its compiler URL")
     void everySignInInstructionWorks() throws IOException {
@@ -181,12 +196,15 @@ class LegacyKeyRouteDocsSweepTest {
     @Test
     void witnessTheSignInChecksFindTheReviewsDefects() {
         Map<String, String> texts = new LinkedHashMap<>();
-        texts.put("a.md", "Sign in with `mvn fluxtion:login`; in CI, set `FLUXTION_API_TOKEN`.");
-        texts.put("b.md", "Run " + CompilerSignIn.LOGIN + "; in CI, set " + CompilerSignIn.CI + ".");
+        texts.put("a.md", "Run `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login`; in CI, set "
+                + "`FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`.\n\nRun with -Dfluxtion.remote.auth=token.");
+        texts.put("b.md", "Run " + CompilerSignIn.LOGIN + " (or `./mvnw fluxtion:login`); in CI, set " + CompilerSignIn.CI
+                + ".\n\nA 1.3.10 login is newer: `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.10:login`.");
         texts.put("c.md", "To regenerate a processor, sign in with AI ▸ Compiler account…");
         texts.put("d.md", "In the analyser, **AI ▸ Compiler account…** signs in the same way.");
-        assertEquals(List.of("a.md: fluxtion:login without -Dfluxtion.compilerUrl",
-                "a.md: FLUXTION_API_TOKEN without FLUXTION_COMPILER_URL"), incompleteSignIn(texts));
+        assertEquals(List.of("a.md: login with plugin 1.3.3, before 1.3.4",
+                "a.md: FLUXTION_COMPILER_URL presented as required",
+                "a.md: runtime builds need no -Dfluxtion.remote flags"), incompleteSignIn(texts));
         assertEquals(List.of("c.md: signinwithaicompileraccount", "d.md: compileraccount…signsin"), inAppClaims(texts));
     }
 }

@@ -36,16 +36,13 @@ class FixtureGeneratorToolchainTest {
 
     /**
      * RAPID-OFF (2026-11-07): the legacy key route to the hosted generator is closed, so a regeneration pin below the
-     * first builder with managed auth (compiler sign-in) or below fluxtion-maven-plugin 1.3.1 ({@code mvn fluxtion:login})
-     * cannot regenerate at all. The floor, per property.
-     *
-     * <p>TODO(RAPID-OFF brief 01): 1.0.84 … 1.0.89 / 1.3.1 … 1.3.3 support sign-in but still fall back to the legacy key
-     * when signed out. When builder 1.0.90 and plugin 1.3.4 (no fallback) are released, move the pins AND raise this
-     * floor to them.
+     * first builder with no key route (compiler sign-in only) or below fluxtion-maven-plugin 1.3.4 ({@code login} with no URL)
+     * cannot regenerate at all. The floor, per property: builder 1.0.90 / plugin 1.3.4 are the first with no key route
+     * (1.0.84–1.0.89 / 1.3.1–1.3.3 signed in but fell back to the key file when signed out).
      */
     static final Map<String, String> MANAGED_AUTH_FLOOR = Map.of(
-            "fluxtion.builder.version", "1.0.84",
-            "fluxtion.maven-plugin.version", "1.3.1");
+            "fluxtion.builder.version", "1.0.90",
+            "fluxtion.maven-plugin.version", "1.3.4");
 
     static String property(String pom, String name) {
         Matcher m = Pattern.compile("<" + Pattern.quote(name) + ">\\s*([^<\\s]+)\\s*</" + Pattern.quote(name) + ">")
@@ -102,15 +99,15 @@ class FixtureGeneratorToolchainTest {
 
     @Test
     void witnessTheFloorNamesALegacyKeyOnlyPin() {
-        String legacy = "<fluxtion.builder.version>1.0.76</fluxtion.builder.version>"
-                + "<fluxtion.maven-plugin.version>1.3.0</fluxtion.maven-plugin.version>";
+        String legacy = "<fluxtion.builder.version>1.0.89</fluxtion.builder.version>"
+                + "<fluxtion.maven-plugin.version>1.3.3</fluxtion.maven-plugin.version>";
         List<String> found = belowManagedAuth("the root pom", legacy);
         assertEquals(2, found.size(), found.toString());
-        assertTrue(found.get(0).contains("fluxtion.builder.version 1.0.76, below 1.0.84"), found.get(0));
-        assertTrue(found.get(1).contains("fluxtion.maven-plugin.version 1.3.0, below 1.3.1"), found.get(1));
+        assertTrue(found.get(0).contains("fluxtion.builder.version 1.0.89, below 1.0.90"), found.get(0));
+        assertTrue(found.get(1).contains("fluxtion.maven-plugin.version 1.3.3, below 1.3.4"), found.get(1));
         String signedIn = "<fluxtion.builder.version>1.0.90-SNAPSHOT</fluxtion.builder.version>"
                 + "<fluxtion.maven-plugin.version>1.3.10</fluxtion.maven-plugin.version>";
-        assertEquals(List.of(), belowManagedAuth("the root pom", signedIn), "1.3.10 is above 1.3.1, numerically");
+        assertEquals(List.of(), belowManagedAuth("the root pom", signedIn), "1.3.10 is above 1.3.4, numerically");
     }
 
     @Test
