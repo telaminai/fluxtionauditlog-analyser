@@ -47,28 +47,28 @@ _Refreshed 2026-11-05, after 1.40.3._ **Shipped since 2026-10-27:** **1.40.1** (
 Production and Staging); **1.40.2** (getting started opens with installing JBang, #216); **1.40.3** (setup from your
 assistant as a normal macOS release; starters build through compiler sign-in, #217). Cross-repo: compiler **1.0.84**,
 fluxtion-maven-plugin **1.3.1** (`mvn fluxtion:login`), the Claude Code plugin **0.1.1** (`telaminai/claude-plugins`),
-and starter Mains that write an analyser-ready audit export (fluxtion-web). **Delivery order:**
+and starter Mains that write an analyser-ready audit export (fluxtion-web).; its delivery order is superseded by the one below (git history keeps it).
 
-0. **Public hygiene (cross-repo).** Scrub a Mongoose release-plan doc of an internal reference (Mongoose PR in progress); commit identity pinned in every local clone (done 2026-10-27; GitHub-button merges still use the account's primary email, so merge locally); close stale shipped issues.
-1. **RapidAPI retirement (compiler, owner).** ☑ Retired (owner, 2026-11-05): nobody uses the legacy route. **Close the
-   path off** [RAPID-OFF]: revoke the key, remove the listing and the legacy routes, startup no longer requires the
-   proxy secret, clients and docs stop offering the key file (the analyser's part is item 4's second line).
-2. **Launch gate (compiler, owner).** External health check with alerting; Cloudflare WAF and rate limits; independent pen test; legal pages and DPAs; load test (compiler test 17); an automated regression check for the 2026-10-27 deploy incident.
-3. **Gym fix set (cross-repo), coordinated release.** Analyser #218 (quoted-scalar records, neutral `flag` default,
-   `--mcp` bridge exit, authoring evidence roots; merge locally with `--no-ff`, the skill pin names its commits);
-   fluxtion-web #43, #44 (plugin 0.1.2), #45; runtime fluxtion#54; the Mongoose and mongoose-plugins fix branches.
-   Release order and conditions: the gym reviews of 2026-11-04/05. Then a plugin **0.1.3** pin that moves the plugin
-   route onto the new Analyser.
-4. **No key anywhere** ◑. Done: starters and the setup journey build through compiler sign-in (1.40.3, compiler 1.0.84,
-   fluxtion-maven-plugin 1.3.1). Open: Canvas's compiler-account sign-in also authorises generation; starter CI and claude.txt; the
-   managed host as the Maven plugin's default; one credential store shared by Maven and Canvas.
-   Analyser docs still routing generation through RapidAPI: `docs/site/spring-authoring-getting-started.md:34`, `docs/site/spring-authoring.md:180`, `src/main/resources/starter-skills/playground/spring-authoring/contract.md:414`; *AI ▸ Fluxtion API key…*; getting-started limits wording becomes nodes, inputs and exported interfaces.
-5. **Analyser merge queue** (no movement since 2026-10-27): #196 (M79-1a-i) → #197 (M79-7) → #199 (M79-3) → #198 (#177/#178/#179/#182/#183); each merges main in and regenerates.
-   **Then M79-1b first** (owner, 2026-10-27): the start page under 40 words with *Learn ▸ The diamond*, the only way back to the diamond once the first launch is over.
-6. **Mongoose 1.1 follow-through.** Fluxtion runtime 1.1.3 and builder ≥1.0.80/1.0.82 (failed cycles now closed in the audit log); read the control-audit export's manifest `complete` claim and its `controlFallback` documents. Producer asks MA-2, MA-5.7, UP-MNG-02 remain unmet.
-   Open drafts: runtime fluxtion#53 (audit close stable when publication is retried) → then #214 (session processor
-   1.0.83 regeneration; folds in its assertion patch after a runtime release).
-7. **Then** 2–3 friendly-team trials, and the M79 remainder (1a-ii, 2, 4–6).
+_Refreshed 2026-11-07, after 1.40.6._ **Shipped since 2026-11-05:** **1.40.4** (the gym fix set, #218: quoted-scalar
+records, format revision 1.2, a neutral `flag`, the `--mcp` bridge exit); **1.40.5** (Canvas *Messages (N)* with Accept all /
+Clear all, *Explain this*, the signed-in email); **1.40.6** (one message per regenerated graph whichever build copy lands,
+#222/#225). Cross-repo: compiler **1.0.86–1.0.89** (the ensure processor reuses an unchanged committed processor, FLX-1022
+when signed out; the extra-output warning; a stable digest with reachability metadata), fluxtion-maven-plugin **1.3.2–1.3.3**,
+Mongoose **1.1.3** and plugins **1.1.2**, runtime fluxtion#54, the Claude Code plugin **0.1.2–0.1.5**, and fluxtion-web #43–#45,
+#52 and #53 (the Java-authoring starter). **Direction (owner, 2026-11-06):** Java authoring is the main track; the Claude Code
+plugin makes the journey fast; the Spring authoring fixes are parked. **Delivery order:**
+
+0. **Public hygiene (cross-repo).** Commit identity pinned in every local clone; GitHub-button merges still use the account's primary email, so merge locally; close stale shipped issues and dead PRs.
+1. ◧ [RAPID-OFF] **Close the RapidAPI key route everywhere** (retired by the owner 2026-11-05). Started 2026-11-07, one PR per repo: builder 1.0.90 and plugin 1.3.4 with no RapidAPI mode (an unchanged ensure build still reuses without a sign-in); server 2a refuses the legacy routes, then 2b removes them; fluxtion-web, the runtime docs, and here *AI ▸ Fluxtion API key…*, the regen pins (1.0.76 / 1.3.0) and the docs and skills. Owner, after 2b: revoke the key and listing, delete the Railway secret and domain, the `FLUXTION_API_KEY` secret and the Cloudflare variables.
+2. ☐ **Java authoring: generic starter** — fluxtion-web #54 (several feeds and outputs, explicit state file): the benchmark rerun on Mongoose 1.1.3 / plugins 1.1.2 (8 tasks × 3 runs; the held-out 3 decide), then an independent review.
+3. ☐ **Trial readiness, then 2–3 friendly-team trials.** One blind install-to-audit run on the released stack (the install-timing harness, warm provenance-checked cache), then the trials.
+4. ☐ **Stable filter fingerprints** — compiler#130 (enum, Class, CharSequence canonical; anything else a coded build failure); unblocks the evidence-set key (#211).
+5. **Launch gate (compiler, owner).** External health check with alerting; Cloudflare WAF and rate limits; independent pen test; legal pages and DPAs; load test (compiler test 17); an automated regression check for the 2026-10-27 deploy incident.
+6. ◑ **No key anywhere**, after RAPID-OFF: Canvas's compiler-account sign-in also authorises generation; one credential store shared by Maven and Canvas; starter CI.
+7. ⏸ **Spring authoring, parked (owner decision).** Compiler and web `fix/authoring-gym-fixes` (r6 unreviewed; its in-build guard overlaps the ensure processor, fluxtion-web#48) and #221 (the add-a-node skill). Track-neutral web fixes (stop identity, reset-feeds, AG-8, AG-11) to be split out.
+8. **Analyser merge queue** (no movement since 2026-10-27): #196 (M79-1a-i) → #197 (M79-7) → #199 (M79-3) → #198; rebase or close. **Then M79-1b** (owner, 2026-10-27): the start page under 40 words with *Learn ▸ The diamond*.
+9. **Mongoose 1.1 follow-through.** Read the control-audit export's manifest `complete` claim and its `controlFallback` documents; producer asks MA-2, MA-5.7, UP-MNG-02 remain unmet. Open drafts: runtime fluxtion#53 → then #214 (session processor regeneration).
+10. **Then** the M79 remainder (1a-ii, 2, 4–6).
 
 ⊘ RapidAPI self-serve and a trial/teaching key tier (the 2026-10-19 order's item 2): superseded by managed auth's free allowance.
 
