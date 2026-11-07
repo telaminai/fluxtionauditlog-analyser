@@ -43,6 +43,17 @@ public final class TemplateArchive {
             "setup.sh", "validate.sh", "generate.sh", "feed-position.sh",
             "run-and-export.sh", "run.sh", "setup-java.sh", "runWasm.sh");
 
+    // The same D-4 rule one level down, for the Java-authoring starter (owner, 2026-11-07: the first and recommended
+    // starter): its CLAUDE.md starts with "run tools/context.sh" and every check it teaches is a tools/ script, so
+    // without these they arrived 0644 and the first command failed with "Permission denied" — the starter the
+    // analyser installed was not the one the benchmark measured. A fixed list of project-relative paths, never a
+    // pattern and never the archive's own bits; TemplateExecutablesTest pins it to the generated starter's zip.
+    static final Set<String> TOOL_EXECUTABLES = Set.of(
+            "tools/_compare.sh", "tools/_config.py", "tools/_fixture.sh", "tools/_placeholders.sh", "tools/_run.sh",
+            "tools/_state.py", "tools/admin.sh", "tools/audit-compare.py", "tools/components.py", "tools/components.sh",
+            "tools/context.sh", "tools/fixture.sh", "tools/new-node.py", "tools/new-node.sh", "tools/restart-check.sh",
+            "tools/run-fixture.sh", "tools/sink.sh");
+
     /**
      * @param runnable owner follow-up (2026-10-18): the files an example's unpack gave an executable bit, relative to the
      *                 project root, in archive order — so the person can be told which will run. Empty for a starter
@@ -385,7 +396,10 @@ public final class TemplateArchive {
             String base = portable.substring(portable.lastIndexOf('/') + 1);
             // The archive has one top-level project directory. Only named root lifecycle files may
             // become executable; neither a matching nested basename nor an arbitrary .sh qualifies.
-            if (executables && portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {
+            boolean rootScript = portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base);
+            boolean toolScript = portable.indexOf('/') > 0
+                    && TOOL_EXECUTABLES.contains(portable.substring(portable.indexOf('/') + 1));
+            if (executables && (rootScript || toolScript)) {
                 permissions.add(PosixFilePermission.OWNER_EXECUTE);
                 permissions.add(PosixFilePermission.GROUP_EXECUTE);
                 permissions.add(PosixFilePermission.OTHERS_EXECUTE);

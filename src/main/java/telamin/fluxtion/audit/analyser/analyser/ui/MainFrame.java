@@ -11483,7 +11483,8 @@ public final class MainFrame extends JFrame {
                 // Option 2: the starters, RENDERED from starterProject's state and what was read — context fetches nothing
                 if (session != null) {
                     var starters = sessionSnapshot().starter();
-                    out.put("starters", StarterContext.render(starters, starterCatalogues.get(starters.entriesRef())));
+                    out.put("starters", StarterContext.render(starters, starterCatalogues.get(starters.entriesRef()),
+                            StarterListPreference.showAll()));
                 }
                 // evidence bundle capture, rendered from the session's decision (evidenceCapture), never composed here
                 var capture = session == null ? null : sessionSnapshot().capture();
@@ -13639,7 +13640,8 @@ public final class MainFrame extends JFrame {
                 localAgentConsent()));
     }
 
-    // ---- Option 2 (owner, 2026-10-18): a project from a starter template — starterProject decides, these perform ------
+    // ---- Option 2: a project from a starter template (Java-authoring first: owner, 2026-11-07) — starterProject decides,
+    // these perform ----------------------------------------------------------------------------------------------------
 
     private <T> long starterPut(java.util.Map<Long, T> store, T value) {
         long ref = starterRefNext++;
@@ -13662,7 +13664,7 @@ public final class MainFrame extends JFrame {
         StarterSource source = starterSource;
         Background.run(() -> {
             var selection = source.catalogue();
-            java.util.List<telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry> out = new java.util.ArrayList<>();
+            java.util.List<telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry> read = new java.util.ArrayList<>();
             for (var e : selection.entries()) {
                 TemplateClient.Template t;
                 try {
@@ -13670,9 +13672,11 @@ public final class MainFrame extends JFrame {
                 } catch (RuntimeException unreadable) {
                     t = null;                                   // the entry stays listed; its authoring is not known
                 }
-                out.add(telamin.fluxtion.audit.analyser.analyser.template.Starters.of(e, t));
+                read.add(telamin.fluxtion.audit.analyser.analyser.template.Starters.of(e, t));
             }
-            return out;
+            // owner, 2026-11-07: every list the analyser shows — the picker, the start page's names, context.starters —
+            // in ONE order: the Java-authoring starter first, the other recommended ones next, then the rest
+            return telamin.fluxtion.audit.analyser.analyser.template.Starters.ordered(read);
         }, entries -> {
             long ref = starterPut(starterCatalogues, entries);
             java.util.List<telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterFacts> facts =
@@ -13680,7 +13684,7 @@ public final class MainFrame extends JFrame {
             for (var x : entries) {
                 facts.add(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterFacts(
                         telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(x.id()), x.authoring(),
-                        x.host(), x.mode(), x.keyNeed()));
+                        x.host(), x.mode(), x.keyNeed(), x.recommended()));
             }
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCatalogueObserved(
                     request, true, ref, facts));
@@ -13699,8 +13703,9 @@ public final class MainFrame extends JFrame {
             var entries = starterCatalogues.get(e.entriesRef());
             TemplateCatalogue.Entry chosen = null;
             if (entries != null) {
-                var selection = new TemplateCatalogue(TemplateCatalogue.SUPPORTED_VERSION, entries.stream()
-                        .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::catalogue).toList()).forPicker();
+                // the order read (Starters.ordered), kept: re-sorting by the catalogue alone could disagree with it
+                var selection = TemplateCatalogue.selection(entries.stream()
+                        .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::catalogue).toList());
                 chosen = TemplateProjectDialog.chooseTemplate(this, selection);
             }
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterChosen(e.request(),
@@ -14240,7 +14245,7 @@ public final class MainFrame extends JFrame {
         if (root != null && entry != null) {
             Path name = Path.of(root).getFileName();
             var d = telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.composeStarter(
-                    name == null ? root : name.toString(), entry.id());
+                    name == null ? root : name.toString(), entry.id(), entry.authoring());
             long ref = localAgentStore.add(
                     telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER, d.text());
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentDraftComposed(
@@ -14401,8 +14406,11 @@ public final class MainFrame extends JFrame {
                 // r8 F10: the catalogue is fetched HERE, at the button, once — never on choose. Option 2: by the ONE
                 // catalogue read, which also reports what it read to starterProject (so context.starters holds it)
                 readStarterCatalogue(0, entries -> {
-                    long ref = entries == null ? 0 : startPageWord(String.join("\n", entries.stream()
-                            .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::name).toList()));
+                    // owner, 2026-11-07: the names the draft offers are the picker's — recommended only unless ticked
+                    long ref = entries == null ? 0 : startPageWord(String.join("\n",
+                            telamin.fluxtion.audit.analyser.analyser.template.Starters.shown(entries,
+                                            StarterListPreference.showAll()).stream()
+                                    .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::name).toList()));
                     session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(
                             request, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE, 0, 0, ref));
                 });

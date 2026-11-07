@@ -1753,7 +1753,8 @@ public final class SessionEvents {
     /**
      * The starter catalogue was read (or could not be): {@code entriesRef} names the frame's copy of the entries (0 when
      * unreachable); per entry, in the catalogue's order, the digest of its id ({@code LocalAgentPosture.digest}) and its
-     * authoring, host, mode and key need — vocabulary words, which the node orders and recommends by.
+     * authoring, host, mode and key need — vocabulary words — and whether the catalogue recommends it (tagged for
+     * onboarding), which the node orders and recommends by.
      */
     public record StarterCatalogueObserved(long request, boolean reachable, long entriesRef,
                                            java.util.List<StarterFacts> entries) {
@@ -1762,8 +1763,16 @@ public final class SessionEvents {
         }
     }
 
-    /** One catalogue entry as the node holds it: its id's digest and four vocabulary words. */
-    public record StarterFacts(String idDigest, String authoring, String host, String mode, String keyNeed) {
+    /**
+     * One catalogue entry as the node holds it: its id's digest, four vocabulary words and whether the catalogue
+     * recommends it ({@code TemplateCatalogue.Entry.recommended}: tagged for onboarding, or the Java-authoring starter).
+     */
+    public record StarterFacts(String idDigest, String authoring, String host, String mode, String keyNeed,
+                               boolean recommended) {
+        /** A catalogue entry with no recommendation declared; the Java-authoring starter is recommended regardless. */
+        public StarterFacts(String idDigest, String authoring, String host, String mode, String keyNeed) {
+            this(idDigest, authoring, host, mode, keyNeed, false);
+        }
     }
 
     /** The person's Project ▸ New project from template… — the same chain as a proposal's starter, from its picker. */
