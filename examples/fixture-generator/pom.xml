@@ -75,8 +75,10 @@
             <!-- AOT generation: scan finds the FluxtionGraphBuilder (in compiled classes),
                  invokes it, and emits MyProcessor (package
                  com.example.myapp.generated). The scan goal calls the cloud source-gen service,
-                 so generation needs compiler sign-in at build time: 'mvn fluxtion:login' once
-                 per machine, or FLUXTION_API_TOKEN in CI. -->
+                 so generation needs compiler sign-in at build time: once per machine
+                 'mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login
+                 -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev', or in CI
+                 FLUXTION_API_TOKEN and FLUXTION_COMPILER_URL. -->
             <plugin>
                 <groupId>com.telamin.fluxtion</groupId>
                 <artifactId>fluxtion-maven-plugin</artifactId>

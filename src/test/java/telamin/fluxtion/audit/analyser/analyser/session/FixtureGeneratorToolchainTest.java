@@ -38,6 +38,10 @@ class FixtureGeneratorToolchainTest {
      * RAPID-OFF (2026-11-07): the legacy key route to the hosted generator is closed, so a regeneration pin below the
      * first builder with managed auth (compiler sign-in) or below fluxtion-maven-plugin 1.3.1 ({@code mvn fluxtion:login})
      * cannot regenerate at all. The floor, per property.
+     *
+     * <p>TODO(RAPID-OFF brief 01): 1.0.84 … 1.0.89 / 1.3.1 … 1.3.3 support sign-in but still fall back to the legacy key
+     * when signed out. When builder 1.0.90 and plugin 1.3.4 (no fallback) are released, move the pins AND raise this
+     * floor to them.
      */
     static final Map<String, String> MANAGED_AUTH_FLOOR = Map.of(
             "fluxtion.builder.version", "1.0.84",

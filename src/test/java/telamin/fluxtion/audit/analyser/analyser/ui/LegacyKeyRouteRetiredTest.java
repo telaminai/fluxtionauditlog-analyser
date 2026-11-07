@@ -50,6 +50,21 @@ class LegacyKeyRouteRetiredTest {
         assertTrue(ai.stream().noneMatch(i -> RETIRED_LABELS.stream().anyMatch(i::contains)), ai.toString());
     }
 
+    /**
+     * Review B1: AI ▸ Compiler account… is the ACCOUNT view; it does not sign builds in (its credential is in the OS
+     * store, the Maven plugin reads ~/.fluxtion/credentials). The start-page chip must not claim it regenerates.
+     * Witness: put "Sign in through your browser to regenerate a processor" back as the chip's tooltip — this fails.
+     */
+    @Test
+    void theCompilerAccountChipDoesNotClaimToSignBuildsIn() throws Exception {
+        String start = Files.readString(MAIN.resolve("ui/StartPanel.java"));
+        int chip = start.indexOf("chip(\"Compiler account\"");
+        assertTrue(chip > 0, "the Compiler account chip must exist, or this rule checks nothing");
+        String call = start.substring(chip, start.indexOf("actions::openCompilerAccount", chip));
+        assertFalse(call.toLowerCase().contains("to regenerate"), call);
+        assertTrue(call.contains("Builds sign in separately") && call.contains("CompilerSignIn.LOGIN"), call);
+    }
+
     @Test
     void witnessTheScanFindsTheRetiredItem() {
         assertEquals(List.of("Fluxtion API key…"),
@@ -69,12 +84,22 @@ class LegacyKeyRouteRetiredTest {
                 "AppConfig must not hold a Fluxtion build key (its apiKey is the LLM key)");
     }
 
-    /** What a source may never do with the legacy key file: open, read or parse it. */
+    /**
+     * What {@code LegacyKeyFile} may do with the file: ONLY ask whether it exists. An allow-list, so a read API this list
+     * never thought of (a channel, a mapped buffer, a fully qualified java.io class) is refused too (review M5).
+     */
     static List<String> reads(String source) {
         List<String> out = new ArrayList<>();
-        for (String r : List.of("Files.read", "Files.lines", "Files.newInputStream", "Files.newBufferedReader",
-                "FileInputStream", "FileReader", "Properties", "Scanner"))
-            if (source.contains(r)) out.add(r);
+        Matcher files = Pattern.compile("\\bFiles\\s*\\.\\s*(\\w+)").matcher(source);
+        while (files.find())
+            if (!List.of("exists", "isRegularFile").contains(files.group(1))) out.add("Files." + files.group(1));
+        Matcher imports = Pattern.compile("(?m)^import\\s+([\\w.]+)\\s*;").matcher(source);
+        while (imports.find())
+            if (!List.of("java.nio.file.Files", "java.nio.file.Path").contains(imports.group(1)))
+                out.add("import " + imports.group(1));
+        for (String banned : List.of("java.io.", "java.nio.channels", "Channel", "RandomAccessFile", "InputStream",
+                "Reader", "Scanner", "Properties", "MappedByteBuffer", "new "))
+            if (source.contains(banned)) out.add(banned.strip());
         return out;
     }
 
@@ -83,7 +108,18 @@ class LegacyKeyRouteRetiredTest {
     @DisplayName("the leftover key file is checked for existence only — never opened, read or shown")
     void theLegacyFileIsExistenceOnly(@TempDir Path home) throws Exception {
         assertEquals(List.of(), reads(Files.readString(MAIN.resolve("config/LegacyKeyFile.java"))));
-        assertEquals(List.of("Files.read"), reads("Files.readString(file)"));
+        // the review's bypasses, and their kin: each is refused
+        assertEquals(List.of("Files.readString"), reads("Files.readString(file)"));
+        assertEquals(List.of("Files.newByteChannel", "Channel"), reads("Files.newByteChannel(f).read(buf)"));
+        assertEquals(List.of("Files.lines"), reads("Files.lines(f).count()"));
+        assertEquals(List.of("Files.readAllBytes"), reads("Files.readAllBytes(f)"));
+        assertEquals(List.of("Files.newInputStream", "InputStream"), reads("Files.newInputStream(f)"));
+        assertEquals(List.of("Files.newBufferedReader", "Reader"), reads("Files.newBufferedReader(f)"));
+        assertEquals(List.of("Files.size"), reads("Files.size(f)"));
+        assertTrue(reads("java.nio.channels.FileChannel.open(f).read(b)").containsAll(List.of("java.nio.channels", "Channel")));
+        assertTrue(reads("new java.io.RandomAccessFile(f.toFile(), \"r\")").containsAll(List.of("java.io.", "RandomAccessFile", "new")));
+        assertTrue(reads("new java.io.FileInputStream(f.toFile())").contains("InputStream"));
+        assertTrue(reads("import java.io.File;\n").contains("import java.io.File"));
         assertFalse(LegacyKeyFile.presentUnder(home));
         Path dir = Files.createDirectories(home.resolve(".fluxtion"));
         Files.writeString(dir.resolve("fluxtion.apiKeyFile"), "a value this test never reads back");

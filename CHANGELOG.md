@@ -7,11 +7,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Removed
-- **AI ▸ Fluxtion API key…**, its dialog and the start page's **Fluxtion key** card are gone: the legacy API key route to the hosted generator is closed. Regenerating a processor needs compiler sign-in only — **AI ▸ Compiler account…** (now also **Compiler account** on the start page), `mvn fluxtion:login` in a terminal, or `FLUXTION_API_TOKEN` in CI. If a key file from the old route is still on your machine, the start page says once that it is no longer used; the analyser never reads or shows it. `context` no longer carries `fluxtionKey`, and the Project panel no longer shows a key-file row.
+- **AI ▸ Fluxtion API key…**, its dialog and the start page's **Fluxtion key** card are gone: the legacy API key route to the hosted generator is closed. Builds now sign in: `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev` once per machine, or `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL` in CI. **AI ▸ Compiler account…** (now also **Compiler account** on the start page) shows your account, plan and usage; it does not sign builds in. While a key file from the old route is still on your machine, the start page says on each launch that it is no longer needed and can be deleted; the analyser never reads or shows it. `context` no longer carries `fluxtionKey`, and the Project panel no longer shows a key-file row.
 
 ### Changed
-- A starter's review row and its vendored *add-a-node* steps say *build needs compiler sign-in* where they said a Fluxtion key was needed, and a starter that declares its build needs a key gets the sign-in regeneration steps, without `./check-fluxtion-key.sh`.
-- The analyser's own regeneration toolchain moves to fluxtion-builder 1.0.89 and fluxtion-maven-plugin 1.3.3, which sign in instead of using a key; the guides, skills and FAQ describe compiler sign-in throughout, and the compiler-account guide lists a plan's limits as nodes, inputs and exported interfaces.
+- A starter's review row, its template-picker disclosure (*Build authentication*) and its vendored *add-a-node* and run steps say *compiler sign-in* where they said a Fluxtion key was needed.
+- The analyser's own regeneration toolchain moves to fluxtion-builder 1.0.89 and fluxtion-maven-plugin 1.3.3, which support compiler sign-in (1.0.90 and 1.3.4 remove the legacy key fallback); the guides, skills and FAQ give the working sign-in command throughout, and the compiler-account guide lists a plan's limits as nodes, inputs and exported interfaces.
 
 ## [1.40.6] - 2026-11-06
 

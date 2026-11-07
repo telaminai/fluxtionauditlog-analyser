@@ -46,8 +46,9 @@ public final class StartPanel extends JPanel {
         void openSettings();
 
         /**
-         * AI ▸ Compiler account…: sign in to regenerate a processor. RAPID-OFF (2026-11-07): it replaced the Fluxtion
-         * key card; the key route is closed and this page reports nothing about any credential.
+         * AI ▸ Compiler account…: the account view (plan, usage, signed-in email). RAPID-OFF (2026-11-07): it replaced
+         * the Fluxtion key card; the key route is closed and this page reports nothing about any credential. It does not
+         * sign builds in: that is the Maven login ({@code CompilerSignIn.LOGIN}).
          */
         void openCompilerAccount();
 
@@ -250,8 +251,9 @@ public final class StartPanel extends JPanel {
                 chip("Settings — source and assistant…", "Settings",
                         "Source settings apply to the open project, or to global defaults when no project is open.",
                         actions::openSettings),
-                chip("Compiler account", "Compiler sign-in",
-                        "Sign in through your browser to regenerate a processor; generated projects run without it.",
+                chip("Compiler account", "Compiler account",
+                        "See your compiler account: plan, usage and signed-in email. Builds sign in separately, with "
+                                + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN + ".",
                         actions::openCompilerAccount)));
         col.add(directStrip);
         col.add(Box.createVerticalStrut(UiTheme.SPACE_XL));

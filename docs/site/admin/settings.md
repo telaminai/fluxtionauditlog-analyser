@@ -47,8 +47,9 @@ The in-app assistant's provider, used only by the *In-app assistant* profile ([A
 | **API key** | empty | stored in **cleartext** in `~/.fluxtion-analyser/config`, and sent only to the provider's endpoint. Never in an exported settings file, a project or a bundle |
 | **Base URL (optional)** | empty | a proxy or a compatible endpoint |
 
-Regenerating a processor needs no key at all: it needs **compiler sign-in**, from **AI ▸ Compiler account…** (or
-`mvn fluxtion:login` in a terminal, and `FLUXTION_API_TOKEN` in CI). Sign-in is not an analyser setting either
+Regenerating a processor needs no key at all: the build signs in once per machine with
+`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`
+(in CI, set `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`). Build sign-in is not an analyser setting. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in
 ([Connect a compiler account](../getting-started.md#connect-a-compiler-account)).
 
 ## Performance & S3 (machine)

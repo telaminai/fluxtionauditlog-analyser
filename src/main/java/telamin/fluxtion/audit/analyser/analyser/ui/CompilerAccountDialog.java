@@ -71,7 +71,7 @@ import java.util.function.Consumer;
  * <p><b>Secrets.</b> The device code and the credential are package-private to {@code account}; this dialog cannot
  * read either, so it can neither display nor log them. It shows the user code, which is meant to be read.
  *
- * <p><b>Rule 9.</b> Like {@link FluxtionKeyDialog}, this is dialog-local: the connection is a fact of the OS credential
+ * <p><b>Rule 9.</b> Like the retired Fluxtion API key dialog, this is dialog-local: the connection is a fact of the OS credential
  * store, read when the dialog opens, and the sign-in is an interaction that lives and dies with the dialog (closing it
  * cancels). No other surface renders the account and {@code context} does not carry it, so there is no second reader to
  * drift. Showing it anywhere else is the point at which it becomes session state: a node, an effect and a fact.

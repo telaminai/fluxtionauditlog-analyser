@@ -17,26 +17,26 @@ The catalogue is live, so this page does not list it. To choose:
 - **Read the picker.** *Project ▸ New project from template…*, or **From template** under *Or open directly ▸
   Create*, lists the whole catalogue with each template's description. Entries tagged for onboarding are marked
   **Recommended starting points**; the others are still listed. A recommendation is advice, not a promise of a
-  walkthrough or of a build that needs no key.
+  walkthrough or of a build that needs no sign-in.
 
 Two templates have their own walkthroughs here:
 
 | Template | For | Walkthrough |
 |---|---|---|
-| **Audit analyser bundle** | Seeing a small Mongoose system run and reading its audit log, with no build key | [Playground to analyser in 10 minutes](../tutorial-playground.md) |
+| **Audit analyser bundle** | Seeing a small Mongoose system run and reading its audit log, with no compiler sign-in | [Playground to analyser in 10 minutes](../tutorial-playground.md) |
 | The **Spring XML** starter | Designing a new application in conversation, then building it | [Spring authoring step by step](../spring-authoring-getting-started.md) |
 
 ## Start from a template
 
-![The template picker from an earlier release, listing two templates: Audit analyser bundle selected, with "Build key:
-none required" and its description, and the Use this template button](../assets/tutorial-template-picker.png)
+![The template picker from an earlier release, listing two templates: Audit analyser bundle selected, with its
+build requirement and its description, and the Use this template button](../assets/tutorial-template-picker.png)
 
 <small>An earlier capture: the picker now lists the whole catalogue, with onboarding entries marked, but the steps are
-the same.</small>
+the same, and the requirement now reads *Build authentication*.</small>
 
-1. Select a template and read its catalogue description, its build and regeneration key requirements, and its agent
+1. Select a template and read its catalogue description, its build and regeneration authentication (compiler sign-in), and its agent
    entry files. These are what the catalogue declares, never a guess from the project type. *Missing* means **not
-   declared**; an empty list means **explicitly none**; a key value the analyser does not know is labelled
+   declared**; an empty list means **explicitly none**; a declaration the analyser does not know is labelled
    unrecognised. They describe the default download: check its actual files before following its runbook. Press
    **Use this template**.
 2. Confirm or change its artifact, group and base-package defaults.
@@ -59,7 +59,7 @@ instead of an empty picker.
 - **One project folder.** The archive must hold exactly one top-level folder.
 - **Only fixed files are made executable.** Archive permission bits are ignored. Only a fixed list of root lifecycle
   scripts is made executable: the Maven wrapper (`mvnw`), and the setup, validate, generate, run, export, stop and
-  key-check scripts.
+  sign-in check scripts.
 - **The template's settings may only point inside the project.** Every settings file in the archive (the main
   profile, a named one beside it, or a nested module's) is checked against its own folder before the move: a source
   folder outside the project (including one that leaves and comes back in through the archive's own folder name), the
@@ -69,7 +69,7 @@ instead of an empty picker.
   files named by a template's saved charts, and Maven repositories, are not checked by this rule. Projects you set up
   yourself may still name folders outside the project on purpose, such as a neighbouring module.
 - **Nothing is built or run.** When the project is ready, the analyser shows the commands to copy, chosen from the
-  script names it recognises: for example the key check, setup, validate, generate and run scripts, or a build and a
+  script names it recognises: for example the sign-in check, setup, validate, generate and run scripts, or a build and a
   run. You decide whether to paste them into a terminal. On Windows, where the templates ship no `.cmd` scripts
   today, it points you to the project's README instead.
 

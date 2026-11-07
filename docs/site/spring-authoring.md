@@ -178,8 +178,7 @@ The stages answer different questions:
 Generation follows the builder's selected backend. An installed local provider
 can generate without a key or gateway probe once dependencies are provisioned.
 Custom HTTP endpoints use the existing client's authentication. The hosted compiler
-requires compiler sign-in (**AI ▸ Compiler account…**, `mvn fluxtion:login`, or
-`FLUXTION_API_TOKEN` in CI). A custom endpoint is not an offline provider. Offline XML
+requires compiler sign-in (`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`, or `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL` in CI). A custom endpoint is not an offline provider. Offline XML
 validation and source reconciliation do not need sign-in.
 
 The analyser bundle also has host-specific run/export/stop scripts. Follow its

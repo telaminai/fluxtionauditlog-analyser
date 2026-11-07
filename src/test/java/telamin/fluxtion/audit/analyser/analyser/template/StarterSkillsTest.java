@@ -151,9 +151,13 @@ class StarterSkillsTest {
         String skill = Files.readString(project.resolve(".claude/skills/add-a-node/SKILL.md"));
         assertTrue(skill.contains("./generate.sh"), skill);
         assertTrue(skill.contains(StarterSkills.KEY_BUILD), "the key note");
-        // RAPID-OFF: a "build" starter means compiler sign-in, so its regeneration block leaves out the key check
-        assertFalse(StarterSkills.regenerationBlock(springRecord()).contains("check-fluxtion-key"),
-                "no key check step or note for a sign-in build");
+        // RAPID-OFF (review L2): a "build" starter means compiler sign-in, and its check-fluxtion-key.sh now checks
+        // sign-in (fluxtion-web PR #57), so the regeneration block agrees with the post-install list: the check, then
+        // the sign-in note. Witness: filter the check for "build" in regenerationBlock again — this fails.
+        String block = StarterSkills.regenerationBlock(springRecord());
+        assertTrue(block.startsWith("```\n./check-fluxtion-key.sh\n./setup.sh"), block);
+        assertTrue(block.contains(StarterSkills.SIGN_IN_BUILD + " " + StarterSkills.KEY_CHECK), block);
+        assertTrue(skill.contains(StarterSkills.KEY_CHECK), "the check the record names");
         assertFalse(skill.contains(MARKER_LEAD), "no marker is left");
         assertFalse(skill.contains("./run.sh"), "running is not regeneration");
         String original = pinned(StarterSkills.ADD_A_NODE);

@@ -23,8 +23,9 @@ writes no audit log (2026-09-28).
 It is standalone — **not** a module of the analyser build, which keeps FlatLaf as the analyser's only
 runtime dependency and stops CI needing a Fluxtion toolchain to run unit tests.
 
-> **Regenerating the graph needs compiler sign-in** — run `mvn fluxtion:login` once per machine (or set
-> `FLUXTION_API_TOKEN` in CI). The compiler is closed-source and the `scan` goal calls the hosted source-gen
+> **Regenerating the graph needs compiler sign-in** — run
+> `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`
+> once per machine (in CI, set `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`). The compiler is closed-source and the `scan` goal calls the hosted source-gen
 > service. The generated processor is
 > **checked in**, as the starter intends, so regenerating just the *audit log* works from a bare checkout.
 

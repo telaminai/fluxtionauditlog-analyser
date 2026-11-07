@@ -71,7 +71,7 @@ public final class StarterSkills {
         // its contract (RAPID-OFF brief 03); re-fetch and re-pin then.
         m.put("spring-authoring/reference/contract.md", new String[]{
                 "https://fluxtion-playground.dev/spring-authoring/contract.md", "playground/spring-authoring/contract.md",
-                "bff3c8db4e0ca4e57e66900887b774d8a56c9f561f2ed0b590cdab9e710eb50d"});
+                "6547d8bae6e37417c51b1a5be2ddbb77297e9025f6cc48a6f8de22d4105399b3"});
         PLAYGROUND = java.util.Collections.unmodifiableMap(m);
     }
 
@@ -192,17 +192,25 @@ public final class StarterSkills {
     public static final String SIGN_IN_BUILD = "**Compiler sign-in: needed at build.** Follow the project's "
             + "Compiler sign-in instructions in README and its RUNBOOK; Maven validates the saved credential.";
     // RAPID-OFF (2026-11-07): the legacy key route is closed. Generation goes only through compiler sign-in, so an older
-    // starter's `keyNeed: build` means sign-in too and, like sign-in-build, its regeneration block leaves out the
-    // starter's ./check-fluxtion-key.sh. Other declarations keep the step the record names: it is the starter's own
-    // preflight, documented in its guide (the playground's to retire), and the record is reported as it is.
+    // starter's `keyNeed: build` means sign-in too. Since the playground's RAPID-OFF starters (fluxtion-web PR #57), a
+    // starter's ./check-fluxtion-key.sh checks sign-in, never a key file, so it stays wherever the record names it and
+    // the regeneration block agrees with the post-install list. Only an explicit sign-in-build starter, which ships no
+    // such script, has none.
     public static final String KEY_BUILD = SIGN_IN_BUILD;
+    /**
+     * A runtime-generation starter (fluxtion-web PR #57, builder 1.0.89): the JVM authenticates with
+     * {@code FLUXTION_API_TOKEN}, and the starter's own run scripts select the token route; no Maven plugin is involved.
+     */
     public static final String KEY_RUN = "**Compiler sign-in:** the starter declares that it is needed when the "
-            + "processor runs (`keyNeed: run`). Sign in with AI ▸ Compiler account…, or `mvn fluxtion:login`.";
+            + "processor runs (`keyNeed: run`): set `FLUXTION_API_TOKEN` (and, in CI, `FLUXTION_COMPILER_URL`); the "
+            + "starter's run scripts select the token route (`-Dfluxtion.remote.auth=token`).";
     public static final String KEY_NONE = "**Compiler sign-in: not needed.** The starter declares that its build needs "
             + "no generation credential (`keyNeed: none`).";
     public static final String KEY_UNDECLARED = "**Compiler sign-in:** the starter does not declare whether its build "
-            + "needs it. Regenerating a processor does: sign in with AI ▸ Compiler account…, or `mvn fluxtion:login`.";
-    public static final String KEY_CHECK = "`./check-fluxtion-key.sh` is the starter's own preflight.";
+            + "needs it. Regenerating a processor does: `"
+            + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN + "`, or in CI `FLUXTION_API_TOKEN` "
+            + "and `FLUXTION_COMPILER_URL`.";
+    public static final String KEY_CHECK = "`./check-fluxtion-key.sh` checks that compiler sign-in is set.";
 
     /**
      * The starter's own first-run record and key declaration — what the marker is substituted from. {@code firstRun} is
@@ -286,7 +294,7 @@ public final class StarterSkills {
     public static String regenerationBlock(FirstRun record) {
         if (record == null) return null;
         List<String> steps = known(record, REGENERATION_STEPS);
-        if ("build".equals(record.keyNeed()) || "sign-in-build".equals(record.keyNeed()))
+        if ("sign-in-build".equals(record.keyNeed()))
             steps = steps.stream().filter(step -> !"./check-fluxtion-key.sh".equals(step)).toList();
         if (!steps.contains("./generate.sh")) return null;
         String key = switch (record.keyNeed()) {

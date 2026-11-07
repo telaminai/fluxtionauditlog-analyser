@@ -140,10 +140,10 @@ class TemplateCatalogueTest {
                   {"name":"Declared","description":"declared","file":"d.starter.json","agentBootstrap":["PROJECT.md","runbooks/author.md"],"keyNeed":"future","regenerationKeyNeed":"run"}
                 ]}
                 """, "dev");
-        assertTrue(catalogue.templates().get(0).disclosure().contains("Build key: not declared"));
+        assertTrue(catalogue.templates().get(0).disclosure().contains("Build authentication: not declared"));
         assertTrue(catalogue.templates().get(0).disclosure().contains("Agent entry files: not declared"));
         assertTrue(catalogue.templates().get(1).disclosure().contains("Agent entry files: explicitly none"));
-        assertTrue(catalogue.templates().get(1).disclosure().contains("Regeneration key: required at build"));
+        assertTrue(catalogue.templates().get(1).disclosure().contains("Regeneration authentication: compiler sign-in at build"));
         assertTrue(catalogue.templates().get(2).disclosure().contains("PROJECT.md, runbooks/author.md"));
         assertTrue(catalogue.templates().get(2).disclosure().contains("unrecognised catalogue value 'future'"));
     }

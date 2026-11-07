@@ -34,8 +34,9 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  * never resolves {@code fluxtion-builder} at all. Regenerate with:
  *
  * <pre>
- *   mvn fluxtion:login               # once per machine: compiler sign-in through your browser
- *   mvn -Pregen process-classes      # needs compiler sign-in (FLUXTION_API_TOKEN in CI)
+ *   mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login \
+ *       -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev   # once per machine: build sign-in
+ *   mvn -Pregen process-classes      # needs that sign-in (CI: FLUXTION_API_TOKEN + FLUXTION_COMPILER_URL)
  *   mvn test                         # GeneratedSourceIsPublishableTest tells you what to strip
  * </pre>
  *

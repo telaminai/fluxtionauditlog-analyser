@@ -32,8 +32,7 @@ runtime mode or separate “guided” project type. You can follow the same step
 
 For the Spring path, use JDK 21, network access for provisioning, and analyser **1.16.0 or later**.
 Your local LLM needs access to the downloaded project and a terminal. Generation through the hosted
-compiler also needs compiler sign-in (**AI ▸ Compiler account…**, or `mvn fluxtion:login`; `FLUXTION_API_TOKEN`
-in CI); an installed local generator is a different route. XML validation itself needs no sign-in.
+compiler also needs compiler sign-in (`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`; in CI, `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`); an installed local generator is a different route. XML validation itself needs no sign-in.
 
 ## 1. Download a project
 
@@ -243,8 +242,9 @@ across later reconciliation. Always check the emitted audit values after a real 
 The build receipt is `target/fluxtion-run.json`; compilation diagnostics belong to the latest
 attempt only when that receipt says the compiler ran and its input checks still hold.
 
-The default remote route requires compiler sign-in. Sign in with **AI ▸ Compiler account…** or
-`mvn fluxtion:login` (in CI, set `FLUXTION_API_TOKEN` as a secret), never by committing a credential. An
+The default remote route requires compiler sign-in. Sign the build in with
+`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev` (in CI, set `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`, the token as a secret), never by committing a credential.
+**AI ▸ Compiler account…** shows the account; it does not sign builds in. An
 installed local provider needs no sign-in; a custom HTTP host is not automatically a local provider.
 
 The screenshots show download, design rendering and XML validation. The separate

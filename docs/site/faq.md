@@ -27,11 +27,11 @@ See the [security boundary](admin/security.md#project-output-offers) for scope a
 ## Is my API key safe? Does it leave my machine?
 
 The **LLM key** is stored locally, in cleartext in your config file, and used only to call the provider you
-configured. Regenerating a processor needs no key: it needs **compiler sign-in**, from **AI ▸ Compiler account…** (or
-`mvn fluxtion:login`), whose credential is kept in your OS credential store. Neither the LLM key nor that credential is
-included in a project, an exported settings file or an evidence bundle. The old Fluxtion API key route is closed; if a
-key file from it is still on your machine, the start page says once that nothing reads it any more. See
-[What is stored where](admin/data.md).
+configured. Regenerating a processor needs no key: the build signs in with
+`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.3:login -Dfluxtion.compilerUrl=https://compiler.fluxtion-playground.dev`, which stores its credential in `~/.fluxtion/credentials` (in CI, set `FLUXTION_API_TOKEN` and `FLUXTION_COMPILER_URL`). **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in; its own credential is kept in
+your OS credential store. None of these is included in a project, an exported settings file or an evidence bundle.
+The old Fluxtion API key route is closed. While a key file from it is still on your machine, the start page says so
+on each launch: the file is no longer needed and can be deleted. See [What is stored where](admin/data.md).
 
 ## Does it work offline?
 
