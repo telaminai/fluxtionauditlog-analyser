@@ -169,7 +169,16 @@ class LegacyKeyRouteDocsSweepTest {
     @DisplayName("every build sign-in instruction carries its compiler URL")
     void everySignInInstructionWorks() throws IOException {
         Map<String, String> texts = read();
-        texts.putAll(sourceLiterals());
+        Map<String, String> literals = sourceLiterals();
+        // the starter-list surfaces (PR #227) are in the scan, with their words — so this cannot pass vacuously
+        for (String f : List.of("template/Starters.java", "template/TemplateCatalogue.java", "ui/TemplateProjectDialog.java",
+                "ui/StarterListPreference.java", "session/node/StarterProject.java", "template/StarterSkills.java")) {
+            String key = SOURCE.resolve("telamin/fluxtion/audit/analyser/analyser").resolve(f).toString();
+            assertTrue(literals.containsKey(key), key + " must be scanned");
+        }
+        assertTrue(literals.get(SOURCE.resolve("telamin/fluxtion/audit/analyser/analyser/template/Starters.java").toString())
+                .contains("build needs compiler sign-in"), "the review row's words are read");
+        texts.putAll(literals);
         assertEquals(List.of(), incompleteSignIn(texts));
     }
 

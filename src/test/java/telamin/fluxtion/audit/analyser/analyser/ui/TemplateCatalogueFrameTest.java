@@ -47,11 +47,24 @@ class TemplateCatalogueFrameTest {
                     JSplitPane split = find(dialog, JSplitPane.class);
                     assertNotNull(split, "template choices and their explanation sit side by side");
                     assertEquals(JSplitPane.HORIZONTAL_SPLIT, split.getOrientation());
+                    // owner, 2026-11-07: unticked, only the recommended entries, in the order shown first
+                    javax.swing.JCheckBox showAll = find(dialog, javax.swing.JCheckBox.class);
+                    assertNotNull(showAll, "the Show all templates box");
+                    assertEquals(StarterListPreference.LABEL, showAll.getText());
+                    assertFalse(showAll.isSelected(), "unticked by default");
+                    var shown = TemplateProjectDialog.shownEntries(selection, false);
+                    assertEquals(shown.size(), list.getModel().getSize());
+                    for (int i=0; i<shown.size(); i++) assertEquals(shown.get(i), list.getModel().getElementAt(i));
+                    assertEquals(0, list.getSelectedIndex(), "the first shown entry is the default");
+                    showAll.doClick();
                     assertEquals(selection.entries().size(), list.getModel().getSize());
                     for (int i=0; i<selection.entries().size(); i++) {
+                        assertEquals(selection.entries().get(i), list.getModel().getElementAt(i));
                         list.setSelectedIndex(i);
                         assertEquals(selection.entries().get(i).disclosure(),description.getText());
                     }
+                    showAll.doClick();
+                    assertFalse(StarterListPreference.showAll());
                     int recommended = 0;
                     for (int i=0; i<selection.entries().size(); i++) if(selection.entries().get(i).recommended()) { recommended=i; break; }
                     list.setSelectedIndex(recommended);

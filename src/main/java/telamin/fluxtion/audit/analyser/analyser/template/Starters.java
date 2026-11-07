@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Option 2 (owner, 2026-10-18: "Spring is our preferred route: start with a template, then load the skills"): the
- * analyser's starter templates as the onboard assistant and the review row see them. Pure — the catalogue and the
+ * Option 2 ("start with a template, then load the skills"): the analyser's starter templates as the onboard assistant and
+ * the review row see them. Owner decision 2026-11-07 (replacing 2026-10-18's "Spring is our preferred route"): the
+ * Java-authoring starter is how most developers are onboarded, so it is listed first and recommended; the catalogue's
+ * other onboarding starters (Spring among them) stay recommended, after it. Pure — the catalogue and the
  * template files are read elsewhere ({@link TemplateClient}); this only names, describes and orders what they said.
  *
  * <p>A starter's <b>id</b> is its template file's stem ({@code fluxtion-spring.starter.json} → {@code fluxtion-spring}):
@@ -20,8 +22,16 @@ public final class Starters {
     /** The file suffix every catalogue template file carries ({@link TemplateCatalogue.Entry} refuses any other). */
     public static final String SUFFIX = ".starter.json";
 
-    /** The authoring style the analyser prefers (owner, 2026-10-18): the graph declared in Spring XML. */
+    /** The graph declared in Spring XML (the template file's {@code fluxtion.definition}). */
     public static final String SPRING = "spring";
+
+    /**
+     * The Java-authoring starter (owner, 2026-11-07: the first and recommended starter): the template file declares
+     * {@code javaAuthoring: true} — the graph is built in plain Java ({@code FluxtionGraphBuilder}), no processor ships,
+     * and the first build generates it with compiler sign-in. {@link TemplateClient.Template#parse} reports it as this
+     * authoring word.
+     */
+    public static final String JAVA = "java";
 
     /**
      * One starter: the catalogue's id, name, description (as shown: {@link TemplateCatalogue.Entry#shownDescription}),
@@ -38,9 +48,17 @@ public final class Starters {
             keyNeed = keyNeed == null ? "" : keyNeed;
         }
 
-        /** Spring first and recommended (owner, 2026-10-18), whether or not a key is present. */
+        /** The Java-authoring starter: its template file says so, or (unread) the catalogue's tag does. */
+        public boolean javaAuthoring() {
+            return JAVA.equals(authoring) || (catalogue != null && catalogue.javaAuthoring());
+        }
+
+        /**
+         * Recommended (owner, 2026-11-07): the Java-authoring starter, and every entry the catalogue tags for
+         * onboarding — whether or not a key is present.
+         */
         public boolean recommended() {
-            return SPRING.equals(authoring);
+            return javaAuthoring() || (catalogue != null && catalogue.recommended());
         }
     }
 
@@ -74,12 +92,28 @@ public final class Starters {
         return "other";
     }
 
-    /** The catalogue's order with every Spring starter first; within each group the catalogue's own order. */
-    public static List<Entry> springFirst(List<Entry> entries) {
+    /**
+     * The order every starter list shows (owner, 2026-11-07), the same rule as {@link TemplateCatalogue#ordered}: the
+     * Java-authoring starter first, then the other recommended entries, then the rest — within each group the
+     * catalogue's own order.
+     */
+    public static List<Entry> ordered(List<Entry> entries) {
         List<Entry> out = new ArrayList<>();
-        for (Entry e : entries) if (e.recommended()) out.add(e);
+        for (Entry e : entries) if (e.javaAuthoring()) out.add(e);
+        for (Entry e : entries) if (!e.javaAuthoring() && e.recommended()) out.add(e);
         for (Entry e : entries) if (!e.recommended()) out.add(e);
         return List.copyOf(out);
+    }
+
+    /**
+     * What a starter list shows (owner, 2026-11-07), the same rule as {@link TemplateCatalogue#shown}: only the
+     * recommended entries unless "Show all templates" is ticked, in {@link #ordered} order; everything when the
+     * catalogue recommends nothing.
+     */
+    public static List<Entry> shown(List<Entry> entries, boolean showAll) {
+        List<Entry> ordered = ordered(entries);
+        if (showAll || ordered.stream().noneMatch(Entry::recommended)) return ordered;
+        return ordered.stream().filter(Entry::recommended).toList();
     }
 
     /** How the graph is authored, in words: "Spring XML", or "Java" for any other declaration. */
@@ -98,6 +132,8 @@ public final class Starters {
         parts.add("mongoose".equals(host) ? "in a Mongoose server" : "embedded");
         if ("aot".equals(mode)) parts.add("AOT");
         else if ("interpreted".equals(mode)) parts.add("interpreted");
+        // the Java-authoring starter ships no processor: its first build generates one (compiler sign-in)
+        if (JAVA.equals(authoring)) parts.add("no processor ships; the first build generates it");
         String key = switch (keyNeed) {
             case "build", "sign-in-build" -> "build needs compiler sign-in (see README)";
             case "run" -> "running needs compiler sign-in";

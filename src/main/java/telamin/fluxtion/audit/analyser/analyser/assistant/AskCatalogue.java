@@ -556,10 +556,21 @@ public final class AskCatalogue {
      * model's words. Placed, never sent: the person presses Send.
      */
     public static Draft composeStarter(String projectName, String starterId) {
+        return composeStarter(projectName, starterId, "spring");
+    }
+
+    /**
+     * The starter draft for how the starter's graph is authored (its template file's word): {@code java} — the
+     * Java-authoring starter, the first and recommended one (owner, 2026-11-07) — points at its own guide and tools;
+     * {@code spring} at the Spring design skill; anything else at the project's own guide.
+     */
+    public static Draft composeStarter(String projectName, String starterId, String authoring) {
         Map<String, String> v = new LinkedHashMap<>();
         v.put("project", AskPointers.name(projectName));
         v.put("starter", AskPointers.identifier(starterId, "(the chosen starter)"));
-        return new Draft("STARTER", text("STARTER.template", v), null, 0);
+        String key = "java".equals(authoring) ? "STARTER.java.template"
+                : "spring".equals(authoring) ? "STARTER.template" : "STARTER.other.template";
+        return new Draft("STARTER", text(key, v), null, 0);
     }
 
     /** The journey handoff's draft in the Claude Code mode (§5.5 Journeys), bound to the walk's log. */

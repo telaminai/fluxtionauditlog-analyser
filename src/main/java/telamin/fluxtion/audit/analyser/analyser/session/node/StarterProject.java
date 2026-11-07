@@ -13,19 +13,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Option 2 (owner, 2026-10-18: "Spring is our preferred route: start with a template, then load the skills"; "when the
- * project starts, sync the analyser with the state"): a project from one of the analyser's starter templates — every
+ * Option 2 (owner, 2026-10-18: "start with a template, then load the skills"; "when the project starts, sync the
+ * analyser with the state"): a project from one of the analyser's starter templates — every
  * step decided here (rule 9). The frame reads, downloads, writes, asks and opens, and reports each as a fact.
  *
  * <p><b>The catalogue.</b> Read when someone needs it — the menu, a hosted Claude Code session starting (its starters
  * are then in {@code context}), the start page's S4/S7 flows — and never by {@code context}, which renders what was read.
- * Spring starters come first and are recommended, whether or not a key is on this machine: a build that needs a key
- * says so (the commercial rule: no keyless runs; a teaching key is the paid entry).
+ * Owner decision 2026-11-07 (replacing 2026-10-18's "Spring is our preferred route"): the Java-authoring starter comes
+ * first and is recommended — it is how most developers are onboarded — then the catalogue's other onboarding starters
+ * (Spring among them), still recommended, then the rest. A build that needs compiler sign-in says so (the commercial
+ * rule: no keyless runs; a teaching key is the paid entry); RAPID-OFF retired the key route, so sign-in is the only one.
  *
  * <p><b>Two ways in, ONE chain.</b> Claude's {@code propose {kind: starter}} (via {@code onboardingProposal}, which
  * pushes the accepted item here and hands over the person's Apply) and <i>Project ▸ New project from template…</i>
  * reach the same steps: defaults → (the folder) → download → skills → discovery → ONE combined review → the open →
- * the Spring design → the general project-output watch → (a proposal's) pointer-only draft for Claude Code, or (the menu's) the starter's
+ * a Spring starter's design → the general project-output watch → (a proposal's) pointer-only draft for Claude Code, or (the menu's) the starter's
  * own commands to copy. Nothing is downloaded before the person's Apply, and nothing is ever built or run.
  */
 public class StarterProject implements EventLogSource {
@@ -124,16 +126,28 @@ public class StarterProject implements EventLogSource {
         return changed();
     }
 
-    /** Spring first, each Spring entry recommended; within each group the catalogue's own order (owner, 2026-10-18). */
+    /** The template file's authoring word for the Java-authoring starter ({@code Starters.JAVA}). */
+    static final String JAVA = "java";
+
+    /**
+     * Owner decision 2026-11-07: the Java-authoring starter first, then the other recommended entries (the catalogue's
+     * onboarding tag), then the rest; within each group the catalogue's own order. The Java-authoring starter is
+     * recommended whatever the catalogue says, so an older catalogue that lists it later still shows it first. The same
+     * rule as the frame's {@code Starters.ordered} and {@code TemplateCatalogue.ordered}.
+     */
     static List<StarterState.Entry> order(List<SessionEvents.StarterFacts> facts) {
-        List<StarterState.Entry> spring = new ArrayList<>();
+        List<StarterState.Entry> java = new ArrayList<>();
+        List<StarterState.Entry> recommended = new ArrayList<>();
         List<StarterState.Entry> rest = new ArrayList<>();
         for (SessionEvents.StarterFacts f : facts) {
-            boolean s = "spring".equals(f.authoring());
-            (s ? spring : rest).add(new StarterState.Entry(f.idDigest(), f.authoring(), f.host(), f.mode(), f.keyNeed(), s));
+            boolean j = JAVA.equals(f.authoring());
+            boolean r = j || f.recommended();
+            (j ? java : r ? recommended : rest).add(
+                    new StarterState.Entry(f.idDigest(), f.authoring(), f.host(), f.mode(), f.keyNeed(), r));
         }
-        spring.addAll(rest);
-        return spring;
+        java.addAll(recommended);
+        java.addAll(rest);
+        return java;
     }
 
     /** Whether the catalogue was read and names this id (by its digest) — what a proposal's starter is checked against. */
@@ -431,10 +445,18 @@ public class StarterProject implements EventLogSource {
         }
         phase = "OPEN";
         graphWatch = true;
-        note = "Opened " + rootShown + " — opening its design; its graph is offered after the first build";
         auditLog.info("starter", "OPEN").info("origin", origin);
-        // the analyser now shows the state the project starts in: its design at once, its graph when a build writes one
-        effects.request(new SessionEffects.OpenStarterDesignEffect(0L, request, rootRef));
+        if (JAVA.equals(authoring)) {
+            // the Java-authoring starter has no Spring design to show: its graph is Java code, and no processor ships —
+            // the first build generates it (compiler sign-in), and its graph is offered then
+            note = "Opened " + rootShown + " — its graph is built in Java; the first build generates the processor "
+                    + "(compiler sign-in: " + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN
+                    + ") and its graph is offered then";
+        } else {
+            note = "Opened " + rootShown + " — opening its design; its graph is offered after the first build";
+            // the analyser now shows the state the project starts in: its design at once, its graph when a build writes one
+            effects.request(new SessionEffects.OpenStarterDesignEffect(0L, request, rootRef));
+        }
         if ("PROPOSAL".equals(origin)) {
             effects.request(new SessionEffects.ArmStarterDraftEffect(0L, request, rootRef, entriesRef, idDigest));
         } else {

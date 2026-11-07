@@ -12,17 +12,20 @@ The catalogue is live, so this page does not list it. To choose:
   press *Show templates*, then drafts a question for your assistant that names the templates. Add a sentence about
   what you are building in the box. **Build a new application with me** (entry 2) reads the same catalogue and drafts
   a request to build from it ([Build with Claude](../build/index.md#where-to-start)). Claude Code in the analyser
-  can also list the starters itself and propose one, with Spring first and recommended; you confirm it and choose the
+  can also list the starters itself and propose one, the Java-authoring starter first; you confirm it and choose the
   folder ([Create from a starter with the assistant](../user-guide/projects.md#create-from-a-starter-with-the-assistant)).
 - **Read the picker.** *Project ▸ New project from template…*, or **From template** under *Or open directly ▸
-  Create*, lists the whole catalogue with each template's description. Entries tagged for onboarding are marked
-  **Recommended starting points**; the others are still listed. A recommendation is advice, not a promise of a
-  walkthrough or of a build that needs no sign-in.
+  Create*, lists the catalogue's **Recommended starting points** (entries tagged for onboarding), with each
+  template's description: **Java authoring (Mongoose)** first, because that is how most developers start, then the
+  others. Tick **Show all templates** to list the rest after them; the tick lasts until the analyser closes, and the
+  assistant's list of starters follows it. A recommendation is advice, not a promise of a walkthrough or of a build
+  that needs no sign-in.
 
 Two templates have their own walkthroughs here:
 
 | Template | For | Walkthrough |
 |---|---|---|
+| **Java authoring (Mongoose)** | Building a Mongoose-hosted application in plain Java with a coding agent: the graph in a `FluxtionGraphBuilder`, tools that scaffold nodes and check a fixture in about a second. No processor ships: the first build generates it and needs compiler sign-in | Its own `CLAUDE.md` and `README.md` |
 | **Audit analyser bundle** | Seeing a small Mongoose system run and reading its audit log, with no compiler sign-in | [Playground to analyser in 10 minutes](../tutorial-playground.md) |
 | The **Spring XML** starter | Designing a new application in conversation, then building it | [Spring authoring step by step](../spring-authoring-getting-started.md) |
 
