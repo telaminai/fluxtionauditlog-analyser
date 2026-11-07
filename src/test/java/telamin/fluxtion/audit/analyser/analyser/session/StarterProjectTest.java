@@ -18,12 +18,18 @@ class StarterProjectTest {
 
     static final String SPRING = "fluxtion-spring";
     static final String EMBEDDED = "fluxtion-embedded";
+    static final String JAVA = "java-authoring";
 
-    /** The catalogue as the frame reports it: Spring second in the catalogue, so the node's order is visible. */
+    /**
+     * The catalogue as the frame reports it, in an order no list should show: the Java-authoring starter last and the
+     * recommended Spring one after an unrecommended one, so the node's order is visible.
+     */
     static void catalogueRead(SessionDriver d) {
         d.post(new SessionEvents.StarterCatalogueObserved(0, true, 7, List.of(
                 new SessionEvents.StarterFacts(LocalAgentPosture.digest(EMBEDDED), "", "embedded", "interpreted", "run"),
-                new SessionEvents.StarterFacts(LocalAgentPosture.digest(SPRING), "spring", "embedded", "aot", "build"))));
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(SPRING), "spring", "embedded", "aot", "build", true),
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(JAVA), "java", "mongoose", "aot", "sign-in-build",
+                        true))));
     }
 
     /** A starter item as MainFrame.proposalFact makes it: Claude's words by reference, the id's digest to compare. */
@@ -49,17 +55,66 @@ class StarterProjectTest {
     }
 
     @Test
-    @DisplayName("the catalogue: Spring first and recommended, the catalogue's order otherwise; not-read until something reads it")
-    void theCatalogueIsSpringFirst() {
+    @DisplayName("★ the catalogue (owner, 2026-11-07): the Java-authoring starter first, the other recommended next, then the rest; not-read until something reads it")
+    void theCatalogueIsJavaAuthoringFirst() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         assertEquals(StarterState.NOT_READ, d.snapshot().starter().catalogue(), "not read before anything asks");
         catalogueRead(d);
         var entries = d.snapshot().starter().entries();
         assertEquals(StarterState.READ, d.snapshot().starter().catalogue());
-        assertEquals(LocalAgentPosture.digest(SPRING), entries.get(0).idDigest(), "Spring first");
-        assertTrue(entries.get(0).recommended(), "and recommended, with no key found");
-        assertFalse(entries.get(1).recommended());
+        assertEquals(List.of(LocalAgentPosture.digest(JAVA), LocalAgentPosture.digest(SPRING), LocalAgentPosture.digest(EMBEDDED)),
+                entries.stream().map(StarterState.Entry::idDigest).toList(), "Java authoring, then Spring, then the rest");
+        assertEquals(List.of(true, true, false), entries.stream().map(StarterState.Entry::recommended).toList(),
+                "the Spring onboarding starter stays recommended, just not first");
+    }
+
+    @Test
+    @DisplayName("★ an older catalogue that lists the Java-authoring starter later, untagged, still shows it first and recommended")
+    void anOlderCatalogueStillShowsJavaAuthoringFirst() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        d.post(new SessionEvents.StarterCatalogueObserved(0, true, 7, List.of(
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest("analyser-bundle"), "spring", "mongoose", "aot", "none", true),
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(EMBEDDED), "", "embedded", "interpreted", "run"),
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(JAVA), "java", "mongoose", "aot", "sign-in-build"),
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(SPRING), "spring", "embedded", "aot", "build"))));
+        var entries = d.snapshot().starter().entries();
+        assertEquals(List.of(LocalAgentPosture.digest(JAVA), LocalAgentPosture.digest("analyser-bundle"),
+                        LocalAgentPosture.digest(EMBEDDED), LocalAgentPosture.digest(SPRING)),
+                entries.stream().map(StarterState.Entry::idDigest).toList());
+        assertEquals(List.of(true, true, false, false), entries.stream().map(StarterState.Entry::recommended).toList(),
+                "a Spring starter the catalogue does not tag for onboarding is no longer recommended");
+    }
+
+    @Test
+    @DisplayName("★ the Java-authoring starter opens with no Spring design to show, and says its first build generates the processor")
+    void theJavaAuthoringStarterOpensWithoutASpringDesign() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        d.post(new SessionEvents.StarterMenuRequested(1));
+        var read = of(a, SessionEffects.ReadStarterCatalogueEffect.class);
+        d.post(new SessionEvents.StarterCatalogueObserved(read.get(0).request(), true, 7, List.of(
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(JAVA), "java", "mongoose", "aot", "sign-in-build", true))));
+        d.post(new SessionEvents.StarterChosen(of(a, SessionEffects.ChooseStarterEffect.class).get(0).request(),
+                LocalAgentPosture.digest(JAVA)));
+        var defaults = of(a, SessionEffects.ReadStarterDefaultsEffect.class);
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "java", false, null));
+        var configure = of(a, SessionEffects.ConfigureStarterEffect.class);
+        d.post(new SessionEvents.StarterConfigured(configure.get(0).request(), true, 4, REFS.put("/work/java-app"),
+                "…/java-app", false));
+        long req = of(a, SessionEffects.DownloadStarterEffect.class).get(0).request();
+        d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/java-app"), "…/java-app", true, 9));
+        var vendor = of(a, SessionEffects.VendorSkillsEffect.class);
+        assertEquals("java", vendor.get(0).authoring(), "the skills step knows it is the Java-authoring starter");
+        d.post(new SessionEvents.SkillsVendored(req, List.of(), List.of("fluxtion-java-graph"), List.of(), null));
+        d.post(new SessionEvents.StarterDiscoveryObserved(req, "d", 5, true, 1, 1, 0));
+        d.post(new SessionEvents.StarterReviewAnswered(req, true, List.of(), List.of(), 0, "d"));
+        d.post(new SessionEvents.StarterProjectOpened(req, true, null));
+        assertEquals(0, of(a, SessionEffects.OpenStarterDesignEffect.class).size(), "no Spring design is looked for");
+        assertEquals(1, of(a, SessionEffects.ShowStarterCommandsEffect.class).size());
+        String note = d.snapshot().starter().note();
+        assertTrue(note.contains("built in Java") && note.contains("compiler sign-in"), note);
     }
 
     @Test

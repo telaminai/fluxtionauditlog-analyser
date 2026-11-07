@@ -12,7 +12,8 @@ import java.util.Map;
 /**
  * Option 2: {@code context.starters} — RENDERED from {@code starterProject}'s state and the frame's copy of what was read;
  * it fetches nothing. {@code {state: read|not-read|unreachable, entries: [{id, name, description, authoring, host,
- * recommended, keyNeed}]}}, Spring first. Before anything asked for the catalogue the state is {@code not-read} and there
+ * recommended, keyNeed}]}}, in the one starter order (owner, 2026-11-07): the Java-authoring starter first, the
+ * other recommended ones next, then the rest. Before anything asked for the catalogue the state is {@code not-read} and there
  * are no entries: reading it is the menu's, a hosted session's start or the start page's, never a {@code context} call's.
  */
 final class StarterContext {
@@ -21,11 +22,23 @@ final class StarterContext {
     }
 
     static Map<String, Object> render(StarterState s, List<Starters.Entry> read) {
+        return render(s, read, true);
+    }
+
+    /**
+     * Owner, 2026-11-07: what the onboard assistant offers and proposes from is what the picker shows — only the
+     * recommended starters unless the person ticked "Show all templates" ({@code showAll}); every entry when none is
+     * recommended. {@code shown} says which: {@code recommended} or {@code all}.
+     */
+    static Map<String, Object> render(StarterState s, List<Starters.Entry> read, boolean showAll) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("state", s == null ? StarterState.NOT_READ : s.catalogue());
         List<Map<String, Object>> entries = new ArrayList<>();
+        boolean all = showAll || s == null || s.entries().stream().noneMatch(StarterState.Entry::recommended);
+        out.put("shown", all ? "all" : "recommended");
         if (s != null && read != null && !StarterState.NOT_READ.equals(s.catalogue())) {
             for (StarterState.Entry e : s.entries()) {
+                if (!all && !e.recommended()) continue;
                 Starters.Entry r = byDigest(read, e.idDigest());
                 if (r == null) continue;
                 Map<String, Object> m = new LinkedHashMap<>();

@@ -47,6 +47,12 @@ import java.util.function.Function;
  * {@code .claude/skills/.vendored.json} ({@link #RECORD}) lists, for every file written, the pinned source digest and the
  * written file's digest, and one note per marker: substituted, or kept and why.
  *
+ * <p><b>The Java-authoring starter gets none (owner, 2026-11-07).</b> It is the first and recommended starter, and it
+ * ships its own skill set ({@code fluxtion-java-graph}, {@code load-audit-log}, {@code point-at-the-fault},
+ * {@code run-mongoose-server}) — the set its benchmark validated. Adding the canonical set would add
+ * {@code guided-start} (an analyser tour, which a coding agent asked to build could pick up instead) and a digest record,
+ * so the project would no longer be the starter that was measured. Nothing is written; its own skills are reported kept.
+ *
  * <p><b>Never overwrite.</b> A skill whose {@code SKILL.md} is already there is kept whole; any other file that exists is
  * kept. A linked {@code .claude} or {@code .claude/skills} refuses the whole set; a linked skill folder is kept
  * without writing through it. A resource that does not match its digest refuses the whole set before any write.
@@ -387,6 +393,7 @@ public final class StarterSkills {
      */
     @SuppressWarnings("unchecked")
     public Report vendor(Path projectRoot, String authoring, String host, FirstRun record) {
+        if (Starters.JAVA.equals(authoring)) return shippedOnly(projectRoot);
         List<Skill> skills;
         try {
             byte[] indexBytes = resources.apply(INDEX);
@@ -511,6 +518,22 @@ public final class StarterSkills {
             return new Report(written, kept, digests, notes, "the skills could not be written (" + e.getMessage() + ")");
         }
         return new Report(written, kept, digests, notes, null);
+    }
+
+    /** The Java-authoring starter's own skills, reported kept; nothing is written (see the class comment). */
+    private static Report shippedOnly(Path projectRoot) {
+        List<String> kept = new ArrayList<>();
+        Path base = projectRoot.resolve(".claude").resolve("skills");
+        if (Files.isDirectory(base, LinkOption.NOFOLLOW_LINKS)) {
+            try (var dirs = Files.list(base)) {
+                dirs.filter(d -> Files.isRegularFile(d.resolve("SKILL.md"), LinkOption.NOFOLLOW_LINKS))
+                        .map(d -> d.getFileName().toString()).sorted().forEach(kept::add);
+            } catch (IOException | RuntimeException unreadable) {
+                // nothing was going to be written: an unreadable folder only means none is reported kept
+            }
+        }
+        return new Report(List.of(), kept, List.of(),
+                List.of("the Java-authoring starter ships its own skills; the analyser added none"), null);
     }
 
     private static Report refused(String why) {

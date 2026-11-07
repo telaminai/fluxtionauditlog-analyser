@@ -75,9 +75,11 @@ configured roots is refused ([Source navigation](source-navigation.md#spring-des
 
 ### Create from a starter with the assistant
 
-Spring is the preferred route: start with a template, then load the skills. Claude Code in the analyser can list the
-analyser's starter templates (`context.starters`: each one's id, name, description, how its graph is authored, where
-it runs, and whether its build needs a Fluxtion key, Spring first and recommended) and **propose** one. It never
+Start with a template, then load the skills. The **Java authoring (Mongoose)** starter is the recommended first one
+(owner decision 2026-11-07). Claude Code in the analyser can list the analyser's starter templates (`context.starters`:
+each one's id, name, description, how its graph is authored, where it runs, and whether its build needs a Fluxtion key
+or compiler sign-in — the recommended ones, Java authoring first, or every template once you tick **Show all
+templates** in the picker) and **propose** one. It never
 creates the project itself, and it never names a folder.
 
 1. **The proposal.** A banner says Claude Code has a proposal; **Review…** opens one row: *Create a project from
@@ -87,7 +89,8 @@ creates the project itself, and it never names a folder.
    until you choose a new or empty folder. A starter's build that needs a key says so whether or not one is found.
 2. **The download.** Only your Apply downloads, from the configured HTTPS origin, and unpacks with the same checks as
    *New project from template…*. Nothing is built or run.
-3. **The skills.** The analyser writes the project's skills from its own copy — the canonical set for the starter's
+3. **The skills.** The Java-authoring starter ships its own skills and gets nothing added. For the others, the
+   analyser writes the project's skills from its own copy — the canonical set for the starter's
    authoring and host and, for Spring, the playground's design skill and XML contract, each checked against its
    pinned digest — under `.claude/skills/`. A file already there is never overwritten. The design skill and contract
    are bundled with the publisher's permission (owner, 2026-10-18); the playground's licence statement is pending (UP-PG-10). Once every pin has
@@ -107,7 +110,7 @@ creates the project itself, and it never names a folder.
    starts at No except the Spring design folder (`src/main/fluxtion/designer`), which is pre-ticked: it is inside the
    project you just created, and it is needed to show the Spring design. **Close** opens nothing and leaves the
    files.
-5. **Synced.** The project opens, its Spring design is shown at once, and the analyser watches for the first build's
+5. **Synced.** The project opens, a Spring starter's design is shown at once (the Java-authoring starter has none: its graph is Java code), and the analyser watches for the first build's
    GraphML and offers to open it, which pairs it with the project's logs.
 6. **Back to Claude.** The project's folder is not the folder the session started in, so the analyser offers to
    restart Claude Code there (the folder is confirmed as for any Start); the new session loads the project's

@@ -135,9 +135,10 @@ public final class TemplateClient {
     }
 
     /**
-     * Option 2 (owner, 2026-10-18): what the catalogue-owned template file says about a starter — its identity defaults,
-     * how its graph is authored ({@code fluxtion.definition}: {@code spring} for Spring XML) and whether a Mongoose server
-     * hosts it ({@code type.mongoose}). Read from the file, never duplicated in Java.
+     * Option 2: what the catalogue-owned template file says about a starter — its identity defaults, how its graph is
+     * authored ({@code fluxtion.definition}: {@code spring} for Spring XML; {@code java} when the file declares
+     * {@code javaAuthoring: true}, the Java-authoring starter) and whether a Mongoose server hosts it
+     * ({@code type.mongoose}). Read from the file, never duplicated in Java.
      */
     public Template template(TemplateCatalogue.Entry entry) {
         if (entry == null) throw new Failure("select a template");
@@ -152,8 +153,9 @@ public final class TemplateClient {
     }
 
     /**
-     * A template file's facts: the identity defaults, the authoring style ({@code spring}, or "" when the file names
-     * none) and whether the template is Mongoose-hosted.
+     * A template file's facts: the identity defaults, the authoring style ({@code spring}, {@code java} for the
+     * Java-authoring starter, the file's other {@code fluxtion.definition}, or "" when the file names none) and whether
+     * the template is Mongoose-hosted.
      */
     public record Template(Defaults defaults, String authoring, boolean mongoose) {
         public Template {
@@ -169,6 +171,9 @@ public final class TemplateClient {
                     && def.strip().matches("[A-Za-z][A-Za-z0-9_-]{0,31}")) {
                 authoring = def.strip().toLowerCase(java.util.Locale.ROOT);
             }
+            // the generator's own flag for the Java-authoring starter (fluxtion-web spec.ts javaAuthoring): it wins over
+            // fluxtion.definition, which says only "builder" for every Java-built template
+            if (Boolean.TRUE.equals(map.get("javaAuthoring"))) authoring = Starters.JAVA;
             boolean mongoose = map.get("type") instanceof Map<?, ?> t && Boolean.TRUE.equals(t.get("mongoose"));
             return new Template(d, authoring, mongoose);
         }
