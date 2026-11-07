@@ -207,9 +207,9 @@ before using this route. With an external client selected, the top **AI > Set up
 straight to the external-client screen instead of the choice screen. Keep the plugin connection;
 do not create another user-scope registration to complete the onboard setup.
 
-The legacy **Fluxtion API key** display and `context.fluxtionKey` inspect only the old key file.
-They do not inspect Maven's saved build sign-in in `~/.fluxtion/credentials`; an absent legacy key
-is not evidence that a signed-in Maven build cannot authenticate.
+Regeneration needs compiler sign-in only: `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
+(saved under `~/.fluxtion/credentials`; in CI, `FLUXTION_API_TOKEN`). **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in. The old Fluxtion API key route is closed, and
+`context` carries nothing about it.
 
 ## Upgrading from Analyser 1.40.2
 

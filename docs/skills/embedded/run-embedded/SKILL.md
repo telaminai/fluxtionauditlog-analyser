@@ -12,8 +12,8 @@ For a project that embeds the Fluxtion runtime rather than deploying to a server
 
 **Do not ship this tier in a bundle yet (review F5/F8, 2026-08-29).** The mechanism below is correct and
 the listener compiles, but *nobody has run a real embedded processor through it and opened the result in
-the analyser*. Verifying that needs a compiled processor, which needs a Fluxtion API key. Until someone
-with a key does it, this file is a design note, not a canonical skill.
+the analyser*. Verifying that needs a compiled processor, which needs compiler sign-in. Until someone
+signed in does it, this file is a design note, not a canonical skill.
 
 What was actually verified, and what was not:
 

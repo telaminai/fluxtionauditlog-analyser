@@ -172,7 +172,7 @@ additional directories, a default mode). Claude Code can then use **your own
 tools, including Bash**, file edits and web access, **as far as your permission rules and the mode you chose allow**
 (`default`, `acceptEdits`, `auto` or `plan`; **bypassPermissions is never offered**, nor `dontAsk`), and the analyser
 does not confine it to the folder; it adds one standing instruction to the session (work only inside the project
-folder, never look for the Fluxtion API key or key files, build with `./mvnw` and the project's scripts): **a request to
+folder, never look for the compiler credential or key files, build with `./mvnw` and the project's scripts): **a request to
 the model, not a sandbox**; the folder-trust dialog says the analyser adds it. Only the Start button starts full Claude
 Code. **Full may read fluxtion-playground.dev documentation without asking**: its command line carries one fixed rule,
 `WebFetch(domain:fluxtion-playground.dev)` — never `WebSearch`, another domain or a network command — and the

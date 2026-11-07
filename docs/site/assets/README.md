@@ -182,7 +182,7 @@ run's Project-menu shot failed.
 `DocShot`). Not regenerated (the harness cannot reach them here): `template-picker.png` and
 `tutorial-template-picker.png` (`TemplatePickerDocCapture` still uses Robot, which produced the wallpaper on this
 machine, and reads the live catalogue),
-`tutorial-project-open.png` and `tutorial-log-open.png` (need the staged bundle, which needs a Fluxtion key), the four
+`tutorial-project-open.png` and `tutorial-log-open.png` (need the staged bundle, which needs compiler sign-in), the four
 `spring-*` shots, `java-source-spotlight.png`, `chart-delete-confirmation.png`, `vendor-topology.png` and
 `spring-starter-preview.png`.
 

@@ -95,7 +95,7 @@ class TemplateCatalogueFrameTest {
     }
     private static JTextArea findDescription(Container parent) {
         for (Component child : parent.getComponents()) {
-            if (child instanceof JTextArea area && area.getText().contains("Build key:")) return area;
+            if (child instanceof JTextArea area && area.getText().contains("Build authentication:")) return area;
             if (child instanceof Container container) {
                 JTextArea found = findDescription(container);
                 if (found != null) return found;

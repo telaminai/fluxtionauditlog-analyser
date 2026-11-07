@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Removed
+- **AI ▸ Fluxtion API key…**, its dialog and the start page's **Fluxtion key** card are gone: the legacy API key route to the hosted generator is closed. Builds now sign in: `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login` once per machine (`./mvnw fluxtion:login` in a project that declares the plugin), or `FLUXTION_API_TOKEN` in CI. Maven, Gradle, JBang and runtime builds all use that stored login; `FLUXTION_COMPILER_URL` is needed only for a compiler other than the managed one. **AI ▸ Compiler account…** (now also **Account** on the start page) shows your account, plan and usage; it does not sign builds in. While a key file from the old route is still on your machine, the start page says on each launch that it is no longer read and can be deleted; the analyser never reads or shows it. `context` no longer carries `fluxtionKey`, and the Project panel no longer shows a key-file row.
+
+### Changed
+- A starter's review row, its template-picker disclosure (*Build authentication*) and its vendored *add-a-node* and run steps say *compiler sign-in* where they said a Fluxtion key was needed.
+- The analyser's own regeneration toolchain moves to fluxtion-builder 1.0.90 and fluxtion-maven-plugin 1.3.4, which have no key route: they sign in, and stop with FLX-1023 before any connection when signed out. The guides, skills and FAQ give the sign-in command throughout, and the compiler-account guide lists a plan's limits as nodes, inputs and exported interfaces.
+
 ## [1.41.0] - 2026-11-07
 
 ### Changed

@@ -21,8 +21,8 @@ import java.util.List;
  * are then in {@code context}), the start page's S4/S7 flows — and never by {@code context}, which renders what was read.
  * Owner decision 2026-11-07 (replacing 2026-10-18's "Spring is our preferred route"): the Java-authoring starter comes
  * first and is recommended — it is how most developers are onboarded — then the catalogue's other onboarding starters
- * (Spring among them), still recommended, then the rest; whether or not a key is on this machine: a build that needs a
- * key or sign-in says so (the commercial rule: no keyless runs; a teaching key is the paid entry).
+ * (Spring among them), still recommended, then the rest. A build that needs compiler sign-in says so (the commercial
+ * rule: no keyless runs; a teaching key is the paid entry); RAPID-OFF retired the key route, so sign-in is the only one.
  *
  * <p><b>Two ways in, ONE chain.</b> Claude's {@code propose {kind: starter}} (via {@code onboardingProposal}, which
  * pushes the accepted item here and hands over the person's Apply) and <i>Project ▸ New project from template…</i>
@@ -55,7 +55,6 @@ public class StarterProject implements EventLogSource {
     private long basePackageRef;
     private long defaultsRef;
     private String authoring = "";
-    private boolean keyPresent;
     private long dirRef;
     private String dirShown;
     private String dirVerdict = "";
@@ -246,7 +245,6 @@ public class StarterProject implements EventLogSource {
             return changed();
         }
         defaultsRef = e.defaultsRef();
-        keyPresent = e.keyPresent();
         if (e.authoring() != null && !e.authoring().isBlank()) authoring = e.authoring();
         if ("MENU".equals(origin)) {
             phase = "CONFIGURING";
@@ -254,7 +252,7 @@ public class StarterProject implements EventLogSource {
         } else {
             phase = "READY";
         }
-        auditLog.info("starter", phase).info("keyPresent", keyPresent).info("authoring", authoring);
+        auditLog.info("starter", phase).info("authoring", authoring);
         return changed();
     }
 
@@ -452,7 +450,8 @@ public class StarterProject implements EventLogSource {
             // the Java-authoring starter has no Spring design to show: its graph is Java code, and no processor ships —
             // the first build generates it (compiler sign-in), and its graph is offered then
             note = "Opened " + rootShown + " — its graph is built in Java; the first build generates the processor "
-                    + "(compiler sign-in) and its graph is offered then";
+                    + "(compiler sign-in: " + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN
+                    + ") and its graph is offered then";
         } else {
             note = "Opened " + rootShown + " — opening its design; its graph is offered after the first build";
             // the analyser now shows the state the project starts in: its design at once, its graph when a build writes one
@@ -532,7 +531,6 @@ public class StarterProject implements EventLogSource {
         basePackageRef = 0;
         defaultsRef = 0;
         authoring = "";
-        keyPresent = false;
         dirRef = 0;
         dirShown = null;
         dirVerdict = "";
@@ -590,7 +588,7 @@ public class StarterProject implements EventLogSource {
     public StarterState state() {
         if (dirty) {
             published = new StarterState(catalogue, entriesRef, entries, request, origin, phase, idDigest, defaultsRef,
-                    keyPresent, dirRef, dirShown, dirVerdict, rootShown, vendored, kept, graphWatch, note);
+                    dirRef, dirShown, dirVerdict, rootShown, vendored, kept, graphWatch, note);
             dirty = false;
         }
         return published;

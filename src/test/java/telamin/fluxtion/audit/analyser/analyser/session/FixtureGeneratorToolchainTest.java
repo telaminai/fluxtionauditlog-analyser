@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,7 +31,18 @@ class FixtureGeneratorToolchainTest {
 
     private static final Path ROOT_POM = Path.of("pom.xml");
     private static final Path FIXTURE_POM = Path.of("examples/fixture-generator/pom.xml");
-    private static final List<String> PAIRED = List.of("fluxtion.version", "fluxtion.builder.version");
+    private static final List<String> PAIRED = List.of("fluxtion.version", "fluxtion.builder.version",
+            "fluxtion.maven-plugin.version");
+
+    /**
+     * RAPID-OFF (2026-11-07): the legacy key route to the hosted generator is closed, so a regeneration pin below the
+     * first builder with no key route (compiler sign-in only) or below fluxtion-maven-plugin 1.3.4 ({@code login} with no URL)
+     * cannot regenerate at all. The floor, per property: builder 1.0.90 / plugin 1.3.4 are the first with no key route
+     * (1.0.84–1.0.89 / 1.3.1–1.3.3 signed in but fell back to the key file when signed out).
+     */
+    static final Map<String, String> MANAGED_AUTH_FLOOR = Map.of(
+            "fluxtion.builder.version", "1.0.90",
+            "fluxtion.maven-plugin.version", "1.3.4");
 
     static String property(String pom, String name) {
         Matcher m = Pattern.compile("<" + Pattern.quote(name) + ">\\s*([^<\\s]+)\\s*</" + Pattern.quote(name) + ">")
@@ -53,6 +65,51 @@ class FixtureGeneratorToolchainTest {
         return out;
     }
 
+    /** Numeric dotted-version comparison; a qualifier ({@code -SNAPSHOT}) is ignored. */
+    static int compareVersions(String a, String b) {
+        String[] x = a.replaceAll("-.*$", "").split("\\.");
+        String[] y = b.replaceAll("-.*$", "").split("\\.");
+        for (int i = 0; i < Math.max(x.length, y.length); i++) {
+            int l = i < x.length ? Integer.parseInt(x[i]) : 0;
+            int r = i < y.length ? Integer.parseInt(y[i]) : 0;
+            if (l != r) return Integer.compare(l, r);
+        }
+        return 0;
+    }
+
+    /** Every regeneration pin in {@code pom} below the managed-auth floor, in words; empty when none is. */
+    static List<String> belowManagedAuth(String label, String pom) {
+        List<String> out = new ArrayList<>();
+        for (var floor : new java.util.TreeMap<>(MANAGED_AUTH_FLOOR).entrySet()) {
+            String pinned = property(pom, floor.getKey());
+            if (pinned == null) out.add(label + " declares no " + floor.getKey());
+            else if (compareVersions(pinned, floor.getValue()) < 0)
+                out.add(label + " pins " + floor.getKey() + " " + pinned + ", below " + floor.getValue()
+                        + " — the legacy key route is closed; regeneration needs compiler sign-in");
+        }
+        return out;
+    }
+
+    @Test
+    void theRegenerationPinsCanSignIn() throws IOException {
+        List<String> found = new ArrayList<>(belowManagedAuth("the root pom", Files.readString(ROOT_POM)));
+        found.addAll(belowManagedAuth("the fixture generator", Files.readString(FIXTURE_POM)));
+        assertTrue(found.isEmpty(), String.join("\n", found));
+    }
+
+    @Test
+    void witnessTheFloorNamesALegacyKeyOnlyPin() {
+        String legacy = "<fluxtion.builder.version>1.0.89</fluxtion.builder.version>"
+                + "<fluxtion.maven-plugin.version>1.3.3</fluxtion.maven-plugin.version>";
+        List<String> found = belowManagedAuth("the root pom", legacy);
+        assertEquals(2, found.size(), found.toString());
+        assertTrue(found.get(0).contains("fluxtion.builder.version 1.0.89, below 1.0.90"), found.get(0));
+        assertTrue(found.get(1).contains("fluxtion.maven-plugin.version 1.3.3, below 1.3.4"), found.get(1));
+        String signedIn = "<fluxtion.builder.version>1.0.90-SNAPSHOT</fluxtion.builder.version>"
+                + "<fluxtion.maven-plugin.version>1.3.10</fluxtion.maven-plugin.version>";
+        assertEquals(List.of(), belowManagedAuth("the root pom", signedIn), "1.3.10 is above 1.3.4, numerically");
+    }
+
     @Test
     void theFixtureGeneratorBuildsWithTheAnalysersToolchain() throws IOException {
         List<String> found = disagreements(Files.readString(ROOT_POM), Files.readString(FIXTURE_POM));
@@ -69,14 +126,19 @@ class FixtureGeneratorToolchainTest {
 
     @Test
     void witnessTheCheckNamesTheSkewThatBrokeR0() {
-        String root = "<fluxtion.version>1.0.16</fluxtion.version><fluxtion.builder.version>1.0.71</fluxtion.builder.version>";
-        String skewed = "<fluxtion.version>1.0.13</fluxtion.version>"
+        String plugin = "<fluxtion.maven-plugin.version>1.3.3</fluxtion.maven-plugin.version>";
+        String root = "<fluxtion.version>1.0.16</fluxtion.version><fluxtion.builder.version>1.0.71</fluxtion.builder.version>"
+                + plugin;
+        String skewed = "<fluxtion.version>1.0.13</fluxtion.version>" + plugin
                 + "<dependency><artifactId>fluxtion-bom</artifactId></dependency>";
         List<String> found = disagreements(root, skewed);
         assertEquals(3, found.size(), found.toString());
         assertTrue(found.get(0).contains("root 1.0.16, fixture generator 1.0.13"), found.get(0));
         assertTrue(found.get(1).contains("fixture generator null"), found.get(1));
         assertFalse(disagreements(root, root).iterator().hasNext(), "identical poms agree");
+        // RAPID-OFF: the plugin is paired too — a fixture generator on the key-only plugin is named
+        List<String> plugins = disagreements(root, root.replace("1.3.3", "1.3.0"));
+        assertEquals(List.of("fluxtion.maven-plugin.version: root 1.3.3, fixture generator 1.3.0"), plugins);
     }
 
     /**

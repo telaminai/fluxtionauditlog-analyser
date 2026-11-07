@@ -50,7 +50,7 @@ class StarterProjectTest {
         OnboardingProposalTest.previewAll(d, a, false);
         var defaults = of(a, SessionEffects.ReadStarterDefaultsEffect.class);
         assertEquals(1, defaults.size(), "the template file is read at receipt");
-        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "spring", false, null));
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "spring", null));
         return d.snapshot().proposal().id();
     }
 
@@ -99,7 +99,7 @@ class StarterProjectTest {
         d.post(new SessionEvents.StarterChosen(of(a, SessionEffects.ChooseStarterEffect.class).get(0).request(),
                 LocalAgentPosture.digest(JAVA)));
         var defaults = of(a, SessionEffects.ReadStarterDefaultsEffect.class);
-        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "java", false, null));
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "java", null));
         var configure = of(a, SessionEffects.ConfigureStarterEffect.class);
         d.post(new SessionEvents.StarterConfigured(configure.get(0).request(), true, 4, REFS.put("/work/java-app"),
                 "…/java-app", false));
@@ -115,6 +115,8 @@ class StarterProjectTest {
         assertEquals(1, of(a, SessionEffects.ShowStarterCommandsEffect.class).size());
         String note = d.snapshot().starter().note();
         assertTrue(note.contains("built in Java") && note.contains("compiler sign-in"), note);
+        // RAPID-OFF: the note names the build sign-in that works (plugin 1.3.4), never a key
+        assertTrue(note.contains(telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN), note);
     }
 
     @Test
@@ -186,7 +188,7 @@ class StarterProjectTest {
         OnboardingProposalTest.previewAll(d, a, false);
         assertEquals("NONE", d.snapshot().proposal().create(), "a starter makes its own project: no empty-create row");
         var defaults = of(a, SessionEffects.ReadStarterDefaultsEffect.class).get(0);
-        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.request(), true, 3, "spring", false, null));
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.request(), true, 3, "spring", null));
         assertTrue(d.snapshot().proposal().awaitingPerson(), "the row is the person's to answer");
         // Yes, but no folder chosen: declined, nothing downloaded
         d.post(new SessionEvents.ProposalItemAnswered("p-1", "p-1.1", true));
@@ -199,7 +201,7 @@ class StarterProjectTest {
         d.post(new SessionEvents.ProposalReceived(2, start.generation(), REFS.put(""), List.of(starter(SPRING, null, false))));
         OnboardingProposalTest.previewAll(d, a, false);
         var defaults2 = of(a, SessionEffects.ReadStarterDefaultsEffect.class).get(1);
-        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults2.request(), true, 3, "spring", false, null));
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults2.request(), true, 3, "spring", null));
         d.post(new SessionEvents.StarterDestinationChosen("p-2", "p-2.1", REFS.put("/work/new-app"), "…/new-app"));
         assertTrue(d.snapshot().starter().destinationReady(), "an empty folder was observed");
         d.post(new SessionEvents.ProposalItemAnswered("p-2", "p-2.1", false));
@@ -412,7 +414,7 @@ class StarterProjectTest {
         assertEquals(1, choose.size());
         d.post(new SessionEvents.StarterChosen(choose.get(0).request(), LocalAgentPosture.digest(SPRING)));
         var defaults = of(a, SessionEffects.ReadStarterDefaultsEffect.class);
-        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "spring", true, null));
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "spring", null));
         var configure = of(a, SessionEffects.ConfigureStarterEffect.class);
         assertEquals(1, configure.size());
         d.post(new SessionEvents.StarterConfigured(configure.get(0).request(), true, 4, REFS.put("/work/menu-app"),

@@ -10,7 +10,7 @@ memory-map.
 
 Your own settings are in `~/.fluxtion-analyser/config`, in cleartext (this is a single-user tool), including the
 in-app assistant's API key. A project's settings are in its own `<project>/.analyser/project.fluxtion-settings`. The
-Fluxtion build key is in `~/.fluxtion/fluxtion.apiKeyFile`. [What is stored where, what leaves](admin/data.md) lists
+compiler-account credential is in your OS credential store. [What is stored where, what leaves](admin/data.md) lists
 every file.
 
 ## Will a build replace the log I am looking at?
@@ -26,11 +26,12 @@ See the [security boundary](admin/security.md#project-output-offers) for scope a
 
 ## Is my API key safe? Does it leave my machine?
 
-There are two unrelated keys. The **LLM key** is stored locally, in cleartext in your config file, and used only to
-call the provider you configured. The **Fluxtion build key**, managed from **AI ▸ Fluxtion API key…**, is written
-directly to the builder's canonical file and is used only when you regenerate a processor. Neither value is included
-in a project, an exported settings file or an evidence bundle. The analyser reports build-key presence but never
-validates or redisplays it. See [What is stored where](admin/data.md).
+The **LLM key** is stored locally, in cleartext in your config file, and used only to call the provider you
+configured. Regenerating a processor needs no key: the build signs in with
+`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`, which stores its credential in `~/.fluxtion/credentials` (in CI, set `FLUXTION_API_TOKEN`). **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in; its own credential is kept in
+your OS credential store. None of these is included in a project, an exported settings file or an evidence bundle.
+The old Fluxtion API key route is closed. While a key file from it is still on your machine, the start page says so
+on each launch: the file is no longer needed and can be deleted. See [What is stored where](admin/data.md).
 
 ## Does it work offline?
 

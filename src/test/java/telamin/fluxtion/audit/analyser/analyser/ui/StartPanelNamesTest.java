@@ -65,8 +65,7 @@ class StartPanelNamesTest {
             public void openOwnLog() { }
             public void openSettings() { calls.add("settings"); }
             public void openClientSetUp() { calls.add("client"); }   // M77-4: Set up AI, at the client screen
-            public void openFluxtionKey() { }
-            public boolean fluxtionKeyPresent() { return false; }
+            public void openCompilerAccount() { }
             public void backToRecords() { }
             public void newProject() { calls.add("new"); }
             public void newProjectFromTemplate() { calls.add("template"); }
@@ -101,8 +100,7 @@ class StartPanelNamesTest {
                 public void showTab(String n) { }
                 public void openOwnLog() { }
                 public void openSettings() { }
-                public void openFluxtionKey() { }
-                public boolean fluxtionKeyPresent() { return false; }
+                public void openCompilerAccount() { }
                 public void backToRecords() { }
                 public void openUserGuide(String page) { pages.add(page); }
             };
