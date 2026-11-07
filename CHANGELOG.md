@@ -11,7 +11,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Changed
 - A starter's review row, its template-picker disclosure (*Build authentication*) and its vendored *add-a-node* and run steps say *compiler sign-in* where they said a Fluxtion key was needed.
-- The analyser's own regeneration toolchain moves to fluxtion-builder 1.0.90 and fluxtion-maven-plugin 1.3.4, which have no key route: they sign in, and stop with FLX-1023 before any connection when signed out. The guides, skills and FAQ give the sign-in command throughout, and the compiler-account guide lists a plan's limits as nodes, inputs and exported interfaces.
+- The analyser's own regeneration toolchain moves to fluxtion-builder 1.0.91 and fluxtion-maven-plugin 1.3.4, which have no key route: they sign in, and stop with FLX-1023 before any connection when signed out. The guides, skills and FAQ give the sign-in command throughout, and the compiler-account guide lists a plan's limits as nodes, inputs and exported interfaces.
+
+## [1.41.1] - 2026-11-07
+
+### Changed
+- The template picker lists recommended starters by name alone while **Show all templates** is unticked (the note above the list already says they are the recommended starting points, and the suffix was cut off in the narrow list). Ticked, recommended entries still read " — Recommended starting point"; the selected template's heading is unchanged.
+
+### Fixed
+- The Audit analyser bundle installs its `add-a-node` skill's `audit-compare.py` executable, as published (it arrived without the execute bit). Only that exact path is added to the installer's fixed list; archive modes are still never trusted.
 
 ## [1.41.0] - 2026-11-07
 

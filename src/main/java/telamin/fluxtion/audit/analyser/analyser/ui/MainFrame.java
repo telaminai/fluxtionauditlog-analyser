@@ -3088,8 +3088,8 @@ public final class MainFrame extends JFrame {
 
         ai.addSeparator();
         // CA-1: the one owner of the compiler-account connection (D-AI2). The dialog signs in, reads usage and
-        // revokes its own device; it runs nothing of the project's (D-AI4). RAPID-OFF (2026-11-07): it is the only
-        // route to the hosted generator — the Fluxtion API key item, its dialog and its key store are retired
+        // revokes its own device; it does not sign Maven builds in (D-AI4). RAPID-OFF: it is the only
+        // account-management entry — the Fluxtion API key item, its dialog and its key store are retired
         JMenuItem compilerAccount = new JMenuItem("Compiler account…");
         compilerAccount.setToolTipText("Connect a compiler account by signing in through your browser; see its plan "
                 + "and credits, disconnect, or revoke this device");

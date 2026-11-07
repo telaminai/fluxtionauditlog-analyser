@@ -48,11 +48,14 @@ public final class TemplateArchive {
     // without these they arrived 0644 and the first command failed with "Permission denied" — the starter the
     // analyser installed was not the one the benchmark measured. A fixed list of project-relative paths, never a
     // pattern and never the archive's own bits; TemplateExecutablesTest pins it to the generated starter's zip.
+    // The Audit analyser bundle's one script below the root is on the same list (review, 2026-11-07): the website marks
+    // .claude/skills/add-a-node/audit-compare.py executable, and without this entry it arrived 0644.
     static final Set<String> TOOL_EXECUTABLES = Set.of(
             "tools/_compare.sh", "tools/_config.py", "tools/_fixture.sh", "tools/_placeholders.sh", "tools/_run.sh",
             "tools/_state.py", "tools/admin.sh", "tools/audit-compare.py", "tools/components.py", "tools/components.sh",
             "tools/context.sh", "tools/fixture.sh", "tools/new-node.py", "tools/new-node.sh", "tools/restart-check.sh",
-            "tools/run-fixture.sh", "tools/sink.sh");
+            "tools/run-fixture.sh", "tools/sink.sh",
+            ".claude/skills/add-a-node/audit-compare.py");
 
     /**
      * @param runnable owner follow-up (2026-10-18): the files an example's unpack gave an executable bit, relative to the

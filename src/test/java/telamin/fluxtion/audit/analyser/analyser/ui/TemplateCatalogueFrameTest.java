@@ -56,7 +56,12 @@ class TemplateCatalogueFrameTest {
                     assertEquals(shown.size(), list.getModel().getSize());
                     for (int i=0; i<shown.size(); i++) assertEquals(shown.get(i), list.getModel().getElementAt(i));
                     assertEquals(0, list.getSelectedIndex(), "the first shown entry is the default");
+                    // owner, 2026-11-07: unticked, bare names; the heading on the right keeps the full display name
+                    assertEquals(shown.get(0).name(), cellText(list, 0));
+                    assertTrue(labelShowing(dialog, shown.get(0).displayName()), "the detail heading is unchanged");
                     showAll.doClick();
+                    if (selection.entries().get(0).recommended())
+                        assertEquals(selection.entries().get(0).displayName(), cellText(list, 0), "ticked: marked");
                     assertEquals(selection.entries().size(), list.getModel().getSize());
                     for (int i=0; i<selection.entries().size(); i++) {
                         assertEquals(selection.entries().get(i), list.getModel().getElementAt(i));
@@ -85,6 +90,19 @@ class TemplateCatalogueFrameTest {
         });
         if(failure.get()!=null) throw new AssertionError(failure.get());
         assertNull(chosen.get(), "Closing the dialog must not start a download");
+    }
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static String cellText(JList list, int index) {
+        Component cell = list.getCellRenderer().getListCellRendererComponent(list, list.getModel().getElementAt(index),
+                index, false, false);
+        return ((javax.swing.JLabel) cell).getText();
+    }
+    private static boolean labelShowing(Container parent, String text) {
+        for (Component child : parent.getComponents()) {
+            if (child instanceof javax.swing.JLabel label && text.equals(label.getText())) return true;
+            if (child instanceof Container container && labelShowing(container, text)) return true;
+        }
+        return false;
     }
     private static <T extends Component> T find(Container parent,Class<T> type) {
         for(Component child:parent.getComponents()) {
