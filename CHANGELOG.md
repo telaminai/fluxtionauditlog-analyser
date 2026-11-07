@@ -12,6 +12,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Changed
 - A starter's review row, its template-picker disclosure (*Build authentication*) and its vendored *add-a-node* and run steps say *compiler sign-in* where they said a Fluxtion key was needed.
 - The analyser's own regeneration toolchain moves to fluxtion-builder 1.0.90 and fluxtion-maven-plugin 1.3.4, which have no key route: they sign in, and stop with FLX-1023 before any connection when signed out. The guides, skills and FAQ give the sign-in command throughout, and the compiler-account guide lists a plan's limits as nodes, inputs and exported interfaces.
+
+## [1.41.0] - 2026-11-07
+
+### Changed
 - Starter lists put the **Java authoring (Mongoose)** starter first and recommended (owner decision 2026-11-07). The template picker, the start page's template names and the starters listed to the assistant (`context.starters`) now show only the recommended starters, Java authoring first (the assistant may still propose any catalogue starter by id); tick **Show all templates** in the picker to list the rest (recommended first, then the catalogue's order). The choice lasts until the analyser closes. Spring starters the catalogue tags for onboarding stay recommended, after Java authoring.
 - The project review row for the Java-authoring starter says no processor ships and its first build generates one with compiler sign-in. Opening it no longer looks for a Spring design, and the draft for Claude Code points at its own guide and `tools/context.sh` instead of the Spring design skill.
 
