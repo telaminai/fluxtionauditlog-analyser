@@ -348,6 +348,11 @@ CASES += [
      "boolean rootScript = portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base);",
      'boolean rootScript = POSIX_EXECUTABLES.contains(base);',
      'TemplateArchiveTest#archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist'),
+    # review 2026-11-07: the Audit analyser bundle's add-a-node/audit-compare.py is marked executable by the website
+    # but arrived 0644; its full project-relative path on the fixed list is what makes it runnable
+    ('installer-skill-script-executable', TEMPLATE_ARCHIVE,
+     '            ".claude/skills/add-a-node/audit-compare.py");', '            "add-a-node/audit-compare.py");',
+     'TemplateExecutablesTest#analyserBundleSkillScriptIsInstalledRunnableAndOnlyAtItsOwnPath'),
     # authoring walk 2026-10-18 (A2): a downloaded example's ./mvnw and ./regen.sh were 0644 — permission denied
     ('example-scripts-keep-archive-mode', TEMPLATE_ARCHIVE,
      '            if (!executables && exampleExecutable(portable, archiveMode)) {', '            if (false) {',

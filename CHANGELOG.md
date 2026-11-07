@@ -6,6 +6,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- The Audit analyser bundle installs its `add-a-node` skill's `audit-compare.py` executable, as published (it arrived without the execute bit). Only that exact path is added to the installer's fixed list; archive modes are still never trusted.
+
 ## [1.41.0] - 2026-11-07
 
 ### Changed
