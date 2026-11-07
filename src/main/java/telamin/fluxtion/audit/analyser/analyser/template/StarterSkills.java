@@ -186,13 +186,15 @@ public final class StarterSkills {
      * The first-run steps that regenerate, in the record's order: fixed analyser strings, the only command tokens the
      * substituted text may carry. The run script is not regeneration and never appears.
      */
-    static final List<String> REGENERATION_STEPS = List.of("./setup.sh", "./validate.sh", "./generate.sh");
+    static final List<String> REGENERATION_STEPS = List.of("./check-fluxtion-key.sh", "./setup.sh", "./validate.sh",
+            "./generate.sh");
 
     public static final String SIGN_IN_BUILD = "**Compiler sign-in: needed at build.** Follow the project's "
             + "Compiler sign-in instructions in README and its RUNBOOK; Maven validates the saved credential.";
     // RAPID-OFF (2026-11-07): the legacy key route is closed. Generation goes only through compiler sign-in, so an older
-    // starter's `keyNeed: build` means sign-in too, and its ./check-fluxtion-key.sh (which looks for the retired key
-    // file) is never offered as a step: it is not in REGENERATION_STEPS, so no record can carry it into a skill.
+    // starter's `keyNeed: build` means sign-in too and, like sign-in-build, its regeneration block leaves out the
+    // starter's ./check-fluxtion-key.sh. Other declarations keep the step the record names: it is the starter's own
+    // preflight, documented in its guide (the playground's to retire), and the record is reported as it is.
     public static final String KEY_BUILD = SIGN_IN_BUILD;
     public static final String KEY_RUN = "**Compiler sign-in:** the starter declares that it is needed when the "
             + "processor runs (`keyNeed: run`). Sign in with AI ▸ Compiler account…, or `mvn fluxtion:login`.";
@@ -200,6 +202,7 @@ public final class StarterSkills {
             + "no generation credential (`keyNeed: none`).";
     public static final String KEY_UNDECLARED = "**Compiler sign-in:** the starter does not declare whether its build "
             + "needs it. Regenerating a processor does: sign in with AI ▸ Compiler account…, or `mvn fluxtion:login`.";
+    public static final String KEY_CHECK = "`./check-fluxtion-key.sh` is the starter's own preflight.";
 
     /**
      * The starter's own first-run record and key declaration — what the marker is substituted from. {@code firstRun} is
@@ -283,6 +286,8 @@ public final class StarterSkills {
     public static String regenerationBlock(FirstRun record) {
         if (record == null) return null;
         List<String> steps = known(record, REGENERATION_STEPS);
+        if ("build".equals(record.keyNeed()) || "sign-in-build".equals(record.keyNeed()))
+            steps = steps.stream().filter(step -> !"./check-fluxtion-key.sh".equals(step)).toList();
         if (!steps.contains("./generate.sh")) return null;
         String key = switch (record.keyNeed()) {
             case "build", "sign-in-build" -> SIGN_IN_BUILD;
@@ -290,6 +295,7 @@ public final class StarterSkills {
             case "none" -> KEY_NONE;
             default -> KEY_UNDECLARED;
         };
+        if (steps.contains("./check-fluxtion-key.sh")) key += " " + KEY_CHECK;
         return "```\n" + String.join("\n", steps) + "\n```\n\n"
                 + "These are this project's regeneration steps, in order, from the analyser's first-run record for its "
                 + "starter.\n" + key + "\n";

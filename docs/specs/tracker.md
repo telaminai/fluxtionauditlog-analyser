@@ -62,7 +62,7 @@ and starter Mains that write an analyser-ready audit export (fluxtion-web). **De
 4. **No key anywhere** ◑. Done: starters and the setup journey build through compiler sign-in (1.40.3, compiler 1.0.84,
    fluxtion-maven-plugin 1.3.1). Open: Canvas's compiler-account sign-in also authorises generation; starter CI and claude.txt; the
    managed host as the Maven plugin's default; one credential store shared by Maven and Canvas.
-   Analyser docs still routing generation through RapidAPI: `docs/site/spring-authoring-getting-started.md:34`, `docs/site/spring-authoring.md:180`, `src/main/resources/starter-skills/playground/spring-authoring/contract.md:414`; *AI ▸ Fluxtion API key…*; getting-started limits wording becomes nodes, inputs and exported interfaces.
+   Analyser part (RAPID-OFF brief 04): branch `fix/rapidapi-off-analyser` — key menu/dialog/store retired, docs and skills on sign-in, regen pins 1.0.89/1.3.3 (move to 1.0.90/1.3.4 on release); awaits the owner's signed-in regen check.
 5. **Analyser merge queue** (no movement since 2026-10-27): #196 (M79-1a-i) → #197 (M79-7) → #199 (M79-3) → #198 (#177/#178/#179/#182/#183); each merges main in and regenerates.
    **Then M79-1b first** (owner, 2026-10-27): the start page under 40 words with *Learn ▸ The diamond*, the only way back to the diamond once the first launch is over.
 6. **Mongoose 1.1 follow-through.** Fluxtion runtime 1.1.3 and builder ≥1.0.80/1.0.82 (failed cycles now closed in the audit log); read the control-audit export's manifest `complete` claim and its `controlFallback` documents. Producer asks MA-2, MA-5.7, UP-MNG-02 remain unmet.

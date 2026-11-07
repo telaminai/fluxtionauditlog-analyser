@@ -24,13 +24,8 @@ class TemplateArchiveTest {
 
     @TempDir Path temp;
 
-    /**
-     * RAPID-OFF (2026-11-07): an older starter's {@code check-fluxtion-key.sh} looks for the retired key file, so it is
-     * never a post-install step, whatever the catalogue declares (it used to be omitted for {@code sign-in-build} only).
-     * Witness: restore the {@code check-fluxtion-key.sh} step in {@code commandsFor} — this fails.
-     */
     @Test
-    void noDeclarationOffersTheRetiredKeyGate() throws Exception {
+    void declaredSignInBuildOmitsOnlyTheLegacyGate() throws Exception {
         Map<String, byte[]> entries = new LinkedHashMap<>();
         for (String file : List.of("check-fluxtion-key.sh", "setup.sh", "validate.sh", "generate.sh", "run.sh"))
             entries.put("project/" + file, "untrusted, never executed".getBytes());
@@ -40,10 +35,10 @@ class TemplateArchiveTest {
                 TemplateArchive.commandsFor(signIn.projectRoot(), false, "sign-in-build"));
         if (!System.getProperty("os.name", "").toLowerCase().contains("win"))
             assertEquals(List.of("./setup.sh", "./validate.sh", "./generate.sh", "./run.sh"), signIn.commands());
-        for (String declaration : List.of("build", "run", "none", "", "unknown"))
-            assertEquals(List.of("./setup.sh", "./validate.sh", "./generate.sh", "./run.sh"),
-                    TemplateArchive.commandsFor(signIn.projectRoot(), false, declaration),
-                    "the key route is closed, so no declaration offers its check: " + declaration);
+        for (String declaration : List.of("build", "run", "", "unknown"))
+            assertEquals("./check-fluxtion-key.sh",
+                    TemplateArchive.commandsFor(signIn.projectRoot(), false, declaration).getFirst(),
+                    "only explicit sign-in may change the legacy route: " + declaration);
         Path mainFrame = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java");
         assertTrue(Files.readString(mainFrame)
                 .contains("templateArchive.install(zip, target, request0.template().keyNeed())"),

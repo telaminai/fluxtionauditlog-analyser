@@ -290,8 +290,8 @@ public final class TemplateArchive {
             if (present(root, "mvnw")) steps.add("mvnw");
             steps.add("run-and-export.sh");
         } else if (run != null) {
-            // RAPID-OFF (2026-11-07): an older starter's check-fluxtion-key.sh looks for the retired key file, so it is
-            // never a step: generation needs compiler sign-in, whatever the starter's keyNeed says
+            if (!"sign-in-build".equals(keyNeed) && present(root, "check-fluxtion-key.sh"))
+                steps.add("check-fluxtion-key.sh");
             if (present(root, "setup.sh") && present(root, "validate.sh") && present(root, "generate.sh")) {
                 // a separate add(run): POSIX_EXECUTABLES' text for these three names is a mutation anchor
                 // (installer-authoring-executables) and must occur once in this file
