@@ -316,7 +316,7 @@ class StarterProposalFrameTest {
             AtomicReference<String> words = new AtomicReference<>();
             onEdt(() -> words.set(text(review)));
             assertTrue(words.get().contains("Create a project from starter Fluxtion Spring XML"), words.get());
-            assertTrue(words.get().contains("Spring XML · embedded · AOT · build needs a Fluxtion key"), words.get());
+            assertTrue(words.get().contains("Spring XML · embedded · AOT · build needs compiler sign-in"), words.get());
             assertTrue(words.get().contains("Downloads from fluxtion-playground.dev; nothing is built or run."));
             AbstractButton apply = ClaudeCodeTabFrameTest.findButton(review, "Apply chosen");
             AbstractButton choose = ClaudeCodeTabFrameTest.findButton(review, "Choose…");

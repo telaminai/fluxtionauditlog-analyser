@@ -288,8 +288,8 @@ are useful for. The `.graphml` beside the resources copy is what the analyser pa
 exact sequence is in `.claude/skills/run-mongoose-server/SKILL.md`; follow it rather than the README's
 three-line summary.
 
-## What needs a key and what does not
+## What needs sign-in and what does not
 
-The generated processor **ships with this project**, so it builds and runs with **no Fluxtion API key**.
-A key is needed **only to regenerate** after you change the graph — which the task above requires. See the
+The generated processor **ships with this project**, so it builds and runs with **no compiler sign-in**.
+Sign-in is needed **only to regenerate** after you change the graph — which the task above requires. See the
 `regenerate` skill.

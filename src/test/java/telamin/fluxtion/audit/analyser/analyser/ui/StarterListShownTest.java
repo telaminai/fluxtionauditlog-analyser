@@ -130,7 +130,7 @@ class StarterListShownTest {
             held.add(new StarterState.Entry(LocalAgentPosture.digest(r.id()), r.authoring(), r.host(), r.mode(),
                     r.keyNeed(), r.recommended()));
         }
-        var state = new StarterState(StarterState.READ, 7, held, 0, "", "IDLE", null, 0, false, 0, null, null, null,
+        var state = new StarterState(StarterState.READ, 7, held, 0, "", "IDLE", null, 0, 0, null, null, null,
                 List.of(), List.of(), false, null);
         var unticked = StarterContext.render(state, read, false);
         assertEquals("recommended", unticked.get("shown"));

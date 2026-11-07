@@ -52,6 +52,8 @@ final class AiSetupBlock extends JPanel {
     private final JButton turnOff = UiText.button(AiSetupLines.TURN_IT_OFF);
     private final JPanel offerRow = new JPanel(new WrapLayout(FlowLayout.LEFT, UiTheme.SPACE_SM, 0));
     private final JLabel offerLine = UiText.label(AiSetupLines.ACCESS_STILL_ON_LEAD);
+    /** RAPID-OFF: the node's one-line notice that the legacy key file is no longer used; hidden when it says nothing. */
+    private final WrapLine keyNotice = new WrapLine(" ");
     private final Map<Choice, JRadioButton> radios = new LinkedHashMap<>();
     private final WrapLine sentence = new WrapLine(" ");
     private final JButton proceed = UiText.button(AiSetupLines.CONTINUE);
@@ -126,9 +128,13 @@ final class AiSetupBlock extends JPanel {
         firstRun.setAlignmentX(LEFT_ALIGNMENT);
         lineRow.setAlignmentX(LEFT_ALIGNMENT);
         offerRow.setAlignmentX(LEFT_ALIGNMENT);
+        keyNotice.setAlignmentX(LEFT_ALIGNMENT);
+        keyNotice.getAccessibleContext().setAccessibleName("Fluxtion key notice");
+        keyNotice.setVisible(false);
         add(firstRun);
         add(lineRow);
         add(offerRow);
+        add(keyNotice);
         setVisible(false);
     }
 
@@ -153,7 +159,8 @@ final class AiSetupBlock extends JPanel {
         AiSetupState st = s == null ? AiSetupState.IDLE : s;
         rendering = true;
         try {
-            boolean any = (st.firstRun() || !st.aiLine().isBlank() || st.external().offerTurnOff());
+            boolean any = (st.firstRun() || !st.aiLine().isBlank() || st.external().offerTurnOff()
+                    || !st.keyNotice().isBlank());
             setVisible(any);
             firstRun.setVisible(st.firstRun());
             lineRow.setVisible(!st.firstRun() && !st.aiLine().isBlank());
@@ -172,6 +179,8 @@ final class AiSetupBlock extends JPanel {
             link.setText(st.aiLineLink().isBlank() ? AiSetupLines.SET_UP_LINK : st.aiLineLink());
             link.getAccessibleContext().setAccessibleName(link.getText().replace("…", "") + " AI");
             offerRow.setVisible(st.external().offerTurnOff());
+            keyNotice.setText(st.keyNotice().isBlank() ? " " : st.keyNotice());
+            keyNotice.setVisible(!st.keyNotice().isBlank());
         } finally {
             rendering = false;
         }
@@ -195,6 +204,10 @@ final class AiSetupBlock extends JPanel {
 
     JButton turnOffButton() {
         return turnOff;
+    }
+
+    WrapLine keyNoticeLine() {
+        return keyNotice;
     }
 
     JButton notNowButton() {

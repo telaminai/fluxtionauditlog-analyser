@@ -61,7 +61,8 @@
     "RE-PINNED 2026-11-04 (S7, flag kinds): a flag without kind now saves a neutral note, so point-at-the-fault flags a found fault with \"kind\": \"fault\" (the fault-found step and the worked example) and its proving-a-claim line says when to use fault, confirmation or no kind. load-audit-log and guided-start flag evidence and stay notes. Same contract and selection; the revision and one hash moved. The revision is a feature-branch commit (fix/gym-flag-kind-bridge-exit): preserve it when integrating, or re-pin after rewriting history. The playground must re-vendor.",
     "RE-PINNED 2026-11-04 (runtime quoted audit scalars): audit-compare.py reads records that declare quoted scalars (textEncoding: QUOTED_SCALARS as the first line, format-spec 3a, Format 1 rev 1.2): the declaration is never compared, a marked record decodes its quoted keys, values and header fields, and a capture from before the runtime upgrade matches one from after for the same logged values; unmarked records read as before. Same contract and selection; the revision and the audit-compare.py hash moved. The revision is a feature-branch commit (fix/gym-flag-kind-bridge-exit): preserve it when integrating, or re-pin after rewriting history. The playground must re-vendor.",
     "RE-PINNED 2026-11-04 (review r11 of the quoted-scalar reading): audit-compare.py matches a marked record with an unmarked one record by record, only when the unmarked record proves it predates quoting (or only header edge whitespace differs), strips decoded header fields in that reading, and reports one real change once. Same contract and selection; the revision and the audit-compare.py hash moved. The revision is a feature-branch commit (fix/gym-flag-kind-bridge-exit): preserve it when integrating, or re-pin after rewriting history. The playground must re-vendor.",
-    "RE-PINNED 2026-11-04 (review r14): audit-compare.py's proof that an unmarked record predates quoting follows the runtime's final rule - typed-looking, empty and `-x`/`+x`/`.x`/`~` values are written bare and prove nothing; a `:` counts only as `: ` or at the end. Same contract and selection; the revision and the audit-compare.py hash moved. The revision is a feature-branch commit (fix/gym-flag-kind-bridge-exit): preserve it when integrating, or re-pin after rewriting history. The playground must re-vendor."
+    "RE-PINNED 2026-11-04 (review r14): audit-compare.py's proof that an unmarked record predates quoting follows the runtime's final rule - typed-looking, empty and `-x`/`+x`/`.x`/`~` values are written bare and prove nothing; a `:` counts only as `: ` or at the end. Same contract and selection; the revision and the audit-compare.py hash moved. The revision is a feature-branch commit (fix/gym-flag-kind-bridge-exit): preserve it when integrating, or re-pin after rewriting history. The playground must re-vendor.",
+    "RE-PINNED 2026-11-07 (RAPID-OFF): run-embedded says verifying it needs compiler sign-in, not a key - the legacy key route is closed. Same contract, same selection; only the revision and the run-embedded hash moved. The pinned revision was made on a feature branch: merge it with a merge commit, or re-pin if the branch is rebased or squashed."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -97,13 +98,13 @@
       ]
     }
   },
-  "revision": "b0efa73cfc7175cfc4a02f5f2f684b8ae288cbcf",
+  "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
   "sha256": {
     "common/load-audit-log/SKILL.md": "6663abe2f24426281a0bd7afcc042f5ad2fde7006c5f83987e8421ff67848ef1",
     "common/guided-start/SKILL.md": "2f8ad19004f2e145a7fc442392b8530a77b77e773a29a8774036b0abbe3cb6f3",
     "common/point-at-the-fault/SKILL.md": "40af6e75ac6b5c0ba6ffac79c3d52b43cf8c9d720f4f1d2a699a501ef3d36655",
     "mongoose/run-mongoose-server/SKILL.md": "84c9097eab88ad9c1b5051fc34ff7890e419b4a2b383f1a7c3411a8fbc664431",
-    "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
+    "embedded/run-embedded/SKILL.md": "5f4e41c2bff2a3c242e22e7c3576517961584cd56e6e02a71aabdcda20941246",
     "spring/add-a-node/SKILL.md": "ca21f7bba67d46029d5276affe7dd75bb04ec808c9205a04adf7a6347d4b3a52",
     "spring/add-a-node/audit-compare.py": "7e11b85ba085101d2f91bae79f6b4d23c6f899d0d76a3ff74ad391cb928d08a1",
     "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"

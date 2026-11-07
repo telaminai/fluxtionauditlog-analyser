@@ -25,10 +25,10 @@ public class TemplateCatalogueTest {
         var aot = catalogue.templates().getFirst();
         assertTrue(aot.disclosure().contains("Build authentication: compiler sign-in at build"));
         assertEquals("sign-in-build", Starters.of(aot, null).keyNeed());
-        String facts = Starters.facts("spring", "mongoose", "aot", "sign-in-build", false);
+        String facts = Starters.facts("spring", "mongoose", "aot", "sign-in-build");
         assertTrue(facts.contains("build needs compiler sign-in"));
-        assertEquals(facts, Starters.facts("spring", "mongoose", "aot", "sign-in-build", true),
-                "a legacy key's presence says nothing about Maven sign-in");
+        assertEquals(facts, Starters.facts("spring", "mongoose", "aot", "build"),
+                "RAPID-OFF: an older catalogue's build key need is compiler sign-in too");
         assertTrue(catalogue.templates().getLast().disclosure()
                 .contains("Regeneration authentication: compiler sign-in at build"));
     }
@@ -112,7 +112,7 @@ public class TemplateCatalogueTest {
                 "the frame's order is the picker's");
         assertEquals(List.of("Java authoring (Mongoose)", "Audit analyser bundle", "Fluxtion Spring in Mongoose"),
                 Starters.shown(read, false).stream().map(Starters.Entry::name).toList());
-        String facts = Starters.facts(Starters.JAVA, "mongoose", "aot", "sign-in-build", false);
+        String facts = Starters.facts(Starters.JAVA, "mongoose", "aot", "sign-in-build");
         assertEquals("Java · in a Mongoose server · AOT · no processor ships; the first build generates it · "
                 + "build needs compiler sign-in (see README)", facts);
     }
@@ -206,10 +206,10 @@ public class TemplateCatalogueTest {
                   {"name":"Declared","description":"declared","file":"d.starter.json","agentBootstrap":["PROJECT.md","runbooks/author.md"],"keyNeed":"future","regenerationKeyNeed":"run"}
                 ]}
                 """, "dev");
-        assertTrue(catalogue.templates().get(0).disclosure().contains("Build key: not declared"));
+        assertTrue(catalogue.templates().get(0).disclosure().contains("Build authentication: not declared"));
         assertTrue(catalogue.templates().get(0).disclosure().contains("Agent entry files: not declared"));
         assertTrue(catalogue.templates().get(1).disclosure().contains("Agent entry files: explicitly none"));
-        assertTrue(catalogue.templates().get(1).disclosure().contains("Regeneration key: required at build"));
+        assertTrue(catalogue.templates().get(1).disclosure().contains("Regeneration authentication: compiler sign-in at build"));
         assertTrue(catalogue.templates().get(2).disclosure().contains("PROJECT.md, runbooks/author.md"));
         assertTrue(catalogue.templates().get(2).disclosure().contains("unrecognised catalogue value 'future'"));
     }

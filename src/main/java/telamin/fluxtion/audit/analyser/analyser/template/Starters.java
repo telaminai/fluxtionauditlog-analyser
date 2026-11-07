@@ -121,8 +121,12 @@ public final class Starters {
         return SPRING.equals(authoring) ? "Spring XML" : "Java";
     }
 
-    /** The review row reports the catalogue's authentication contract; legacy key presence cannot prove Maven sign-in. */
-    public static String facts(String authoring, String host, String mode, String keyNeed, boolean keyPresent) {
+    /**
+     * The review row reports the catalogue's authentication contract. RAPID-OFF (2026-11-07): the legacy key route is
+     * closed, so a catalogue's older {@code build} and {@code run} words mean compiler sign-in too, and nothing on this
+     * machine is observed for the row.
+     */
+    public static String facts(String authoring, String host, String mode, String keyNeed) {
         List<String> parts = new ArrayList<>();
         parts.add(authoringWords(authoring));
         parts.add("mongoose".equals(host) ? "in a Mongoose server" : "embedded");
@@ -131,15 +135,11 @@ public final class Starters {
         // the Java-authoring starter ships no processor: its first build generates one (compiler sign-in)
         if (JAVA.equals(authoring)) parts.add("no processor ships; the first build generates it");
         String key = switch (keyNeed) {
-            case "build" -> "build needs a Fluxtion key";
-            case "sign-in-build" -> "build needs compiler sign-in (see README)";
-            case "run" -> "running needs a Fluxtion key";
-            case "none" -> "no Fluxtion key needed";
+            case "build", "sign-in-build" -> "build needs compiler sign-in (see README)";
+            case "run" -> "running needs compiler sign-in";
+            case "none" -> "no compiler sign-in needed";
             default -> "";
         };
-        if (!key.isEmpty() && !"none".equals(keyNeed) && !"sign-in-build".equals(keyNeed)) {
-            key += keyPresent ? "; one is on this machine" : "; none found on this machine";
-        }
         if (!key.isEmpty()) parts.add(key);
         return String.join(" · ", parts);
     }

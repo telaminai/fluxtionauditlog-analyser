@@ -57,9 +57,6 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
             java.util.List<String> outcomes, java.util.function.Consumer<ResumeEvents.Outcome> completion) { }
 
-    /** M19.12: separate from AppConfig so the Fluxtion build key cannot enter shared settings. */
-    private final telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore fluxtionKeyStore =
-            new telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore();
     private final AppConfig config;
     /**
      * M19.5: one pinned public origin; downloaded content is extracted but never executed. Option 2: read only by the
@@ -3090,16 +3087,13 @@ public final class MainFrame extends JFrame {
         ai.add(transport);
 
         ai.addSeparator();
-        JMenuItem fluxtionKey = new JMenuItem("Fluxtion API key…");
-        fluxtionKey.setToolTipText("Manage the local key file used when a processor is regenerated");
-        fluxtionKey.addActionListener(e -> openFluxtionKeyDialog());
-        ai.add(fluxtionKey);
-        // CA-1: beside the build key — the one owner of the compiler-account connection (D-AI2). The dialog
-        // signs in, reads usage and revokes its own device; it runs nothing of the project's (D-AI4)
+        // CA-1: the one owner of the compiler-account connection (D-AI2). The dialog signs in, reads usage and
+        // revokes its own device; it does not sign Maven builds in (D-AI4). RAPID-OFF: it is the only
+        // account-management entry — the Fluxtion API key item, its dialog and its key store are retired
         JMenuItem compilerAccount = new JMenuItem("Compiler account…");
         compilerAccount.setToolTipText("Connect a compiler account by signing in through your browser; see its plan "
                 + "and credits, disconnect, or revoke this device");
-        compilerAccount.addActionListener(e -> CompilerAccountDialog.show(this, config, this::saveConfigQuietly));
+        compilerAccount.addActionListener(e -> openCompilerAccount());
         ai.add(compilerAccount);
 
         ai.addSeparator();
@@ -4753,18 +4747,18 @@ public final class MainFrame extends JFrame {
         return sb.toString();
     }
 
+    /**
+     * AI ▸ Compiler account… and the start page's Compiler account chip: the one door to the CA-1 dialog. RAPID-OFF
+     * (2026-11-07): compiler sign-in is the only route to the hosted generator.
+     */
+    private void openCompilerAccount() {
+        CompilerAccountDialog.show(this, config, this::saveConfigQuietly);
+    }
+
     /** A profile edit: persist, then re-render every surface that states what is in force. */
     private void onProfileEdited() {
         onConfigChanged();
         refreshProjectPanel();
-    }
-
-    /** One key owner, reached from the AI menu and Start Page; no key value returns from the dialog. */
-    private void openFluxtionKeyDialog() {
-        if (FluxtionKeyDialog.show(this, fluxtionKeyStore)) {
-            if (startPanel != null) startPanel.refreshFluxtionKeyStatus();
-            refreshProjectPanel();
-        }
     }
 
     private void revealPath(String path) {
@@ -4964,7 +4958,7 @@ public final class MainFrame extends JFrame {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries);
             }
-            @Override public void openFluxtionKey() { openFluxtionKeyDialog(); }
+            @Override public void openCompilerAccount() { MainFrame.this.openCompilerAccount(); }
             // M74 P2 (§5.8): the prompt's button and the no-AI fallbacks, through the page's one Actions interface
             @Override public void pressStartPrompt(String entryId, String text) {
                 MainFrame.this.pressStartPrompt(entryId, text);
@@ -5008,7 +5002,6 @@ public final class MainFrame extends JFrame {
             @Override public void setUpAiAlsoTurnOff(boolean on) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupAlsoTurnOffChosen(on));
             }
-            @Override public boolean fluxtionKeyPresent() { return fluxtionKeyStore.keyPresent(); }
             @Override public void backToRecords() { syncRecordsCard(); }
             @Override public void openProjectDesign() { chooseDesignFile(false); }
             @Override public void openProjectDiagnostics() { chooseDesignFile(true); }
@@ -11224,7 +11217,7 @@ public final class MainFrame extends JFrame {
             // #73: what this machine has been sent. A recipient could not otherwise find out what bundles they
             // hold — there is no list verb, and an unpacked working copy appears only as a recent LOG path.
             // need.test: up to 25 stat calls, so do not run them for a projection that did not ask. The same
-            // shape ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile exists to stop.
+            // shape §H feedback 17 found: a projection paying for a read it did not ask for.
             if (need.test("bundles") && (!config.recentBundles.isEmpty() || exchangeHasBundles())) {
                 List<Map<String, Object>> recent = new java.util.ArrayList<>();
                 for (var b : config.recentBundles) {
@@ -11252,20 +11245,6 @@ public final class MainFrame extends JFrame {
                             skills.put("from", "project declaration (inert; never a retrieval control)");
                             out.put("skills", skills);
                         });
-            }
-            // M19.12 / D-X3: facts this process can observe, not a claim about a future Maven JVM.
-            // The credential value never enters this map; the fixed tilde path avoids leaking the local
-            // account name into context or screenshots.
-            // §H feedback 17: a projection without fluxtionKey does not read the key file at all
-            if (need.test("fluxtionKey")) {
-                Map<String, Object> fluxtionKey = new java.util.LinkedHashMap<>();
-                fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
-                fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
-                fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
-                        + "overrides this legacy file; FLUXTION_API_KEY is not read by the builder. "
-                        + "This key-only observation does not inspect Maven compiler sign-in in ~/.fluxtion/credentials "
-                        + "and cannot establish whether builds can authenticate. Maven validates build sign-in independently.");
-                out.put("fluxtionKey", fluxtionKey);
             }
             // M37: the graph is reported whether or not a log is open. It sat inside the store block, so
             // with the log closed and a graph "still loaded" (closeLog's own words) context disowned it —
@@ -13207,7 +13186,9 @@ public final class MainFrame extends JFrame {
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved(
                 config.assistantSetupDismissed,
                 telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.parse(config.assistantSetupClient),
-                Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY)));
+                Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY),
+                telamin.fluxtion.audit.analyser.analyser.config.LegacyKeyFile.presentUnder(
+                        Path.of(System.getProperty("user.home")))));
         postStartAvailability();
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(localAgentConsent()));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved(
@@ -13715,7 +13696,7 @@ public final class MainFrame extends JFrame {
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "choose");
     }
 
-    /** ReadStarterDefaultsEffect: the template file, off the event thread; and whether a Fluxtion key is on this machine. */
+    /** ReadStarterDefaultsEffect: the template file, off the event thread. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result readStarterDefaults(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReadStarterDefaultsEffect e) {
         var entry = starterEntry(e.entriesRef(), e.idDigest());
@@ -13724,9 +13705,9 @@ public final class MainFrame extends JFrame {
             if (entry == null) throw new IllegalStateException("the starter is no longer in the catalogue the analyser read");
             return source.template(entry.catalogue());
         }, t -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDefaultsObserved(
-                0L, e.request(), true, starterPut(starterTemplates, t), t.authoring(), fluxtionKeyStore.keyPresent(), null)),
+                0L, e.request(), true, starterPut(starterTemplates, t), t.authoring(), null)),
                 err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDefaultsObserved(
-                        0L, e.request(), false, 0, null, fluxtionKeyStore.keyPresent(),
+                        0L, e.request(), false, 0, null,
                         telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "defaults");
     }
@@ -13809,7 +13790,7 @@ public final class MainFrame extends JFrame {
         var st = sessionSnapshot().starter();
         var entry = starterEntry(st.entriesRef(), st.idDigest());
         String facts = entry == null ? "" : telamin.fluxtion.audit.analyser.analyser.template.Starters.facts(
-                entry.authoring(), entry.host(), entry.mode(), entry.keyNeed(), st.keyPresent());
+                entry.authoring(), entry.host(), entry.mode(), entry.keyNeed());
         return new ProposalReviewDialog.StarterRow(itemId, entry == null ? "(not in the catalogue read)" : entry.name(),
                 facts, st.dirShown(), st.dirWords(), "READY".equals(st.phase()) && st.destinationReady(),
                 starterSource.origin());

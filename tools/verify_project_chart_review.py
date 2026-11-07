@@ -240,7 +240,7 @@ CASES.extend([
 # Optional PR 15 follow-ups: only these four plus menu-help-s3 form the requested witness run.
 CASES.extend([
     ('menu-doc-ai', 'docs/site/faq.md',
-     'AI ▸ Fluxtion API key…', 'AI ▸ Nonexistent item…',
+     'AI ▸ Compiler account…', 'AI ▸ Nonexistent item…',
      'MenuDocumentationTest#documentedPathsNameExistingItems'),
     ('menu-java-path', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectModel.java',
      'Audit log ▸ Open log…', 'Audit log ▸ Open',
@@ -399,9 +399,6 @@ CASES += [
     ('context-producer-with-topology', CONTEXT_SECTIONS, '"producer", List.of("pairing", "topology", "view", "charts"),',
      '"producer", List.of("pairing", "view", "charts"),',
      'ContextSectionsTest#aRolledSetsFilesTravelWithTheView_andProducerFaultsWithTheTopology'),
-    # PR #29 review 3: a projection without fluxtionKey reads no key file
-    ('context-key-file-guard', MAIN_FRAME, '            if (need.test("fluxtionKey")) {', '            if (true) {',
-     'ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile'),
     # edit-loop spec §I1: a template profile may only grant reads inside the project it installs
     ('template-root-install-check', TEMPLATE_ARCHIVE,
      '                    telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, settings);\n', '',

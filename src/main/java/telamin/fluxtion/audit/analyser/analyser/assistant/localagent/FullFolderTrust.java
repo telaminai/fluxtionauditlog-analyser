@@ -186,7 +186,7 @@ public final class FullFolderTrust {
     public static final String ADDS_INSTRUCTION = "The analyser adds its own instructions to full Claude Code: that it is "
             + "the assistant inside this app, and what a project, starter, log and graph mean here; to begin a new "
             + "application by offering one of the analyser's starters, never by searching the web or scaffolding by hand; "
-            + "to work only inside this folder, never look for the Fluxtion API key or key files, and build with ./mvnw "
+            + "to work only inside this folder, never look for the compiler credential or key files, and build with ./mvnw "
             + "and the project's scripts. " + DOCS_FETCH + " It is a request to Claude, not a sandbox — your permission "
             + "rules and the analyser's approvals still decide what runs.";
 

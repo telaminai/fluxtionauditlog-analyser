@@ -60,11 +60,11 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
         public String disclosure() {
             String bootstrap = agentBootstrap == null ? "not declared"
                     : agentBootstrap.isEmpty() ? "explicitly none" : String.join(", ", agentBootstrap);
-            return shownDescription() + "\n\n" + keyDisclosure("Build key", keyNeed)
-                    + "\n" + keyDisclosure("Regeneration key", regenerationKeyNeed)
+            return shownDescription() + "\n\n" + keyDisclosure("Build authentication", keyNeed)
+                    + "\n" + keyDisclosure("Regeneration authentication", regenerationKeyNeed)
                     + "\nAgent entry files: " + bootstrap
                     + "\n\nDeclarations describe the default download; verify the files in the generated project."
-                    + (recommended() ? " A recommendation alone does not promise a walkthrough or keyless generation." : "");
+                    + (recommended() ? " A recommendation alone does not promise a walkthrough or generation without sign-in." : "");
         }
         /**
          * Authoring walk (2026-10-18, shot 4): the catalogue's description as the person reads it — without the
@@ -76,14 +76,13 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
             return withoutMilestoneIds(description);
         }
 
+        /** RAPID-OFF (2026-11-07): the key route is closed, so an older catalogue's build/run words mean sign-in. */
         private static String keyDisclosure(String label, String value) {
-            return ("sign-in-build".equalsIgnoreCase(value) ? label.replace("key", "authentication") : label)
-                    + ": " + switch (value.toLowerCase(java.util.Locale.ROOT)) {
+            return label + ": " + switch (value.toLowerCase(java.util.Locale.ROOT)) {
                 case "" -> "not declared";
                 case "none" -> "none required (catalogue declaration)";
-                case "build" -> "required at build (catalogue declaration)";
-                case "sign-in-build" -> "compiler sign-in at build (catalogue declaration)";
-                case "run" -> "required at runtime (catalogue declaration)";
+                case "build", "sign-in-build" -> "compiler sign-in at build (catalogue declaration)";
+                case "run" -> "compiler sign-in at runtime (catalogue declaration)";
                 default -> "unrecognised catalogue value '" + value + "'";
             };
         }

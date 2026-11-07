@@ -5,9 +5,9 @@
 Download a runnable event-processing system, inspect its graph, run it, and let the analyser show
 what the compiled processor actually did — on your machine, with code you can edit.
 
-You need a **JDK 21+**. The project builds and runs with **no Fluxtion API key** because its generated
+You need a **JDK 21+**. The project builds and runs with **no compiler sign-in** because its generated
 processor is committed. On a machine without Maven, the wrapper's first download also needs `curl` or
-`wget`. A key is needed only when you deliberately regenerate after changing the graph.
+`wget`. Sign-in is needed only when you deliberately regenerate after changing the graph.
 
 ## 1. Download the analyser bundle
 
@@ -20,14 +20,14 @@ cd audit-analyser-bundle
 ```
 
 **Or get the same bundle without leaving the analyser.** *Project ▸ New project from template…* reads the
-playground's live catalogue, shows each template's description and whether it needs a build key **before
+playground's live catalogue, shows each template's description and whether it needs compiler sign-in **before
 anything is downloaded**, and unpacks the one you choose into a new or empty directory. The generated project's
 profile becomes the active project, so the first action of step 2 (*Open project…*) is already done when it
 finishes; opening the GraphML is still yours to do, for the reason step 2 gives.
 
 ![The Project menu open, with an orange ring and the words "start here" marking New project from template…](assets/tutorial-new-project-menu.png)
 
-In the picker, **①** choose *Audit analyser bundle* — note *Build key: none required* under it — then **②**
+In the picker, **①** choose *Audit analyser bundle* — note *Build authentication: none required* under it — then **②**
 *Use this template*, and pick a new or empty directory when asked.
 
 ![The template picker with two numbered orange rings: 1 on the Audit analyser bundle row, captioned "choose Audit analyser bundle", and 2 on the Use this template button](assets/tutorial-template-picker.png)
@@ -202,9 +202,8 @@ Regeneration is the one keyed step:
 ./stop-server.sh
 ```
 
-Put the key in `~/.fluxtion/fluxtion.apiKeyFile` as `apiKey=…`, or pass
-`-Dfluxtion.apiKey=…` to that build. The compiler does **not** read `FLUXTION_API_KEY`, so exporting
-that variable alone cannot satisfy regeneration. The ordinary build and run remain keyless.
+Regeneration needs compiler sign-in: run `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
+once on this machine; in CI, set `FLUXTION_API_TOKEN`. The ordinary build and run need no sign-in.
 
 Reopen the exported YAML and examine the new cycles. The analyser has one active log at a time; it does
 not compare two complete runs side by side. A report whose tables and charts you made on the first run re-runs

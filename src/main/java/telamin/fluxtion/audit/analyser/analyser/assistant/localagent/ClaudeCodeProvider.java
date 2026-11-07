@@ -62,8 +62,8 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
      * by {@code --restricted}, so it does not carry it.
      */
     public static final String STAY_IN_PROJECT_NOTE = "Work only inside this project folder: do not list, search or read "
-            + "files outside it, or the environment. If the build needs the Fluxtion API key, the Fluxtion Maven plugin "
-            + "reads it; never search for it, print it or read key files. Use ./mvnw and the project's own scripts to "
+            + "files outside it, or the environment. If the build needs compiler sign-in, the Fluxtion Maven plugin "
+            + "reads the saved credential; never search for it, print it or read credential or key files. Use ./mvnw and the project's own scripts to "
             + "build and generate.";
 
     /** The full posture's note (§4.3), fixed per session the same way; it ends with {@link #STAY_IN_PROJECT_NOTE}. */
