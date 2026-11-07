@@ -66,12 +66,11 @@ public final class StarterSkills {
         m.put("spring-authoring/reference/skill.md", new String[]{
                 "https://fluxtion-playground.dev/spring-authoring/skill.md", "playground/spring-authoring/skill.md",
                 "9875abf6d5ad4f9662ee985e21013c4e6292d8a1843cb7a1ec115610a636929e"});
-        // RAPID-OFF (2026-11-07): one paragraph re-worded locally — the hosted compiler needs compiler sign-in, the
-        // RapidAPI route is closed — so these bytes differ from the published page until the playground republishes
-        // its contract (RAPID-OFF brief 03); re-fetch and re-pin then.
+        // RAPID-OFF (2026-11-07): re-vendored byte for byte from fluxtion-web #57 (fix/rapidapi-off-web 9a663128,
+        // web/static/spring-authoring/contract.md); it matches the live page once #57 deploys.
         m.put("spring-authoring/reference/contract.md", new String[]{
                 "https://fluxtion-playground.dev/spring-authoring/contract.md", "playground/spring-authoring/contract.md",
-                "de442850b8025266cd14a6eef93494d645fc01f326ea30b17bee295839efc9a8"});
+                "38ff9d93409dae8e533c138d94fa4c7ae236f139d15d1c1618f1b835fd646726"});
         PLAYGROUND = java.util.Collections.unmodifiableMap(m);
     }
 
