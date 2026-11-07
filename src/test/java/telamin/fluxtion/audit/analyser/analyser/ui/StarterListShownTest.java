@@ -58,6 +58,40 @@ class StarterListShownTest {
     }
 
     /**
+     * Owner, 2026-11-07: unticked, every listed entry is recommended and the note above says so, so the list shows bare
+     * names — " — Recommended starting point" only truncated in the narrow list. Ticked, the suffix marks the
+     * recommended ones among the rest. Read from the list's own renderer over the model as shown.
+     */
+    @Test
+    void thePickerListsBareNamesUntickedAndMarksTheRecommendedOnlyWhenTicked() {
+        var selection = TemplateCatalogue.parse(TemplateCatalogueTest.OLDER, "dev").forPicker();
+        boolean[] ticked = {false};
+        javax.swing.ListCellRenderer<Object> renderer = UiText.plainRenderer(TemplateProjectDialog.templateRenderer(() -> ticked[0]));
+        assertEquals(List.of("Java authoring (Mongoose)", "Audit analyser bundle", "Fluxtion Spring in Mongoose"),
+                rendered(renderer, TemplateProjectDialog.shownEntries(selection, false)));
+        ticked[0] = true;
+        assertEquals(List.of("Java authoring (Mongoose) — Recommended starting point",
+                        "Audit analyser bundle — Recommended starting point",
+                        "Fluxtion Spring in Mongoose — Recommended starting point", "Fluxtion embedded",
+                        "Mongoose dynamic feeds"),
+                rendered(renderer, TemplateProjectDialog.shownEntries(selection, true)));
+        var java = TemplateProjectDialog.shownEntries(selection, false).get(0);
+        assertEquals(java.displayName(), java.name() + " — Recommended starting point",
+                "the detail pane's heading keeps the full display name");
+    }
+
+    private static List<String> rendered(javax.swing.ListCellRenderer<Object> renderer,
+                                         List<TemplateCatalogue.Entry> entries) {
+        javax.swing.JList<Object> list = new javax.swing.JList<>(entries.toArray());
+        List<String> texts = new ArrayList<>();
+        for (int i = 0; i < entries.size(); i++) {
+            var cell = renderer.getListCellRendererComponent(list, entries.get(i), i, false, false);
+            texts.add(((javax.swing.JLabel) cell).getText());
+        }
+        return texts;
+    }
+
+    /**
      * The picker's note said "All templates — Recommended starting points are listed first and marked." while, unticked,
      * the list held only the recommended ones: the note must say what the list shows, and change with the tick.
      */
