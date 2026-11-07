@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.41.1] - 2026-11-07
+
 ### Changed
 - The template picker lists recommended starters by name alone while **Show all templates** is unticked (the note above the list already says they are the recommended starting points, and the suffix was cut off in the narrow list). Ticked, recommended entries still read " — Recommended starting point"; the selected template's heading is unchanged.
 
