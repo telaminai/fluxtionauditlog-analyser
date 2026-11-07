@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.41.0] - 2026-11-07
+
 ### Changed
 - Starter lists put the **Java authoring (Mongoose)** starter first and recommended (owner decision 2026-11-07). The template picker, the start page's template names and the starters listed to the assistant (`context.starters`) now show only the recommended starters, Java authoring first (the assistant may still propose any catalogue starter by id); tick **Show all templates** in the picker to list the rest (recommended first, then the catalogue's order). The choice lasts until the analyser closes. Spring starters the catalogue tags for onboarding stay recommended, after Java authoring.
 - The project review row for the Java-authoring starter says no processor ships and its first build generates one with compiler sign-in. Opening it no longer looks for a Spring design, and the draft for Claude Code points at its own guide and `tools/context.sh` instead of the Spring design skill.
