@@ -25,6 +25,8 @@
 #               which TemplateArchive.TOOL_EXECUTABLES must make executable. java-authoring's first: CLAUDE.md
 #               "./mvnw ... package" (the first build generates the processor, compiler sign-in), then
 #               "./run-and-export.sh runs the real server over the feed files and exports" the audit.
+#               analyser-bundle: its one script below the root, the add-a-node skill's audit-compare.py, which
+#               bundleSupportFiles marks executable (it starts with #!) — read 2026-11-07 from fluxtion-web origin/main.
 #
 # java-authoring lines read 2026-11-07 from fluxtion-web origin/main 3699b0de (PR #56) by calling the
 # /start/scaffold?template=java-authoring.starter.json handler and reading the zip's unix modes.
@@ -82,4 +84,5 @@ doc  java-authoring: export-audit.sh feed-position.sh mvnw run-and-export.sh run
 first java-authoring: mvnw run-and-export.sh
 cmd  java-authoring: export-audit.cmd feed-position.cmd stop-server.cmd
 tools java-authoring: tools/_compare.sh tools/_config.py tools/_fixture.sh tools/_placeholders.sh tools/_run.sh tools/_state.py tools/admin.sh tools/audit-compare.py tools/components.py tools/components.sh tools/context.sh tools/fixture.sh tools/new-node.py tools/new-node.sh tools/restart-check.sh tools/run-fixture.sh tools/sink.sh
+tools analyser-bundle: .claude/skills/add-a-node/audit-compare.py
 exec generator: runWasm.sh setup-java.sh

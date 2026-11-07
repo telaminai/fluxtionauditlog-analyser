@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- The template picker lists recommended starters by name alone while **Show all templates** is unticked (the note above the list already says they are the recommended starting points, and the suffix was cut off in the narrow list). Ticked, recommended entries still read " — Recommended starting point"; the selected template's heading is unchanged.
+
+### Fixed
+- The Audit analyser bundle installs its `add-a-node` skill's `audit-compare.py` executable, as published (it arrived without the execute bit). Only that exact path is added to the installer's fixed list; archive modes are still never trusted.
+
 ## [1.41.0] - 2026-11-07
 
 ### Changed

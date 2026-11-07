@@ -109,14 +109,7 @@ final class TemplateProjectDialog {
         JList<TemplateCatalogue.Entry> list = new JList<>(model);
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         // SF-2: the catalogue is downloaded — its names are not this code's words
-        list.setCellRenderer(UiText.plainRenderer(new DefaultListCellRenderer() {
-            @Override public Component getListCellRendererComponent(JList<?> component, Object value, int index,
-                                                                     boolean selected, boolean focus) {
-                JLabel label = UiText.plain((JLabel) super.getListCellRendererComponent(component, value, index, selected, focus));
-                if (value instanceof TemplateCatalogue.Entry entry) label.setText(entry.displayName());
-                return label;
-            }
-        }));
+        list.setCellRenderer(UiText.plainRenderer(templateRenderer(StarterListPreference::showAll)));
         // owner, 2026-11-07: the list arrives in the one starter order (TemplateCatalogue.ordered / Starters.ordered) —
         // the Java-authoring starter first, the other recommended ones next — and the first entry is the default. The
         // picker used to show the catalogue's raw order (the session's Spring-first rule never reached it), so the
@@ -196,6 +189,30 @@ final class TemplateProjectDialog {
         int answer = JOptionPane.showOptionDialog(owner, panel, "New project from template",
                 JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
         return answer == 0 ? list.getSelectedValue() : null;
+    }
+
+    /**
+     * The list's cell renderer: each entry reads {@link #listText} for the box's current state. Its label is plain text;
+     * the caller wraps it in {@link UiText#plainRenderer} where it installs it (SF-2).
+     */
+    static javax.swing.ListCellRenderer<Object> templateRenderer(java.util.function.BooleanSupplier showAll) {
+        return new DefaultListCellRenderer() {
+            @Override public Component getListCellRendererComponent(JList<?> component, Object value, int index,
+                                                                     boolean selected, boolean focus) {
+                JLabel label = UiText.plain((JLabel) super.getListCellRendererComponent(component, value, index, selected, focus));
+                if (value instanceof TemplateCatalogue.Entry entry) label.setText(listText(entry, showAll.getAsBoolean()));
+                return label;
+            }
+        };
+    }
+
+    /**
+     * An entry's text in the list (owner, 2026-11-07): unticked, every entry listed is a recommended starting point —
+     * the note above says so — and the suffix only truncated in the narrow list, so the bare name. Ticked, the suffix
+     * marks which of the mixed entries are recommended. The detail pane's heading always reads the full display name.
+     */
+    static String listText(TemplateCatalogue.Entry entry, boolean showAll) {
+        return showAll ? entry.displayName() : entry.name();
     }
 
     /**
