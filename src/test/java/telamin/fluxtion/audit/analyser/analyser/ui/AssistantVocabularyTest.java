@@ -131,7 +131,7 @@ class AssistantVocabularyTest {
     @DisplayName("★ every start-page chip's accessible name contains its visible label")
     void theAccessibleNameContainsTheVisibleLabel() {
         assertTrue(StartPanel.accessibleName("Generic MCP setup", "Other MCP client").contains("Other MCP client"));
-        assertTrue(StartPanel.accessibleName("Compiler account", "Compiler sign-in").contains("Compiler sign-in"));
+        assertTrue(StartPanel.accessibleName("Compiler account", "Account").contains("Account"));
         assertEquals("Open sample project", StartPanel.accessibleName("Open sample project", "Sample project"),
                 "a title that contains the label is kept as it is");
         assertEquals("Example — found", StartPanel.accessibleName("Example — found", "Example ✓"),

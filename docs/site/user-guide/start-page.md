@@ -137,7 +137,7 @@ assistant* block is gone: the AI block or line above is the one door, *Set up AI
 | Explore DEMO | **Guided tour** (four spotlight stops in the local DEMO project) · **Sample project** (the same DEMO log, topology and source, at your own pace) |
 | Open | **Project** · **Evidence bundle** (verified, then a disposable copy; no replay) · **Audit log** · **GraphML** |
 | Create | **Project profile** (settings for existing source; no code generated) · **From template** |
-| Settings | **Settings** (source and assistant settings: the open project's, or the global defaults) · **Compiler account** (opens **AI ▸ Compiler account…**: plan, usage and signed-in email; builds sign in separately) |
+| Settings | **Settings** (source and assistant settings: the open project's, or the global defaults) · **Account** (opens **AI ▸ Compiler account…**: plan, usage and signed-in email; builds sign in separately) |
 
 You can also drop an `.fexp` bundle, an audit log, a GraphML file, a Spring XML design or a prompt pack (`.md`)
 anywhere on the page.

@@ -251,7 +251,7 @@ public final class StartPanel extends JPanel {
                 chip("Settings — source and assistant…", "Settings",
                         "Source settings apply to the open project, or to global defaults when no project is open.",
                         actions::openSettings),
-                chip("Compiler account", "Compiler account",
+                chip("Compiler account", "Account",
                         "See your compiler account: plan, usage and signed-in email. Builds sign in separately, with "
                                 + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN + ".",
                         actions::openCompilerAccount)));
