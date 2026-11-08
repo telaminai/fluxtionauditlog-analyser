@@ -57,6 +57,66 @@ exist. Only a template with a real replay entry point selects it. An earlier dra
 A bundle still does not author its own set (D-R2). **v1 is byte-pinned and must not be edited** — it is
 consumed by a released playground build; add a version instead.
 
+## Contract `m19-skills/3` — versioned skills (beside `/2`, not replacing it)
+
+`m19-skills/3/index.json` gives every skill its own **versions**, so a skill can be improved and published
+without a starter or analyser release, and a project gets the newest version that is **compatible with its
+own pins**, never simply the newest. It is additive: **`/2` is still published, unchanged, and is still what
+every consumer reads** (the website's `vendor-skills.mjs` and the analyser's bundled `/starter-skills/` copy).
+No consumer reads `/3` yet; those changes come later, one step at a time.
+
+**Selection by template is unchanged.** `common` is always selected and a template names the
+`specialisations` it wants, as in `/2`, except that both now list skill **names**, which key the `skills` map.
+For each selected skill a consumer then picks a version:
+
+```json
+"run-mongoose-server": { "versions": [ {
+  "version": "1.0.0",
+  "revision": "<full analyser commit holding these bytes>",
+  "files": [ { "path": "mongoose/run-mongoose-server/SKILL.md", "sha256": "<64 hex>" } ],
+  "compatibility": { "analyser": "1.12.0", "authoring": "any", "host": "mongoose",
+                     "mongoose": "*", "mongoosePlugins": ">=1.0.43" },
+  "evidence": { "kind": "m19-skills/2-pin", "label": "...", "index": "m19-skills/2",
+                "revision": "<same commit>", "date": "2026-11-07" }
+} ] }
+```
+
+| Field | Meaning |
+|---|---|
+| `version` | Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`, optional pre-release). Unique per skill. |
+| `revision` | The full analyser commit holding every byte of this version. Each version pins its own. |
+| `files` | `{path, sha256}` per file: exactly one `SKILL.md`, and any supporting file beside it (`/2`'s `files` moved here). |
+| `compatibility.analyser` | The minimum analyser version. It replaces the front-matter `x-analyser-min-version`, and must equal it while both exist. |
+| `compatibility.authoring` | `java`, `spring` or `any`. |
+| `compatibility.host` | `mongoose`, `embedded` or `any`. |
+| `compatibility.mongoose`, `compatibility.mongoosePlugins` | Tested version ranges, on **separate** axes (never assumed equal). `*`, or space-separated comparators that must all hold: `>=1.1.3 <1.2.0`. No `\|\|`, `^` or `~`. A project that pins no Mongoose (an embedded host) matches only `*`. |
+| `evidence` | What gated the version: `kind: "gate"` with `tests` and `benchmark`, each `{label, passed, total}`, or `kind: "m19-skills/2-pin"` for a version carried over from `/2`. Always a `label` and a `date`. |
+| `yanked` | Optional. `true` removes the version from selection without deleting it. |
+
+**The rule.** The highest version that is not yanked, has evidence, and whose compatibility contains every
+one of the project's effective pins. If there is none, the project gets **none** of that skill, and the
+consumer says so; it never falls back to an incompatible version. **A version without evidence is not
+selectable.** Anything that cannot be read (a malformed version, range or compatibility block) counts as
+incompatible. The rule is `SkillRegistry.select` (`src/main/java/.../template/SkillRegistry.java`), a pure
+function with its own tests.
+
+**Today every skill has one version, `1.0.0`, which is exactly its `/2` pin**: the same revision, the same
+digests, and that pin as its evidence. Its compatibility reproduces what `/2` already implied (the
+specialisation's authoring or host, the front-matter analyser minimum). Mongoose and plugin ranges are `*`
+except `run-mongoose-server`, whose own text describes behaviour from mongoose-plugins 1.0.43 on.
+
+**What `CanonicalSkillsTest` enforces for `/3`:** the index is well formed (fields, semver, compatibility,
+evidence, file placement); every digest matches the bytes at its version's revision; each version's
+`SKILL.md` names its skill and agrees with its front-matter minimum; a version without evidence is
+flagged not selectable, and every listed skill has a selectable version; and **`/2` and `/3` agree** — the
+same `common` and specialisations, and every `/2` pin present in `/3` as a version at the same revision with
+the same digests. So while `/2` is served, a `/2` re-pin must add or update the matching `/3` version in the
+same change. A later `/3` version may move ahead of `/2`; `/3` must never contradict it.
+
+**To publish a new version of a skill:** add an entry to its `versions` with a higher `version`, the commit
+holding its bytes as `revision`, the digests, its compatibility, and the `gate` evidence of its tests and
+benchmark round. Never edit a published version's bytes or digests; yank it and add another.
+
 ## Where they go, and why the analyser does not care
 
 A bundle writes its skills to `.claude/skills/` because that is the one layout a harness **auto-loads**
