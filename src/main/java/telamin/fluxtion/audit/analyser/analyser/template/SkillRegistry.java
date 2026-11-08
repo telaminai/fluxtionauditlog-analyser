@@ -25,6 +25,9 @@ public final class SkillRegistry {
     public static final String CONTRACT = "m19-skills/3";
     public static final Set<String> AUTHORING = Set.of("java", "spring", "any");
     public static final Set<String> HOST = Set.of("mongoose", "embedded", "any");
+    public static final String V2_PIN_EVIDENCE = "m19-skills/2-pin";
+    public static final String GATE_EVIDENCE = "gate";
+    private static final Pattern DATE = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
     public static final Set<String> COMPATIBILITY_KEYS = Set.of("analyser", "authoring", "host", "mongoose", "mongoosePlugins");
 
     private SkillRegistry() {
@@ -68,13 +71,40 @@ public final class SkillRegistry {
         Object yanked = version.get("yanked");
         if (yanked != null && !(yanked instanceof Boolean)) return v + ": yanked must be true or false";
         if (Boolean.TRUE.equals(yanked)) return v + ": yanked";
-        if (!(version.get("evidence") instanceof Map<?, ?> evidence)) return v + ": no evidence, so not selectable";
-        if (!(evidence.get("label") instanceof String label) || label.isBlank()
-                || !(evidence.get("date") instanceof String date) || date.isBlank())
-            return v + ": evidence has no label and date, so not selectable";
+        if (!(version.get("evidence") instanceof Map<?, ?>)) return v + ": no evidence, so not selectable";
+        String evidence = evidenceProblem(version.get("evidence"), version.get("revision"));
+        if (evidence != null) return v + ": " + evidence + ", so not selectable";
         String compatibility = compatibilityProblem(version.get("compatibility"));
         if (compatibility != null) return v + ": " + compatibility;
         return null;
+    }
+
+    /**
+     * What is wrong with a version's {@code evidence}, or null when it is well-formed. Evidence is either the publishing
+     * gate the version passed (spec §3.4: {@code kind: "gate"} with {@code tests} and {@code benchmark}, each
+     * {@code {label, passed, total}}) or, for a version carried over from {@code /2}, that pin ({@code kind:
+     * "m19-skills/2-pin"}, naming {@code /2} and the version's own revision). Always a label and a yyyy-mm-dd date.
+     * Selection and the index check share this one definition, so an index the check accepts is one select accepts.
+     */
+    public static String evidenceProblem(Object evidence, Object revision) {
+        if (!(evidence instanceof Map<?, ?> ev)) return "evidence is not an object";
+        if (!(ev.get("label") instanceof String l) || l.isBlank()) return "evidence has no label";
+        if (!(ev.get("date") instanceof String d) || !DATE.matcher(d).matches()) return "evidence date is not yyyy-mm-dd";
+        if (V2_PIN_EVIDENCE.equals(ev.get("kind"))) {
+            if (!"m19-skills/2".equals(ev.get("index")) || !(revision instanceof String r) || !r.equals(ev.get("revision")))
+                return "a /2-pin evidence names m19-skills/2 and the version's own revision";
+            return null;
+        }
+        if (GATE_EVIDENCE.equals(ev.get("kind"))) {
+            for (String run : List.of("tests", "benchmark"))
+                if (!(ev.get(run) instanceof Map<?, ?> r) || !(r.get("label") instanceof String rl) || rl.isBlank()
+                        || !(r.get("passed") instanceof Number p) || !(r.get("total") instanceof Number t)
+                        || p.doubleValue() % 1 != 0 || t.doubleValue() % 1 != 0
+                        || p.doubleValue() < 0 || t.doubleValue() <= 0 || p.doubleValue() > t.doubleValue())
+                    return "gate evidence needs " + run + " {label, passed, total}";
+            return null;
+        }
+        return "evidence kind must be " + V2_PIN_EVIDENCE + " or " + GATE_EVIDENCE;
     }
 
     /** What is wrong with a {@code compatibility} block, or null when it is well-formed. */
@@ -156,6 +186,11 @@ public final class SkillRegistry {
      * hold, each {@code >=}, {@code >}, {@code <=}, {@code <} or {@code =} followed by a semver ({@code >=1.1.3 <1.2.0}).
      * There is deliberately no {@code ||}, caret or tilde: a range a reader has to work out is a range a reader gets
      * wrong.
+     *
+     * <p>A PRE-RELEASE pin (a Maven {@code -SNAPSHOT}, an {@code -rc.1}) is inside a non-{@code *} range only when one of
+     * its comparators names a pre-release of the same {@code MAJOR.MINOR.PATCH} (the npm rule). By precedence alone
+     * {@code 1.2.0-SNAPSHOT} is below {@code 1.2.0}, so {@code >=1.1.3 <1.2.0} would claim a 1.2 development build was
+     * tested with the 1.1 line; a tested range says nothing about builds nobody released.
      */
     public record Range(List<String> operators, List<Semver> bounds) {
         private static final Pattern COMPARATOR = Pattern.compile("(>=|<=|>|<|=)(\\S+)");
@@ -192,6 +227,9 @@ public final class SkillRegistry {
             if (any()) return true;
             Semver v = Semver.tryParse(pinned);
             if (v == null) return false;
+            if (!v.prerelease().isEmpty() && bounds.stream().noneMatch(b -> !b.prerelease().isEmpty()
+                    && b.major() == v.major() && b.minor() == v.minor() && b.patch() == v.patch()))
+                return false;
             for (int i = 0; i < operators.size(); i++) {
                 int c = v.compareTo(bounds.get(i));
                 boolean ok = switch (operators.get(i)) {

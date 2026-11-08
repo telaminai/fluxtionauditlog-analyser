@@ -89,8 +89,8 @@ For each selected skill a consumer then picks a version:
 | `compatibility.analyser` | The minimum analyser version. It replaces the front-matter `x-analyser-min-version`, and must equal it while both exist. |
 | `compatibility.authoring` | `java`, `spring` or `any`. |
 | `compatibility.host` | `mongoose`, `embedded` or `any`. |
-| `compatibility.mongoose`, `compatibility.mongoosePlugins` | Tested version ranges, on **separate** axes (never assumed equal). `*`, or space-separated comparators that must all hold: `>=1.1.3 <1.2.0`. No `\|\|`, `^` or `~`. A project that pins no Mongoose (an embedded host) matches only `*`. |
-| `evidence` | What gated the version: `kind: "gate"` with `tests` and `benchmark`, each `{label, passed, total}`, or `kind: "m19-skills/2-pin"` for a version carried over from `/2`. Always a `label` and a `date`. |
+| `compatibility.mongoose`, `compatibility.mongoosePlugins` | Tested version ranges, on **separate** axes (never assumed equal). `*`, or space-separated comparators that must all hold: `>=1.1.3 <1.2.0`. No `\|\|`, `^` or `~`. A project that pins no Mongoose (an embedded host) matches only `*`. A pre-release pin (`1.2.0-SNAPSHOT`, `1.2.0-rc.1`) is inside a non-`*` range only when a comparator names a pre-release of the same `MAJOR.MINOR.PATCH`, so `<1.2.0` does not admit `1.2.0-SNAPSHOT`. |
+| `evidence` | What gated the version: `kind: "gate"` with `tests` and `benchmark`, each `{label, passed, total}`, or `kind: "m19-skills/2-pin"` (naming `m19-skills/2` and the version's own `revision`) for a version carried over from `/2`. Always a `label` and a `yyyy-mm-dd` `date`. Evidence of any other shape makes the version not selectable, exactly as no evidence does. |
 | `yanked` | Optional. `true` removes the version from selection without deleting it. |
 
 **The rule.** The highest version that is not yanked, has evidence, and whose compatibility contains every

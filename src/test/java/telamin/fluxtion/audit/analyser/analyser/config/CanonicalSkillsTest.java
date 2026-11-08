@@ -11,7 +11,6 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -632,9 +631,8 @@ class CanonicalSkillsTest {
     private static final Path V3_INDEX = ROOT.resolve("m19-skills/3/index.json");
     private static final java.util.regex.Pattern SHA256 = java.util.regex.Pattern.compile("[0-9a-f]{64}");
     private static final java.util.regex.Pattern REVISION = java.util.regex.Pattern.compile("[0-9a-f]{40}");
-    private static final java.util.regex.Pattern DATE = java.util.regex.Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
     private static final Set<String> V3_VERSION_KEYS = Set.of("version", "revision", "files", "compatibility", "evidence", "yanked");
-    private static final String V2_PIN_EVIDENCE = "m19-skills/2-pin";
+    private static final String V2_PIN_EVIDENCE = SkillRegistry.V2_PIN_EVIDENCE;
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> v3Index() throws Exception {
@@ -710,31 +708,10 @@ class CanonicalSkillsTest {
         return problems;
     }
 
-    /**
-     * Evidence is either the /2 pin a version was carried over from, or the publishing gate it passed (spec §3.4):
-     * its own tests and a benchmark round, each with pass counts, labelled and dated.
-     */
-    @SuppressWarnings("unchecked")
+    /** Evidence rules live in {@link SkillRegistry#evidenceProblem}, so the index check and selection cannot disagree. */
     private static List<String> evidenceProblems(String at, Map<String, Object> version) {
-        List<String> problems = new java.util.ArrayList<>();
-        if (!(version.get("evidence") instanceof Map<?, ?> raw)) return List.of(at + ": evidence is not an object");
-        Map<String, Object> ev = (Map<String, Object>) raw;
-        if (!(ev.get("label") instanceof String l) || l.isBlank()) problems.add(at + ": evidence has no label");
-        if (!(ev.get("date") instanceof String d) || !DATE.matcher(d).matches()) problems.add(at + ": evidence date is not yyyy-mm-dd");
-        if (V2_PIN_EVIDENCE.equals(ev.get("kind"))) {
-            if (!"m19-skills/2".equals(ev.get("index")) || !Objects.equals(ev.get("revision"), version.get("revision")))
-                problems.add(at + ": a /2-pin evidence names /2 and the version's own revision");
-        } else if ("gate".equals(ev.get("kind"))) {
-            for (String run : List.of("tests", "benchmark")) {
-                if (!(ev.get(run) instanceof Map<?, ?> r) || !(r.get("passed") instanceof Double p)
-                        || !(r.get("total") instanceof Double t) || p < 0 || t <= 0 || p > t || p % 1 != 0 || t % 1 != 0
-                        || !(r.get("label") instanceof String rl) || rl.isBlank())
-                    problems.add(at + ": gate evidence needs " + run + " {label, passed, total}");
-            }
-        } else {
-            problems.add(at + ": evidence kind must be " + V2_PIN_EVIDENCE + " or gate");
-        }
-        return problems;
+        String problem = SkillRegistry.evidenceProblem(version.get("evidence"), version.get("revision"));
+        return problem == null ? List.of() : List.of(at + ": " + problem);
     }
 
     @SuppressWarnings("unchecked")
