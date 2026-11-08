@@ -141,7 +141,7 @@
             "authoring": "any",
             "host": "mongoose",
             "mongoose": "*",
-            "mongoosePlugins": ">=1.0.43"
+            "mongoosePlugins": "*"
           },
           "evidence": {
             "kind": "m19-skills/2-pin",

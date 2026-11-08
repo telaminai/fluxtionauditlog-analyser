@@ -75,7 +75,7 @@ For each selected skill a consumer then picks a version:
   "revision": "<full analyser commit holding these bytes>",
   "files": [ { "path": "mongoose/run-mongoose-server/SKILL.md", "sha256": "<64 hex>" } ],
   "compatibility": { "analyser": "1.12.0", "authoring": "any", "host": "mongoose",
-                     "mongoose": "*", "mongoosePlugins": ">=1.0.43" },
+                     "mongoose": "*", "mongoosePlugins": "*" },
   "evidence": { "kind": "m19-skills/2-pin", "label": "...", "index": "m19-skills/2",
                 "revision": "<same commit>", "date": "2026-11-07" }
 } ] }
@@ -102,16 +102,21 @@ function with its own tests.
 
 **Today every skill has one version, `1.0.0`, which is exactly its `/2` pin**: the same revision, the same
 digests, and that pin as its evidence. Its compatibility reproduces what `/2` already implied (the
-specialisation's authoring or host, the front-matter analyser minimum). Mongoose and plugin ranges are `*`
-except `run-mongoose-server`, whose own text describes behaviour from mongoose-plugins 1.0.43 on.
+specialisation's authoring or host, the front-matter analyser minimum). Every Mongoose and plugin range is `*`:
+`/2` constrains neither, and a `/2` pin is evidence of what `/2` served, not of a tested range, so the test refuses a
+range on a `/2`-pin version. `*` here means "unconstrained", not "tested on every version". The first tested range
+arrives with the first version published under `gate` evidence (for `run-mongoose-server`, whose text describes
+mongoose-plugins 1.0.43 and 1.0.44, that is where a range such as `>=1.0.43` belongs).
 
 **What `CanonicalSkillsTest` enforces for `/3`:** the index is well formed (fields, semver, compatibility,
 evidence, file placement); every digest matches the bytes at its version's revision; each version's
 `SKILL.md` names its skill and agrees with its front-matter minimum; a version without evidence is
 flagged not selectable, and every listed skill has a selectable version; and **`/2` and `/3` agree** — the
-same `common` and specialisations, and every `/2` pin present in `/3` as a version at the same revision with
-the same digests. So while `/2` is served, a `/2` re-pin must add or update the matching `/3` version in the
-same change. A later `/3` version may move ahead of `/2`; `/3` must never contradict it.
+same `common`, every `/2` specialisation with the same skills (`/3` may add specialisations, as step 2 will), and
+every `/2` pin present in `/3` as a selectable version at the same revision with the same digests. So while `/2` is
+served, a `/2` re-pin must add or update the matching `/3` version in the same change, and yanking a version `/2`
+still pins means re-pinning `/2` in the same change. A later `/3` version may move ahead of `/2`; `/3` must never
+contradict it.
 
 **To publish a new version of a skill:** add an entry to its `versions` with a higher `version`, the commit
 holding its bytes as `revision`, the digests, its compatibility, and the `gate` evidence of its tests and

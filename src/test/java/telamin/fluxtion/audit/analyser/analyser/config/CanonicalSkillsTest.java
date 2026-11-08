@@ -11,6 +11,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -702,6 +703,13 @@ class CanonicalSkillsTest {
                 if (compat != null) problems.add(at + ": " + compat);
                 if (v.containsKey("yanked") && !(v.get("yanked") instanceof Boolean)) problems.add(at + ": yanked is not a boolean");
                 if (v.containsKey("evidence")) problems.addAll(evidenceProblems(at, v));
+                // a /2 pin is evidence that /2 served these bytes to every project its selection reached, with no
+                // Mongoose or plugin constraint; it is not evidence that any range was tested, so it backs none
+                if (v.get("evidence") instanceof Map<?, ?> ev && V2_PIN_EVIDENCE.equals(ev.get("kind"))
+                        && v.get("compatibility") instanceof Map<?, ?> c
+                        && !("*".equals(c.get("mongoose")) && "*".equals(c.get("mongoosePlugins"))))
+                    problems.add(at + ": a /2-pin version reproduces /2, which constrains no Mongoose or plugin version;"
+                            + " a range needs gate evidence");
                 problems.addAll(fileProblems(at, name, v.get("files")));
             }
         }
@@ -792,6 +800,10 @@ class CanonicalSkillsTest {
         mustCatch.accept("a path escaping the root", v -> ((List<Map<String, Object>>) v.get("files")).get(0).put("path", "../x/SKILL.md"));
         mustCatch.accept("a short digest", v -> ((List<Map<String, Object>>) v.get("files")).get(0).put("sha256", "abc"));
         mustCatch.accept("an unknown field", v -> v.put("channel", "beta"));
+        mustCatch.accept("a /2-pin version claiming a tested plugin range",
+                v -> ((Map<String, Object>) v.get("compatibility")).put("mongoosePlugins", ">=1.0.43"));
+        mustCatch.accept("a /2-pin version claiming a tested Mongoose range",
+                v -> ((Map<String, Object>) v.get("compatibility")).put("mongoose", ">=1.1.0 <1.2.0"));
         Map<String, Object> twice = copy(index);
         List<Map<String, Object>> versions = v3Versions(twice).get(skill);
         versions.add(copy(versions.get(0)));
@@ -874,52 +886,98 @@ class CanonicalSkillsTest {
     }
 
     /**
-     * While /2 is served, /3 must not disagree with it: the same selection lists, and every /2 pin present in /3 as a
-     * version with the same revision and the same digests (the skill's SKILL.md plus the supporting files beside it).
+     * While /2 is served, /3 must not disagree with it. Every /2 selection list is in /3 unchanged (/3 may add
+     * specialisations, as step 2 adds the Java-authoring skills), and every /2 pin is in /3 as a version with the same
+     * revision and the same digests (the skill's SKILL.md plus the supporting files beside it). That version must be
+     * selectable: yanking in /3 a version /2 still serves would leave /2 consumers on bytes /3 calls bad, so a yank of a
+     * /2 pin goes with a /2 re-pin in the same change.
      */
-    @Test
     @SuppressWarnings("unchecked")
-    void v2AndV3AgreeForEverySkillBothList() throws Exception {
-        Map<String, Object> v2 = v2Index(), v3 = v3Index();
+    static List<String> v2v3ParityProblems(Map<String, Object> v2, Map<String, Object> v3) {
+        List<String> problems = new java.util.ArrayList<>();
         java.util.function.Function<String, String> nameOf = p -> p.substring(0, p.lastIndexOf('/'))
                 .substring(p.substring(0, p.lastIndexOf('/')).lastIndexOf('/') + 1);
-        assertEquals(((List<String>) v2.get("common")).stream().map(nameOf).toList(), v3.get("common"));
+        if (!((List<String>) v2.get("common")).stream().map(nameOf).toList().equals(v3.get("common")))
+            problems.add("common differs: /2 " + v2.get("common") + ", /3 " + v3.get("common"));
         Map<String, Object> specs2 = (Map<String, Object>) v2.get("specialisations");
         Map<String, Object> specs3 = (Map<String, Object>) v3.get("specialisations");
-        assertEquals(specs2.keySet(), specs3.keySet());
         for (String spec : specs2.keySet()) {
             Map<String, Object> a = (Map<String, Object>) specs2.get(spec), b = (Map<String, Object>) specs3.get(spec);
-            assertEquals(a.get("why"), b.get("why"), spec);
-            assertEquals(((List<String>) a.get("skills")).stream().map(nameOf).toList(), b.get("skills"), spec);
+            if (b == null) {
+                problems.add("/3 drops the specialisation " + spec);
+                continue;
+            }
+            if (!Objects.equals(a.get("why"), b.get("why"))) problems.add(spec + ": why differs");
+            if (!((List<String>) a.get("skills")).stream().map(nameOf).toList().equals(b.get("skills")))
+                problems.add(spec + ": skills differ: /2 " + a.get("skills") + ", /3 " + b.get("skills"));
         }
         // the per-skill pin /2 serves: its SKILL.md and every supporting file in that directory
+        List<String> v2Paths = new java.util.ArrayList<>((List<String>) v2.get("common"));
+        for (Object spec : specs2.values()) {
+            v2Paths.addAll((List<String>) ((Map<String, Object>) spec).get("skills"));
+            v2Paths.addAll((List<String>) ((Map<String, Object>) spec).getOrDefault("files", List.of()));
+        }
         Map<String, String> v2Sha = (Map<String, String>) v2.get("sha256");
         Map<String, Map<String, String>> v2Pins = new java.util.TreeMap<>();
-        for (String path : v2Paths())
+        for (String path : v2Paths)
             if (path.endsWith("/SKILL.md")) v2Pins.put(nameOf.apply(path), new java.util.TreeMap<>());
-        for (String path : v2Paths()) {
+        for (String path : v2Paths) {
             String dir = path.substring(0, path.lastIndexOf('/'));
-            String owner = v2Paths().stream().filter(p -> p.equals(dir + "/SKILL.md")).map(nameOf).findFirst().orElseThrow();
+            String owner = v2Paths.stream().filter(p -> p.equals(dir + "/SKILL.md")).map(nameOf).findFirst().orElseThrow();
             v2Pins.get(owner).put(path, v2Sha.get(path));
         }
         Map<String, List<Map<String, Object>>> v3Versions = v3Versions(v3);
-        int compared = 0;
         for (var pin : v2Pins.entrySet()) {
             List<Map<String, Object>> versions = v3Versions.get(pin.getKey());
-            if (versions == null) continue;   // listed by /2 only
-            compared++;
+            if (versions == null) {
+                problems.add(pin.getKey() + ": /2 serves it but /3 has no versions of it");
+                continue;
+            }
             boolean found = false;
             for (Map<String, Object> v : versions) {
                 if (!v2.get("revision").equals(v.get("revision"))) continue;
+                String at = pin.getKey() + "@" + v.get("version");
                 Map<String, String> files = new java.util.TreeMap<>();
                 for (Map<String, Object> f : (List<Map<String, Object>>) v.get("files"))
                     files.put((String) f.get("path"), (String) f.get("sha256"));
-                assertEquals(pin.getValue(), files, pin.getKey() + "@" + v.get("version") + " disagrees with /2 at the same revision");
+                if (!pin.getValue().equals(files)) problems.add(at + " disagrees with /2 at the same revision: " + files);
+                String unselectable = SkillRegistry.notSelectableReason(v);
+                if (unselectable != null) problems.add(at + " is /2's pin but /3 will not select it (" + unselectable
+                        + "); re-pin /2 in the same change");
                 found = true;
             }
-            assertTrue(found, pin.getKey() + ": /2 pins revision " + v2.get("revision") + " but /3 has no version at it");
+            if (!found) problems.add(pin.getKey() + ": /2 pins revision " + v2.get("revision") + " but /3 has no version at it");
         }
-        assertEquals(v2Pins.size(), compared, "every skill /2 lists is listed by /3 too");
+        return problems;
+    }
+
+    @Test
+    void v2AndV3AgreeForEverySkillBothList() throws Exception {
+        assertEquals(List.of(), v2v3ParityProblems(v2Index(), v3Index()));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void v2v3ParityCatchesEachDisagreement_andAllowsAnAddedSpecialisation() throws Exception {
+        Map<String, Object> v2 = v2Index(), base = v3Index();
+        java.util.function.BiConsumer<String, java.util.function.Consumer<Map<String, Object>>> mustCatch = (why, edit) -> {
+            Map<String, Object> v3 = copy(base);
+            edit.accept(v3);
+            assertFalse(v2v3ParityProblems(v2, v3).isEmpty(), "parity must catch: " + why);
+        };
+        mustCatch.accept("a yanked /2 pin", v3 -> v3Versions(v3).get("load-audit-log").get(0).put("yanked", true));
+        mustCatch.accept("a /2 pin without evidence", v3 -> v3Versions(v3).get("load-audit-log").get(0).remove("evidence"));
+        mustCatch.accept("a different digest", v3 -> ((List<Map<String, Object>>) v3Versions(v3).get("add-a-node").get(0)
+                .get("files")).get(1).put("sha256", "0".repeat(64)));
+        mustCatch.accept("a dropped supporting file", v3 -> ((List<Map<String, Object>>) v3Versions(v3).get("add-a-node").get(0)
+                .get("files")).remove(1));
+        mustCatch.accept("another revision", v3 -> v3Versions(v3).get("guided-start").get(0).put("revision", "0".repeat(40)));
+        mustCatch.accept("a dropped specialisation", v3 -> ((Map<String, Object>) v3.get("specialisations")).remove("replay"));
+        mustCatch.accept("a skill moved out of common", v3 -> ((List<String>) v3.get("common")).remove("guided-start"));
+        Map<String, Object> added = copy(base);
+        ((Map<String, Object>) added.get("specialisations")).put("java",
+                Map.of("why", "the graph is authored in Java", "skills", List.of("fluxtion-java-graph")));
+        assertEquals(List.of(), v2v3ParityProblems(v2, added), "/3 may add a specialisation /2 does not have");
     }
 
     /** @return the exact bytes at a git revision, or null when the path does not exist there. */
