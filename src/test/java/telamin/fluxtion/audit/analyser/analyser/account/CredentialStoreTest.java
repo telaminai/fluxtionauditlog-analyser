@@ -130,6 +130,13 @@ class CredentialStoreTest {
 
     @Test
     void protectedFile_isOwnerOnlyAndRoundTrips() throws Exception {
+        // Verify the POSIX creation policy on every host, including Macs whose live store uses native calls.
+        // Checking requested permissions also prevents a restrictive process umask from hiding a wider mode.
+        var ownerFile = SharedCredentialFile.class.getDeclaredMethod("ownerFile");
+        ownerFile.setAccessible(true);
+        var requested = (java.nio.file.attribute.FileAttribute<?>) ownerFile.invoke(null);
+        assertEquals(PosixFilePermissions.fromString("rw-------"), requested.value(),
+                "shared POSIX credential creation must request owner-only permissions");
         Path file = temp.resolve(".fluxtion-analyser").resolve(ProtectedFileStore.FILE_NAME);
         ProtectedFileStore store = new ProtectedFileStore(file);
         assertEquals(Optional.empty(), store.load());
