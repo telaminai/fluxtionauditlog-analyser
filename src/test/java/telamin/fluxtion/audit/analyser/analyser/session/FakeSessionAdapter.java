@@ -39,6 +39,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
      * log-folder digests before and after. Null (the default) is "could not say", which the session treats as replaced.
      */
     String[] replacedBasis;
+    /** When the reload replaced the settings, as the frame stamps it (0: not known). */
+    long replacedAtMillis;
     /** When true, a {@link SessionEffects.DescribeSettingsReplacementEffect} is answered later (Pending), as a slow adapter. */
     boolean describePending;
     final List<SessionEffects.KeepProjectProfileEffect> profileKeeps = new java.util.ArrayList<>();
@@ -633,7 +635,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.DescribeSettingsReplacementEffect e -> {
                 if (describePending) yield new SessionEvents.Pending(e.opId(), "describing the replaced settings");
                 String[] b = replacedBasis == null ? new String[4] : replacedBasis;
-                yield new SessionEvents.ProjectSettingsReplaced(e.opId(), e.ticket(), e.profileKey(), b[0], b[1], b[2], b[3]);
+                yield new SessionEvents.ProjectSettingsReplaced(e.opId(), e.ticket(), e.profileKey(), b[0], b[1], b[2], b[3],
+                        replacedAtMillis);
             }
             case SessionEffects.ReloadProjectProfileEffect e -> {
                 profileReloads.add(e);

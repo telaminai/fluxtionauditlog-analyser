@@ -106,8 +106,12 @@ class ProjectExchangeAndTopologyReportFrameTest {
         assumeFalse(GraphicsEnvironment.isHeadless());
         try (var f = EvidenceCaptureFrameTest.shown(tmp)) {
             onEdt(() -> render(f.ex, "open", Map.of("graphml", GRAPH.toString())));
-            onEdt(() -> render(f.ex, "report", Map.of("name", "topo", "title", "DEMO topology",
-                    "sections", List.of(Map.of("kind", "topology")))));
+            onEdt(() -> render(f.ex, "open", Map.of("log", LOG.toString())));     // a report needs a loaded log
+            awaitLoaded(f.ex);
+            AtomicReference<Map<String, Object>> saved = new AtomicReference<>();
+            onEdt(() -> saved.set(render(f.ex, "report", Map.of("name", "topo", "title", "DEMO topology",
+                    "sections", List.of(Map.of("kind", "topology"))))));
+            assertNotEquals(Boolean.FALSE, saved.get().get("ok"), "control: the report is saved: " + saved.get());
             onEdt(() -> render(f.ex, "topology", Map.of("select", "quotePublisher", "scope", "node", "focus", true)));
             TopologyPanel topology = (TopologyPanel) field(f.frame, "topologyPanel");
             ReportsPanel reports = (ReportsPanel) field(f.frame, "reportsPanel");

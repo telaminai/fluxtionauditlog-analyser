@@ -22,8 +22,13 @@ public class ProjectOutputs implements EventLogSource {
     private long projectGeneration;
     /** Which install of the watch is current (0 for the first): a reload that changes the log folders reinstalls it. */
     private long basis;
-    /** The first scan of a reinstalled watch is a baseline for files it had not seen: they are not new outputs. */
+    /**
+     * The first scan of a reinstalled watch is a baseline for the files it had not seen that were modified before the
+     * reload ({@link #rebaselineBeforeNanos}; all of them when that is not known): they are not new outputs. A file
+     * written after the reload is, even when that first scan is the one to see it.
+     */
     private boolean rebaseline;
+    private long rebaselineBeforeNanos;
     private String profile;
     private boolean watching;
     private boolean baseline;
@@ -83,6 +88,7 @@ public class ProjectOutputs implements EventLogSource {
         if (!replacement.accepted(e) || !replacement.logFoldersChanged()) return false;
         if (profile == null || watch == 0 || bundle.provenance().fromBundle()) return false;
         watching = false; rebaseline = true; basis++;
+        rebaselineBeforeNanos = e.reloadedAtMillis() > 0 ? e.reloadedAtMillis() * 1_000_000L : Long.MAX_VALUE;
         effects.request(new SessionEffects.ObserveProjectOutputsEffect(0, watch, projectGeneration, profile));
         auditLog.info("projectOutputs", "REOBSERVING").info("watch", watch).info("basis", basis);
         return true;
@@ -111,7 +117,8 @@ public class ProjectOutputs implements EventLogSource {
             if (!valid(file)) continue;
             String key = key(file); present.add(key);
             Candidate before = candidates.get(key);
-            if (rebaseline && before == null) consumed.put(key, file.revision());
+            if (rebaseline && before == null && file.revision().modifiedNanos() < rebaselineBeforeNanos)
+                consumed.put(key, file.revision());
             if (before == null || !before.file().revision().equals(file.revision())) {
                 invalidate(key);
                 before = new Candidate(file, e.atMillis(), observedOwner(file)); candidates.put(key, before);

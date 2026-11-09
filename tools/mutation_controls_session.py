@@ -3070,7 +3070,11 @@ CONTROLS += [
      '        if (e.basis() != basis) return false;', '',
      REPLACED + 'aReloadReinstallsTheOutputWatchForTheNewLogFolders'),
     ('r198f-reinstall-not-baselined', NODE + 'ProjectOutputs.java',
-     '            if (rebaseline && before == null) consumed.put(key, file.revision());\n', '',
+     '            if (rebaseline && before == null && file.revision().modifiedNanos() < rebaselineBeforeNanos)\n'
+     '                consumed.put(key, file.revision());\n', '',
+     REPLACED + 'aReloadReinstallsTheOutputWatchForTheNewLogFolders'),
+    ('r198f-reinstall-swallows-new-logs', NODE + 'ProjectOutputs.java',
+     ' && file.revision().modifiedNanos() < rebaselineBeforeNanos)', ')',
      REPLACED + 'aReloadReinstallsTheOutputWatchForTheNewLogFolders'),
     ('r198f-reinstall-drops-offers', NODE + 'ProjectOutputs.java',
      '        watching = false; rebaseline = true; basis++;',

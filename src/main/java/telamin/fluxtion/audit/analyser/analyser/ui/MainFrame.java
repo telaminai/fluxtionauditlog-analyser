@@ -9419,7 +9419,8 @@ public final class MainFrame extends JFrame {
                     lastProfileReplaced = new Object[]{before,
                             telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config)};
                     String[] basisAfter = settingsBasis();
-                    lastReplacedBasis = new String[]{e.profileKey(), basisBefore[0], basisAfter[0], basisBefore[1], basisAfter[1]};
+                    lastReplacedBasis = new String[]{e.profileKey(), basisBefore[0], basisAfter[0], basisBefore[1], basisAfter[1],
+                            Long.toString(System.currentTimeMillis())};
                     profileObservation = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(project.activeFile());
                 }
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded(opId,
@@ -9433,10 +9434,10 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DescribeSettingsReplacementEffect e -> {
                 // PERFORM only: say what the reload replaced, as digests. Which views are stale is the session's call.
                 String[] b = lastReplacedBasis != null && lastReplacedBasis[0].equals(e.profileKey())
-                        ? lastReplacedBasis : new String[5];
+                        ? lastReplacedBasis : new String[]{null, null, null, null, null, "0"};
                 lastReplacedBasis = null;
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectSettingsReplaced(opId, e.ticket(), e.profileKey(),
-                        b[1], b[2], b[3], b[4]);
+                        b[1], b[2], b[3], b[4], Long.parseLong(b[5]));
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.KeepProjectProfileEffect e -> {
                 // #177: PERFORM only — the person chose to write this window's version over the file

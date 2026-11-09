@@ -154,6 +154,19 @@ class ProjectSettingsReplacedTest {
         assertEquals(before, s.driver.processor().designSession.discoveryGeneration());
     }
 
+    /** When the recording adapter says the reload happened, in milliseconds since the epoch. */
+    static final long RELOADED_AT = 1_000_000L;
+
+    /** A log whose modification time is after {@link #RELOADED_AT}. */
+    static ProjectOutputsState.File written(long ref, String key) {
+        return new ProjectOutputsState.File(ProjectOutputsState.Kind.LOG, ref, key, "DEMO.log",
+                new ProjectOutputsState.Revision(100, (RELOADED_AT + 1) * 1_000_000L, "DEMO-file-key"));
+    }
+
+    static List<String> pathKeys(Session s) {
+        return s.driver.processor().projectOutputs.state().offers().stream().map(o -> o.file().pathKey()).toList();
+    }
+
     static ProjectOutputsState.File log(long ref, String key, long revision) {
         return ProjectOutputsTest.file(ProjectOutputsState.Kind.LOG, ref, key, revision);
     }
@@ -180,6 +193,7 @@ class ProjectSettingsReplacedTest {
         long graphOffer = state.offers().getFirst().id();
 
         s.adapter.replacedBasis = new String[]{"roots-1", "roots-1", "logs-a", "logs-b"};
+        s.adapter.replacedAtMillis = RELOADED_AT;
         s.reload();
 
         assertEquals(2, s.effects(SessionEffects.ObserveProjectOutputsEffect.class).size(),
@@ -199,16 +213,20 @@ class ProjectSettingsReplacedTest {
         s.driver.post(new SessionEvents.ProjectOutputsScanned(watch, generation, 16000, List.of(rebuilt, oldRewritten), true, first.basis()));
         assertEquals(1, s.driver.processor().projectOutputs.state().offers().size(), "★ the old folder no longer produces offers");
 
-        // the reinstalled watch: what is already in the new folder is its baseline; a log written there after is offered
+        // the reinstalled watch: what was already in the new folder is its baseline. A log written there after the reload
+        // is offered — also when the reinstalled watch's first scan is the one that sees it (found on a display: a log
+        // written straight after the reload was taken into the baseline and never offered)
         var existing = log(61, "logs-b/DEMO-yesterday", 1);
-        s.driver.post(new SessionEvents.ProjectOutputsScanned(watch, generation, 20000, List.of(rebuilt, existing), true, second.basis()));
-        s.driver.post(new SessionEvents.ProjectOutputsScanned(watch, generation, 24000, List.of(rebuilt, existing), true, second.basis()));
-        assertEquals(1, s.driver.processor().projectOutputs.state().offers().size(), "a log already in the new folder is not a new output");
+        var straightAfter = written(63, "logs-b/DEMO-straight-after");
+        s.driver.post(new SessionEvents.ProjectOutputsScanned(watch, generation, 20000, List.of(rebuilt, existing, straightAfter), true, second.basis()));
+        s.driver.post(new SessionEvents.ProjectOutputsScanned(watch, generation, 24000, List.of(rebuilt, existing, straightAfter), true, second.basis()));
+        assertEquals(List.of("graph", "logs-b/DEMO-straight-after"), pathKeys(s),
+                "★ a log written straight after the reload is offered; one already in the new folder is not");
         var fresh = log(62, "logs-b/DEMO-new", 1);
-        s.driver.post(new SessionEvents.ProjectOutputsScanned(watch, generation, 28000, List.of(rebuilt, existing, fresh), true, second.basis()));
-        s.driver.post(new SessionEvents.ProjectOutputsScanned(watch, generation, 32000, List.of(rebuilt, existing, fresh), true, second.basis()));
+        s.driver.post(new SessionEvents.ProjectOutputsScanned(watch, generation, 28000, List.of(rebuilt, existing, straightAfter, fresh), true, second.basis()));
+        s.driver.post(new SessionEvents.ProjectOutputsScanned(watch, generation, 32000, List.of(rebuilt, existing, straightAfter, fresh), true, second.basis()));
         var offers = s.driver.processor().projectOutputs.state().offers();
-        assertEquals(2, offers.size(), "★ a log written to the new folder is offered: " + offers);
+        assertEquals(3, offers.size(), "★ a log written to the new folder is offered: " + offers);
         assertEquals("logs-b/DEMO-new", offers.getLast().file().pathKey());
         assertEquals(graphOffer, offers.getFirst().id(), "and the graph's offer is the same one");
         assertTrue(s.driver.processor().projectOutputs.permitsWatch(watch, generation), "the watch is current");
