@@ -6,6 +6,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Clarify that compiler account details describe the Analyser sign-in, separate from Maven; qualify inactive account overrides.
+
+
 ## [1.41.2] - 2026-11-07
 
 ### Removed

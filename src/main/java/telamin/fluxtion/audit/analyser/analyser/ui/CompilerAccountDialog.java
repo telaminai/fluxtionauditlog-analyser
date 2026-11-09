@@ -30,6 +30,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.JTextArea;
+import javax.swing.UIManager;
 import javax.swing.ListSelectionModel;
 import javax.swing.plaf.basic.BasicComboBoxEditor;
 import javax.swing.table.DefaultTableModel;
@@ -86,6 +88,9 @@ public final class CompilerAccountDialog extends JDialog {
     static final String CANCEL_SIGN_IN = "Cancel sign-in";
     static final String OPEN_AGAIN = "Open browser again";
     static final String COPY_DETAILS = "Copy details";
+    static final String BUILD_ACCOUNT_NOTE = "This is the Analyser account. Maven/CI may use a different sign-in."
+            + " For a refused build, run mvn fluxtion:account (requires a plugin with the account goal)"
+            + " in that project and share the failure’s account ID and request ID with support.";
     static final String REVOKE_SELECTED = "Revoke selected";
     static final String THIS_MACHINE = " (this machine)";
     static final String DELETION_NOTE = "Deleting the account is not available in the app yet; ask the service's support.";
@@ -285,6 +290,17 @@ public final class CompilerAccountDialog extends JDialog {
         Rows rows = new Rows(accountPanel);
         rows.heading("Account", false);
         for (int i = 0; i < ACCOUNT_ROWS.size(); i++) rows.pair(ACCOUNT_ROWS.get(i), accountValues[i]);
+        JLabel noteStyle = UiText.label("");
+        UiTheme.status(noteStyle);
+        JTextArea buildAccountNote = UiText.plain(new JTextArea(BUILD_ACCOUNT_NOTE));
+        buildAccountNote.setLineWrap(true);
+        buildAccountNote.setWrapStyleWord(true);
+        buildAccountNote.setEditable(false);
+        buildAccountNote.setFocusable(false);
+        buildAccountNote.setOpaque(false);
+        buildAccountNote.setFont(noteStyle.getFont());
+        buildAccountNote.setForeground(noteStyle.getForeground());
+        rows.full(buildAccountNote, 0);
         for (int i = 0; i < PLAN_ROWS.size(); i++) planLabels[i] = rows.pair(PLAN_ROWS.get(i), planValues[i]);
         UiTheme.status(planUnavailable);
         rows.full(planUnavailable, 0);

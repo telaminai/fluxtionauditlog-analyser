@@ -71,7 +71,10 @@ class CompilerAccountSafetyTest {
                 "Device name: Fluxtion analyser on demo-host", "Analyser version: 1.38.0", "Time: 2026-10-26 09:30:00 UTC"))
             assertTrue(text.contains(expected), expected + " missing from:\n" + text);
         assertFalse(text.contains("Max event types"), "the retired limit is never a line of its own:\n" + text);
+        assertFalse(text.contains("held; effective only on Enterprise"));
         assertNoCredential(text);
+        assertTrue(text.contains("Analyser connection only; Maven/CI may use a different sign-in."));
+        assertTrue(text.contains("account ID and request ID"));
         assertFalse(text.contains("self@example.com"), "email is not copied into support details");
 
         // a service from before the inputs limit: its maxEventTypes counts event types only, and Copy details says so,

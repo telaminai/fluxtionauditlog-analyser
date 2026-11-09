@@ -132,6 +132,36 @@ the service, account, type, role, plan, the compile and interpret figures, the p
 credential id and name, the analyser version and the time in UTC. It never includes the credential itself. Deleting the account is not available in the
 app yet; ask the service's support.
 
+### Find the account and request behind a refused build
+
+The **Account** row is the account ID for this Analyser connection. **Copy details** includes that ID, the
+compiler service and effective limits without the credential or email. Maven and CI use a separate sign-in;
+connecting this dialog does not sign a build in or prove that it uses the same account.
+
+For a CLI build, use a Maven plugin version containing the new `account` goal (not released 1.3.4):
+
+```sh
+mvn fluxtion:account
+```
+
+Run it in the failed build's project and environment, with the same compiler URL setting. Outside a configured
+project, use `mvn com.telamin.fluxtion:fluxtion-maven-plugin:<version>:account` with that version. It reports the
+server-confirmed account ID, credential source and current limits without generating. CI's `FLUXTION_API_TOKEN`
+takes precedence over saved Maven sign-in. The command does not inspect the Analyser's credential.
+
+Copy the **request ID** from the build failure beside its HTTP status (usually `fx-...`). Newer compiler refusals
+also state `accountId` and `requestId`; HTTP clients get `X-Fluxtion-Request-Id`. If a refusal from an older service
+omits the account, run the account goal before changing sign-in. For a build started by an assistant, ask it to
+return these identifiers from the actual build output, not infer them from the Analyser connection.
+
+Send support the service, account ID, request ID, compiler version and refusal (requested inputs and limit).
+Do not send tokens or credential files. Support can find the exact request, compare its recorded refusal with
+current limits and confirm a remedy. Input limits count distinct event types plus exported methods, not event
+records; adding compile credits does not increase this limit. After a confirmed entitlement change, rerun the
+original authoring command and compare its fresh generated and audit evidence. The account check itself does
+not prove a generation will succeed.
+
+
 The analyser reads the account and never grants credits or changes it; the only change it makes is revoking a
 device you choose. **Disconnect** deletes the credential from this machine, and the service keeps accepting it until
 it is revoked. **Revoke this device** asks the service to stop accepting it, then deletes it here. If the service does
