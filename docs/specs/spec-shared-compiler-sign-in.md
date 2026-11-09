@@ -8,7 +8,7 @@ The Compiler account dialog offers migration from its previous OS store. The use
 and the chosen credential is checked with its issuer before migration. A persistent migration marker prevents a stale
 older Analyser from silently restoring an OS credential after logout. No automatic fallback to the OS credential occurs.
 Migration deletes the old local copy only. The dialog explicitly states that unselected device credentials remain
-active at their issuing services; use the corresponding account's Devices list to revoke unused devices. This
+active at their issuing services; use **Your devices** for the corresponding account to revoke unused devices. This
 follow-up deliberately changes the wording rather than adding cross-service revocation to migration.
 
 Login retains the observed credential until browser approval and server identity verification succeed. Saving compares

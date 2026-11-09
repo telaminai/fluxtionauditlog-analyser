@@ -107,7 +107,7 @@ Once you approve and the service verifies the account, the credential is kept in
 file `~/.fluxtion/credentials`, used by both the Analyser and builds. Existing Analyser users are offered a choice
 when migrating from the previous OS store. If the two stores disagree, choose which account to keep; there is no
 silent fallback. Migration deletes local copies only: unselected device credentials stay active at their issuing
-services until you revoke them in that account's Devices list. **Disconnect** deletes the shared sign-in and therefore
+services until you revoke them in **Your devices** for that account. **Disconnect** deletes the shared sign-in and therefore
 signs Maven builds using it out too; environment or explicit build overrides are unchanged. **Replace sign-in…** asks before replacing the current machine sign-in and revoking the old one.
 **Refresh** reloads changes made by Maven and verifies the current account with its issuing service.
 
