@@ -13,6 +13,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - Add a three-step illustrated Claude quickstart with a pinned onboarding-preview download and a real first-reply screenshot.
 - Let the quickstart begin with JBang alone, using the analyser's Claude installation/sign-in guidance; explain access, usage costs, folder trust, turning Claude off and the starter handoff.
 - Tell the built-in Full Claude session to ask questions in the conversation instead of trying its unavailable terminal question widget.
+- **Connect another AI client** keeps an in-app assistant on: finishing it adds the client instead of turning the in-app assistant off.
 
 ## [1.41.2] - 2026-11-07
 

@@ -865,9 +865,12 @@ public class AiSetup implements EventLogSource {
                     setupClient = client;
                     effects.request(new SessionEffects.PersistSetupClientEffect(0L, client));
                 }
-                // Both re-applies 2a's profile (Full in force asks nothing again), so the question waits for THIS Finish
+                // Both re-applies 2a's profile (Full in force asks nothing again), so the question waits for THIS Finish.
+                // Review of PR #213: "Connect another AI client" ADDS a client — an in-app assistant in force stays on
+                // (re-applied, so a key stored before profiles existed becomes an explicit In-app profile), never Off
+                boolean keepInApp = origin == Origin.ONBOARD_CLIENT && inForce() == Choice.IN_APP;
                 applyFromWizard(choice == Choice.BOTH ? AiSetupDerived.profileFor(Choice.BOTH, posture)
-                        : AssistantProfile.OFF);
+                        : keepInApp ? AssistantProfile.IN_APP : AssistantProfile.OFF);
             }
         }
         return changed();
