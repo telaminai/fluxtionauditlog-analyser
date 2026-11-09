@@ -3001,3 +3001,40 @@ CONTROLS += [
      '`INTERPRET_ALLOWANCE_EXHAUSTED` (HTTP 429 to the caller)', '`INTERPRET_CREDIT_EXHAUSTED` (HTTP 429 to the caller)',
      'EntitlementInvestigationConformanceTest#theGuideNamesOnlyKeysAndCodesTheProducerWrites'),
 ]
+
+# #198 review fixes (2026-11-09). F1: leaving a project (switch, create, close, quit) is HELD when neither the profile nor
+# its .unsaved-* rescue copy can be written, and the edits stay. F3: a malformed or unavailable bundle capture is refused
+# before the default exchange directory is made. Frame witnesses for the hold at the request entrance and at quit
+# (ProfileChangedOnDiskFrameTest) need a display and are in the owner's display run, not here.
+CONTROLS += [
+    ('r198-f1-failed-rescue-is-not-held', J + 'config/ProjectSession.java',
+     '        return new Leave(Leave.Outcome.HELD, null, held);', '        return Leave.CLEAN;',
+     'ProjectLeaveHeldTest#failedSideFileMustNotDiscardUnsavedEdits'),
+    ('r198-f1-close-ignores-the-hold', J + 'config/ProjectSession.java',
+     '        if (!left.mayLeave()) return left;     // F1: held — the project, its settings and its edits stay\n', '',
+     'ProjectLeaveHeldTest#aFullDiskHoldsTheClose'),
+    ('r198-f1-switch-ignores-the-hold', J + 'config/ProjectSession.java',
+     '        if (!left.mayLeave()) return new ProjectProfile.LoadResult(false, left.reason());\n', '',
+     'ProjectLeaveHeldTest#aDeniedPermissionHoldsTheSwitch'),
+    ('r198-f1-create-ignores-the-hold', J + 'config/ProjectSession.java',
+     '        if (!left.mayLeave()) throw new IOException(left.reason());\n', '',
+     'ProjectLeaveHeldTest#aFullDiskHoldsTheCreate'),
+    ('r198-f1-quit-resaves-a-discard', J + 'config/ProjectSession.java',
+     '        if (activeFile != null && conflict == null && !discarded) requestSave();',
+     '        if (activeFile != null && conflict == null) requestSave();',
+     'ProjectLeaveHeldTest#aHeldQuitDiscardedMayLeave'),
+    ('r198-f3-guard-before-notes', UI + 'ActionExecutor.java',
+     '                    Object notes = b.get("notes");\n',
+     '                    guardedPath(b.get("path"));\n                    Object notes = b.get("notes");\n',
+     'BundleWriteAdmissionTest#rejectedBundleNotesMustNotCreateExchangeDirectory'),
+    ('r198-f3-guard-before-range', UI + 'ActionExecutor.java',
+     '                    if (from != null && to != null && from > to) return ActionResult.error("bundle \'from\' is after \'to\'");',
+     '                    if (from != null && to != null && from > to) { guardedPath(b.get("path")); return ActionResult.error("bundle \'from\' is after \'to\'"); }',
+     'BundleWriteAdmissionTest#aBackwardsRangeMustNotCreateExchangeDirectory'),
+    ('r198-f3-guard-before-availability', UI + 'ActionExecutor.java',
+     '                    if (app == null) return ActionResult.error("\'report\' is not enabled here");\n'
+     '                    var out = guardedPath(b.get("path"));      // B1: the same guard and directory as every verb write\n',
+     '                    var out = guardedPath(b.get("path"));      // B1: the same guard and directory as every verb write\n'
+     '                    if (app == null) return ActionResult.error("\'report\' is not enabled here");\n',
+     'BundleWriteAdmissionTest#unavailableCaptureCreatesNothing'),
+]
