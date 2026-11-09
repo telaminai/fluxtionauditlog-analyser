@@ -750,8 +750,15 @@ public final class SessionEvents {
     public record AssistantTabShown(String origin) {
     }
 
-    /** Dock ({@code docked} true) or pop out the assistant. Presentation only. */
-    public record AssistantHostRequested(boolean docked, String origin) {
+    /**
+     * Dock ({@code docked} true) or pop out the assistant. Presentation only. {@code remember}: the frame keeps it as the
+     * person's choice for the next launch — true for the person's own Dock / Pop out; false for the window Build opens
+     * on their behalf (review of PR #213), which lasts this session only.
+     */
+    public record AssistantHostRequested(boolean docked, String origin, boolean remember) {
+        public AssistantHostRequested(boolean docked, String origin) {
+            this(docked, origin, true);
+        }
     }
 
     /**
@@ -926,7 +933,11 @@ public final class SessionEvents {
      * Continue (or Finish) pressed on {@code step}. {@code keyEntered}: on Other options, whether the key field holds
      * text — never the text; the details reach the settings through the Apply performer, as the cards' do.
      */
-    public record AiSetupContinue(AiSetupState.Step step, boolean keyEntered) {
+    public record AiSetupContinue(AiSetupState.Step step, boolean keyEntered, boolean fullConfirmed) {
+        /** Ordinary setup still uses the separate Full confirmation. */
+        public AiSetupContinue(AiSetupState.Step step, boolean keyEntered) {
+            this(step, keyEntered, false);
+        }
         public AiSetupContinue(AiSetupState.Step step) {
             this(step, false);
         }

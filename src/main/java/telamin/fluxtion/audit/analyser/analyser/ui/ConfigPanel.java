@@ -82,8 +82,8 @@ public final class ConfigPanel extends JDialog {
     // OD-74.26: the PREVIEW banner went when approvals in the analyser (P3) shipped; the warning's substance stays
     static final String FULL_POSTURE_WARNING = "Full Claude Code runs your own Claude Code inside the analyser, as in a "
             + "terminal. It loads your settings and permission rules, skills, plugins, subagents, hooks and MCP servers "
-            + "(including claude.ai connectors), and the folder's own hooks and .mcp.json — these run when you press "
-            + "Start, before you send anything. Claude Code can then use your own tools — Bash, file edits, web access — as "
+            + "(including claude.ai connectors), and the folder's own hooks and .mcp.json — these run when the Claude "
+            + "session starts, before Claude processes your message. Claude Code can then use your own tools — Bash, file edits, web access — as "
             + "far as your permission rules and the mode below allow; the analyser does not confine it to the folder. "
             + "When Claude Code asks for an approval, the analyser asks you in a dialog — Deny is the default — but a call "
             + "your own permission rules, hooks or the auto mode's classifier approve is never asked in the analyser.\n\n"

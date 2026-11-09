@@ -96,6 +96,36 @@ class AiSetupExternalTest {
         }
     }
 
+    /**
+     * Review of PR #213: "Connect another AI client" adds a client. For a person whose in-app assistant answers (an
+     * In-app profile, or a key stored before profiles existed), its Finish keeps the in-app assistant on instead of
+     * applying Off. Witness: apply {@code OFF} at 2b's Finish for every non-Both choice (the pre-fix code) — the profile
+     * assertion fails.
+     */
+    @Test
+    @DisplayName("Connect another AI client keeps an in-app assistant on")
+    void connectAnotherClientKeepsTheInAppAssistantOn() {
+        for (boolean storedKeyOnly : List.of(false, true)) {
+            FakeSessionAdapter a = new FakeSessionAdapter();
+            SessionDriver d = fresh(a, false);
+            d.post(new SessionEvents.RestSwitchObserved(false));
+            if (!storedKeyOnly) d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.IN_APP));
+            d.post(new SessionEvents.StartPageAvailability(false, false, true, false));
+            assertEquals(Choice.IN_APP, setup(d).inForce(), "stored key only: " + storedKeyOnly);
+            d.post(new SessionEvents.AiSetupRequested(Origin.ONBOARD_CLIENT));
+            assertEquals(Step.CLIENT, setup(d).step());
+            accessOn(d, a, 1, AccessOrigin.SETUP);
+            d.post(new SessionEvents.AiSetupContinue(Step.CLIENT));
+            assertEquals(List.of(Client.CLAUDE_CODE), a.clientWrites.stream()
+                    .map(SessionEffects.PersistSetupClientEffect::client).toList(), "the client is remembered");
+            assertEquals(List.of(AssistantProfile.IN_APP), a.profileApplies.stream()
+                    .map(SessionEffects.ApplyAssistantProfileEffect::profile).toList(),
+                    "★ the in-app assistant stays on (stored key only: " + storedKeyOnly + ")");
+            assertTrue(a.fullConfirms.isEmpty());
+            assertEquals(Choice.IN_APP, setup(d).inForce());
+        }
+    }
+
     // ---- ★ T1 (M77-3 rows): your own client, and Both ------------------------------------------------------------------
 
     /**

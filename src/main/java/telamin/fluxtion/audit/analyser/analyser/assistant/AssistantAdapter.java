@@ -71,6 +71,11 @@ public final class AssistantAdapter {
 
         /** Move the assistant between its hosts; null when done, else why not. */
         String showHost(boolean docked);
+
+        /** As {@link #showHost(boolean)}; {@code remember} false: not saved as the person's choice for the next launch. */
+        default String showHost(boolean docked, boolean remember) {
+            return showHost(docked);
+        }
     }
 
     /** Builds the provider client for a route. Replaceable so a test can point the REAL adapter at a local fake server. */
@@ -120,7 +125,7 @@ public final class AssistantAdapter {
                 yield new SessionEvents.AssistantEffectStarted(e.opId(), e.ticket(), "cancelTransport:" + stopped);
             }
             case SessionEffects.ShowAssistantHostEffect e -> {
-                String error = env.showHost(e.docked());
+                String error = env.showHost(e.docked(), e.remember());
                 yield new SessionEvents.AssistantHostShown(e.opId(), error == null ? e.docked() : !e.docked(), error == null,
                         error == null ? "" : error);
             }

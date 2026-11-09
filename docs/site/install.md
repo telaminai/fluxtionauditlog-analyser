@@ -7,6 +7,9 @@
 The app is a single self-contained jar (FlatLaf is bundled) — no installer. With JBang (below) you need nothing else:
 JBang fetches Java 21 if you have none. To run the [plain jar](#plain-download) you need **JDK 21+**.
 
+**Building your first application?** Follow [Start with Claude](start-with-claude.md) for
+the preview launch command and three illustrated steps. The built-in session connects automatically.
+
 ## 1. Install JBang
 
 [JBang](https://www.jbang.dev) runs the analyser and fetches a JDK if you have none. Install it once, then open a new
@@ -51,6 +54,9 @@ After installation, run `analyser [optional-log-file]` from your PATH.
     `--fresh` (or `jbang cache clear`) — JBang otherwise keeps using its cached jar.
 
 ## Starting it for an agent
+
+This section is for an **external** assistant or automation. For Claude Code inside the analyser, follow
+[the built-in workflow and its preview launch command](start-with-claude.md).
 
 ```bash
 java -jar fluxtion-auditlog-analyser.jar --rest        # or: jbang analyser@telaminai/fluxtionauditlog-analyser --rest

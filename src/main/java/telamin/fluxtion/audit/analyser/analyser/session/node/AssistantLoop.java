@@ -314,8 +314,9 @@ public class AssistantLoop implements EventLogSource {
         if (e.docked() == docked) return false;
         docked = e.docked();
         away = "";                                 // the answer moves with the panel: it is never behind a tab now
-        auditLog.info("assistantHost", docked ? "docked" : "window").info("origin", String.valueOf(e.origin()));
-        effects.request(new SessionEffects.ShowAssistantHostEffect(0L, docked));
+        auditLog.info("assistantHost", docked ? "docked" : "window").info("origin", String.valueOf(e.origin()))
+                .info("remember", e.remember());
+        effects.request(new SessionEffects.ShowAssistantHostEffect(0L, docked, e.remember()));
         return changed();
     }
 

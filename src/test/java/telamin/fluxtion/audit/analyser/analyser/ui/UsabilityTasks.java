@@ -683,7 +683,8 @@ final class UsabilityTasks {
     /**
      * T6: from the start page, your own client set up to a checked bridge. M77-3/M77-4: the start page's Connect block is
      * gone; the first-run block's <i>Your own AI client</i> and its <i>Set up my client</i> open Set up AI at Screen
-     * 2b. The scorecard fix (2026-10-18): Screen 2b's own <i>Check connection</i>, under the access switch, asks for
+     * 2b. Onboarding prototype (#213): that choice is now the start page's one <i>Connect another AI client</i> button,
+     * which opens Screen 2b in one click. The scorecard fix (2026-10-18): Screen 2b's own <i>Check connection</i>, under the access switch, asks for
      * access through the OD-77.4 confirmation when it is off, and the confirmation's <i>Turn on access</i> also runs the
      * check — where the integration had the switch, its confirmation, then <i>More options…</i> below the fold.
      */
@@ -692,8 +693,8 @@ final class UsabilityTasks {
             StartPromptFrameTest.session(s.frame);
             run.begin();
             String title = telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE;
-            run.click("choose your own AI client", button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CLIENT_SHORT));
-            run.click("set up my client", button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_MY_CLIENT));
+            // onboarding prototype (#213): the start page's Connect another AI client opens Set up AI at Screen 2b directly
+            run.click("connect another AI client", button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ONBOARD_CLIENT));
             Usability.await("Set up AI opens at your own client", () -> s.setup().open()
                     && s.setup().step() == telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step.CLIENT);
             run.click("check the connection", buttonInWindow(title, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CHECK_CONNECTION));

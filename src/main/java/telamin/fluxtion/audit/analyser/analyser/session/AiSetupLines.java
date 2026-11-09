@@ -30,6 +30,18 @@ public final class AiSetupLines {
     public static final String TITLE = "Set up AI";
     public static final String QUESTION = "How do you want AI to work with " + PRODUCT + "?";
     public static final String FOOTER = "Nothing is sent to an AI model from this window.";
+    public static final String ONBOARD_TITLE = "Start with Fluxtion";
+    public static final String ONBOARD_BUILD = "Build with Claude Code";
+    public static final String ENABLE_BUILD = "Enable Claude Code";
+    public static final String BUILD_CONSENT_TITLE = "Enable Claude Code to build";
+    public static final String ONBOARD_DEMO = "Explore a demo";
+    public static final String ONBOARD_CLIENT = "Connect another AI client";
+    public static final String ONBOARD_DETAILS = "More AI options…";
+    public static final String ONBOARD_NOTE = "Use your Claude Code login to build here, or explore the demo without AI.";
+    public static final String DESCRIBE_APPLICATION = "Describe your application";
+    public static final String BUILD_NEXT = "Describe what you want to build. Your question is placed in the assistant; "
+            + "Send starts Claude Code and asks you to trust its working folder. The private connection is automatic.";
+
     public static final String FIRST_RUN_FOOTER = "Nothing is sent or started until you choose.";
     public static final String SET_UP_LINK = "Set up AI…";
     /**
@@ -281,6 +293,8 @@ public final class AiSetupLines {
      * reach the analyser's approval dialog; Full mode does not promise an approval for every command.
      */
     public static final String ACCEPT_EDITS_NOTE = "File edits and some commands can run without asking; your permission rules still apply.";
+    /** The Build screen's last line: enabling Build sends nothing; only the person's Send starts Claude. */
+    public static final String BUILD_NOTHING_STARTS = "Nothing starts until you enter a message and press Send.";
     /**
      * Owner decision 2026-10-18: the one-line offer when Full Claude Code is already in force in {@code default} and
      * Start building is pressed — the mode is the posture, so Switch begins a new chat.

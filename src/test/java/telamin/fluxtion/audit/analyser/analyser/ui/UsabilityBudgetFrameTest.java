@@ -133,13 +133,16 @@ class UsabilityBudgetFrameTest {
     void aBudgetCatchesAnExtraLabelAndAnExtraStep(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         UsabilityTasks.StateMeasure plain = UsabilityTasks.startPage(tmp.resolve("plain"));
+        // The witness label goes in the first-run block's options row, beside Not now: a row with room to spare, so the
+        // label adds its own words without making the page taller. At the top of the hero (before PR #213) it pushed
+        // more of the now-taller fresh-home page below the fold than it added (226 → 220 on the CI runner).
         UsabilityTasks.StateMeasure more = UsabilityTasks.startPage(tmp.resolve("more"), s -> {
-            var hero = s.startPanel().prompt().getParent();
-            hero.add(new JLabel("One more hint"), 0);
-            hero.revalidate();
+            var row = s.startPanel().aiSetupBlock().notNowButton().getParent();
+            row.add(new JLabel("One more hint"));
+            row.revalidate();
         });
-        // its three words are counted (the taller hero may push a word of the page below the fold)
-        assertTrue(more.words() > plain.words(), "the label's words are counted: " + plain.words() + " → " + more.words());
+        // its three words are counted, and nothing of the page moved below the fold
+        assertEquals(plain.words() + 3, more.words(), "the label's words are counted: " + plain.words() + " → " + more.words());
         List<String> broken = UsabilityBudgets.violations(List.of(more), List.of());
         assertFalse(broken.isEmpty(), "★ a label more is over the start page's budget");
 
@@ -161,14 +164,15 @@ class UsabilityBudgetFrameTest {
         assertFalse(UsabilityBudgets.violations(List.of(), List.of(r)).isEmpty(), "★ a step more is over T7's budget");
 
         // the old T6 route, still possible by hand: the switch, its confirmation, THEN Check connection — one act and one
-        // hesitation more than the fix's route, so T6's act and hesitation budgets both catch a return to it
+        // hesitation more than the fix's route, so T6's act and hesitation budgets both catch a return to it. PR #213:
+        // Screen 2b is now reached by the start page's one Connect another AI client button (Your own AI client and Set
+        // up my client are gone), so the route starts there
         UsabilityTasks.Task oldT6 = new UsabilityTasks.Task("T6", "Set up an external client, the switch first",
                 List.of("client", "connect", "mcp"), (run, dir) -> {
                     try (UsabilityTasks.Session s = new UsabilityTasks.Session(dir, UsabilityTasks.answering(), true)) {
                         StartPromptFrameTest.session(s.frame);
                         run.begin();
-                        run.click("choose your own AI client", Usability.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CLIENT_SHORT));
-                        run.click("set up my client", Usability.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_MY_CLIENT));
+                        run.click("connect another AI client", Usability.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ONBOARD_CLIENT));
                         Usability.await("Screen 2b", () -> s.setup().open() && s.setup().step()
                                 == telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step.CLIENT);
                         run.click("the switch", Usability.buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_SWITCH));
