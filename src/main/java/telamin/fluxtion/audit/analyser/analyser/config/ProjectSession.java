@@ -38,9 +38,67 @@ public final class ProjectSession {
         void saveRequested();
     }
 
+    /**
+     * F1 (#198 review): where this session's writes go. The application writes files; a test injects a writer that fails
+     * the way a full disk or a denied permission does, without filling a disk or depending on file modes.
+     */
+    public interface Writes {
+        /** Write the profile ({@link ProjectProfile#save}). */
+        void saveProfile(Path file, AppConfig config, SettingsShare share) throws IOException;
+
+        /** Write {@code text} to a file that must not exist yet: a rescue copy of unsaved edits. */
+        void writeNew(Path file, String text) throws IOException;
+
+        Writes FILES = new Writes() {
+            @Override
+            public void saveProfile(Path file, AppConfig config, SettingsShare share) throws IOException {
+                ProjectProfile.save(file, config, share);
+            }
+
+            @Override
+            public void writeNew(Path file, String text) throws IOException {
+                Files.writeString(file, text, java.nio.file.StandardOpenOption.CREATE_NEW);
+            }
+        };
+    }
+
+    /**
+     * F1 (#198 review): what leaving the project did — a switch, a create, a close or a quit asks before it proceeds.
+     *
+     * @param outcome  what happened to this session's project edits
+     * @param setAside where unsaved edits were written instead of the profile ({@link Outcome#SET_ASIDE}), else null
+     * @param reason   why leaving is held ({@link Outcome#HELD}), else null
+     */
+    public record Leave(Outcome outcome, String setAside, String reason) {
+        public enum Outcome {
+            /** Nothing unsaved: there was no project, nothing pending, or the pending write landed. */
+            CLEAN,
+            /** The profile could not be written; the edits were written beside it, and {@link #setAside} says where. */
+            SET_ASIDE,
+            /**
+             * Neither the profile nor a rescue copy could be written. The project stays open with its edits in memory,
+             * until the person saves them elsewhere ({@link #setAsideTo}) or discards them ({@link #discardUnsaved}).
+             */
+            HELD
+        }
+
+        static final Leave CLEAN = new Leave(Outcome.CLEAN, null, null);
+
+        /** Whether the transition that asked may go ahead. Only {@link Outcome#HELD} stops it. */
+        public boolean mayLeave() {
+            return outcome != Outcome.HELD;
+        }
+    }
+
     private final AppConfig config;
     private final SettingsShare share;
     private final SaveScheduler scheduler;
+    private Writes writes_ = Writes.FILES;
+
+    /** Test seam: the writer for the profile and its rescue copies. Null restores the file system. */
+    public void setWrites(Writes writes) {
+        this.writes_ = writes == null ? Writes.FILES : writes;
+    }
 
     /** Null while no project is open. */
     private Path activeFile;
@@ -239,7 +297,8 @@ public final class ProjectSession {
     }
 
     public ProjectProfile.LoadResult open(Path file, String expectedDigest) {
-        leave();
+        Leave left = leave();
+        if (!left.mayLeave()) return new ProjectProfile.LoadResult(false, left.reason());
         rememberDefaultsOnce();
         ProjectProfile.LoadResult result = ProjectProfile.load(file, config, share, expectedDigest);
         if (!result.loaded()) {
@@ -275,7 +334,8 @@ public final class ProjectSession {
      * save wrote that over the PREVIOUS project's profile — or over the person's own settings.
      */
     public Created createNew(Path file, ProjectAdoption.Plan plan) throws IOException {
-        leave();
+        Leave left = leave();
+        if (!left.mayLeave()) throw new IOException(left.reason());
         ProjectProfile.Snapshot defaultsBefore = noProjectDefaults;
         rememberDefaultsOnce();
         ProjectProfile.Snapshot before = ProjectProfile.snapshot(config);
@@ -329,8 +389,9 @@ public final class ProjectSession {
      * <p>The app returns to being exactly today's single-config app, which is the backward-compatibility
      * promise in the spec.
      */
-    public void close() {
-        leave();
+    public Leave close() {
+        Leave left = leave();
+        if (!left.mayLeave()) return left;     // F1: held — the project, its settings and its edits stay
         if (noProjectDefaults != null) {
             ProjectProfile.restore(noProjectDefaults, config);
         }
@@ -340,6 +401,7 @@ public final class ProjectSession {
         conflict = null;
         config.activeProjectPath = "";
         dirty = false;
+        return left;
     }
 
     // ---- persistence ----------------------------------------------------------------------------
@@ -375,7 +437,7 @@ public final class ProjectSession {
             return;
         }
         try {
-            ProjectProfile.save(activeFile, config, share);
+            writes_.saveProfile(activeFile, config, share);
             writes++;
             dirty = false;
             adoptBaseline(ProjectProfile.contentDigestOf(activeFile));
@@ -386,6 +448,7 @@ public final class ProjectSession {
             // a read-only checkout or a deleted directory: keep the edit in memory and keep the app
             // usable. Losing the file is not a reason to lose the session.
             lastError = "could not write " + activeFile + ": " + e.getMessage();
+            lastErrorSeen = lastError;
         }
     }
 
@@ -394,39 +457,93 @@ public final class ProjectSession {
     // ---- #177: the profile changed on disk ------------------------------------------------------
 
     /**
-     * Leaving the project (a switch, a close, a quit): write what is pending — and when the write is refused because the
-     * file changed on disk, the window's unsaved edits are NOT dropped. They are written beside the profile, as
-     * {@code <profile>.unsaved-<time>} (never a profile name, so nothing opens it by accident), and
-     * {@link #takeSetAside()} says where. The file on disk is never overwritten without the person's choice, and the
-     * person's edits are never discarded without their knowing.
+     * Leaving the project (a switch, a close, a quit): write what is pending. When that write is refused (the file
+     * changed on disk) or fails (a read-only checkout, a full disk), the window's unsaved edits are NOT dropped: they are
+     * written beside the profile, as {@code <profile>.unsaved-<time>} (never a profile name, so nothing opens it by
+     * accident), and {@link #takeSetAside()} says where.
+     *
+     * <p>F1 (#198 review): when the rescue copy cannot be written either, leaving is {@link Leave.Outcome#HELD}: the
+     * project stays open with its edits in memory, {@link #heldReason()} says why, and every caller that leaves
+     * ({@link #open}, {@link #createNew}, {@link #close}, quitting) must not proceed until the person saves the edits
+     * elsewhere ({@link #setAsideTo}) or discards them ({@link #discardUnsaved}). The decision is made here, once.
      */
-    public void leave() {
+    public Leave leave() {
         flush();
-        if (activeFile == null || !dirty || conflict == null) return;
+        if (activeFile == null || !dirty) return Leave.CLEAN;
         if (preSave != null) preSave.run();
         if (baselineOwn != null && baselineOwn.equals(ownText())) {
             // nothing was edited here since the session last read or wrote the profile (a save forced at quit marks
             // the session dirty with nothing new): there is nothing to keep, so no side file and nothing to report
             dirty = false;
-            return;
+            return Leave.CLEAN;
         }
+        String why = conflict != null ? conflict : String.valueOf(lastErrorSeen);
         String text = ProjectProfile.write(config, share, activeFile);
         String stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        String failure = "no free name beside it";
         for (int n = 0; n < 100; n++) {
             Path side = activeFile.resolveSibling(activeFile.getFileName() + ".unsaved-" + stamp + (n == 0 ? "" : "-" + n));
             try {
-                Files.writeString(side, text, java.nio.file.StandardOpenOption.CREATE_NEW);
+                writes_.writeNew(side, text);
                 setAside = side.toString();
                 dirty = false;
-                return;
+                held = null;
+                return new Leave(Leave.Outcome.SET_ASIDE, setAside, null);
             } catch (java.nio.file.FileAlreadyExistsException taken) {
                 // the next name
             } catch (IOException e) {
-                lastError = "project settings not saved and could not be set aside beside " + activeFile + ": " + e.getMessage();
-                return;
+                failure = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+                break;
             }
         }
+        lastError = "project settings not saved and could not be set aside beside " + activeFile + ": " + failure;
+        return heldLeave(why, failure);
     }
+
+    /** SKELETON (red phase): today's behaviour — the failure is reported, and the caller proceeds. */
+    private Leave heldLeave(String why, String failure) {
+        return Leave.CLEAN;
+    }
+
+    /**
+     * Quitting is leaving. With no conflict known, the quit forces a save first (B-M20-3: the final state, open graphs
+     * included, reaches the profile), then leaves. The caller must not exit while the result is held.
+     */
+    public Leave leaveForQuit() {
+        if (activeFile != null && conflict == null) requestSave();
+        return leave();
+    }
+
+    /** Why leaving is held, or null when it is not (see {@link #leave()}). */
+    public String heldReason() {
+        return activeFile == null ? null : held;
+    }
+
+    /**
+     * The person's choice while leaving is held: write the unsaved project settings to {@code target}, which must not
+     * exist yet. On success the edits are safe, the session is clean, and leaving may proceed; the profile itself is
+     * still not overwritten. On failure nothing changes and the failure is thrown.
+     */
+    public void setAsideTo(Path target) throws IOException {
+        if (activeFile == null) throw new IOException("no project is open");
+        if (preSave != null) preSave.run();
+        writes_.writeNew(target, ProjectProfile.write(config, share, activeFile));
+        setAside = target.toString();
+        dirty = false;
+        held = null;
+    }
+
+    /**
+     * The person's explicit choice while leaving is held: discard this session's unsaved project edits. The in-memory
+     * settings stay as they are until the transition replaces them; nothing is written.
+     */
+    public void discardUnsaved() {
+        dirty = false;
+        held = null;
+    }
+
+    private String held;
+    private String lastErrorSeen;
 
     private String setAside;
 
