@@ -5284,7 +5284,8 @@ public final class MainFrame extends JFrame {
             @Override public void post(Object fact) {
                 SwingUtilities.invokeLater(() -> { if (session != null) session().post(fact); });
             }
-            @Override public String showHost(boolean docked) { return showAssistantHost(docked); }
+            @Override public String showHost(boolean docked) { return showAssistantHost(docked, true); }
+            @Override public String showHost(boolean docked, boolean remember) { return showAssistantHost(docked, remember); }
         }, (route, key) -> assistantClients.create(route, key));
         // M74 UX: under the Off profile no provider counts as configured, though a key may be stored
         assistantPanel.setProviderConfigured(() -> config != null && config.apiKey != null && !config.apiKey.isBlank()
@@ -5817,8 +5818,11 @@ public final class MainFrame extends JFrame {
     private JFrame assistantWindow;
     private JPanel assistantPlaceholder;
 
-    /** Performs the host effect: move the one panel, preserving its draft, selection and scroll. */
-    private String showAssistantHost(boolean docked) {
+    /**
+     * Performs the host effect: move the one panel, preserving its draft, selection and scroll. {@code remember} false
+     * (Build's window): the person's saved Dock / Pop out choice is left as it was.
+     */
+    private String showAssistantHost(boolean docked, boolean remember) {
         java.awt.Point scroll = assistantPanel.scrollPosition();
         if (docked) {
             if (assistantWindow != null) {
@@ -5838,8 +5842,10 @@ public final class MainFrame extends JFrame {
             assistantWindow.setBounds(assistantWindowBounds());
             assistantWindow.setVisible(true);
         }
-        config.assistantPoppedOut = !docked;
-        saveConfigQuietly();
+        if (remember) {
+            config.assistantPoppedOut = !docked;
+            saveConfigQuietly();
+        }
         assistantDock.revalidate();
         assistantDock.repaint();
         assistantPanel.revalidate();
@@ -12743,8 +12749,11 @@ public final class MainFrame extends JFrame {
             case OPEN_SAMPLE -> SwingUtilities.invokeLater(() -> openSampleProject());
             case TOUR -> SwingUtilities.invokeLater(() -> openSampleProject(true));
             case BUILD -> SwingUtilities.invokeLater(() -> {
-                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(
-                        false, "build onboarding"));
+                // the node decided the host (rule 9): its own window, for this session only — not remembered
+                if (e.popOut()) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(
+                            false, "build onboarding", false));
+                }
                 revealAssistant();
                 assistantPanel.focusComposer();
             });

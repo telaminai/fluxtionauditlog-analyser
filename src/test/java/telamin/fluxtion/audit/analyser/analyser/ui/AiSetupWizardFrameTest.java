@@ -241,6 +241,9 @@ class AiSetupWizardFrameTest {
             UnifiedAssistantFrameTest.awaitMode(r.frame, AssistantMode.LOCAL_AGENT);
             r.await(s -> r.assistant().composerArea().isShowing(), "the one composer is visible");
             onEdt(() -> {
+                // review of PR #213: Build's own window lasts this session; the saved Dock / Pop out choice is untouched
+                assertFalse(((AppConfig) field(r.frame, "config")).assistantPoppedOut,
+                        "Build's window is not saved as the person's choice");
                 assertNull(r.frame.fullProfileAsked, "no second confirmation dialog after inline consent");
                 assertEquals("My existing idea", r.assistant().draftText(), "setup preserves a draft");
                 r.assistant().composerArea().setText("Help me build a temperature alert application. Ask what it should do first.");

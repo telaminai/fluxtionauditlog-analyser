@@ -40,4 +40,23 @@ class AnswerAwayTest {
         d.post(new SessionEvents.AssistantHostRequested(false, "test"));
         assertFalse(d.snapshot().assistant().answerBehindTab(), "popped out: the answer is in front again");
     }
+
+    /**
+     * Review of PR #213: Build's own window is for this session only. A host request that is not to be remembered
+     * reaches the frame's host effect as such; an ordinary Dock / Pop out (the panel's button, the window's close) is
+     * remembered. Witness: drop {@code remember} from {@code AssistantLoop.onHostRequested}'s effect — the first
+     * assertion fails, and the frame persists Build's window as the person's choice.
+     */
+    @Test
+    @DisplayName("a temporary pop-out is performed but not remembered; the person's own Dock / Pop out is")
+    void temporaryPopOutIsNotRemembered() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        d.post(new SessionEvents.AssistantHostRequested(false, "build onboarding", false));
+        assertFalse(a.assistantHosts.getLast().docked());
+        assertFalse(a.assistantHosts.getLast().remember(), "★ Build's window is not saved as the person's choice");
+        d.post(new SessionEvents.AssistantHostRequested(true, "the assistant window was closed"));
+        assertTrue(a.assistantHosts.getLast().docked());
+        assertTrue(a.assistantHosts.getLast().remember(), "the person's own Dock is remembered");
+    }
 }

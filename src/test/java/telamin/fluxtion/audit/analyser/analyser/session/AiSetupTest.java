@@ -74,6 +74,7 @@ class AiSetupTest {
         assertTrue(a.fullConfirms.isEmpty(), "the Build screen itself contained the explicit Full confirmation");
         assertEquals(AssistantProfile.FULL, d.snapshot().profiles().profile());
         assertEquals(AiSetupState.Suggested.BUILD, a.suggestedRuns.getLast().suggested());
+        assertTrue(a.suggestedRuns.getLast().popOut(), "the node, not the frame, asks for the assistant's own window");
         assertFalse(setup(d).open());
         assertTrue(a.accessAsks.isEmpty());
         assertTrue(a.accessWrites.isEmpty());
@@ -115,6 +116,7 @@ class AiSetupTest {
         assertEquals(1, a.profileApplies.size(), "returning must not overwrite the chosen permission mode");
         assertEquals(probes, a.claudeProbes.size());
         assertEquals(2, a.suggestedRuns.size());
+        assertTrue(a.suggestedRuns.getLast().popOut(), "the returning builder's Build also asks for the window");
         assertTrue(a.agentStarts.isEmpty());
     }
 
@@ -976,6 +978,7 @@ class AiSetupTest {
         d.post(new SessionEvents.AiSetupSuggestedTaken(AiSetupState.Suggested.OPEN_SAMPLE));
         assertEquals(1, a.suggestedRuns.size(), "★ the frame's existing action is asked for");
         assertEquals(AiSetupState.Suggested.OPEN_SAMPLE, a.suggestedRuns.get(0).suggested());
+        assertFalse(a.suggestedRuns.get(0).popOut(), "only Build asks for the assistant's own window");
         assertFalse(setup(d).open(), "and the window closes");
         assertEquals(0, a.agentSends.size() + a.agentStarts.size() + a.assistantRequests.size(), "nothing is sent");
 

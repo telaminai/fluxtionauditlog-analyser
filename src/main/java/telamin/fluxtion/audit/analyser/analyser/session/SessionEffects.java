@@ -269,8 +269,14 @@ public sealed interface SessionEffects {
     record CancelAssistantTransportEffect(long opId, long ticket) implements SessionEffects {
     }
 
-    /** Put the assistant in its side tab ({@code docked}) or its own window. */
-    record ShowAssistantHostEffect(long opId, boolean docked) implements SessionEffects {
+    /**
+     * Put the assistant in its side tab ({@code docked}) or its own window; {@code remember}: also save it as the
+     * person's choice for the next launch ({@link SessionEvents.AssistantHostRequested#remember()}).
+     */
+    record ShowAssistantHostEffect(long opId, boolean docked, boolean remember) implements SessionEffects {
+        public ShowAssistantHostEffect(long opId, boolean docked) {
+            this(opId, docked, true);
+        }
     }
 
     /**
@@ -343,7 +349,14 @@ public sealed interface SessionEffects {
      * The Summary's suggested first action (§6.4): open the demo sample, or start the guided tour, with the frame's
      * existing actions. Nothing is sent. Answered at once by {@link SessionEvents.AiSetupEffectStarted}.
      */
-    record RunSuggestedActionEffect(long opId, AiSetupState.Suggested suggested) implements SessionEffects {
+    record RunSuggestedActionEffect(long opId, AiSetupState.Suggested suggested, boolean popOut) implements SessionEffects {
+        /**
+         * {@code popOut} (review of PR #213, rule 9): the node decides that the assistant is shown in its own window,
+         * for this session only — the performer never chooses the host.
+         */
+        public RunSuggestedActionEffect(long opId, AiSetupState.Suggested suggested) {
+            this(opId, suggested, false);
+        }
     }
 
     /**

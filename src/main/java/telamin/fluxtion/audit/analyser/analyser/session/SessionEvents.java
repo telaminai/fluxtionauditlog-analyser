@@ -750,8 +750,15 @@ public final class SessionEvents {
     public record AssistantTabShown(String origin) {
     }
 
-    /** Dock ({@code docked} true) or pop out the assistant. Presentation only. */
-    public record AssistantHostRequested(boolean docked, String origin) {
+    /**
+     * Dock ({@code docked} true) or pop out the assistant. Presentation only. {@code remember}: the frame keeps it as the
+     * person's choice for the next launch — true for the person's own Dock / Pop out; false for the window Build opens
+     * on their behalf (review of PR #213), which lasts this session only.
+     */
+    public record AssistantHostRequested(boolean docked, String origin, boolean remember) {
+        public AssistantHostRequested(boolean docked, String origin) {
+            this(docked, origin, true);
+        }
     }
 
     /**

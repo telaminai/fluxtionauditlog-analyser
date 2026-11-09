@@ -684,7 +684,7 @@ public class AiSetup implements EventLogSource {
             if (AssistantProfile.FULL.name().equals(profile)) {
                 effects.request(new SessionEffects.ChooseAssistantModeEffect(0L,
                         AssistantProfile.FULL.mode(), "build onboarding"));
-                effects.request(new SessionEffects.RunSuggestedActionEffect(0L, AiSetupState.Suggested.BUILD));
+                effects.request(buildEffect());
                 return changed();
             }
             openWizard(why, Choice.INSIDE, Step.INSIDE);
@@ -931,7 +931,7 @@ public class AiSetup implements EventLogSource {
             closeWizard();
             startBoxWaiting = false;
             authoringWaiting = false;
-            effects.request(new SessionEffects.RunSuggestedActionEffect(0L, AiSetupState.Suggested.BUILD));
+            effects.request(buildEffect());
             return;
         }
         if (waiting || !wizardOpen) {
@@ -1024,11 +1024,21 @@ public class AiSetup implements EventLogSource {
         if (want == AiSetupState.Suggested.COPY_QUESTION) {
             effects.request(new SessionEffects.CopyToClipboardEffect(0L, SessionEvents.CopyWhat.FIRST_QUESTION, client));
         } else {
-            effects.request(new SessionEffects.RunSuggestedActionEffect(0L, want));
+            effects.request(want == AiSetupState.Suggested.BUILD ? buildEffect()
+                    : new SessionEffects.RunSuggestedActionEffect(0L, want));
         }
         closeWizard();
         line = "";
         return changed();
+    }
+
+    /**
+     * Build's composer: the start page has no docked assistant to show, so the node asks for the assistant's own window —
+     * for this session only (the frame does not save it as the person's Dock / Pop out choice). Review of PR #213,
+     * rule 9: the host is decided here, never by the effect performer.
+     */
+    private SessionEffects.RunSuggestedActionEffect buildEffect() {
+        return new SessionEffects.RunSuggestedActionEffect(0L, AiSetupState.Suggested.BUILD, true);
     }
 
     /** §7.3: the suggested first action, from the choice in force and whether a log is open. */
