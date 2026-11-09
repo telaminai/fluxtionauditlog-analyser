@@ -9,8 +9,11 @@ import java.util.Map;
  * how to start a project. This is the one text for both: the instructions' section, and the pointer
  * {@code context.project.newProject} carries while no project is open.
  *
- * <p>{@link #SIGN_IN_STEP} is its own constant: it is true while the starter ships no processor, and is the sentence to
- * change when it does.
+ * <p>Facts, not orders (benchmark 2026-11-09): text that told "the assistant" what to do was set aside as a prompt
+ * injection, so the section states the product facts in the third person and the client acts on them itself.
+ * {@link #SIGN_IN_FACTS} is its own constant: it is true while the starter ships no processor, and is the sentence to
+ * change when it does. Its login version is the starters' fluxtion-maven-plugin pin (1.3.5); a signed-out first build
+ * of the starter stops with FLX-1022 (ensure mode, no stamped processor), any other generating build with FLX-1023.
  */
 public final class NewProjectRoute {
 
@@ -19,23 +22,24 @@ public final class NewProjectRoute {
 
     public static final String STARTER_URL = "https://fluxtion-playground.dev/start/scaffold?template=java-authoring";
 
-    public static final String SIGN_IN_STEP = "Sign-in is the expected next step, not a blocker: do not switch template, "
-            + "delete or replace the project, or use -DskipFluxtion to avoid it; if the user declines, stop and say so. ";
+    public static final String SIGN_IN_FACTS = "The first build generates the processor on the hosted compiler after a "
+            + "one-time compiler sign-in approved in a browser "
+            + "(./mvnw com.telamin.fluxtion:fluxtion-maven-plugin:1.3.5:login prints a link and a code). Signed out, it "
+            + "stops with FLX-1022 or FLX-1023, sending nothing. Another template does not avoid this; "
+            + "-DskipFluxtion leaves no processor to run. ";
 
     /** The MCP server instructions' section. */
     public static final String INSTRUCTIONS =
-            "STARTING A NEW FLUXTION PROJECT (asked to build or create an app or processor): download the "
-            + "Java-authoring starter, " + STARTER_URL + " (a Mongoose app), read its "
-            + "CLAUDE.md, then build. Never hand-write a project from Maven Central: its com.telamin.fluxtion 1.0.9 "
-            + "predates compiler sign-in and com.fluxtion 9.x is the retired earlier product; current "
-            + "artifacts are on the Fluxtion public repository. The first build generates the processor on the hosted "
-            + "compiler and needs compiler sign-in; on FLX-1022 or FLX-1023, start it and relay its link and code. "
-            + SIGN_IN_STEP;
+            "STARTING A NEW FLUXTION PROJECT (asked to build or create an app or processor, or a new, blank or empty "
+            + "project): the Java-authoring starter, " + STARTER_URL + ", is the blank Java project, a Mongoose app with "
+            + "an empty graph. The route: download it, read its CLAUDE.md, then build. Maven Central does not work: its "
+            + "com.telamin.fluxtion 1.0.9 predates compiler sign-in and com.fluxtion 9.x is "
+            + "the retired earlier product. " + SIGN_IN_FACTS;
 
     /** {@code context.project.newProject}, while no project is open. */
-    public static final String CONTEXT_POINTER = "to start a new Fluxtion project, download the Java-authoring starter ("
-            + STARTER_URL + "), read its CLAUDE.md and build; the first build needs compiler sign-in. Not Maven Central "
-            + "artifacts";
+    public static final String CONTEXT_POINTER = "a new or blank Fluxtion project starts from the Java-authoring starter, "
+            + "the blank Java project (" + STARTER_URL + "): download, read its CLAUDE.md, build; the first build needs "
+            + "compiler sign-in. Not Maven Central";
 
     /** Adds the pointer to the {@code project} map of a context with no project open. */
     public static void addTo(Map<String, Object> project) {

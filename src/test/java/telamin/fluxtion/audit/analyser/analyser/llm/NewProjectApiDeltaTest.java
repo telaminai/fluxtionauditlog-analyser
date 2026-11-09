@@ -65,14 +65,18 @@ class NewProjectApiDeltaTest {
         assertTrue(s.contains("asked to build or create an app or processor"), "when it applies");
         int download = s.indexOf("download"), read = s.indexOf("read its CLAUDE.md"), build = s.indexOf("then build");
         assertTrue(download >= 0 && download < read && read < build, "download, read CLAUDE.md, build — in that order");
-        assertTrue(s.contains("Never hand-write a project from Maven Central"));
-        assertTrue(s.contains("com.telamin.fluxtion 1.0.9") && s.contains("predates compiler sign-in"), "the stale release");
+        assertTrue(s.contains("Maven Central does not work"));
+        assertTrue(s.contains("com.telamin.fluxtion 1.0.9 predates compiler sign-in"), "the stale release");
         assertTrue(s.contains("com.fluxtion 9.x is the retired earlier product"), "the legacy product");
         assertTrue(s.contains("Mongoose"), "what the starter deploys to");
+        assertTrue(s.contains("new, blank or empty project") && s.contains("is the blank Java project"), "blank maps to the starter");
         assertTrue(s.contains("FLX-1022") && s.contains("FLX-1023"), "the signed-out stops");
-        assertTrue(s.endsWith(NewProjectRoute.SIGN_IN_STEP), "the sign-in sentence closes it");
-        assertEquals("Sign-in is the expected next step, not a blocker: do not switch template, delete or replace the "
-                + "project, or use -DskipFluxtion to avoid it; if the user declines, stop and say so. ", NewProjectRoute.SIGN_IN_STEP);
+        assertTrue(s.contains("fluxtion-maven-plugin:1.3.5:login prints a link and a code"), "the pinned login and what it prints");
+        assertTrue(s.endsWith(NewProjectRoute.SIGN_IN_FACTS), "the sign-in facts close it");
+        assertTrue(NewProjectRoute.SIGN_IN_FACTS.contains("-DskipFluxtion leaves no processor to run"));
+        // facts in the third person: no orders to the client (benchmark 2026-11-09 set those aside as injections)
+        for (String order : List.of("not a blocker", "relay", "to avoid it", "say so", "Never ", "do not "))
+            assertFalse(s.contains(order), "no order: " + order);
         assertFalse(s.toLowerCase(java.util.Locale.ROOT).contains(" key"), "compiler sign-in, never a key");
         assertTrue(s.split("\\s+").length <= 115, "short: " + s.split("\\s+").length + " words");
     }
@@ -81,6 +85,7 @@ class NewProjectApiDeltaTest {
     void theContextPointerIsCompactAndAddedOnlyWhereNoProjectIsOpen() throws Exception {
         String p = NewProjectRoute.CONTEXT_POINTER;
         assertTrue(p.contains(NewProjectRoute.STARTER_URL) && p.contains("CLAUDE.md") && p.contains("compiler sign-in"));
+        assertTrue(p.contains("blank Java project"), "blank maps to the starter");
         assertTrue(p.split("\\s+").length <= 30, "a pointer, not a second copy: " + p.split("\\s+").length + " words");
         Map<String, Object> project = new LinkedHashMap<>(Map.of("active", false));
         NewProjectRoute.addTo(project);

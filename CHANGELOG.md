@@ -6,6 +6,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- Describe the blank Java project and its download URL as factual context for assistants, including the new-project MCP pointer.
+
 ## [1.42.0] - 2026-11-09
 
 ### Added
