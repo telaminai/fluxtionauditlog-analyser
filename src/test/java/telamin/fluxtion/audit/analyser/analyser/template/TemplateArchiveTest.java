@@ -25,6 +25,27 @@ class TemplateArchiveTest {
     @TempDir Path temp;
 
     @Test
+    void renamedOnlyAndDualNameZipsInstallExecutableAndChooseOneCheck() throws Exception {
+        for (List<String> checks : List.of(List.of("check-compiler-signin.sh"),
+                List.of("check-fluxtion-key.sh"), List.of("check-fluxtion-key.sh", "check-compiler-signin.sh"))) {
+            Map<String, byte[]> entries = new LinkedHashMap<>();
+            for (String name : checks) entries.put("project/" + name, "#!/bin/sh\nexit 0\n".getBytes());
+            entries.put("project/run.sh", "#!/bin/sh\nexit 0\n".getBytes());
+            var installed = new TemplateArchive().install(zip(entries), temp.resolve("variant-" + checks.hashCode()), "run");
+            String preferred = checks.contains("check-compiler-signin.sh") ? "check-compiler-signin.sh" : "check-fluxtion-key.sh";
+            assertEquals(List.of("./" + preferred, "./run.sh"), TemplateArchive.commandsFor(installed.projectRoot(), false, "run"));
+            assertEquals(List.of("./run.sh"), TemplateArchive.commandsFor(installed.projectRoot(), false, "sign-in-build"));
+            if (!System.getProperty("os.name").startsWith("Windows")) for (String name : checks) {
+                Path script = installed.projectRoot().resolve(name);
+                assertTrue(Files.isExecutable(script), name + " must install executable, including renamed-only archives");
+                Process process = new ProcessBuilder(script.toString()).start();
+                assertTrue(process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS));
+                assertEquals(0, process.exitValue());
+            }
+        }
+    }
+
+    @Test
     void declaredSignInBuildOmitsOnlyTheLegacyGate() throws Exception {
         Map<String, byte[]> entries = new LinkedHashMap<>();
         for (String file : List.of("check-fluxtion-key.sh", "setup.sh", "validate.sh", "generate.sh", "run.sh"))

@@ -49,7 +49,7 @@ The in-app assistant's provider, used only by the *In-app assistant* profile ([A
 
 Regenerating a processor needs no key at all: the build signs in once per machine with
 `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
-(in CI, set `FLUXTION_API_TOKEN`). Build sign-in is not an analyser setting. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in
+(in CI, set `FLUXTION_API_TOKEN`). Build sign-in is not an analyser setting. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it shares the machine sign-in with builds; environment and property overrides can select another account
 ([Connect a compiler account](../getting-started.md#connect-a-compiler-account)).
 
 ## Performance & S3 (machine)
@@ -127,5 +127,5 @@ and restart ([Log-source plugins](../user-guide/plugins.md)).
   panel write the same switches as this tab
   ([Assistant profiles](profiles.md)).
 - **The compiler account**: **AI ▸ Compiler account…**. Its service address is a machine setting
-  (`compilerServiceUrl`, empty by default); its credential is not a setting and is kept in the OS credential store
+  (`compilerServiceUrl`, empty by default); its credential is not a setting and is kept in the shared machine file `~/.fluxtion/credentials`
   ([Connect a compiler account](../getting-started.md#connect-a-compiler-account)).

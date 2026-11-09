@@ -191,16 +191,16 @@ public final class StarterSkills {
      * The first-run steps that regenerate, in the record's order: fixed analyser strings, the only command tokens the
      * substituted text may carry. The run script is not regeneration and never appears.
      */
-    static final List<String> REGENERATION_STEPS = List.of("./check-fluxtion-key.sh", "./setup.sh", "./validate.sh",
+    static final List<String> REGENERATION_STEPS = List.of("./check-compiler-signin.sh", "./check-fluxtion-key.sh", "./setup.sh", "./validate.sh",
             "./generate.sh");
 
     public static final String SIGN_IN_BUILD = "**Compiler sign-in: needed at build.** Follow the project's "
             + "Compiler sign-in instructions in README and its RUNBOOK; Maven validates the saved credential.";
     // RAPID-OFF (2026-11-07): the legacy key route is closed. Generation goes only through compiler sign-in, so an older
     // starter's `keyNeed: build` means sign-in too. Since the playground's RAPID-OFF starters (fluxtion-web #57), a
-    // starter's ./check-fluxtion-key.sh checks sign-in, never a key file, so it stays wherever the record names it and
-    // the regeneration block agrees with the post-install list. Only an explicit sign-in-build starter, which ships no
-    // such script, has none.
+    // starter's ./check-compiler-signin.sh (or older ./check-fluxtion-key.sh) checks sign-in, never a key file.
+    // Either name stays wherever the record names it so regeneration agrees with the post-install list.
+    // Explicit sign-in-build omits either check and delegates authentication to Maven.
     public static final String KEY_BUILD = SIGN_IN_BUILD;
     /**
      * A runtime-generation starter: on builder 1.0.90 an in-process build reads the same stored login as Maven (token
@@ -216,6 +216,7 @@ public final class StarterSkills {
             + "needs it. Regenerating a processor does: `"
             + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN + "`, or `FLUXTION_API_TOKEN` "
             + "in CI.";
+    public static final String SIGN_IN_CHECK = "`./check-compiler-signin.sh` checks that compiler sign-in is set.";
     public static final String KEY_CHECK = "`./check-fluxtion-key.sh` checks that compiler sign-in is set.";
 
     /**
@@ -301,7 +302,7 @@ public final class StarterSkills {
         if (record == null) return null;
         List<String> steps = known(record, REGENERATION_STEPS);
         if ("sign-in-build".equals(record.keyNeed()))
-            steps = steps.stream().filter(step -> !"./check-fluxtion-key.sh".equals(step)).toList();
+            steps = steps.stream().filter(step -> !"./check-fluxtion-key.sh".equals(step) && !"./check-compiler-signin.sh".equals(step)).toList();
         if (!steps.contains("./generate.sh")) return null;
         String key = switch (record.keyNeed()) {
             case "build", "sign-in-build" -> SIGN_IN_BUILD;
@@ -309,7 +310,8 @@ public final class StarterSkills {
             case "none" -> KEY_NONE;
             default -> KEY_UNDECLARED;
         };
-        if (steps.contains("./check-fluxtion-key.sh")) key += " " + KEY_CHECK;
+        if (steps.contains("./check-compiler-signin.sh")) key += " " + SIGN_IN_CHECK;
+        else if (steps.contains("./check-fluxtion-key.sh")) key += " " + KEY_CHECK;
         return "```\n" + String.join("\n", steps) + "\n```\n\n"
                 + "These are this project's regeneration steps, in order, from the analyser's first-run record for its "
                 + "starter.\n" + key + "\n";

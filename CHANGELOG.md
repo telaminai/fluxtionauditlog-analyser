@@ -18,6 +18,23 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - With a project open that declares no exchange directory, screenshots, bundles, reels and rendered reports go to the project's own `analyser-exchange/`, created on first write. Before, they went to the machine-level directory, which could be another project's folder. The reply names the directory. The first write that creates the folder says once, in the reply and on the status line, that you may want to add it to `.gitignore`; the analyser does not edit `.gitignore`. Sessions with no project, the sample project and bundle working copies keep the machine directory (#182).
 - A report's `topology` section with no `focus` now renders the whole authored graph instead of being skipped. One that cannot be drawn (no graph loaded) says why in the PDF and the reply (#183).
 
+## [1.42.1] - 2026-11-09
+
+### Changed
+- Describe the blank Java project and its download URL as factual context for assistants, including the new-project MCP pointer.
+
+## [1.42.0] - 2026-11-09
+
+### Added
+- An assistant connected over MCP is told how to start a new Fluxtion project: the server instructions say to download the Java-authoring starter (`https://fluxtion-playground.dev/start/scaffold?template=java-authoring`), read its CLAUDE.md and build, rather than hand-writing a project from Maven Central (whose `com.telamin.fluxtion` 1.0.9 predates compiler sign-in, and whose `com.fluxtion` 9.x is the retired earlier product). The first build needs compiler sign-in, which is the next step, not a blocker. While no project is open, `context.project.newProject` carries the same pointer.
+- Normalize equivalent compiler addresses, keep MCP sign-in usable when an old keyring is unavailable, and report Maven recovery for migration or store failures. Clarify that migration does not revoke unused devices and Disconnect signs shared-store builds out.
+
+- Let external assistants start, inspect and cancel compiler sign-in with session-owned attempt IDs, validated browser addresses and server-verified results.
+
+- Share compiler sign-in with Maven through the protected machine store, with explicit migration, replacement confirmation and concurrent-change protection.
+
+- Show server-verified compiler account details and diagnostic support identifiers; qualify inactive account overrides and distinguish the account view from external build overrides.
+
 ## [1.41.2] - 2026-11-07
 
 ### Removed

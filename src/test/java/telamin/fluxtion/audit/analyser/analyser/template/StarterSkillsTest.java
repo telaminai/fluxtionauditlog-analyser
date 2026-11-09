@@ -24,6 +24,19 @@ class StarterSkillsTest {
     Path tmp;
 
     @Test
+    void signInCheckNamesAreRecognizedAndOmittedForManagedBuilds() {
+        for (String check : List.of("./check-compiler-signin.sh", "./check-fluxtion-key.sh")) {
+            var record = new StarterSkills.FirstRun(List.of(check, "./setup.sh", "./validate.sh", "./generate.sh", "./run.sh"), "run");
+            String regeneration = StarterSkills.regenerationBlock(record);
+            assertTrue(regeneration.contains(check), regeneration);
+            assertTrue(regeneration.contains("`" + check + "` checks that compiler sign-in is set."), regeneration);
+            assertTrue(StarterSkills.embeddedRunBlock(record).contains(check));
+            String managed = StarterSkills.regenerationBlock(new StarterSkills.FirstRun(record.firstRun(), "sign-in-build"));
+            assertFalse(managed.contains(check), managed);
+        }
+    }
+
+    @Test
     @DisplayName("a Spring, embedded starter gets common + spring + embedded and the playground's design skill and contract")
     void aSpringEmbeddedStarterGetsItsSet() throws Exception {
         var r = new StarterSkills().vendor(tmp, "spring", "embedded");
@@ -320,7 +333,7 @@ class StarterSkillsTest {
             assertFalse(skill.contains("./scripts/run-server.sh"), template + ": the pinned guess is corrected");
             assertTrue(skill.contains("   ```\n   ./run-server.sh\n   ```\n"), skill);
             assertEquals(template.equals("fluxtion-spring-mongoose"), skill.contains(
-                    "runs `./check-fluxtion-key.sh`, `./setup.sh`, `./validate.sh`, `./generate.sh` before it"), skill);
+                    "runs `./check-compiler-signin.sh`, `./setup.sh`, `./validate.sh`, `./generate.sh` before it"), skill);
             assertEquals(pinned(StarterSkills.RUN_MONGOOSE).replace(StarterSkills.MONGOOSE_START_MARKER,
                     StarterSkills.mongooseStartBlock(record)), skill, template + ": only the start block changed");
             String file = "run-mongoose-server/SKILL.md: ";
@@ -335,13 +348,13 @@ class StarterSkillsTest {
     void anEmbeddedStarterGetsItsRunCommand() throws Exception {
         Path project = Files.createDirectories(tmp.resolve("project"));
         var record = recordOf("fluxtion-embedded", false, "run");
-        assertEquals(List.of("./check-fluxtion-key.sh", "./run.sh"), record.firstRun());
+        assertEquals(List.of("./check-compiler-signin.sh", "./run.sh"), record.firstRun());
         var r = new StarterSkills().vendor(project, "", "embedded", record);
         assertNull(r.refusal(), r.refusal());
         String skill = written(project, "run-embedded");
         assertEquals(pinned(StarterSkills.RUN_EMBEDDED).replace(StarterSkills.EMBEDDED_START_MARKER,
                 StarterSkills.embeddedRunBlock(record)), skill);
-        assertTrue(skill.contains("runs `./check-fluxtion-key.sh` before it"), skill);
+        assertTrue(skill.contains("runs `./check-compiler-signin.sh` before it"), skill);
         assertFalse(skill.contains("TODO(bundle)"), "run-embedded carries one marker, now filled");
         assertFalse(Files.exists(project.resolve(".claude/skills/add-a-node")), "not a Spring starter");
     }

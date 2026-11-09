@@ -18,6 +18,22 @@ public interface CredentialStore {
     /** Replace any stored credential with this one, and confirm it reads back. */
     void save(CompilerCredential credential) throws IOException;
 
+    /** Compare the observed sign-in before replacement; shared stores override with a process lock. */
+    default boolean replace(CompilerCredential expected, CompilerCredential replacement) throws IOException {
+        synchronized (this) {
+            if (!java.util.Objects.equals(load().orElse(null), expected)) return false;
+            save(replacement); return true;
+        }
+    }
+
+    /** Delete only the observed sign-in, never a newer one. */
+    default boolean delete(CompilerCredential expected) throws IOException {
+        synchronized (this) {
+            if (!java.util.Objects.equals(load().orElse(null), expected)) return false;
+            delete(); return true;
+        }
+    }
+
     /** Remove the stored credential; removing nothing is not an error. */
     void delete() throws IOException;
 }

@@ -25,9 +25,25 @@ public final class ServiceAddress {
     public static String require(String raw) {
         String reason = refusal(raw);
         if (reason != null) throw new IllegalArgumentException(reason);
-        String s = raw.strip();
-        while (s.endsWith("/")) s = s.substring(0, s.length() - 1);
-        return s;
+        URI uri = URI.create(raw.strip());
+        String scheme = uri.getScheme().toLowerCase(Locale.ROOT);
+        String host = uri.getHost().toLowerCase(Locale.ROOT);
+        int port = uri.getPort();
+        if (("https".equals(scheme) && port == 443) || ("http".equals(scheme) && port == 80)) port = -1;
+        String path = uri.getRawPath() == null ? "" : uri.getRawPath();
+        while (path.endsWith("/")) path = path.substring(0, path.length() - 1);
+        return scheme + "://" + host + (port < 0 ? "" : ":" + port) + path;
+    }
+
+    /** Compare service identity without changing a saved transport hostname (important for TLS). */
+    public static boolean sameOrigin(String first, String second) {
+        try {
+            URI a = URI.create(require(first)), b = URI.create(require(second));
+            String ah = a.getHost().equals("localhost") ? "127.0.0.1" : a.getHost();
+            String bh = b.getHost().equals("localhost") ? "127.0.0.1" : b.getHost();
+            return a.getScheme().equals(b.getScheme()) && ah.equals(bh) && a.getPort() == b.getPort()
+                    && java.util.Objects.equals(a.getRawPath(), b.getRawPath());
+        } catch (IllegalArgumentException e) { return false; }
     }
 
     /** Why {@code raw} is not a usable service address, or null when it is. */

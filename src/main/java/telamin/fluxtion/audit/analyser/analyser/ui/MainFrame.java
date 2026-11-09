@@ -11430,6 +11430,7 @@ public final class MainFrame extends JFrame {
                 }
             } else {
                 proj.put("note", "your own settings — no project is open");
+                telamin.fluxtion.audit.analyser.analyser.llm.NewProjectRoute.addTo(proj);
             }
             // #177: the open profile changed on disk — the session's statement of it, and how to take the file's version;
             // after a close or switch, where the window's unsaved edits were set aside

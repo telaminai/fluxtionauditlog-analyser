@@ -86,10 +86,14 @@ public final class McpBridge {
             + "change what the desktop app shows (filter, graph, goto, flag) and are all reversible. "
             + "The analyser must be running with External MCP/REST access on (Settings > Assistant). "
             + FIRST_MOVE
+            // onboarding arm C (2026-11-09): how to START a project, for a client asked to build one
+            + telamin.fluxtion.audit.analyser.analyser.llm.NewProjectRoute.INSTRUCTIONS
             // M64.6: server instructions are the one text EVERY MCP client is handed before it picks a tool,
             // so this is where "when to point" has to be for it to be general rather than a skill's habit
             + telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.GUIDANCE
                     .replace("`spotlight`", "analyser_spotlight");
+
+    telamin.fluxtion.audit.analyser.analyser.account.CompilerSignInAttempts signIns;
 
     /** Tool list and identity are static for a process, so a client may cache them. */
     private static final long CACHE_TTL_MS = 3_600_000L;
@@ -312,6 +316,7 @@ public final class McpBridge {
                 if (state.abandoned) Thread.interrupted();   // clear only the interrupt this loop raised
             }
             stdin.interrupt();
+            if (signIns != null) signIns.close();
         }
     }
 
@@ -410,7 +415,9 @@ public final class McpBridge {
         if (modern) {
             result.put("resultType", "complete");
         }
-        result.put("tools", hosted ? McpTools.hostedList() : McpTools.list());   // M74 P2: propose, hosted only
+        List<Map<String,Object>> tools = new ArrayList<>(hosted ? McpTools.hostedList() : McpTools.list());
+        if (!hosted) tools.addAll(CompilerSignInTools.list());
+        result.put("tools", tools);   // M74 P2: propose, hosted only
         if (modern) {
             // CacheableResult: required on modern list results; our tool set is fixed for the process
             result.put("ttlMs", CACHE_TTL_MS);
@@ -431,8 +438,33 @@ public final class McpBridge {
      *       amount of re-prompting fixes it; the user has to start the app or enable the socket.</li>
      * </ul>
      */
+    private String signInCall(Object id, String name, Map<?,?> params, boolean modern) {
+        Map<String,Object> data;
+        try {
+            if (!(params.get("arguments") instanceof Map<?,?> args)) throw new IllegalArgumentException();
+            boolean start = CompilerSignInTools.START.equals(name);
+            String key = start ? "compilerOrigin" : "attemptId";
+            if (!(args.get(key) instanceof String value) || value.isBlank() || value.length() > (start ? 2048 : 128))
+                throw new IllegalArgumentException();
+            for (Object k : args.keySet()) if (!key.equals(k) && !(start && "confirmReplaceService".equals(k)))
+                throw new IllegalArgumentException();
+            if (args.containsKey("confirmReplaceService") && !(args.get("confirmReplaceService") instanceof Boolean))
+                throw new IllegalArgumentException();
+            if (signIns == null) signIns = telamin.fluxtion.audit.analyser.analyser.account.CompilerSignInAttempts.standard();
+            data = start ? signIns.start(value, Boolean.TRUE.equals(args.get("confirmReplaceService")))
+                    : CompilerSignInTools.CANCEL.equals(name) ? signIns.cancel(value) : signIns.status(value);
+        } catch (IllegalArgumentException e) { data = Map.of("event","usage_error","message","Invalid sign-in tool arguments."); }
+        Map<String,Object> result = new LinkedHashMap<>();
+        result.put("content",List.of(Map.of("type","text","text",Json.write(data))));
+        result.put("structuredContent",data);
+        result.put("isError", Set.of("usage_error","service_error","unknown").contains(data.get("event")));
+        if (modern) result.put("resultType","complete");
+        return response(id,result);
+    }
+
     private String toolsCall(Object id, Map<?, ?> params, boolean modern) {
         Object rawName = params.get("name");
+        if (!hosted && CompilerSignInTools.owns(rawName)) return signInCall(id, rawName.toString(), params, modern);
         String verb = hosted ? McpTools.hostedVerbFor(rawName == null ? null : rawName.toString())
                 : McpTools.verbFor(rawName == null ? null : rawName.toString());
         if (verb == null) {

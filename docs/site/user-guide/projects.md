@@ -39,7 +39,7 @@ is in both, so there is no rule about which wins.
 | Session-recovery candidates | machine | never | never |
 
 Regenerating a processor needs **compiler sign-in**, which is not an analyser setting: the build signs in with
-`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login` (in CI, `FLUXTION_API_TOKEN`). **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in; its credential is kept in your OS credential store, and neither can enter a profile, a
+`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login` (in CI, `FLUXTION_API_TOKEN`). **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it shares the machine sign-in with builds; environment and property overrides can select another account; its credential is kept in the owner-only shared machine file `~/.fluxtion/credentials`, and neither can enter a profile, a
 settings file or a bundle ([Connect a compiler account](../getting-started.md#connect-a-compiler-account)).
 
 !!! note "A shared settings file cannot turn on External MCP/REST access"
@@ -266,7 +266,7 @@ the relative-path base.
 
     **A profile cannot contain either your LLM API key or your compiler-account credential.** The LLM key
     is outside the project tier, while the credential never enters `AppConfig` at all: it is kept in your
-    OS credential store.
+    shared machine file `~/.fluxtion/credentials`.
 
     The same holds for your AWS profile, your theme and your window size: all machine-tier, none of them
     written to a profile. And paths under your home directory are stored `~`-relative, so a teammate's

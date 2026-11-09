@@ -17,6 +17,8 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 
 ## Delivery order
 
+- ◐ Agent sign-in: review follow-ups add mutation-sensitive safety tests, relocated-home support, equivalent origins and headless recovery; production verification origin and cross-platform acceptance remain release gates ([spec](spec-shared-compiler-sign-in.md)).
+
 - ◧ [INTEG-R7] Desktop acceptance remains open: complete Mac run 326/1/0/3 (T2 right-click control missing plus native skips); final ownership correction passes 21 affected cases. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
 - ☐ [INTEG-R8] Diagnose background EDT ownership exceptions in one passing grouped usability run; no proven production cause or named failing regression yet. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
 - ☐ [INTEG-R9] Owner scope needed for historical host-path redaction and stale screenshots; not introduced by this integration. Preserve evidence while planning the cleanup. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)

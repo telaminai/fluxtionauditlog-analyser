@@ -8,7 +8,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * CA-1: the OS credential stores, and the protected-file fallback, behind {@link CredentialStore}.
+ * The authoritative shared machine file, with previous OS stores retained solely for explicit migration.
+ * The legacy stores below are behind {@link CredentialStore}.
  *
  * <ul>
  *   <li><b>macOS</b>: the login Keychain through {@code /usr/bin/security}. The write goes through the tool's
@@ -31,6 +32,13 @@ public final class CredentialStores {
 
     /** The store this machine should use. */
     public static CredentialStore forThisMachine() {
+        return new SharedCredentialStore(SharedCredentialFile.defaultStore(), legacyForThisMachine());
+    }
+
+    /** Previous Analyser-only store, used solely for explicit one-time migration. */
+    private static CredentialStore legacyForThisMachine() {
+        String isolated = System.getProperty("fluxtion.analyser.legacyStoreFile");
+        if (isolated != null && !isolated.isBlank()) return new ProtectedFileStore(Path.of(isolated));
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         Path home = Path.of(System.getProperty("user.home"), ".fluxtion-analyser");
         if (os.contains("mac") && Files.isExecutable(Path.of(SECURITY))) return keychain(CommandRunner.system(), SERVICE);
