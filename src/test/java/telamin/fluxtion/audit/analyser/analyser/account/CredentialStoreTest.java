@@ -138,10 +138,33 @@ class CredentialStoreTest {
         if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix"))
             assertEquals("rw-------", PosixFilePermissions.toString(Files.getPosixFilePermissions(file)));
         try (var siblings = Files.list(file.getParent())) {
-            assertEquals(List.of(file), siblings.toList(), "no temporary file is left beside it");
+            assertEquals(java.util.Set.of(file, file.resolveSibling(file.getFileName() + ".lock")),
+                    new java.util.HashSet<>(siblings.toList()), "only the persistent process lock remains beside it");
         }
         store.delete();
         assertFalse(Files.exists(file));
+    }
+
+    @Test
+    void legacyFileFormatRemainsReadableAndMigrationRefusesLinks() throws Exception {
+        Path real=temp, source=Files.createDirectory(real.resolve("source"));
+        Path file=source.resolve(ProtectedFileStore.FILE_NAME);
+        // Write the pre-change format independently of the new file adapter.
+        Files.writeString(file,credential().encode());
+        ProtectedFileStore old=new ProtectedFileStore(file);
+        assertEquals(credential(),old.load().orElseThrow());
+        Path link=real.resolve("link");Files.createSymbolicLink(link,source);
+        ProtectedFileStore throughParent=new ProtectedFileStore(link.resolve(ProtectedFileStore.FILE_NAME), real);
+        assertThrows(IOException.class,throughParent::load);
+        assertThrows(IOException.class,()->throughParent.delete(credential()));
+        Files.delete(link);Files.createSymbolicLink(link,file);
+        ProtectedFileStore throughFile=new ProtectedFileStore(link, real);
+        assertThrows(IOException.class,throughFile::load);
+        assertThrows(IOException.class,()->throughFile.delete(credential()));
+        assertTrue(Files.exists(file));
+        CompilerCredential newer=new CompilerCredential("https://compiler.example.com","cred-new","acct-new","synthetic-new");
+        old.save(newer); assertFalse(old.delete(credential()));
+        assertEquals(newer,old.load().orElseThrow());
     }
 
     @Test

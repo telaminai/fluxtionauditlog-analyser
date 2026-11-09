@@ -20,6 +20,16 @@ import static telamin.fluxtion.audit.analyser.analyser.account.StandInCompilerSe
 
 /** CA-1: the device sign-in, usage read and revoke against a loopback stand-in, on a fake clock. */
 class CompilerAccountClientTest {
+    private String previousVerificationOrigin;
+    @org.junit.jupiter.api.BeforeEach void trustFixtureOrigin() {
+        previousVerificationOrigin = System.getProperty("fluxtion.login.verificationOrigin");
+        System.setProperty("fluxtion.login.verificationOrigin", "https://compiler.example.com");
+    }
+    @org.junit.jupiter.api.AfterEach void restoreVerificationOrigin() {
+        if (previousVerificationOrigin == null) System.clearProperty("fluxtion.login.verificationOrigin");
+        else System.setProperty("fluxtion.login.verificationOrigin", previousVerificationOrigin);
+    }
+
 
     private StandInCompilerService service;
     private final AtomicLong clock = new AtomicLong(1_000_000_000L);
@@ -104,9 +114,17 @@ class CompilerAccountClientTest {
         assertTrue(sleeps.get(2) > sleeps.get(1) && sleeps.get(3) > sleeps.get(2), "each transient answer lengthens the wait: " + sleeps);
     }
 
+    @Test void aQueuedAttemptKeepsItsOriginalExpiry() throws Exception {
+        service.expiresIn = 30;
+        DeviceStart pending = start();
+        clock.addAndGet(java.time.Duration.ofSeconds(31).toNanos());
+        assertInstanceOf(CompilerAccountClient.Expired.class, client.await(pending, () -> false));
+        assertEquals(0, service.count("/auth/device/token"));
+    }
+
     @Test
     void transientAnswersAreBounded() throws Exception {
-        service.expiresIn = 100_000;
+        service.expiresIn = 1800;
         service.token("rate_limited");
         Outcome o = client.await(start(), () -> false);
         assertInstanceOf(CompilerAccountClient.Failed.class, o);
@@ -277,6 +295,13 @@ class CompilerAccountClientTest {
             assertTrue(CompilerAccountClient.deviceName(host).matches("[A-Za-z0-9 ._:-]{1,64}"), host);
     }
 
+    @Test void missingSelectedAccountCannotVerifyStoredMetadata() throws Exception {
+        service.token("approved");
+        CompilerCredential c = ((CompilerAccountClient.Approved) client.await(start(), () -> false)).credential();
+        service.meBody = "{}";
+        assertThrows(CompilerAccountClient.AccountException.class, () -> client.me(c));
+    }
+
     @Test
     void ownEmailIsOptionalAndNeverInferredFromAnAccountMember() throws Exception {
         service.token("approved");
@@ -288,7 +313,7 @@ class CompilerAccountClientTest {
         assertEquals("includeEmail=true", service.meQuery);
         service.meBody = service.meBody.replace("\"email\":\"self@example.com\",", "");
         assertNull(client.me(c).email(), "member data cannot supply the signed-in address");
-        service.meBody = "{\"email\":\" \"}";
+        service.meBody = "{\"email\":\" \",\"selectedAccount\":\"acct-demo\"}";
         assertNull(client.me(c).email());
     }
 

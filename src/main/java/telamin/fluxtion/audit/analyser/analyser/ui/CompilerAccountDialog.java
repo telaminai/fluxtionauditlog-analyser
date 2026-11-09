@@ -11,6 +11,7 @@ import telamin.fluxtion.audit.analyser.analyser.account.CompilerAccountClient.Us
 import telamin.fluxtion.audit.analyser.analyser.account.CompilerCredential;
 import telamin.fluxtion.audit.analyser.analyser.account.CredentialStore;
 import telamin.fluxtion.audit.analyser.analyser.account.CredentialStores;
+import telamin.fluxtion.audit.analyser.analyser.account.SharedCredentialStore;
 import telamin.fluxtion.audit.analyser.analyser.account.ServiceAddress;
 import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.core.Background;
@@ -30,6 +31,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.JTextArea;
+import javax.swing.UIManager;
 import javax.swing.ListSelectionModel;
 import javax.swing.plaf.basic.BasicComboBoxEditor;
 import javax.swing.table.DefaultTableModel;
@@ -86,6 +89,9 @@ public final class CompilerAccountDialog extends JDialog {
     static final String CANCEL_SIGN_IN = "Cancel sign-in";
     static final String OPEN_AGAIN = "Open browser again";
     static final String COPY_DETAILS = "Copy details";
+    static final String BUILD_ACCOUNT_NOTE = "This is the shared machine sign-in. Maven/CI overrides may use a different account."
+            + " For a refused build, run mvn fluxtion:account (requires a plugin with the account goal)"
+            + " in that project and share the failure’s account ID and request ID with support.";
     static final String REVOKE_SELECTED = "Revoke selected";
     static final String THIS_MACHINE = " (this machine)";
     static final String DELETION_NOTE = "Deleting the account is not available in the app yet; ask the service's support.";
@@ -168,6 +174,8 @@ public final class CompilerAccountDialog extends JDialog {
     private DeviceStart pending;
     private AtomicBoolean cancelled = new AtomicBoolean();
     private Future<?> signInTask;
+    private CompilerCredential signInPrevious;
+    private boolean migrationChecked;
     private boolean busy;
     private Usage usage;                            // the last reads, for Copy details; null until read
     private Me me;
@@ -285,6 +293,17 @@ public final class CompilerAccountDialog extends JDialog {
         Rows rows = new Rows(accountPanel);
         rows.heading("Account", false);
         for (int i = 0; i < ACCOUNT_ROWS.size(); i++) rows.pair(ACCOUNT_ROWS.get(i), accountValues[i]);
+        JLabel noteStyle = UiText.label("");
+        UiTheme.status(noteStyle);
+        JTextArea buildAccountNote = UiText.plain(new JTextArea(BUILD_ACCOUNT_NOTE));
+        buildAccountNote.setLineWrap(true);
+        buildAccountNote.setWrapStyleWord(true);
+        buildAccountNote.setEditable(false);
+        buildAccountNote.setFocusable(false);
+        buildAccountNote.setOpaque(false);
+        buildAccountNote.setFont(noteStyle.getFont());
+        buildAccountNote.setForeground(noteStyle.getForeground());
+        rows.full(buildAccountNote, 0);
         for (int i = 0; i < PLAN_ROWS.size(); i++) planLabels[i] = rows.pair(PLAN_ROWS.get(i), planValues[i]);
         UiTheme.status(planUnavailable);
         rows.full(planUnavailable, 0);
@@ -541,8 +560,8 @@ public final class CompilerAccountDialog extends JDialog {
         storage.setText("Credential kept in: " + store.description());
         // connected, the field names the service that ISSUED the credential (which usage and revoke go to), not the
         // configured address: the two differ when the setting was changed after connecting
-        if (connected != null && !connected.service().equals(address.getText())) address.setText(connected.service());
-        address.setEditable(connected == null && !signingIn && !busy);
+
+        address.setEditable(!signingIn && !busy);
         addressBox.setEnabled(address.isEditable());   // connected or signing in: the address is fixed, the list shut
         offer(suggestions(config, connected));
         // a read-only address holding the focus shows as a selected field; the focus belongs with the actions then
@@ -554,8 +573,9 @@ public final class CompilerAccountDialog extends JDialog {
             codeHint.setText(codeHint(pending));
             codeExpiry.setText(expiryHint(pending));
         }
-        connect.setEnabled(connected == null && !signingIn && !busy);
-        connect.setVisible(connected == null);
+        connect.setEnabled(!signingIn && !busy);
+        connect.setVisible(true);
+        connect.setText(connected == null ? CONNECT : "Replace sign-in…");
         for (JButton b : List.of(refresh, copyDetails, disconnect, revoke)) b.setVisible(connected != null);
         refresh.setEnabled(connected != null && !busy);
         disconnect.setEnabled(connected != null && !busy);
@@ -636,13 +656,47 @@ public final class CompilerAccountDialog extends JDialog {
         }, (Optional<CompilerCredential> found) -> {
             busy = false;
             connected = found.orElse(null);
+            if (connected != null) address.setText(connected.service());
             render();
-            if (connected != null) refreshUsage();
+            if (!migrationChecked && store instanceof SharedCredentialStore shared) { migrationChecked = true; checkMigration(shared); }
+            else if (connected != null) refreshUsage();
         }, err -> {
             busy = false;
             message.setText(UiText.inert("Could not read the stored credential: " + err.getMessage()));
             render();
         });
+    }
+
+    private void checkMigration(SharedCredentialStore shared) {
+        busy = true; render();
+        Background.run(() -> {
+            try { return shared.migration(); }
+            catch (Exception e) { throw new IllegalStateException(e.getMessage()); }
+        }, migration -> {
+            busy = false;
+            if (migration.isEmpty()) { render(); if (connected != null) refreshUsage(); return; }
+            SharedCredentialStore.Migration m = migration.get();
+            Object[] choices = m.shared() == null ? new Object[]{"Use previous sign-in", "Later"}
+                    : new Object[]{"Keep shared sign-in", "Use previous Analyser sign-in", "Later"};
+            String details = "The Analyser now shares one machine sign-in with builds.\nPrevious Analyser account: "
+                    + m.previous().accountId() + " at " + m.previous().service()
+                    + (m.shared() == null ? "" : "\nShared account: " + m.shared().accountId() + " at " + m.shared().service())
+                    + "\nChoose which to keep. The old Analyser-only local copy will be deleted.\nUnselected device credentials stay active at their issuing services; revoke unused devices under “Your devices” for the corresponding account.";
+            int choice = JOptionPane.showOptionDialog(this, UiText.inert(details), "Share compiler sign-in", JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.QUESTION_MESSAGE, null, UiText.inert(choices), UiText.inert(choices[0].toString()));
+            boolean usePrevious = m.shared() == null ? choice == 0 : choice == 1;
+            if (choice < 0 || choice == choices.length - 1) { render(); return; }
+            busy = true; render();
+            Background.run(() -> {
+                try {
+                    CompilerCredential chosen = usePrevious ? m.previous() : m.shared();
+                    if (!chosen.accountId().equals(client.me(chosen).selectedAccount()))
+                        throw new IllegalStateException("Chosen account could not be verified.");
+                    shared.migrate(m, usePrevious); return chosen;
+                } catch (Exception e) { throw new IllegalStateException(e.getMessage()); }
+            }, chosen -> { connected = chosen; busy = false; render(); refreshUsage(); },
+                err -> { busy = false; message.setText(UiText.inert(err.getMessage())); render(); });
+        }, err -> { busy = false; message.setText(UiText.inert(err.getMessage())); render(); });
     }
 
     private void startSignIn() {
@@ -652,6 +706,10 @@ public final class CompilerAccountDialog extends JDialog {
             return;
         }
         String base = ServiceAddress.require(address.getText());
+        signInPrevious = connected;
+        if (connected != null && !confirm.test("Replace machine sign-in", "Replace the shared sign-in for "
+                + connected.accountId() + " at " + connected.service() + "?\n"
+                + "After approval, this replaces the sign-in used by builds and revokes the old credential.")) return;
         if (!base.equals(config.compilerServiceUrl)) {
             config.compilerServiceUrl = base;
             saveConfig.run();
@@ -687,7 +745,12 @@ public final class CompilerAccountDialog extends JDialog {
 
     private void awaitApproval(DeviceStart started, AtomicBoolean flag) {
         signInTask = Background.run(() -> client.await(started, flag::get), outcome -> {
-            if (flag.get() || pending != started) return;   // cancelled or superseded: its answer is not news
+            if (flag.get() || pending != started) {
+                if (outcome instanceof CompilerAccountClient.Approved a)
+                    Background.run(() -> { try { client.revoke(a.credential()); } catch (Exception ignored) { } return true; },
+                            ignored -> {}, ignored -> {});
+                return;
+            }
             pending = null;
             if (outcome instanceof CompilerAccountClient.Approved a) {
                 storeCredential(a.credential());
@@ -703,14 +766,29 @@ public final class CompilerAccountDialog extends JDialog {
     }
 
     private void storeCredential(CompilerCredential credential) {
+        AtomicBoolean attemptCancelled = cancelled;
+        CompilerCredential previous = signInPrevious;
         busy = true;
         message.setText("Approved. Storing the credential…");
         render();
-        Background.run(() -> {
+        signInTask = Background.run(() -> {
             try {
-                store.save(credential);
+                Me verified = client.me(credential);
+                if (!credential.accountId().equals(verified.selectedAccount()))
+                    throw new IllegalStateException("The service did not confirm the approved account.");
+                synchronized (attemptCancelled) {
+                    if (attemptCancelled.get()) throw new IllegalStateException("Sign-in cancelled before saving.");
+                    if (!store.replace(previous, credential))
+                        throw new IllegalStateException("Another sign-in changed the store; reload and try again.");
+                }
+                if (previous != null && !previous.equals(credential)) {
+                    try { client.revoke(previous); } catch (Exception ignored) { /* stated below */ }
+                }
                 return credential;
             } catch (Exception e) {
+                boolean interrupted = Thread.interrupted();
+                try { client.revoke(credential); } catch (Exception ignored) { }
+                finally { if (interrupted) Thread.currentThread().interrupt(); }
                 throw new IllegalStateException(e.getMessage());
             }
         }, saved -> {
@@ -720,7 +798,8 @@ public final class CompilerAccountDialog extends JDialog {
             List<String> before = List.copyOf(config.recentCompilerServices);
             config.rememberCompilerService(saved.service());
             if (!before.equals(config.recentCompilerServices)) saveConfig.run();
-            message.setText("Connected.");
+            message.setText(previous == null ? "Connected. Shared sign-in saved."
+                    : "Shared sign-in replaced. Check the previous account’s devices if revocation could not be confirmed.");
             render();
             refreshUsage();
         }, err -> {
@@ -743,10 +822,13 @@ public final class CompilerAccountDialog extends JDialog {
         message.setText("Reading the account…");
         render();
         Background.run(() -> {
+            CompilerCredential fresh;
             Usage u;
             try {
-                u = client.usage(c);
-            } catch (CompilerAccountClient.AccountException e) {
+                fresh = store.load().orElse(null);
+                if (fresh == null) return new Read(null, null, null, "Signed out by another client.", null);
+                u = client.usage(fresh);
+            } catch (Exception e) {
                 throw new IllegalStateException(e.getMessage());
             }
             // the account and device reads are extras: either failing still shows the credits, and says what is missing
@@ -754,19 +836,20 @@ public final class CompilerAccountDialog extends JDialog {
             Me m = null;
             List<Device> d = null;
             try {
-                m = client.me(c);
+                m = client.me(fresh);
             } catch (CompilerAccountClient.AccountException e) {
                 missing.add(e.getMessage());
             }
             try {
-                d = client.devices(c);
+                d = client.devices(fresh);
             } catch (CompilerAccountClient.AccountException e) {
                 missing.add(e.getMessage());
             }
-            return new Read(u, m, d, String.join(". ", missing));
+            return new Read(u, m, d, String.join(". ", missing), fresh);
         }, (Read r) -> {
             busy = false;
             if (connected != c) return;   // disconnected or revoked while reading: the answer is not news
+            connected = r.credential;
             usage = r.usage;
             me = r.me;
             if (r.devices != null) showDevices(r.devices);
@@ -779,7 +862,7 @@ public final class CompilerAccountDialog extends JDialog {
         });
     }
 
-    private record Read(Usage usage, Me me, List<Device> devices, String missing) { }
+    private record Read(Usage usage, Me me, List<Device> devices, String missing, CompilerCredential credential) { }
 
     private void showDevices(List<Device> devices) {
         shown.clear();
@@ -833,9 +916,9 @@ public final class CompilerAccountDialog extends JDialog {
     }
 
     private void disconnect() {
-        if (!confirm.test(DISCONNECT, "Delete the credential from this machine?\n"
-                + "The service keeps accepting it until you revoke it.")) return;
-        deleteLocal("Disconnected. The credential was deleted from this machine.");
+        if (!confirm.test(DISCONNECT, "Delete the shared credential from this machine? This signs the Analyser and Maven builds out.\n"
+                + "Environment or explicit build overrides are unchanged. The service keeps accepting the device credential until you revoke it.")) return;
+        deleteLocal("Disconnected. The shared credential was deleted; Maven builds using it are signed out too.");
     }
 
     private void revoke() {
@@ -862,19 +945,20 @@ public final class CompilerAccountDialog extends JDialog {
     }
 
     private void deleteLocal(String done) {
+        CompilerCredential expected = connected;
         busy = true;
         render();
         Background.run(() -> {
             try {
-                store.delete();
-                return Boolean.TRUE;
+                return store.delete(expected);
             } catch (Exception e) {
                 throw new IllegalStateException(e.getMessage());
             }
         }, ok -> {
             busy = false;
             connected = null;
-            message.setText(done);
+            message.setText(ok ? done : "A newer sign-in was retained. Reloading…");
+            if (!ok) loadStored();
             render();
         }, err -> {
             busy = false;
@@ -884,7 +968,7 @@ public final class CompilerAccountDialog extends JDialog {
     }
 
     private void cancelSignIn() {
-        cancelled.set(true);
+        synchronized (cancelled) { cancelled.set(true); }
         pending = null;
         busy = false;
         Future<?> task = signInTask;

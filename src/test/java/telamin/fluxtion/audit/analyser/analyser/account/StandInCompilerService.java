@@ -65,6 +65,7 @@ public final class StandInCompilerService implements AutoCloseable {
     public volatile String usageBody = PLANS_USAGE_BODY;
     public volatile int revokeStatus = 204;
     public volatile String meQuery;
+    public Runnable beforeMe = () -> {};
     public volatile String meBody = "{\"userId\":\"user-demo\",\"selectedAccount\":\"acct-demo\",\"accounts\":["
             + "{\"accountId\":\"acct-other\",\"personal\":false,\"role\":\"member\"},"
             + "{\"accountId\":\"acct-demo\",\"personal\":true,\"role\":\"administrator\"}]}";
@@ -79,6 +80,7 @@ public final class StandInCompilerService implements AutoCloseable {
         credentials.put("cred03", new Object[]{"DEVICE", "device", 1_770_000_000_000L, 1_775_000_000_000L});
     }
     public volatile String verificationUri = "https://compiler.example.com/device";
+    public volatile String verificationUriComplete = "https://compiler.example.com/device?user_code=" + USER_CODE;
     /** When set, the usage read answers 302 to this path on the same stand-in, which records whether it was followed. */
     public volatile String usageRedirect;
 
@@ -130,7 +132,7 @@ public final class StandInCompilerService implements AutoCloseable {
                 status = 200;
                 out = "{\"device_code\":\"" + DEVICE_CODE + "\",\"user_code\":\"" + USER_CODE + "\","
                         + "\"verification_uri\":\"" + verificationUri + "\","
-                        + "\"verification_uri_complete\":\"https://compiler.example.com/device?user_code=" + USER_CODE + "\","
+                        + "\"verification_uri_complete\":\"" + verificationUriComplete + "\","
                         + "\"expires_in\":" + expiresIn + ",\"interval\":" + interval + "}";
             }
             case "/auth/device/token" -> {
@@ -155,6 +157,7 @@ public final class StandInCompilerService implements AutoCloseable {
                 out = status == 200 ? usageBody : "{\"error\":\"unauthorized\"}";
             }
             case "/v1/me", "/v1/credentials" -> {
+                if (path.equals("/v1/me")) beforeMe.run();
                 boolean ok = ("Bearer " + BEARER).equals(ex.getRequestHeaders().getFirst("Authorization"));
                 status = ok ? 200 : 401;
                 out = !ok ? "{\"error\":\"unauthorized\"}" : path.equals("/v1/me") ? meBody : credentialList();

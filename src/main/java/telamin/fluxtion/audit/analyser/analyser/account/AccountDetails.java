@@ -52,7 +52,8 @@ public final class AccountDetails {
                 if (!caps.overrides().isEmpty()) {
                     List<String> o = new ArrayList<>();
                     caps.overrides().forEach((k, v) -> o.add(k + "=" + v));
-                    line(b, "Account overrides", String.join(", ", o));
+                    line(b, "Account overrides", String.join(", ", o)
+                            + ("enterprise".equalsIgnoreCase(caps.plan()) ? "" : " (held; effective only on Enterprise)"));
                 }
             }
             line(b, "Reset", usage.nextReset() == null ? "one-time allowance (no reset)" : usage.nextReset());
@@ -61,6 +62,8 @@ public final class AccountDetails {
         line(b, "Device name", deviceName == null || deviceName.isBlank() ? "not listed" : deviceName);
         line(b, "Analyser version", version);
         line(b, "Time", UTC.format(now));
+        line(b, "Scope", "Analyser connection only; Maven/CI may use a different sign-in.");
+        line(b, "Build refusal", "Include the failed build’s account ID and request ID; these account details do not identify a build attempt.");
         return b.toString();
     }
 

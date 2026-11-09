@@ -71,7 +71,10 @@ class CompilerAccountSafetyTest {
                 "Device name: Fluxtion analyser on demo-host", "Analyser version: 1.38.0", "Time: 2026-10-26 09:30:00 UTC"))
             assertTrue(text.contains(expected), expected + " missing from:\n" + text);
         assertFalse(text.contains("Max event types"), "the retired limit is never a line of its own:\n" + text);
+        assertFalse(text.contains("held; effective only on Enterprise"));
         assertNoCredential(text);
+        assertTrue(text.contains("Analyser connection only; Maven/CI may use a different sign-in."));
+        assertTrue(text.contains("account ID and request ID"));
         assertFalse(text.contains("self@example.com"), "email is not copied into support details");
 
         // a service from before the inputs limit: its maxEventTypes counts event types only, and Copy details says so,
@@ -116,7 +119,7 @@ class CompilerAccountSafetyTest {
     }
 
     @Test
-    void onlyTheDialogAndItsMenuItemReachTheAccountPackage() throws Exception {
+    void onlyExplicitAccountEntrypointsReachTheAccountPackage() throws Exception {
         List<Path> users;
         try (Stream<Path> all = Files.walk(MAIN)) {
             users = all.filter(p -> p.toString().endsWith(".java"))
@@ -129,8 +132,8 @@ class CompilerAccountSafetyTest {
                         }
                     }).map(p -> MAIN.relativize(p)).sorted().toList();
         }
-        assertEquals(List.of(Path.of("analyser/ui/CompilerAccountDialog.java"), Path.of("analyser/ui/MainFrame.java")), users,
-                "a new reader of the compiler account (context, a report, a bundle, a panel) is a decision: route it "
+        assertEquals(List.of(Path.of("analyser/mcp/McpBridge.java"), Path.of("analyser/ui/CompilerAccountDialog.java"), Path.of("analyser/ui/MainFrame.java")), users,
+                "Only the dialog and the explicitly authorised session-owned MCP sign-in boundary may access the account package; other readers must route "
                         + "through the session (rule 9) and keep the credential out of it");
         String main = Files.readString(MAIN.resolve("analyser/ui/MainFrame.java"));
         assertEquals(1, main.split("CompilerAccountDialog", -1).length - 1, "MainFrame only opens the dialog");
