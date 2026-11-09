@@ -109,6 +109,34 @@ class BundleFlagsTest {
     }
 
     @Test
+    @DisplayName("★ re-capturing a received bundle: the on-disk profile's old bundleFlag keys are replaced, never merged")
+    void recaptureReplacesTheReceivedFlags(@TempDir Path tmp) throws Exception {
+        // a received bundle's profile: three flags, each with a fix, kept by the profile writer as unknown keys
+        Path settings = Files.createDirectories(tmp.resolve("p/.analyser")).resolve("project.fluxtion-settings");
+        String received = BundleFlags.append(ProjectProfile.write(new AppConfig(), new SettingsShare(), settings),
+                List.of(new BundleFlags.Flag(0, WalkIdentity.recordDigest("record zero"), "fault", "DEMO old zero", "DEMO old fix zero"),
+                        new BundleFlags.Flag(1, WalkIdentity.recordDigest("record one"), "fault", "DEMO old one", "DEMO old fix one"),
+                        new BundleFlags.Flag(2, WalkIdentity.recordDigest("record two"), "fault", "DEMO old two", "DEMO old fix two")));
+        Files.writeString(settings, received);
+        // the session's settings, as the capture serialises them (the writer keeps the file's unknown keys)
+        String sessionText = ProjectProfile.write(new AppConfig(), new SettingsShare(), settings);
+
+        // the recipient removed two flags and cleared the remaining one's fix
+        var now = List.of(new BundleFlags.Flag(1, WalkIdentity.recordDigest("record one"), "fault", "DEMO new one", null));
+        var p = new java.util.Properties();
+        p.load(new java.io.StringReader(BundleFlags.append(sessionText, now)));
+        assertEquals(now, BundleFlags.read(p), "only the session's flags travel: no removed flag, no stale fix");
+        assertNull(p.getProperty("bundleFlag.0.fix"), "the old first flag's fix does not survive under the new index");
+
+        // and with every flag removed, none of the old ones come back
+        var none = new java.util.Properties();
+        none.load(new java.io.StringReader(BundleFlags.append(sessionText, List.of())));
+        assertEquals(List.of(), BundleFlags.read(none), "a session with no flags carries none");
+        assertTrue(none.stringPropertyNames().stream().noneMatch(k -> k.startsWith("bundleFlag.")),
+                String.valueOf(none.stringPropertyNames()));
+    }
+
+    @Test
     @DisplayName("an excerpt shifts each flag onto the excerpt's numbering, and names a flag outside it as left out")
     void anExcerptShiftsAndLeavesOut() {
         List<String> leftOut = new ArrayList<>();
