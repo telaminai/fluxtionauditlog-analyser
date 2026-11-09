@@ -52,6 +52,32 @@ class BundleWriteAdmissionTest {
         assertEquals(0, app.calls, "no capture may be submitted for invalid arguments");
     }
 
+    /** Review F3 (#198), the reviewer's reproduction: {@code notes: 42} is refused and leaves no folder behind. */
+    @Test
+    void rejectedBundleNotesMustNotCreateExchangeDirectory(@TempDir Path root) {
+        var notices = new ArrayList<String>();
+        var app = new Capture();
+        var result = executor(root, app, notices).render("report",
+                Map.of("bundle", Map.of("path", "DEMO.fexp", "notes", 42)));
+        assertFalse(result.ok());
+        assertEquals("bundle 'notes' is text", result.error());
+        assertFalse(Files.exists(root.resolve("analyser-exchange")), "refused malformed bundle request must create nothing");
+        assertEquals(0, app.calls);
+    }
+
+    /** Review F3 (#198): a range that ends before it starts is refused before any folder is made. */
+    @Test
+    void aBackwardsRangeMustNotCreateExchangeDirectory(@TempDir Path root) {
+        var notices = new ArrayList<String>();
+        var app = new Capture();
+        var result = executor(root, app, notices).render("report",
+                Map.of("bundle", Map.of("path", "DEMO.fexp", "from", 2_000L, "to", 1_000L)));
+        assertFalse(result.ok());
+        assertEquals("bundle 'from' is after 'to'", result.error());
+        assertFalse(Files.exists(root.resolve("analyser-exchange")), "refused backwards range must create nothing");
+        assertTrue(notices.isEmpty());
+    }
+
     @Test
     void unavailableCaptureCreatesNothing(@TempDir Path root) {
         var notices = new ArrayList<String>();
