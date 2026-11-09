@@ -133,13 +133,16 @@ class UsabilityBudgetFrameTest {
     void aBudgetCatchesAnExtraLabelAndAnExtraStep(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         UsabilityTasks.StateMeasure plain = UsabilityTasks.startPage(tmp.resolve("plain"));
+        // The witness label goes in the first-run block's options row, beside Not now: a row with room to spare, so the
+        // label adds its own words without making the page taller. At the top of the hero (before PR #213) it pushed
+        // more of the now-taller fresh-home page below the fold than it added (226 → 220 on the CI runner).
         UsabilityTasks.StateMeasure more = UsabilityTasks.startPage(tmp.resolve("more"), s -> {
-            var hero = s.startPanel().prompt().getParent();
-            hero.add(new JLabel("One more hint"), 0);
-            hero.revalidate();
+            var row = s.startPanel().aiSetupBlock().notNowButton().getParent();
+            row.add(new JLabel("One more hint"));
+            row.revalidate();
         });
-        // its three words are counted (the taller hero may push a word of the page below the fold)
-        assertTrue(more.words() > plain.words(), "the label's words are counted: " + plain.words() + " → " + more.words());
+        // its three words are counted, and nothing of the page moved below the fold
+        assertEquals(plain.words() + 3, more.words(), "the label's words are counted: " + plain.words() + " → " + more.words());
         List<String> broken = UsabilityBudgets.violations(List.of(more), List.of());
         assertFalse(broken.isEmpty(), "★ a label more is over the start page's budget");
 

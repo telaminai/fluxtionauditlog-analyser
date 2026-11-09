@@ -70,8 +70,11 @@ final class UsabilityBudgets {
     /**
      * Linux (the CI runner, under Xvfb): measured 242 on the unchanged page, ui-frame job of run 39175442784 — Linux's
      * fonts fit 18 more words above the fold. Not a regression allowance: a label added to the page still exceeds it.
+     * 242 → 226 (owner, PR #213): TIGHTENED to the measured value. The fresh-home page keeps its question box during
+     * first run and gains the Build / demo / client block, so it is taller and fewer of its words sit above the fold
+     * (ui-frame job of run 42618057529). Nothing was removed from the page to meet it.
      */
-    static final int S1_WORDS_LINUX = 242;
+    static final int S1_WORDS_LINUX = 226;
 
     static int s1Words(String osName) {
         return osName != null && osName.toLowerCase(java.util.Locale.ROOT).contains("linux") ? S1_WORDS_LINUX : S1_WORDS_MACOS;
