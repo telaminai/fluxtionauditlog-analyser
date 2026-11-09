@@ -804,6 +804,28 @@ public final class MainFrame extends JFrame {
     private javax.swing.Timer profileWatchTimer;
     /** #177: the settings before and after the last reload this session performed — for the reload's echo. */
     private Object[] lastProfileReplaced;
+    /**
+     * Follow-up to #198: the last reload's profile key and the digests of what the derived views were worked out from,
+     * before and after ({@link #settingsBasis()}), for the session's {@code DescribeSettingsReplacementEffect}.
+     */
+    private String[] lastReplacedBasis;
+
+    /**
+     * What the project's derived views are worked out from, as digests (never paths): the source roots Design discovery
+     * scans, and the configured log folders the output watch observes, resolved as {@link #observeProjectOutputs} does.
+     */
+    private String[] settingsBasis() {
+        Path root = projectRoot();
+        StringBuilder folders = new StringBuilder();
+        for (var environment : config.environments) {
+            if (environment.logDir() == null) continue;
+            Path dir = root == null ? null : telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(root, environment.logDir());
+            folders.append(dir == null ? environment.logDir() : dir.toString()).append('\n');
+        }
+        return new String[]{
+                telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(String.join("\n", effectiveSourceRoots())),
+                telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(folders.toString())};
+    }
     /** The profile file's metadata when last observed, and which file it was. */
     private Map<String, Object> profileObservation;
 
@@ -5018,7 +5040,10 @@ public final class MainFrame extends JFrame {
                                 .assembleTable(sec, store, this::coverageForReport),
                 row -> openRecordFromReport(row),
                 gname -> { sideTabs.setSelectedComponent(graphTabs); revealGraphByName(gname); },
-                fname -> { sideTabs.setSelectedComponent(topologyPanel); if (fname != null) topologyPanel.recallFocus(fname); },
+                // #198 review F4: a topology section with no focus is the whole graph, so its link shows the whole graph —
+                // it also leaves a focus narrowed earlier, as the topology verb's showAll does
+                fname -> { sideTabs.setSelectedComponent(topologyPanel);
+                    if (fname != null) topologyPanel.recallFocus(fname); else topologyPanel.showAll(); },
                 snap -> snap.applyTo(filter),
                 name -> exportReportPdfWithChooser(name),
                 this::removeReport,
@@ -9385,12 +9410,17 @@ public final class MainFrame extends JFrame {
                 }
                 boolean discarded = project.isDirty();
                 lastProfileReplaced = null;
+                lastReplacedBasis = null;
                 var before = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
+                String[] basisBefore = settingsBasis();
                 var r = project.reload();
                 if (r.loaded()) {
                     renderAfterTheRealWorkIsDone("reloadProfile");
                     lastProfileReplaced = new Object[]{before,
                             telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config)};
+                    String[] basisAfter = settingsBasis();
+                    lastReplacedBasis = new String[]{e.profileKey(), basisBefore[0], basisAfter[0], basisBefore[1], basisAfter[1],
+                            Long.toString(System.currentTimeMillis())};
                     profileObservation = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(project.activeFile());
                 }
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectProfileReloaded(opId,
@@ -9400,6 +9430,14 @@ public final class MainFrame extends JFrame {
                                 : "Project settings not reloaded: "
                                         + telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(r.message()),
                         e.origin());
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DescribeSettingsReplacementEffect e -> {
+                // PERFORM only: say what the reload replaced, as digests. Which views are stale is the session's call.
+                String[] b = lastReplacedBasis != null && lastReplacedBasis[0].equals(e.profileKey())
+                        ? lastReplacedBasis : new String[]{null, null, null, null, null, "0"};
+                lastReplacedBasis = null;
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectSettingsReplaced(opId, e.ticket(), e.profileKey(),
+                        b[1], b[2], b[3], b[4], Long.parseLong(b[5]));
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.KeepProjectProfileEffect e -> {
                 // #177: PERFORM only — the person chose to write this window's version over the file
@@ -14485,11 +14523,11 @@ public final class MainFrame extends JFrame {
                     scanning[0] = false;
                     session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned(
                             e.watch(), e.projectGeneration(), System.currentTimeMillis(),
-                            scan.files().stream().map(this::outputObservation).toList(), scan.complete()));
+                            scan.files().stream().map(this::outputObservation).toList(), scan.complete(), e.basis()));
                 }, failure -> {
                     scanning[0] = false;
                     session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectOutputsScanned(
-                            e.watch(), e.projectGeneration(), System.currentTimeMillis(), java.util.List.of(), false));
+                            e.watch(), e.projectGeneration(), System.currentTimeMillis(), java.util.List.of(), false, e.basis()));
                 });
             });
             timer.setInitialDelay(0); timer.start(); projectOutputsTimer = timer;

@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+
+- A profile reload (*Reload* on the banner, or `open {project, reload: true}`) that changes the source roots now refreshes Design discovery: definitions under the new roots are found, and those found only under the old roots are no longer offered. A discovery that began before the reload is not shown when it finishes. The open log and graph stay open.
+- A profile reload that changes an environment's log folder now moves the watch that offers newly written logs: a log written to the new folder is offered, and the old folder no longer offers anything. Offers already showing and logs opened from them are kept. Logs already in the new folder are not offered as new.
+- In a report's topology section with no focus, *show the whole graph* now shows the whole graph when a narrower focus was applied in the topology view. Before, it only switched to the topology tab.
+
 ## [1.42.2] - 2026-11-09
 
 ### Added

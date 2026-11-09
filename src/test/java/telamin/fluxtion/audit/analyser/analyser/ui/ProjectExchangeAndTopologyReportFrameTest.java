@@ -89,6 +89,56 @@ class ProjectExchangeAndTopologyReportFrameTest {
         }
     }
 
+    static javax.swing.AbstractButton button(java.awt.Container in, String text) {
+        for (java.awt.Component c : in.getComponents()) {
+            if (c instanceof javax.swing.AbstractButton b && text.equals(b.getText())) return b;
+            if (c instanceof java.awt.Container inner) {
+                var found = button(inner, text);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    @DisplayName("★ #198 review F4: with a narrowed focus in force, a report's \"show the whole graph\" link shows the whole graph")
+    void showTheWholeGraphLeavesANarrowedFocus(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = EvidenceCaptureFrameTest.shown(tmp)) {
+            onEdt(() -> render(f.ex, "open", Map.of("graphml", GRAPH.toString())));
+            onEdt(() -> render(f.ex, "open", Map.of("log", LOG.toString())));     // a report needs a loaded log
+            awaitLoaded(f.ex);
+            AtomicReference<Map<String, Object>> saved = new AtomicReference<>();
+            onEdt(() -> saved.set(render(f.ex, "report", Map.of("name", "topo", "title", "DEMO topology",
+                    "sections", List.of(Map.of("kind", "topology"))))));
+            assertNotEquals(Boolean.FALSE, saved.get().get("ok"), "control: the report is saved: " + saved.get());
+            onEdt(() -> render(f.ex, "topology", Map.of("select", "quotePublisher", "scope", "node", "focus", true)));
+            TopologyPanel topology = (TopologyPanel) field(f.frame, "topologyPanel");
+            ReportsPanel reports = (ReportsPanel) field(f.frame, "reportsPanel");
+            AtomicReference<Map<String, Object>> view = new AtomicReference<>();
+            onEdt(() -> view.set(topology.cursorState()));
+            assertEquals(1, view.get().get("contextDepth"), "control: a narrowed focus is in force: " + view.get());
+            Object narrowed = view.get().get("visibleNodes");
+
+            AtomicReference<javax.swing.AbstractButton> link = new AtomicReference<>();
+            onEdt(() -> {
+                reports.refresh();
+                reports.select("topo");
+                link.set(button(reports, "show the whole graph"));
+            });
+            assertNotNull(link.get(), "the report's topology section offers the whole graph");
+            onEdt(() -> link.get().doClick());
+
+            onEdt(() -> view.set(topology.cursorState()));
+            assertEquals(0, view.get().get("contextDepth"),
+                    "★ the link shows the whole graph (red before: it only switched tabs, the focus stayed): " + view.get());
+            assertNotEquals(narrowed, view.get().get("visibleNodes"), "every node is back in view: " + view.get());
+            AtomicReference<java.awt.Component> tab = new AtomicReference<>();
+            onEdt(() -> tab.set(((javax.swing.JTabbedPane) field(f.frame, "sideTabs")).getSelectedComponent()));
+            assertSame(topology, tab.get(), "and the topology view is the one shown");
+        }
+    }
+
     @Test
     @DisplayName("#183: with no graph loaded, a topology section says why it was not rendered — in the reply, never silently")
     @SuppressWarnings("unchecked")

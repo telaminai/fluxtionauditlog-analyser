@@ -117,6 +117,11 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
                 "bundleFlags");
         // #177: the open profile changed on disk — offered, never silently overwritten or reloaded
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectProfileOnDisk(effects), "profileOnDisk");
+        // follow-up to #198 (F2): an accepted reload replaced the settings — which derived views (Design discovery, the
+        // output watch) are stale is decided here; designSession and projectOutputs act on it. Not a session boundary.
+        var settingsReplacement = new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectSettingsReplacement(
+                activeProject, effects);
+        cfg.addNode(settingsReplacement, "settingsReplacement");
         cfg.addNode(openLog, "openLog");
         cfg.addNode(openGraph, "openGraph");
         cfg.addNode(boundary, "sessionBoundary");
@@ -163,7 +168,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         localAgent.setActionListener(actionListener);
         cfg.addNode(localAgent, "localAgentSession");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectOutputs(
-                activeProject, openBundle, localAgent, gate, boundary, effects), "projectOutputs");
+                activeProject, openBundle, localAgent, gate, boundary, settingsReplacement, effects), "projectOutputs");
         // M74 P3 (§5.7, §8.3): permission prompts in the analyser — which requests reach the person, the one dialog, the
         // single-use grants. It PUSHES into localAgentSession, so it runs first for a fact both handle: on Stop the
         // pending request is answered deny before the interrupt is asked for (§4.5)
@@ -215,7 +220,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects), "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(openLog, gate, effects), "evidenceCapture");
-        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate, effects), "designSession");
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate, settingsReplacement, effects), "designSession");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate), "sessionRecovery");
 
         // WITH a level: invocation tracing is compiled in, so every node that runs appears in the record

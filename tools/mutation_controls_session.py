@@ -3038,3 +3038,54 @@ CONTROLS += [
      '                    if (app == null) return ActionResult.error("\'report\' is not enabled here");\n',
      'BundleWriteAdmissionTest#unavailableCaptureCreatesNothing'),
 ]
+
+# Follow-up to #198 (review F2 and the deferred watched-log folders; review F4): an accepted profile reload replaces the
+# settings without being a session boundary. settingsReplacement asks what was replaced and decides which derived views
+# are stale; designSession rediscovers, projectOutputs reinstalls its watch under a new basis. Headless witnesses on the
+# generated processor, except F4's link, which is a frame witness for the display run.
+REPLACED = 'ProjectSettingsReplacedTest#'
+CONTROLS += [
+    ('r198f-reload-asks-nothing', NODE + 'ProjectSettingsReplacement.java',
+     '        if (!e.ok() || e.profileKey() == null) return false;',
+     '        if (true) return false;',
+     'ReviewPr198ReloadDiscoveryTest#acceptedReloadMustRefreshDesignDiscovery'),
+    ('r198f-stale-replacement-accepted', NODE + 'ProjectSettingsReplacement.java',
+     '        if (ticket == 0 || e.ticket() != ticket || !Objects.equals(e.profileKey(), profileKey)\n'
+     '                || project.generation() != projectGeneration) {',
+     '        if (false) {',
+     REPLACED + 'aStaleReplacementIsWithheld'),
+    ('r198f-same-basis-is-replaced', NODE + 'ProjectSettingsReplacement.java',
+     '        return before == null || after == null || !before.equals(after);',
+     '        return true;',
+     REPLACED + 'aReloadThatKeepsTheRootsKeepsDiscovery'),
+    ('r198f-design-keeps-old-roots', NODE + 'DesignSession.java',
+     '        auditLog.info("designDiscovery", "sourceRootsReplaced");\n        requestDiscovery();\n',
+     '        auditLog.info("designDiscovery", "sourceRootsReplaced");\n',
+     REPLACED + 'aTwoRootReloadRediscoversAndKeepsTheLogAndGraph'),
+    ('r198f-watch-not-reinstalled', NODE + 'ProjectOutputs.java',
+     '        effects.request(new SessionEffects.ObserveProjectOutputsEffect(0, watch, projectGeneration, profile));\n',
+     '',
+     REPLACED + 'aReloadReinstallsTheOutputWatchForTheNewLogFolders'),
+    ('r198f-stale-scan-accepted', NODE + 'ProjectOutputs.java',
+     '        if (e.basis() != basis) return false;', '',
+     REPLACED + 'aReloadReinstallsTheOutputWatchForTheNewLogFolders'),
+    ('r198f-reinstall-not-baselined', NODE + 'ProjectOutputs.java',
+     '            if (rebaseline && before == null && file.revision().modifiedNanos() < rebaselineBeforeNanos)\n'
+     '                consumed.put(key, file.revision());\n', '',
+     REPLACED + 'aReloadReinstallsTheOutputWatchForTheNewLogFolders'),
+    ('r198f-reinstall-swallows-new-logs', NODE + 'ProjectOutputs.java',
+     ' && file.revision().modifiedNanos() < rebaselineBeforeNanos)', ')',
+     REPLACED + 'aReloadReinstallsTheOutputWatchForTheNewLogFolders'),
+    ('r198f-reinstall-drops-offers', NODE + 'ProjectOutputs.java',
+     '        watching = false; rebaseline = true; basis++;',
+     '        clear(); rebaseline = true; basis++;',
+     REPLACED + 'aReloadReinstallsTheOutputWatchForTheNewLogFolders'),
+    ('r198f-bundle-copy-watched', NODE + 'ProjectOutputs.java',
+     '        if (profile == null || watch == 0 || bundle.provenance().fromBundle()) return false;',
+     '        if (profile == null || watch == 0) return false;',
+     REPLACED + 'aBundleWorkingCopyReloadKeepsOwnership'),
+    ('r198f-whole-graph-link-keeps-focus', UI + 'MainFrame.java',
+     '                    if (fname != null) topologyPanel.recallFocus(fname); else topologyPanel.showAll(); },',
+     '                    if (fname != null) topologyPanel.recallFocus(fname); },',
+     'ProjectExchangeAndTopologyReportFrameTest#showTheWholeGraphLeavesANarrowedFocus'),
+]

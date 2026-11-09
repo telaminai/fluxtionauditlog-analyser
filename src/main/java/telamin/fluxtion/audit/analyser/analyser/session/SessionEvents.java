@@ -369,6 +369,24 @@ public final class SessionEvents {
     public record ProjectProfileKept(long opId, String profileKey, boolean ok, String message) implements Result { }
 
     /**
+     * Follow-up to #198 (review F2): what an accepted reload replaced, answering
+     * {@link SessionEffects.DescribeSettingsReplacementEffect}. The settings the project's derived views were worked out
+     * from — its source roots and its configured log folders — each as a digest before and after the reload, never as
+     * paths. A digest is null when the adapter could not say (no reload of that profile was performed): unknown is
+     * treated as replaced. {@code ticket} is the request's, so a late answer to an older reload is withheld.
+     * {@code reloadedAtMillis} is when the reload replaced the settings (0: not known): a file in a new log folder
+     * modified before it was already there, and one modified after it is a new output.
+     */
+    public record ProjectSettingsReplaced(long opId, long ticket, String profileKey, String sourceRootsBefore,
+                                          String sourceRootsAfter, String logFoldersBefore, String logFoldersAfter,
+                                          long reloadedAtMillis) implements Result {
+        public ProjectSettingsReplaced(long opId, long ticket, String profileKey, String sourceRootsBefore,
+                                       String sourceRootsAfter, String logFoldersBefore, String logFoldersAfter) {
+            this(opId, ticket, profileKey, sourceRootsBefore, sourceRootsAfter, logFoldersBefore, logFoldersAfter, 0L);
+        }
+    }
+
+    /**
      * #178: what putting a bundle's flags back found — how many it carried, how many were put back, and one line per
      * flag withheld because its record is missing or its text differs from the flagged record's.
      */
@@ -2137,9 +2155,17 @@ public final class SessionEvents {
                                               boolean analyserOwned, java.util.List<Long> logDirRefs) implements Result {
         public ProjectOutputsBasisObserved { logDirRefs = java.util.List.copyOf(logDirRefs); }
     }
+    /**
+     * {@code basis} is the {@link SessionEffects.WatchProjectOutputsEffect#basis} the scan was made under: a scan begun
+     * before a reload reinstalled the watch for new log folders names the old one, and is withheld.
+     */
     public record ProjectOutputsScanned(long watch, long projectGeneration, long atMillis,
-                                        java.util.List<ProjectOutputsState.File> files, boolean complete) {
+                                        java.util.List<ProjectOutputsState.File> files, boolean complete, long basis) {
         public ProjectOutputsScanned { files = java.util.List.copyOf(files); }
+        public ProjectOutputsScanned(long watch, long projectGeneration, long atMillis,
+                                     java.util.List<ProjectOutputsState.File> files, boolean complete) {
+            this(watch, projectGeneration, atMillis, files, complete, 0L);
+        }
     }
     public record ProjectOutputChanged(long watch, long projectGeneration, long change,
                                         ProjectOutputsState.File file) implements Result {

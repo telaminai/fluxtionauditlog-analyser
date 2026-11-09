@@ -201,6 +201,113 @@ class ProfileChangedOnDiskFrameTest {
         }
     }
 
+    // ---- follow-up to #198: an accepted reload refreshes the views worked out from the settings it replaced ----------
+
+    static telamin.fluxtion.audit.analyser.analyser.session.SessionDriver driver(AsyncOpenInterleavingFrameTest.Frame f) {
+        return (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session");
+    }
+
+    /** Edit the profile on disk as another tool would: {@code edit} changes a copy of what the file holds. */
+    static void editOnDisk(Path file, java.util.function.Consumer<AppConfig> edit) throws Exception {
+        var share = new SettingsShare();
+        AppConfig other = new AppConfig();
+        ProjectProfile.load(file, other, share);
+        edit.accept(other);
+        Files.writeString(file, ProjectProfile.write(other, share, file));
+    }
+
+    static Path springDefinition(Path root) throws Exception {
+        Files.createDirectories(root);
+        return Files.writeString(root.resolve("design.xml"),
+                "<beans><bean class='com.acme.FluxtionSpringConfig'/></beans>").toRealPath();
+    }
+
+    static List<String> discovered(AsyncOpenInterleavingFrameTest.Frame f) {
+        return driver(f).processor().designSession.discovery().files().stream()
+                .map(telamin.fluxtion.audit.analyser.analyser.design.DesignDiscovery.FileRef::path).toList();
+    }
+
+    /** Reload through the socket, as {@code open {project, reload: true}} does, once the frame has seen the change. */
+    @SuppressWarnings("unchecked")
+    static void reload(AsyncOpenInterleavingFrameTest.Frame f, Path dir) throws Exception {
+        onEdt(() -> f.frame.observeProfile(false));
+        WalkPlaybackFrameTest.await("the banner offers the change", () -> f.frame.profileBanner.isVisible());
+        AtomicReference<Map<String, Object>> reply = new AtomicReference<>();
+        onEdt(() -> reply.set(render(f.ex, "open", Map.of("project", dir.toString(), "reload", true))));
+        assertEquals(Boolean.TRUE, ((Map<String, Object>) reply.get().get("opened")).get("reloaded"), "control: reloaded " + reply.get());
+    }
+
+    @Test
+    @DisplayName("★ #198 review F2: a reload that moves the source root from A to B discovers B's design, drops A's, and keeps the log and graph")
+    void aReloadThatMovesTheSourceRootRediscovers(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path dir = seeded(tmp);
+        Path file = ProjectProfile.pathFor(dir);
+        Path a = springDefinition(dir.resolve("root-a"));
+        Path b = springDefinition(dir.resolve("root-b"));
+        editOnDisk(file, c -> { c.sourceRoots.clear(); c.sourceRoots.add(dir.resolve("root-a").toString()); });
+        Path graph = Path.of("src/test/resources/topology/demo-quote-processor.graphml").toAbsolutePath();
+        try (var f = EvidenceCaptureFrameTest.shown(tmp)) {
+            open(f, dir);
+            onEdt(() -> render(f.ex, "open", Map.of("graphml", graph.toString())));
+            WalkPlaybackFrameTest.await("A's design is discovered", () -> discovered(f).equals(List.of(a.toString())));
+            AtomicReference<String> log = new AtomicReference<>();
+            AtomicReference<String> shownGraph = new AtomicReference<>();
+            onEdt(() -> {
+                log.set(driver(f).processor().openLog.logPath());
+                shownGraph.set(driver(f).processor().openGraph.graphPath());
+            });
+            assertNotNull(log.get(), "control: a log is open");
+            assertNotNull(shownGraph.get(), "control: a graph is open");
+
+            editOnDisk(file, c -> { c.sourceRoots.clear(); c.sourceRoots.add(dir.resolve("root-b").toString()); });
+            reload(f, dir);
+
+            WalkPlaybackFrameTest.await("★ B's design is discovered and A's is gone (red before: A's stayed until a reopen)",
+                    () -> discovered(f).equals(List.of(b.toString())));
+            onEdt(() -> {
+                assertEquals(log.get(), driver(f).processor().openLog.logPath(), "★ the log stays open: a reload is not a switch");
+                assertEquals(shownGraph.get(), driver(f).processor().openGraph.graphPath(), "★ and so does the graph");
+                assertNotNull(field(f.frame, "store"), "the log's records are still loaded");
+            });
+        }
+    }
+
+    @Test
+    @DisplayName("★ #198 follow-up: a reload that changes an environment's log folder — a log written to the new folder is offered, the old folder no longer offers")
+    void aReloadThatChangesTheLogFolderMovesTheWatch(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path dir = seeded(tmp);
+        Path file = ProjectProfile.pathFor(dir);
+        Path logsA = Files.createDirectories(dir.resolve("logs-a"));
+        Path logsB = Files.createDirectories(dir.resolve("logs-b"));
+        editOnDisk(file, c -> { c.environments.clear();
+            c.environments.add(new telamin.fluxtion.audit.analyser.analyser.config.Environment("DEMO", "DEMO run", "logs-a")); });
+        try (var f = EvidenceCaptureFrameTest.shown(tmp)) {
+            open(f, dir);
+            WalkPlaybackFrameTest.await("the output watch has its baseline",
+                    () -> (boolean) field(driver(f).processor().projectOutputs, "baseline"));
+
+            editOnDisk(file, c -> { c.environments.clear();
+                c.environments.add(new telamin.fluxtion.audit.analyser.analyser.config.Environment("DEMO", "DEMO run", "logs-b")); });
+            reload(f, dir);
+
+            Files.copy(EvidenceCaptureFrameTest.DEMO_LOG, logsA.resolve("old-folder.yaml"));
+            Files.copy(EvidenceCaptureFrameTest.DEMO_LOG, logsB.resolve("new-folder.yaml"));
+            AtomicReference<List<String>> offered = new AtomicReference<>(List.of());
+            long until = System.currentTimeMillis() + 30_000;
+            while (System.currentTimeMillis() < until && offered.get().stream().noneMatch(s -> s.endsWith("new-folder.yaml"))) {
+                onEdt(() -> offered.set(driver(f).processor().projectOutputs.state().offers().stream()
+                        .map(o -> o.file().shown()).toList()));
+                Thread.sleep(100);
+            }
+            assertTrue(offered.get().stream().anyMatch(s -> s.endsWith("new-folder.yaml")),
+                    "★ a log written to the new folder is offered (red before: the watch kept the old folders): " + offered.get());
+            assertTrue(offered.get().stream().noneMatch(s -> s.endsWith("old-folder.yaml")),
+                    "★ the old folder no longer produces offers: " + offered.get());
+        }
+    }
+
     /** F1: a writer that fails every write as a full disk does. */
     static telamin.fluxtion.audit.analyser.analyser.config.ProjectSession.Writes diskFull() {
         return new telamin.fluxtion.audit.analyser.analyser.config.ProjectSession.Writes() {

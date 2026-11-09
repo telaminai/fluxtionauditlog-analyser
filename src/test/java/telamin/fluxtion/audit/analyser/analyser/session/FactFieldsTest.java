@@ -115,6 +115,10 @@ class FactFieldsTest {
                 "ProjectProfileObserved.profileKey", "ProjectProfileObserved.onDiskDigest",
                 "ProjectProfileObserved.sessionDigest", "ProjectProfileChoice.profileKey",
                 "ProjectProfileReloaded.profileKey", "ProjectProfileKept.profileKey",
+                // follow-up to #198: what a reload replaced — the profile's key and the bases' digests, never paths
+                "ProjectSettingsReplaced.profileKey", "ProjectSettingsReplaced.sourceRootsBefore",
+                "ProjectSettingsReplaced.sourceRootsAfter", "ProjectSettingsReplaced.logFoldersBefore",
+                "ProjectSettingsReplaced.logFoldersAfter",
                 // #178: the bundle's identity (its manifest digest)
                 "BundleFlagsRestored.bundleIdentity")) {
             M74.put(c, Holds.DIGEST);

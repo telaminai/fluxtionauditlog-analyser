@@ -251,14 +251,11 @@ does not switch, close or quit. The project stays open with your edits, and a di
 saved elsewhere or discarded, what you asked for goes ahead. An agent's `open {close: "project"}` gets the same reason
 as an error, and nothing is closed.
 
-!!! note "Known limitations of Reload"
-    Reload replaces the project settings, but two views worked out from the old settings are not refreshed:
-
-    - **Design discovery.** After a reload that changes source roots, reopen the project to refresh Design discovery.
-      Until then, the Design view keeps offering the definitions it found under the old source roots.
-    - **Watched log folders.** The watch that offers newly written logs keeps the log folders the project had when it
-      was opened. After a reload that changes them, close and reopen the project so the new folders are watched and
-      the old ones are not.
+After a reload, the views worked out from the project settings follow the file. If the source roots changed,
+Design discovery looks again under the new roots, and definitions found only under the old ones are no longer
+offered. If an environment's log folder changed, the watch that offers newly written logs moves to the new folders:
+a log written there is offered, and the old folders no longer offer anything. Logs already in a new folder when you
+reload are not offered as new, the same as when a project is opened.
 
 An agent reads the same state as `context.project.profileOnDisk`, and takes the file's version with
 `open {project: "<the open profile>", reload: true}`. Without `reload`, opening the project already in force

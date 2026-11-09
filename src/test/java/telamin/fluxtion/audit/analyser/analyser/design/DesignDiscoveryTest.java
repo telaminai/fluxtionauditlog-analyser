@@ -66,7 +66,7 @@ class DesignDiscoveryTest {
         assertEquals("builder", found.kind());
         assertEquals("source-scan", found.source());
         var state = new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(
-                new telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate(),
+                new telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate(), null,
                 new telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue());
         assertTrue(state.discovered(new DesignEvents.DiscoveryCompleted(found,state.discoveryGeneration())));
         String note = String.valueOf(state.echo().get("note"));
@@ -80,7 +80,7 @@ class DesignDiscoveryTest {
         assertTrue(found.files().isEmpty());
         assertEquals("source-scan",found.source());
         var state=new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(
-                new telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate(),
+                new telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate(), null,
                 new telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue());
         state.discovered(new DesignEvents.DiscoveryCompleted(found,state.discoveryGeneration()));
         assertTrue(state.discoveryNote().startsWith("No readable design found."));

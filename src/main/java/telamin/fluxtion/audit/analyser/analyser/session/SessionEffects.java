@@ -19,8 +19,9 @@ public sealed interface SessionEffects {
 
     record ObserveProjectOutputsEffect(long opId, long watch, long projectGeneration, String profilePath)
             implements SessionEffects { }
+    /** {@code basis} counts the watch's installs: a reload that changes the log folders reinstalls it under a new one. */
     record WatchProjectOutputsEffect(long opId, long watch, long projectGeneration, long rootRef,
-                                    java.util.List<Long> logDirs, int pollMillis) implements SessionEffects {
+                                    java.util.List<Long> logDirs, int pollMillis, long basis) implements SessionEffects {
         public WatchProjectOutputsEffect { logDirs = java.util.List.copyOf(logDirs); }
     }
     record StopProjectOutputsWatchEffect(long opId, long watch) implements SessionEffects { }
@@ -81,6 +82,12 @@ public sealed interface SessionEffects {
 
     /** #177: read the active profile again, replacing the in-memory project settings — the person or the socket asked. */
     record ReloadProjectProfileEffect(long opId, String profileKey, String origin) implements SessionEffects { }
+
+    /**
+     * Follow-up to #198 (review F2): an accepted reload replaced the project's settings — say what it replaced, as
+     * digests ({@link SessionEvents.ProjectSettingsReplaced}). The session decides which derived views are stale.
+     */
+    record DescribeSettingsReplacementEffect(long opId, long ticket, String profileKey) implements SessionEffects { }
 
     /** #177: write this session's version over the newer file on disk — only ever on the person's choice. */
     record KeepProjectProfileEffect(long opId, String profileKey) implements SessionEffects { }
