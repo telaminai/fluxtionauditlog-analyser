@@ -427,7 +427,7 @@ class BundleProvenanceFrameTest {
             openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
             onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "leak.fexp"))));
             assertEquals("WRITTEN", awaitDecided(f).get("phase"));
-            Path fexp = dir.resolve("leak.fexp");
+            Path fexp = EvidenceCaptureFrameTest.written(f);   // #182: under the open project's analyser-exchange/
 
             openBundleAndWait(f, fexp);
             onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(anchored))));

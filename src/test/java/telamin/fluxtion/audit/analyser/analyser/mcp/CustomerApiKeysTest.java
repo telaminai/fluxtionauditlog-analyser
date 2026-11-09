@@ -186,7 +186,8 @@ class CustomerApiKeysTest {
     /** The parameters added since 1.35.1, by verb — optional, additive: nothing released changed for them. */
     static final Map<String, List<String>> VERB_PARAMS_ADDITIVE = Map.of(
             "graph", List.of("restore"),   // owner 2026-10-18: a deleted or replaced chart can be restored
-            "source", List.of("text"));    // owner 2026-10-18: the requested lines as data (read-only, capped)
+            "source", List.of("text"),     // owner 2026-10-18: the requested lines as data (read-only, capped)
+            "open", List.of("reload"));    // #177: re-read the OPEN project's profile from disk (optional, boolean)
 
     /** The headers 1.35.1's bridge sent on every {@code /action} call. */
     static final Set<String> HEADERS_RELEASED = Set.of("Content-Type", "X-Analyser-Token");

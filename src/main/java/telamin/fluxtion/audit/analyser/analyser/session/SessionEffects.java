@@ -74,6 +74,25 @@ public sealed interface SessionEffects {
     record RestoreBundleAnchorEffect(long opId, String bundleSource) implements SessionEffects { }
 
     /**
+     * #177: the open project's profile changed on disk — OFFER the person the choice (reload from disk, or keep this
+     * session's version). Never a reload by itself: whose version wins is the person's to say.
+     */
+    record OfferProjectProfileReloadEffect(long opId, String profileKey, String reason) implements SessionEffects { }
+
+    /** #177: read the active profile again, replacing the in-memory project settings — the person or the socket asked. */
+    record ReloadProjectProfileEffect(long opId, String profileKey, String origin) implements SessionEffects { }
+
+    /** #177: write this session's version over the newer file on disk — only ever on the person's choice. */
+    record KeepProjectProfileEffect(long opId, String profileKey) implements SessionEffects { }
+
+    /**
+     * #178: put the flags this bundle carries back on the bundle's log, generation {@code generation} — each only on a
+     * record whose text has the digest it was flagged with. {@code bundleFlags} decided that this log is the bundle's;
+     * the adapter reads the working copy's profile, compares the records and reports what it put back and what not.
+     */
+    record RestoreBundleFlagsEffect(long opId, long generation, String bundleIdentity) implements SessionEffects { }
+
+    /**
      * Start a new, empty project at this path and make it the loaded one.
      *
      * <p>Distinct from {@link LoadProfileEffect} rather than a flag on it, because it is a different

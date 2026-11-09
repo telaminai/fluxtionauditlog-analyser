@@ -77,5 +77,6 @@ the contiguous run, in file order, from the first at or after `from` to the last
 ## Before you send it
 
 - **Size.** A whole-log bundle is about the size of its log, compressed. Use an excerpt for a big log.
-- **Findings as walks.** Flags do not travel. A walk step with a caption on the record says the same thing, and it
-  does travel.
+- **Flags travel with their records.** Each flag's note, fix and kind is packed with the digest of the record it is
+  on, so a report's *finding* sections arrive with their text. A flag outside an excerpt's window is left out, and
+  the capture names it. Flag text passes the same path redaction as every other kept value.

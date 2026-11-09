@@ -98,6 +98,34 @@ public final class WalkIdentity {
         return saved.equals(now) ? State.CURRENT : State.HISTORICAL;
     }
 
+    /**
+     * #179: whether two run bases describe the SAME FILE CONTENT — their file digests equal, whatever record count each
+     * carries. The count is how many records the session served, and the same bytes can be served as different counts:
+     * Follow holds back an unterminated last record that a cold open includes. So a reopen of the identical file is a
+     * new generation with the same content, and record targets — each bound by its own digest — are current against
+     * it. Charts are NOT: their population is the served records, so {@link #compareRuns} (digests AND count) stays
+     * their rule. Unknown on either side is UNRESOLVED; any differing digest is HISTORICAL.
+     */
+    public static State compareContent(List<String> saved, List<String> now) {
+        List<String> a = filesOf(saved), b = filesOf(now);
+        if (a.isEmpty() || b.isEmpty()) return State.UNRESOLVED;
+        return a.equals(b) ? State.CURRENT : State.HISTORICAL;
+    }
+
+    /** The record count a run basis carries, or -1 when it carries none. */
+    public static long recordsOf(List<String> basis) {
+        if (basis == null) return -1;
+        for (String s : basis) if (s != null && s.startsWith("records:")) {
+            try { return Long.parseLong(s.substring("records:".length())); } catch (NumberFormatException e) { return -1; }
+        }
+        return -1;
+    }
+
+    private static List<String> filesOf(List<String> basis) {
+        if (basis == null) return List.of();
+        return basis.stream().filter(s -> s != null && !s.startsWith("records:")).toList();
+    }
+
     /** The worse of two states, for a step's summary: never better than its worst required target. */
     public static State worse(State a, State b) {
         if (a == State.UNRESOLVED || b == State.UNRESOLVED) return State.UNRESOLVED;

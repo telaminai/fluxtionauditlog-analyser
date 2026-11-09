@@ -6,6 +6,25 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- `open {project, reload: true}` re-reads the open project's profile from disk, replacing the in-memory project settings (the reply says what it replaced and whether unsaved edits were discarded); the log and graph stay open (#177).
+
+### Fixed
+
+- Malformed or unavailable evidence-bundle capture requests no longer create the project's default exchange directory before being refused.
+- Switching, creating or closing a project, or quitting, no longer discards unsaved project edits when neither the profile nor the `.unsaved-<time>` file beside it can be written (a read-only folder, a full disk). The analyser stays on the project with the edits, before anything is closed, and asks: save the edits to another file, discard them, or keep the project open. An agent's `open {close: "project"}` gets the reason as an error.
+- An edit made to the open project's `.analyser/project.fluxtion-settings` outside the analyser is no longer overwritten by auto-save. The analyser notices the change, shows a banner with *Reload* / *Keep mine* / *Not now*, and keeps its own edits in memory until you choose. `context.project.profileOnDisk` states the change. If you switch or close the project, or quit, while *Not now* stands, unsaved edits are written beside the profile as `project.fluxtion-settings.unsaved-<time>`, and the status line names the file. Leaving or quitting with no edits of your own writes no such file. After *Not now*, the banner comes back when the file changes on disk again (#177).
+- Evidence bundles now carry flag text. Each flag's note, fix and kind travels anchored to its record's digest and is put back only on a record with the same text, so a report's finding sections arrive with their text. A missing or changed record gets no flag, and `context.project.bundle.flags` says which and why. Capturing a bundle again from a received one carries only the flags you have now (#178).
+- A saved walk that points at records stays current when the identical log file is reopened, even if a different number of records is served. A followed log holds back its unterminated last record and a cold open includes it. Any content change is still historical. A chart walk on the same bytes now says why it is historical, instead of "saved against a different run" (#179).
+- With a project open that declares no exchange directory, screenshots, bundles, reels and rendered reports go to the project's own `analyser-exchange/`, created on first write. Before, they went to the machine-level directory, which could be another project's folder. The reply names the directory. The first write that creates the folder says once, in the reply and on the status line, that you may want to add it to `.gitignore`; the analyser does not edit `.gitignore`. Sessions with no project, the sample project and bundle working copies keep the machine directory (#182).
+- A report's `topology` section with no `focus` now renders the whole authored graph instead of being skipped. One that cannot be drawn (no graph loaded) says why in the PDF and the reply (#183).
+
+### Known limitations
+
+- After a profile reload that changes source roots (*Reload* on the banner, or `open {project, reload: true}`), Design discovery still shows what it found under the old roots. Reopen the project to refresh Design discovery.
+- After a profile reload that changes the configured log folders, the watch that offers newly written logs still watches the old folders. Close and reopen the project.
+
 ## [1.42.1] - 2026-11-09
 
 ### Changed
@@ -22,7 +41,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - Share compiler sign-in with Maven through the protected machine store, with explicit migration, replacement confirmation and concurrent-change protection.
 
 - Show server-verified compiler account details and diagnostic support identifiers; qualify inactive account overrides and distinguish the account view from external build overrides.
-
 
 ## [1.41.2] - 2026-11-07
 

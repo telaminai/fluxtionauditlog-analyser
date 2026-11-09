@@ -304,6 +304,10 @@ public final class SessionDriver {
             case SessionEffects.OpenBundleEvidenceEffect ignored -> "openBundleEvidence";
             case SessionEffects.RememberBundleAnchorEffect ignored -> "rememberBundleAnchor";
             case SessionEffects.RestoreBundleAnchorEffect ignored -> "restoreBundleAnchor";
+            case SessionEffects.RestoreBundleFlagsEffect ignored -> "restoreBundleFlags";
+            case SessionEffects.OfferProjectProfileReloadEffect ignored -> "offerProjectProfileReload";
+            case SessionEffects.ReloadProjectProfileEffect ignored -> "reloadProjectProfile";
+            case SessionEffects.KeepProjectProfileEffect ignored -> "keepProjectProfile";
             case SessionEffects.OfferProjectReopenEffect ignored -> "offerProjectReopen";
             case SessionEffects.ShowProjectReopenEffect ignored -> "showProjectReopen";
             case SessionEffects.CreateProfileEffect ignored -> "createProfile";

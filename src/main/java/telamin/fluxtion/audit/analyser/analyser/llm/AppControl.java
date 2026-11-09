@@ -144,6 +144,14 @@ public interface AppControl {
     }
 
     /**
+     * #177 — {@code open {project, reload: true}}: with the project already open, read its profile from disk again.
+     * Default: an implementor written before #177 opens as before, and says the reload was not performed.
+     */
+    default ActionResult openProject(String path, boolean reload) {
+        return openProject(path);
+    }
+
+    /**
      * M73 — {@code open {project: dir, create}}: {@code create} is {@code Boolean.TRUE} for the preview (writes
      * nothing, returns the discovery offer with its digest) or a {@code Map} of what to adopt for the apply (creates
      * the project and makes it active, never over an existing one). Called OFF the event thread: discovery walks the

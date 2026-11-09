@@ -152,7 +152,8 @@ public final class ReportResolver {
             case CHART -> graphNames != null && graphNames.contains(s.ref())
                     ? new SectionResolution(i, s.kind(), true, null, null, null)
                     : unresolved(i, s, "graph '" + s.ref() + "' is not defined");
-            case TOPOLOGY -> focusNames != null && focusNames.contains(s.ref())
+            // #183: no focus is the whole authored graph — resolved here; whether a graph is loaded is the renderer's to say
+            case TOPOLOGY -> s.ref() == null || focusNames != null && focusNames.contains(s.ref())
                     ? new SectionResolution(i, s.kind(), true, null, null, null)
                     : unresolved(i, s, "focus '" + s.ref() + "' is not defined");
             case SERIES -> {

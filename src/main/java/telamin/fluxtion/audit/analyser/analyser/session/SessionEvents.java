@@ -336,6 +336,49 @@ public final class SessionEvents {
         }
     }
 
+    /**
+     * #177: what the adapter saw of the open project's profile file: its content digest now and the digest this session
+     * last read or wrote. Reported when the file's metadata moved, and when a save was refused because they differ. The
+     * session decides what that means; equal digests are not a change.
+     */
+    public record ProjectProfileObserved(String profileKey, String onDiskDigest, String sessionDigest, boolean saveRefused) { }
+
+    /**
+     * #177: the person's (or the socket's) answer to a changed profile. {@code profileKey} names the profile by digest
+     * (a fact never carries an absolute path, spec §4.1); the adapter compares it with the open profile's.
+     */
+    public record ProjectProfileChoice(String profileKey, ProfileChoice choice, String origin) { }
+
+    /**
+     * #177: leaving the project (switch, close, quit) while the file had changed on disk, the window's unsaved edits were
+     * written beside the profile rather than dropped. {@code shown} is that file as {@code …/name}, never its path.
+     */
+    public record ProjectProfileSetAside(String shown) { }
+
+    /** #182: a write made the open project's default exchange directory; {@code shown} is its {@code …/name}. */
+    public record ProjectExchangeCreated(String shown) { }
+
+    /** #177: the three answers. LATER keeps both: nothing is written over the file, and nothing is reloaded. */
+    public enum ProfileChoice { RELOAD, KEEP_MINE, LATER }
+
+    /** #177: the reload was performed — or was not, and why. */
+    public record ProjectProfileReloaded(long opId, String profileKey, boolean ok, String message, String origin)
+            implements Result { }
+
+    /** #177: this session's version was written over the file — or was not, and why. */
+    public record ProjectProfileKept(long opId, String profileKey, boolean ok, String message) implements Result { }
+
+    /**
+     * #178: what putting a bundle's flags back found — how many it carried, how many were put back, and one line per
+     * flag withheld because its record is missing or its text differs from the flagged record's.
+     */
+    public record BundleFlagsRestored(long opId, long generation, String bundleIdentity, int carried, int restored,
+                                      java.util.List<String> withheld) implements Result {
+        public BundleFlagsRestored {
+            withheld = java.util.List.copyOf(withheld == null ? java.util.List.of() : withheld);
+        }
+    }
+
     /** Facts extracted from a verified bundle, before any active project is changed. */
     /**
      * @param profilePath the profile INSIDE the unpacked working copy

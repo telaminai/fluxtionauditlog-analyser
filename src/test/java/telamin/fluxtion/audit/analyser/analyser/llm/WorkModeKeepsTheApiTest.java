@@ -75,17 +75,20 @@ class WorkModeKeepsTheApiTest {
     // flag kind default change: flag's kind gained the neutral 'note', now the default for a new finding — the
     // two schema maps, the two tool lists and the in-process manifest moved; FlagKindApiDeltaTest proves undoing exactly
     // that gives the earlier pins back (its BEFORE), and every older *ApiDeltaTest peels it first
+    // #177 (the latest layer, after the flag-kind change): open {reload} — one optional parameter and two manifest lines —
+    // moved the same five surfaces again; ProjectReloadApiDeltaTest proves undoing exactly that gives the flag-kind pins
+    // back (its BEFORE = FlagKindApiDeltaTest.AFTER), and holds these (its AFTER)
     static final Map<String, String> PINNED = Map.ofEntries(
             // COMBINED (M80 PR2's node synonym + this branch's line-range grammar), recomputed for the merged text —
             // SpotlightLineRangeApiDeltaTest peels this branch's text off first, then M80DesignApiDeltaTest's, landing
             // on the pins the chain held before either (StarterProposeApiDeltaTest.BEFORE / GraphRestoreApiDeltaTest.BEFORE
             // / SourceTextApiDeltaTest.BEFORE, all unchanged).
-            Map.entry("VerbSchemas.all", "1200748e764954a8ac229ae9d5c4297000a361e44e7bf8a6259dec70560c1c12"),
+            Map.entry("VerbSchemas.all", "bff18ff3b6c2b9cb2154d2a6d5ccba4f6278e2512174045aed1fa861966ed1a1"),
             // Option 2 (owner, 2026-10-18): the HOSTED propose gained the starter kind — never an external client's
             // surface (propose is hosted-only); StarterProposeApiDeltaTest proves undoing it gives the earlier pins back
-            Map.entry("VerbSchemas.hosted", "5218b99c3052899b848104c9c55c6cc523a51f3201d044d194308369a974c57f"),
-            Map.entry("McpTools.list", "bfdb1203d7486c5ff0cf1e6d19b8648c5cbac2d8203cee6d8c8c880cf0901872"),
-            Map.entry("McpTools.hostedList", "413f8954eb879f9e0e1e0077db9701a965a4f01aff63c23f8a52675ce8e46885"),
+            Map.entry("VerbSchemas.hosted", "69d31b6eba664d46b40cfce3c050bd5599488530e1b67ffa8c4b081bca4edd84"),
+            Map.entry("McpTools.list", "1c944ccb7e43652bb379b6ae0c331890fc9caef8689dc57f23ad26ef19b18fbb"),
+            Map.entry("McpTools.hostedList", "abcb97f9a66d3874e3b258cde899c45131549e9d46848317050781abf4505587"),
             // stranger authoring trial (2026-10-25): the instructions gained McpBridge.FIRST_MOVE (r2: plus its flag step), and only that;
             // FirstMoveApiDeltaTest proves removing it gives the earlier pin (fdcf8b03…) back.
             // Onboarding arm C (2026-11-09): then gained NewProjectRoute.INSTRUCTIONS, and only that;
@@ -93,7 +96,7 @@ class WorkModeKeepsTheApiTest {
             // Facts, not orders (2026-11-09 benchmark): that section rewritten in the third person, the starter named as
             // the blank Java project; only NewProjectRoute.INSTRUCTIONS moved (was c554e1ca…), the delta still holds
             Map.entry("McpBridge.INSTRUCTIONS", "7eec6c6c1801630cfbebe3a99a0bbd201dced2a0b23ddaec536454bf7637fce2"),
-            Map.entry("PromptBuilder.inProcessActionManifest", "edbf0498f259e609e7e7b8f03eaad26106df929d008e9232fc31001899a14a46"),
+            Map.entry("PromptBuilder.inProcessActionManifest", "99046876c6e3ff88a0368eecbc6c5300f056e0ec4e4fcb085e0b113b43a44441"),
             Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
             Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),
             Map.entry("context.handoff derived, none", "1623b4af915aef11455cfc7a7587804fa90504f869dde67de3f5177393a04679"),

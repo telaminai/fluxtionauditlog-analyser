@@ -28,7 +28,7 @@ Every command and operation that reports on a bundle states them:
 | `manifest.json` | every member's path, sha256 and size, plus the limits. Its sha256 is the bundle's **identity** |
 | `log/<file>` | the whole log, byte for byte, or an **excerpt** of it, stated in the manifest |
 | `graph/<file>.graphml` | the graph that was open, if one was |
-| `profile/project.fluxtion-settings` | saved charts and named focuses, reports and walks, hidden columns |
+| `profile/project.fluxtion-settings` | saved charts and named focuses, reports and walks, hidden columns, and the flags: each one's note, fix and kind, tied to its record by that record's digest |
 | `notes/NOTES.md` | your account, when you gave one |
 | `replay/<file>` | the run's replay records, only in a format 2 bundle captured with `replay` |
 
@@ -36,7 +36,6 @@ Every command and operation that reports on a bundle states them:
 
 | left behind | why |
 |---|---|
-| **flags** | they are not exported or packed: on your machine only local session recovery keeps them, for the same unchanged log. Put a finding in a walk step's caption or a report's narrative instead: a report's *finding* section shows a flag, so on the recipient's side it shows as unresolved, naming the missing flag |
 | **a chart with an external CSV series or markers** | its data is a file on your machine, so its path would point at nothing on theirs. It is left out and named |
 | **source roots, Maven repos, processors, runbooks, environments, keys, assistant settings** | these describe your machine. Leaving all of them out means nothing can quietly point somewhere else on the recipient's machine |
 

@@ -296,6 +296,8 @@ public final class PromptBuilder {
                 + "  open   {log | logs[], graphml?, processor?, format?, provenance?, design?, diagnostics?} -> open an audit log and/or a\n"
                 + "          processor graph; {discover: \"graphml\"} lists candidate graphs and opens nothing;\n"
                 + "          {project} applies a project (a session boundary: log and graph close);\n"
+                + "          {project, reload: true} on the project already open re-reads its profile from disk (an outside edit;\n"
+                + "          unsaved edits are discarded, the log and graph stay open);\n"
                 + "          {project: <absolute dir>, create: true} PREVIEWS creating one there (writes nothing; returns\n"
                 + "          the discovery offer + offerDigest); {project, create: {sourceRoots?, skills?, referenceGuide?,\n"
                 + "          offerDigest?}} creates it with what you name from the offer — never over an existing project,\n"

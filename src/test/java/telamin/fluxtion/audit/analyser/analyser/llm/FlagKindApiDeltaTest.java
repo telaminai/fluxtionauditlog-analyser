@@ -18,9 +18,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * {@code kind}/{@code note}/{@code fix} descriptions and the in-process manifest's flag line that state it. No verb or
  * parameter was added or renamed.
  *
- * <p>This is the LATEST layer of the pin chain: {@link SpotlightLineRangeApiDeltaTest#withoutLineRange} peels it off
- * first, so every older {@code *ApiDeltaTest} reaches its own pins unchanged. {@link #BEFORE} is the state just before
- * this change (the pins {@link WorkModeKeepsTheApiTest#PINNED} held at 1.40.3); {@link #AFTER} is what it holds now.
+ * <p>One layer of the pin chain, under #177's open {reload} ({@link ProjectReloadApiDeltaTest}, the latest):
+ * {@link SpotlightLineRangeApiDeltaTest#withoutLineRange} peels #177 then this off first, so every older
+ * {@code *ApiDeltaTest} reaches its own pins unchanged. {@link #BEFORE} is the state just before this change (the pins
+ * {@link WorkModeKeepsTheApiTest#PINNED} held at 1.40.3); {@link #AFTER} is the state after it and before #177
+ * ({@link ProjectReloadApiDeltaTest#BEFORE}).
  *
  * <p>Witness: change any other word of the flag schema, or another verb's schema — the reverted digest no longer
  * matches {@link #BEFORE} and the named surface fails.
@@ -87,12 +89,14 @@ class FlagKindApiDeltaTest {
         Set<String> changed = new TreeSet<>();
         for (var surface : WorkModeKeepsTheApiTest.surfaces().entrySet()) {
             String key = surface.getKey();
-            String reverted = WorkModeKeepsTheApiTest.sha(withoutFlagKind(surface.getValue()));
-            String live = WorkModeKeepsTheApiTest.sha(surface.getValue());
+            // the later #177 layer is peeled first: this layer's AFTER is the surface without it
+            Object withoutLater = ProjectReloadApiDeltaTest.withoutReload(surface.getValue());
+            String reverted = WorkModeKeepsTheApiTest.sha(withoutFlagKind(withoutLater));
+            String live = WorkModeKeepsTheApiTest.sha(withoutLater);
             if (BEFORE.containsKey(key)) {
                 assertEquals(BEFORE.get(key), reverted, "only the flag-kind delta may change: " + key);
-                assertEquals(AFTER.get(key), live, "the pin now: " + key);
-                assertEquals(AFTER.get(key), WorkModeKeepsTheApiTest.PINNED.get(key), "PINNED holds it: " + key);
+                assertEquals(AFTER.get(key), live, "the pin after this layer: " + key);
+                assertEquals(AFTER.get(key), ProjectReloadApiDeltaTest.BEFORE.get(key), "the next layer starts here: " + key);
             }
             if (!live.equals(reverted)) changed.add(key);
         }

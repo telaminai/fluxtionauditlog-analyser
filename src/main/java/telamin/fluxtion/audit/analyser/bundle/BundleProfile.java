@@ -28,7 +28,8 @@ import java.util.regex.Pattern;
  * {@link SettingsShare}'s categories, and the first key it forgot would carry a source root or a key onto another
  * machine.
  *
- * <p>The member holds {@link #CATEGORIES} only: saved charts and named focuses, reports and walks, hidden columns. A
+ * <p>The member holds {@link #CATEGORIES} only: saved charts and named focuses, reports and walks, hidden columns —
+ * and, since #178, the session's flags ({@link BundleFlags}), anchored by record digest. A
  * chart with an external series or external markers is LEFT OUT and named, because its CSV path would re-anchor
  * silently on the recipient's machine (§2).
  *
@@ -191,6 +192,9 @@ public final class BundleProfile {
         List<String> rebased = rebase == null ? List.of() : rebase(c, rebase);
 
         List<String> leftOut = new ArrayList<>(rebased);
+        // #178: the session's flags ride the member, anchored by record digest; outside an excerpt they cannot
+        List<BundleFlags.Flag> flags = BundleFlags.read(settings);
+        if (rebase != null) flags = BundleFlags.rebase(flags, rebase.first(), rebase.last(), leftOut);
         Set<String> gone = new TreeSet<>();
         c.savedGraphs.removeIf(g -> {
             boolean external = !g.external().isEmpty() || g.markers().stream().anyMatch(GraphSpec.MarkerSpec::isExternal);
@@ -232,6 +236,7 @@ public final class BundleProfile {
         String text = new SettingsShare("").export(c, CATEGORIES, out.toAbsolutePath().getParent(), null, null);
         Properties written = new Properties();
         written.load(new StringReader(text));
+        BundleFlags.write(written, flags);       // #178: through the same path and prose checks as every kept value
         List<String> redacted = new ArrayList<>();
         java.util.TreeMap<String, String> kept = new java.util.TreeMap<>();
         for (String key : new TreeSet<>(written.stringPropertyNames())) {
@@ -242,6 +247,8 @@ public final class BundleProfile {
             }
             kept.put(key, redactProse(key, v, redacted));
         }
+        // #178: flags are not the exporter's own bytes, so a member carrying them is always re-serialised
+        if (!flags.isEmpty() && redacted.isEmpty()) text = serialise(text, kept);
         if (!redacted.isEmpty()) text = serialise(text, kept);        // untouched otherwise: the exporter's own bytes
         Files.writeString(out, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
         return new Export(List.copyOf(leftOut), List.copyOf(dangling), List.copyOf(redacted));

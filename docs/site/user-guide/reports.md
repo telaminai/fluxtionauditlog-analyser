@@ -13,7 +13,8 @@ PDFs. Fault findings keep *What is wrong / Likely cause*. Choose the category wh
 uses that same finding.
 
 Sections are typed: a `finding` points at a flagged record, a `record` at a cycle, a `chart` at a
-named graph, a `topology` at a named focus, a `table` at the query that derives its rows, and only
+named graph, a `topology` at a named focus (or, with no `focus`, the whole authored graph), a `table` at the query
+that derives its rows, and only
 `narrative` stores its own content. That one constraint keeps this a forensic instrument: a report
 *assembles* what other verbs produced, and every claim traces to something that can be checked.
 

@@ -227,6 +227,43 @@ diff is what gets it reviewed.
 This includes edits made by an **assistant over the socket**. If an agent adds a source root with
 `analyser_source_root`, that lands in the active project like any other change.
 
+### Someone else edited the profile
+
+An auto-save never writes over a profile that changed on disk since the analyser read or last wrote it. The
+change can come from an editor, an agent or a `git pull`. The analyser checks the file the way it checks a loaded
+log, by size, modification time and identity, and then compares its content. When it differs, a banner above the
+workspace says **Project settings changed on disk.** and offers three buttons:
+
+- **Reload** replaces the project settings in the window with the file's. Edits not yet saved in the window are
+  discarded. The log and graph stay open.
+- **Keep mine** writes the window's settings over the file. This is the only way that happens.
+- **Not now** keeps both. The file stays as it is, and the window's edits wait in memory and are not saved.
+  If the file changes on disk again, the banner comes back, so **Keep mine** is still there.
+
+Your edits are never dropped without a word. If you switch or close the project, or quit, while **Not now** stands
+and the window has unsaved edits, they are written beside the profile as
+`.analyser/project.fluxtion-settings.unsaved-<date>-<time>`, and the status line says so. That name is not a
+profile, so nothing opens it by accident; copy what you need from it into the profile.
+
+If even that file cannot be written, for example because the folder is read-only or the disk is full, the analyser
+does not switch, close or quit. The project stays open with your edits, and a dialog explains why and offers
+**Save edits to another file…**, **Discard my edits** (asked twice), or **Keep the project open**. Once the edits are
+saved elsewhere or discarded, what you asked for goes ahead. An agent's `open {close: "project"}` gets the same reason
+as an error, and nothing is closed.
+
+!!! note "Known limitations of Reload"
+    Reload replaces the project settings, but two views worked out from the old settings are not refreshed:
+
+    - **Design discovery.** After a reload that changes source roots, reopen the project to refresh Design discovery.
+      Until then, the Design view keeps offering the definitions it found under the old source roots.
+    - **Watched log folders.** The watch that offers newly written logs keeps the log folders the project had when it
+      was opened. After a reload that changes them, close and reopen the project so the new folders are watched and
+      the old ones are not.
+
+An agent reads the same state as `context.project.profileOnDisk`, and takes the file's version with
+`open {project: "<the open profile>", reload: true}`. Without `reload`, opening the project already in force
+changes nothing.
+
 ## Committing a profile to your repo
 
 `.analyser/project.fluxtion-settings` is designed to be committed, like `.vscode/settings.json`. Clone

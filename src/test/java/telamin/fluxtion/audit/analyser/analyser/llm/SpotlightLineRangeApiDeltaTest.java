@@ -89,16 +89,23 @@ class SpotlightLineRangeApiDeltaTest {
      */
     @SuppressWarnings("unchecked")
     static <T> T withoutLineRange(T value) {
-        // the LATER flag-kind delta (FlagKindApiDeltaTest) is peeled first, so every chain that starts here still
-        // lands on its own pins
-        value = FlagKindApiDeltaTest.withoutFlagKind(value);
+        return withoutLineRangeOnly(FlagKindApiDeltaTest.withoutFlagKind(ProjectReloadApiDeltaTest.withoutReload(value)));
+    }
+
+    /**
+     * This branch's layer alone. {@link #withoutLineRange} — the entry every older *ApiDeltaTest goes through — first
+     * peels the LATER layers, newest first: #177's open {reload} ({@link ProjectReloadApiDeltaTest#withoutReload}), then
+     * the flag-kind default ({@link FlagKindApiDeltaTest#withoutFlagKind}), so each still lands on its own pins.
+     */
+    @SuppressWarnings("unchecked")
+    static <T> T withoutLineRangeOnly(T value) {
         if (value instanceof String text) return (T) text.replace(NEW_JAVA_BLOCK, OLD_JAVA_BLOCK).replace(SpotlightVocabulary.TEXT, OLD_TARGETS_TEXT);
         if (value instanceof Map<?, ?> map) {
             Map<Object, Object> out = new LinkedHashMap<>();
-            map.forEach((key, entry) -> out.put(key, withoutLineRange(entry)));
+            map.forEach((key, entry) -> out.put(key, withoutLineRangeOnly(entry)));
             return (T) out;
         }
-        if (value instanceof List<?> list) return (T) list.stream().map(SpotlightLineRangeApiDeltaTest::withoutLineRange).toList();
+        if (value instanceof List<?> list) return (T) list.stream().map(SpotlightLineRangeApiDeltaTest::withoutLineRangeOnly).toList();
         return value;
     }
 

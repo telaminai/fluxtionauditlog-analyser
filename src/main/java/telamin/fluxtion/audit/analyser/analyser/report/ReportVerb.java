@@ -155,12 +155,9 @@ public final class ReportVerb {
                 return ReportSpec.SectionSpec.chart(g);
             }
             case TOPOLOGY -> {
-                String f = str(m.get("focus"));
-                if (f == null) {
-                    warnings.add("section " + i + ": a topology section needs 'focus' — skipped");
-                    return null;
-                }
-                return ReportSpec.SectionSpec.topology(f);
+                // #183: no focus means the whole authored graph — it used to be skipped, so a report asked for the
+                // topology and arrived without it. A NAMED focus that is not saved still resolves as unresolved, by name.
+                return ReportSpec.SectionSpec.topology(str(m.get("focus")));
             }
             case SERIES -> {
                 Map<String, Object> call = callMap(m.get("call"));

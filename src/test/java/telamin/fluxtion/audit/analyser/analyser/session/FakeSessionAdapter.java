@@ -31,6 +31,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.DeleteBundleEffect> deletes = new java.util.ArrayList<>();
     final List<SessionEffects.RememberBundleAnchorEffect> anchorRemembers = new java.util.ArrayList<>();
     final List<SessionEffects.RestoreBundleAnchorEffect> anchorRestores = new java.util.ArrayList<>();
+    final List<SessionEffects.RestoreBundleFlagsEffect> flagRestores = new java.util.ArrayList<>();
+    final List<SessionEffects.OfferProjectProfileReloadEffect> profileOffers = new java.util.ArrayList<>();
+    final List<SessionEffects.ReloadProjectProfileEffect> profileReloads = new java.util.ArrayList<>();
+    final List<SessionEffects.KeepProjectProfileEffect> profileKeeps = new java.util.ArrayList<>();
     final List<SessionEffects.OfferProjectReopenEffect> reopenOffers = new java.util.ArrayList<>();
     final List<SessionEffects.EndWalkEffect> walkEnds = new ArrayList<>();
     /** OA-1: what assistantLoop asked the adapter to do, in order. */
@@ -610,6 +614,22 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.RestoreBundleAnchorEffect e -> {
                 anchorRestores.add(e);
                 yield new SessionEvents.StatusShown(e.opId(), "restoreBundleAnchor");
+            }
+            case SessionEffects.RestoreBundleFlagsEffect e -> {
+                flagRestores.add(e);
+                yield new SessionEvents.StatusShown(e.opId(), "restoreBundleFlags");
+            }
+            case SessionEffects.OfferProjectProfileReloadEffect e -> {
+                profileOffers.add(e);
+                yield new SessionEvents.StatusShown(e.opId(), "offerProjectProfileReload");
+            }
+            case SessionEffects.ReloadProjectProfileEffect e -> {
+                profileReloads.add(e);
+                yield new SessionEvents.ProjectProfileReloaded(e.opId(), e.profileKey(), true, "reloaded", e.origin());
+            }
+            case SessionEffects.KeepProjectProfileEffect e -> {
+                profileKeeps.add(e);
+                yield new SessionEvents.ProjectProfileKept(e.opId(), e.profileKey(), true, "kept");
             }
             case SessionEffects.ShowStatusEffect e -> {
                 lastStatus = e.text();
