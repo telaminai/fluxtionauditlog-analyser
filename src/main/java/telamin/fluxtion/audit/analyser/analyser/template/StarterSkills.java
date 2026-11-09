@@ -191,7 +191,7 @@ public final class StarterSkills {
      * The first-run steps that regenerate, in the record's order: fixed analyser strings, the only command tokens the
      * substituted text may carry. The run script is not regeneration and never appears.
      */
-    static final List<String> REGENERATION_STEPS = List.of("./check-fluxtion-key.sh", "./setup.sh", "./validate.sh",
+    static final List<String> REGENERATION_STEPS = List.of("./check-compiler-signin.sh", "./check-fluxtion-key.sh", "./setup.sh", "./validate.sh",
             "./generate.sh");
 
     public static final String SIGN_IN_BUILD = "**Compiler sign-in: needed at build.** Follow the project's "
@@ -216,6 +216,7 @@ public final class StarterSkills {
             + "needs it. Regenerating a processor does: `"
             + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN + "`, or `FLUXTION_API_TOKEN` "
             + "in CI.";
+    public static final String SIGN_IN_CHECK = "`./check-compiler-signin.sh` checks that compiler sign-in is set.";
     public static final String KEY_CHECK = "`./check-fluxtion-key.sh` checks that compiler sign-in is set.";
 
     /**
@@ -301,7 +302,7 @@ public final class StarterSkills {
         if (record == null) return null;
         List<String> steps = known(record, REGENERATION_STEPS);
         if ("sign-in-build".equals(record.keyNeed()))
-            steps = steps.stream().filter(step -> !"./check-fluxtion-key.sh".equals(step)).toList();
+            steps = steps.stream().filter(step -> !"./check-fluxtion-key.sh".equals(step) && !"./check-compiler-signin.sh".equals(step)).toList();
         if (!steps.contains("./generate.sh")) return null;
         String key = switch (record.keyNeed()) {
             case "build", "sign-in-build" -> SIGN_IN_BUILD;
@@ -309,7 +310,8 @@ public final class StarterSkills {
             case "none" -> KEY_NONE;
             default -> KEY_UNDECLARED;
         };
-        if (steps.contains("./check-fluxtion-key.sh")) key += " " + KEY_CHECK;
+        if (steps.contains("./check-compiler-signin.sh")) key += " " + SIGN_IN_CHECK;
+        else if (steps.contains("./check-fluxtion-key.sh")) key += " " + KEY_CHECK;
         return "```\n" + String.join("\n", steps) + "\n```\n\n"
                 + "These are this project's regeneration steps, in order, from the analyser's first-run record for its "
                 + "starter.\n" + key + "\n";

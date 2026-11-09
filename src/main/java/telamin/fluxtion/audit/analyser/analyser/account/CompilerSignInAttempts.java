@@ -88,9 +88,9 @@ public final class CompilerSignInAttempts implements AutoCloseable {
             a.task=workers.submit(()->await(a,device,previous));
             return a.result;
         } catch (CompilerAccountClient.AccountException e) {
-            return recovery(a,"service_error",e.getMessage() + ". No credential changed. Use the documented Maven login flow if this client cannot start sign-in.");
+            return finish(a,"service_error",null,e.getMessage() + ". No credential changed. Check the compiler service and trusted verification origin; do not bypass this refusal with another client.");
         } catch (Exception e) {
-            return recovery(a,"service_error","Could not start sign-in; no credential changed. Use the documented Maven login flow, or check the compiler service and trusted verification origin.");
+            return finish(a,"service_error",null,"Could not start sign-in; no credential changed. Check the compiler service and trusted verification origin; do not bypass this refusal with another client.");
         }
     }
     private Map<String,Object> recovery(Attempt a,String event,String message) {

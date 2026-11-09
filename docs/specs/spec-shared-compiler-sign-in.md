@@ -28,7 +28,8 @@ Refresh reloads the shared file and queries that credential's issuer. Closing an
 A cached display is a snapshot, not continuous verification. A failed read leaves a visible error, not a new account claim.
 
 Browser verification addresses must match the explicitly trusted identity-provider origin configured by
-`fluxtion.login.verificationOrigin`. The staging default is operator-confirmed; the production default remains unconfigured and is a release gate.
+`fluxtion.login.verificationOrigin`. Both defaults are owner-confirmed: production uses `https://restful-nature-87.authkit.app` and staging uses
+`https://meticulous-comfort-69-staging.authkit.app`. Both verification addresses must match the selected origin exactly.
 The compiler and admin origins are not used as substitutes. No actual user credential is used in tests.
 
 ## Session-owned assistant tools

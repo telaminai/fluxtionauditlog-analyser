@@ -64,7 +64,8 @@ class CompilerSignInAttemptsTest {
     }
     @Test void environmentOverrideMakesNoRequest() {
         try(CompilerSignInAttempts a=new CompilerSignInAttempts(client,store,()->true)) {
-            assertEquals("usage_error",a.start(service.base(),false).get("event")); assertTrue(service.requests().isEmpty());
+            Map<String,Object> result = a.start(service.base(),false);
+            assertEquals("usage_error",result.get("event")); assertNull(result.get("recovery")); assertTrue(service.requests().isEmpty());
         }
     }
 }

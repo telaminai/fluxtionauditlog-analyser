@@ -32,6 +32,8 @@ class SignInReviewRegressionTest {
             try(CompilerSignInAttempts attempts=new CompilerSignInAttempts(client(HttpClient.newHttpClient()),store,()->false)) {
                 Map<String,Object> result=attempts.start(server.base(),false);
                 assertEquals("service_error",result.get("event"));
+                assertNull(result.get("recovery"), "origin refusals must never fall back to unchecked Maven login");
+                assertFalse(result.get("message").toString().contains("Maven login"));
                 assertFalse(result.containsKey("verificationUri"));
                 assertFalse(result.containsKey("userCode"));
                 assertEquals(0,server.count("/auth/device/token"));
@@ -45,14 +47,23 @@ class SignInReviewRegressionTest {
             CompilerCredential saved=new CompilerCredential(previous.base(),"cred01","acct-demo",StandInCompilerService.BEARER);
             store.value=saved;
             try(CompilerSignInAttempts attempts=new CompilerSignInAttempts(client(HttpClient.newHttpClient()),store,()->false)) {
-                assertEquals("usage_error",attempts.start(next.base(),false).get("event"));
+                Map<String,Object> result = attempts.start(next.base(),false);
+                assertEquals("usage_error",result.get("event"));
+                assertNull(result.get("recovery"));
                 assertTrue(next.requests().isEmpty()); assertTrue(previous.requests().isEmpty());
                 assertEquals(saved,store.value);
             }
         }
     }
-    @Test void productionHasNoImplicitVerificationOrigin() throws Exception {
-        assertNull(VerificationOrigin.trusted("https://compiler.fluxtion-playground.dev",null));
+    @Test void productionVerificationOriginIsPinnedExactly() throws Exception {
+        String trusted = VerificationOrigin.trusted("https://compiler.fluxtion-playground.dev",null);
+        assertEquals("https://restful-nature-87.authkit.app", trusted);
+        for (String suffix : List.of("/device", "/device?user_code=GOOD-1234")) {
+            VerificationOrigin.check(trusted + suffix, trusted);
+            assertThrows(IOException.class, () -> VerificationOrigin.check("https://different.authkit.app" + suffix, trusted));
+            assertThrows(IOException.class, () -> VerificationOrigin.check(trusted + ".evil.test" + suffix, trusted));
+        }
+        assertNull(VerificationOrigin.trusted("https://compiler.fluxtion-playground.dev.evil.test",null));
         assertThrows(IOException.class,()->VerificationOrigin.check("https://unconfigured.authkit.app/device",null));
     }
     @Test void equivalentOriginsUseOneIdentityWithoutChangingTransportHost() {
@@ -140,7 +151,9 @@ class SignInReviewRegressionTest {
             try(CompilerSignInAttempts attempts=new CompilerSignInAttempts(client(http),store,()->false)) {
                 String id=(String)attempts.start(server.base(),false).get("attemptId");
                 assertTrue(verified.await(5,TimeUnit.SECONDS));
-                assertEquals("cancelled",attempts.cancel(id).get("event"));
+                Map<String,Object> cancelled = attempts.cancel(id);
+                assertEquals("cancelled",cancelled.get("event"));
+                assertNull(cancelled.get("recovery"));
                 release.countDown(); assertTrue(finished.await(5,TimeUnit.SECONDS));
                 long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(5);
                 while(server.count("/v1/credentials/cred01")==0 && System.nanoTime()<deadline)Thread.sleep(10);

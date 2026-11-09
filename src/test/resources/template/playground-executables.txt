@@ -1,3 +1,5 @@
+# Compatibility update 2026-11-09: current templates ship both check names; new-name docs/steps,
+# old alias retained for released installers. Historical fixture catalogue below remains otherwise unchanged.
 # Every top-level script a playground starter template ships executable, per catalogue template id.
 # Read by TemplateExecutablesTest: each name must be installed executable by TemplateArchive, which never
 # trusts the archive's own mode bits (D-4), so a name missing from POSIX_EXECUTABLES arrives 0644.
@@ -36,50 +38,50 @@
 # fluxtion-web origin/main 247488f (2026-10-13, starter 1.0.79), where every exec line is unchanged and the first lines
 # were added from each generated template's top-level Markdown. Regenerate when the templates change; the
 # producer side of keeping this in step is upstream ask UP-PG-07.
-exec analyser-bundle: check-fluxtion-key.sh export-audit.sh feed-position.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
-doc  analyser-bundle: check-fluxtion-key.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
+exec analyser-bundle: check-compiler-signin.sh check-fluxtion-key.sh export-audit.sh feed-position.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
+doc  analyser-bundle: check-compiler-signin.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
 first analyser-bundle: mvnw run-and-export.sh
 cmd  analyser-bundle: export-audit.cmd stop-server.cmd
-exec fluxtion-aot: check-fluxtion-key.sh mvnw run.sh
-doc  fluxtion-aot: check-fluxtion-key.sh mvnw run.sh
-first fluxtion-aot: check-fluxtion-key.sh run.sh
-exec fluxtion-audit: check-fluxtion-key.sh mvnw run.sh
-doc  fluxtion-audit: check-fluxtion-key.sh mvnw run.sh
-first fluxtion-audit: check-fluxtion-key.sh run.sh
-exec fluxtion-connector: check-fluxtion-key.sh mvnw run.sh
-doc  fluxtion-connector: check-fluxtion-key.sh mvnw run.sh
-first fluxtion-connector: check-fluxtion-key.sh run.sh
-exec fluxtion-dag-multi-io: check-fluxtion-key.sh mvnw run.sh
-doc  fluxtion-dag-multi-io: check-fluxtion-key.sh mvnw run.sh
-first fluxtion-dag-multi-io: check-fluxtion-key.sh run.sh
-exec fluxtion-dsl: check-fluxtion-key.sh mvnw run.sh
-doc  fluxtion-dsl: check-fluxtion-key.sh mvnw run.sh
-first fluxtion-dsl: check-fluxtion-key.sh run.sh
-exec fluxtion-embedded: check-fluxtion-key.sh mvnw run.sh
-doc  fluxtion-embedded: check-fluxtion-key.sh mvnw run.sh
-first fluxtion-embedded: check-fluxtion-key.sh run.sh
-exec fluxtion-service-export: check-fluxtion-key.sh mvnw run.sh
-doc  fluxtion-service-export: check-fluxtion-key.sh mvnw run.sh
-first fluxtion-service-export: check-fluxtion-key.sh run.sh
-exec fluxtion-spring-mongoose: check-fluxtion-key.sh generate.sh mvnw run-server.sh setup.sh validate.sh
-doc  fluxtion-spring-mongoose: check-fluxtion-key.sh generate.sh run-server.sh setup.sh validate.sh
-first fluxtion-spring-mongoose: check-fluxtion-key.sh setup.sh validate.sh generate.sh run-server.sh
-exec fluxtion-spring: check-fluxtion-key.sh generate.sh mvnw run.sh setup.sh validate.sh
-doc  fluxtion-spring: check-fluxtion-key.sh generate.sh mvnw run.sh setup.sh validate.sh
-first fluxtion-spring: check-fluxtion-key.sh setup.sh validate.sh generate.sh run.sh
-exec mongoose-dynamic-feed: check-fluxtion-key.sh mvnw run-server.sh
-doc  mongoose-dynamic-feed: check-fluxtion-key.sh run-server.sh
-first mongoose-dynamic-feed: check-fluxtion-key.sh run-server.sh
-exec mongoose-dynamic-spring: check-fluxtion-key.sh mvnw run-server.sh
-doc  mongoose-dynamic-spring: check-fluxtion-key.sh run-server.sh
-first mongoose-dynamic-spring: check-fluxtion-key.sh run-server.sh
-exec mongoose-hosted-fluxtion: check-fluxtion-key.sh mvnw run-server.sh
-doc  mongoose-hosted-fluxtion: check-fluxtion-key.sh run-server.sh
-first mongoose-hosted-fluxtion: check-fluxtion-key.sh run-server.sh
+exec fluxtion-aot: check-compiler-signin.sh check-fluxtion-key.sh mvnw run.sh
+doc  fluxtion-aot: check-compiler-signin.sh mvnw run.sh
+first fluxtion-aot: check-compiler-signin.sh run.sh
+exec fluxtion-audit: check-compiler-signin.sh check-fluxtion-key.sh mvnw run.sh
+doc  fluxtion-audit: check-compiler-signin.sh mvnw run.sh
+first fluxtion-audit: check-compiler-signin.sh run.sh
+exec fluxtion-connector: check-compiler-signin.sh check-fluxtion-key.sh mvnw run.sh
+doc  fluxtion-connector: check-compiler-signin.sh mvnw run.sh
+first fluxtion-connector: check-compiler-signin.sh run.sh
+exec fluxtion-dag-multi-io: check-compiler-signin.sh check-fluxtion-key.sh mvnw run.sh
+doc  fluxtion-dag-multi-io: check-compiler-signin.sh mvnw run.sh
+first fluxtion-dag-multi-io: check-compiler-signin.sh run.sh
+exec fluxtion-dsl: check-compiler-signin.sh check-fluxtion-key.sh mvnw run.sh
+doc  fluxtion-dsl: check-compiler-signin.sh mvnw run.sh
+first fluxtion-dsl: check-compiler-signin.sh run.sh
+exec fluxtion-embedded: check-compiler-signin.sh check-fluxtion-key.sh mvnw run.sh
+doc  fluxtion-embedded: check-compiler-signin.sh mvnw run.sh
+first fluxtion-embedded: check-compiler-signin.sh run.sh
+exec fluxtion-service-export: check-compiler-signin.sh check-fluxtion-key.sh mvnw run.sh
+doc  fluxtion-service-export: check-compiler-signin.sh mvnw run.sh
+first fluxtion-service-export: check-compiler-signin.sh run.sh
+exec fluxtion-spring-mongoose: check-compiler-signin.sh check-fluxtion-key.sh generate.sh mvnw run-server.sh setup.sh validate.sh
+doc  fluxtion-spring-mongoose: check-compiler-signin.sh generate.sh run-server.sh setup.sh validate.sh
+first fluxtion-spring-mongoose: check-compiler-signin.sh setup.sh validate.sh generate.sh run-server.sh
+exec fluxtion-spring: check-compiler-signin.sh check-fluxtion-key.sh generate.sh mvnw run.sh setup.sh validate.sh
+doc  fluxtion-spring: check-compiler-signin.sh generate.sh mvnw run.sh setup.sh validate.sh
+first fluxtion-spring: check-compiler-signin.sh setup.sh validate.sh generate.sh run.sh
+exec mongoose-dynamic-feed: check-compiler-signin.sh check-fluxtion-key.sh mvnw run-server.sh
+doc  mongoose-dynamic-feed: check-compiler-signin.sh run-server.sh
+first mongoose-dynamic-feed: check-compiler-signin.sh run-server.sh
+exec mongoose-dynamic-spring: check-compiler-signin.sh check-fluxtion-key.sh mvnw run-server.sh
+doc  mongoose-dynamic-spring: check-compiler-signin.sh run-server.sh
+first mongoose-dynamic-spring: check-compiler-signin.sh run-server.sh
+exec mongoose-hosted-fluxtion: check-compiler-signin.sh check-fluxtion-key.sh mvnw run-server.sh
+doc  mongoose-hosted-fluxtion: check-compiler-signin.sh run-server.sh
+first mongoose-hosted-fluxtion: check-compiler-signin.sh run-server.sh
 exec mongoose-server: mvnw run-server.sh
 doc  mongoose-server: run-server.sh
 first mongoose-server: run-server.sh
-exec java-authoring: check-fluxtion-key.sh export-audit.sh feed-position.sh mvnw run-and-export.sh run-server.sh stop-server.sh
+exec java-authoring: check-compiler-signin.sh check-fluxtion-key.sh export-audit.sh feed-position.sh mvnw run-and-export.sh run-server.sh stop-server.sh
 doc  java-authoring: export-audit.sh feed-position.sh mvnw run-and-export.sh run-server.sh stop-server.sh
 first java-authoring: mvnw run-and-export.sh
 cmd  java-authoring: export-audit.cmd feed-position.cmd stop-server.cmd

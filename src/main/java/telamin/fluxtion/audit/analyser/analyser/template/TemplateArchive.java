@@ -39,7 +39,7 @@ public final class TemplateArchive {
     // executable and its bench attacks an archive-marked root evil.sh; the drift is caught instead by
     // TemplateExecutablesTest against src/test/resources/template/playground-executables.txt (upstream ask UP-PG-07).
     static final Set<String> POSIX_EXECUTABLES = Set.of(
-            "mvnw", "run-server.sh", "export-audit.sh", "stop-server.sh", "check-fluxtion-key.sh",
+            "mvnw", "run-server.sh", "export-audit.sh", "stop-server.sh", "check-fluxtion-key.sh", "check-compiler-signin.sh",
             "setup.sh", "validate.sh", "generate.sh", "feed-position.sh",
             "run-and-export.sh", "run.sh", "setup-java.sh", "runWasm.sh");
 
@@ -304,8 +304,9 @@ public final class TemplateArchive {
             if (present(root, "mvnw")) steps.add("mvnw");
             steps.add("run-and-export.sh");
         } else if (run != null) {
-            if (!"sign-in-build".equals(keyNeed) && present(root, "check-fluxtion-key.sh"))
-                steps.add("check-fluxtion-key.sh");
+            String check = present(root, "check-compiler-signin.sh") ? "check-compiler-signin.sh"
+                    : present(root, "check-fluxtion-key.sh") ? "check-fluxtion-key.sh" : null;
+            if (!"sign-in-build".equals(keyNeed) && check != null) steps.add(check);
             if (present(root, "setup.sh") && present(root, "validate.sh") && present(root, "generate.sh")) {
                 // a separate add(run): POSIX_EXECUTABLES' text for these three names is a mutation anchor
                 // (installer-authoring-executables) and must occur once in this file
