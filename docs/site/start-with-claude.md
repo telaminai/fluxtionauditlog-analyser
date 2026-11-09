@@ -55,7 +55,7 @@ it does not start Claude or send a message yet. Existing Full-mode settings are 
 
 You can cancel, finish installing or signing in, and return to **Build with Claude Code**.
 Claude usage counts against your own [Claude plan or API account](https://code.claude.com/docs/en/costs).
-To turn it off, **Stop** any reply, then choose **Off** from **◆ Full ▾** in the assistant header.
+To turn it off, **Stop** any reply, then choose **Off** from **◆◆ Full ▾** in the assistant header.
 
 ## 3. Describe your idea and send
 

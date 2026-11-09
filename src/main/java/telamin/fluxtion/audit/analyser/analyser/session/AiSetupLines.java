@@ -293,6 +293,8 @@ public final class AiSetupLines {
      * reach the analyser's approval dialog; Full mode does not promise an approval for every command.
      */
     public static final String ACCEPT_EDITS_NOTE = "File edits and some commands can run without asking; your permission rules still apply.";
+    /** The Build screen's last line: enabling Build sends nothing; only the person's Send starts Claude. */
+    public static final String BUILD_NOTHING_STARTS = "Nothing starts until you enter a message and press Send.";
     /**
      * Owner decision 2026-10-18: the one-line offer when Full Claude Code is already in force in {@code default} and
      * Start building is pressed — the mode is the posture, so Switch begins a new chat.

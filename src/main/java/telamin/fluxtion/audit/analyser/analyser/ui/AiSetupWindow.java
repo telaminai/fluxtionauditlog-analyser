@@ -494,7 +494,7 @@ final class AiSetupWindow extends JDialog {
             content.add(Box.createVerticalStrut(UiTheme.SPACE_SM));
             content.add(text(AiSetupLines.ACCEPT_EDITS_NOTE));
             content.add(muted(AiSetupLines.SENDS));
-            content.add(muted("Nothing starts until you enter a message and press Send."));
+            content.add(muted(AiSetupLines.BUILD_NOTHING_STARTS));
             focusFirst = cancel;
             return;
         }
