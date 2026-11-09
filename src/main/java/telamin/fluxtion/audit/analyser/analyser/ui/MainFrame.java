@@ -57,9 +57,6 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
             java.util.List<String> outcomes, java.util.function.Consumer<ResumeEvents.Outcome> completion) { }
 
-    /** M19.12: separate from AppConfig so the Fluxtion build key cannot enter shared settings. */
-    private final telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore fluxtionKeyStore =
-            new telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore();
     private final AppConfig config;
     /**
      * M19.5: one pinned public origin; downloaded content is extracted but never executed. Option 2: read only by the
@@ -1343,9 +1340,7 @@ public final class MainFrame extends JFrame {
             flaggedRows.add(r);
             if (note != null || fix != null || kind != null) {
                 var existing = findings.get(r);
-                findings.put(r, existing == null
-                        ? new telamin.fluxtion.audit.analyser.analyser.report.Finding(r, note, fix, kind)
-                        : existing.merge(note, fix, kind));
+                findings.put(r, telamin.fluxtion.audit.analyser.analyser.report.Finding.flagged(existing, r, note, fix, kind));
             }
         }
         tablePanel.repaintRows();
@@ -1377,7 +1372,10 @@ public final class MainFrame extends JFrame {
 
         JPanel form = new JPanel(new java.awt.BorderLayout(0, 6));
         JPanel top = new JPanel(new java.awt.BorderLayout(0, 4));
-        JComboBox<String> kind = new JComboBox<>(new String[]{"fault", "confirmation"});
+        JComboBox<String> kind = new JComboBox<>(new String[]{"fault", "confirmation", "note"});
+        // Intentional: a PERSON writing a finding here sees the category and chooses it, so the form keeps opening on
+        // "fault" (what this dialog has always written). The neutral default (Finding.FLAG_DEFAULT_KIND) is for the
+        // flag verb, where an agent that omits kind must never have its evidence saved as a fault.
         kind.setSelectedItem(existing == null ? "fault" : existing.kind());
         JLabel noteLabel = UiText.plain(new JLabel());
         JLabel fixLabel = UiText.plain(new JLabel());
@@ -1800,8 +1798,7 @@ public final class MainFrame extends JFrame {
 
     private telamin.fluxtion.audit.analyser.analyser.design.DesignFiles designFiles() {
         Path profile = project == null ? null : project.activeFile();
-        Path root = profile == null || profile.getParent() == null ? null : profile.getParent().getParent();
-        return new telamin.fluxtion.audit.analyser.analyser.design.DesignFiles(effectiveSourceRoots(), root);
+        return telamin.fluxtion.audit.analyser.analyser.design.DesignFiles.forProfile(effectiveSourceRoots(), profile);
     }
 
     private telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace designs() {
@@ -2454,7 +2451,9 @@ public final class MainFrame extends JFrame {
         LogRecord record = store.record(row);
         var finding = findings.get(row);
         if (finding == null) {
-            finding = new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, "", null);
+            // the same kind the flags list reports for a record with no finding (a bare bookmark is a note)
+            finding = new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, "", null,
+                    telamin.fluxtion.audit.analyser.analyser.report.Finding.FLAG_DEFAULT_KIND);
         }
 
         java.util.List<String> eventLines = new java.util.ArrayList<>();
@@ -3088,16 +3087,13 @@ public final class MainFrame extends JFrame {
         ai.add(transport);
 
         ai.addSeparator();
-        JMenuItem fluxtionKey = new JMenuItem("Fluxtion API key…");
-        fluxtionKey.setToolTipText("Manage the local key file used when a processor is regenerated");
-        fluxtionKey.addActionListener(e -> openFluxtionKeyDialog());
-        ai.add(fluxtionKey);
-        // CA-1: beside the build key — the one owner of the compiler-account connection (D-AI2). The dialog
-        // signs in, reads usage and revokes its own device; it runs nothing of the project's (D-AI4)
+        // CA-1: the one owner of the compiler-account connection (D-AI2). The dialog signs in, reads usage and
+        // revokes its own device; it does not sign Maven builds in (D-AI4). RAPID-OFF: it is the only
+        // account-management entry — the Fluxtion API key item, its dialog and its key store are retired
         JMenuItem compilerAccount = new JMenuItem("Compiler account…");
         compilerAccount.setToolTipText("Connect a compiler account by signing in through your browser; see its plan "
                 + "and credits, disconnect, or revoke this device");
-        compilerAccount.addActionListener(e -> CompilerAccountDialog.show(this, config, this::saveConfigQuietly));
+        compilerAccount.addActionListener(e -> openCompilerAccount());
         ai.add(compilerAccount);
 
         ai.addSeparator();
@@ -4751,18 +4747,18 @@ public final class MainFrame extends JFrame {
         return sb.toString();
     }
 
+    /**
+     * AI ▸ Compiler account… and the start page's Compiler account chip: the one door to the CA-1 dialog. RAPID-OFF
+     * (2026-11-07): compiler sign-in is the only route to the hosted generator.
+     */
+    private void openCompilerAccount() {
+        CompilerAccountDialog.show(this, config, this::saveConfigQuietly);
+    }
+
     /** A profile edit: persist, then re-render every surface that states what is in force. */
     private void onProfileEdited() {
         onConfigChanged();
         refreshProjectPanel();
-    }
-
-    /** One key owner, reached from the AI menu and Start Page; no key value returns from the dialog. */
-    private void openFluxtionKeyDialog() {
-        if (FluxtionKeyDialog.show(this, fluxtionKeyStore)) {
-            if (startPanel != null) startPanel.refreshFluxtionKeyStatus();
-            refreshProjectPanel();
-        }
     }
 
     private void revealPath(String path) {
@@ -4936,6 +4932,7 @@ public final class MainFrame extends JFrame {
         reportsPanel.addWalks(walksPanel);
         walksPanel.refresh();
         sideTabs.addTab("Reports", reportsPanel);
+        projectOutputsPanel.installTab(sideTabs);
         reportsPanel.refresh();
         assistantDock.add(assistantPanel, BorderLayout.CENTER);
         sideTabs.addTab("Analyser assistant", assistantDock);
@@ -4947,7 +4944,7 @@ public final class MainFrame extends JFrame {
         // to suit whichever tab is showing, so the divider walks about as you switch between them. Pinning
         // the minimums stops the content forcing a move; restoring the location below covers the rest.
         for (java.awt.Component tab : new java.awt.Component[]{
-                summaryPanel, sourcePanel, graphTabs, topologyPanel, assistantDock}) {
+                summaryPanel, sourcePanel, graphTabs, topologyPanel, projectOutputsPanel, assistantDock}) {
             if (tab instanceof JComponent c) c.setMinimumSize(new Dimension(200, 120));
         }
         startPanel = new StartPanel(new StartPanel.Actions() {
@@ -4961,7 +4958,7 @@ public final class MainFrame extends JFrame {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries);
             }
-            @Override public void openFluxtionKey() { openFluxtionKeyDialog(); }
+            @Override public void openCompilerAccount() { MainFrame.this.openCompilerAccount(); }
             // M74 P2 (§5.8): the prompt's button and the no-AI fallbacks, through the page's one Actions interface
             @Override public void pressStartPrompt(String entryId, String text) {
                 MainFrame.this.pressStartPrompt(entryId, text);
@@ -5013,7 +5010,6 @@ public final class MainFrame extends JFrame {
             @Override public void setUpAiAlsoTurnOff(boolean on) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupAlsoTurnOffChosen(on));
             }
-            @Override public boolean fluxtionKeyPresent() { return fluxtionKeyStore.keyPresent(); }
             @Override public void backToRecords() { syncRecordsCard(); }
             @Override public void openProjectDesign() { chooseDesignFile(false); }
             @Override public void openProjectDiagnostics() { chooseDesignFile(true); }
@@ -5167,7 +5163,6 @@ public final class MainFrame extends JFrame {
         JPanel workspaceNotices = new JPanel();
         workspaceNotices.setLayout(new javax.swing.BoxLayout(workspaceNotices, javax.swing.BoxLayout.Y_AXIS));
         workspaceNotices.add(proposalCue);
-        workspaceNotices.add(projectOutputsPanel);
         workspaceArea.add(workspaceNotices, BorderLayout.NORTH);
         workspaceArea.add(workspaceCards, BorderLayout.CENTER);
         add(workspaceArea, BorderLayout.CENTER);
@@ -5442,6 +5437,8 @@ public final class MainFrame extends JFrame {
         localAgentPanel.setTranscriptLinks(transcriptChips(), transcriptNavigator());
         // M74 P2 (§5.5): the topology, chart and time-slider questions, from the one registry
         AskMenus asks = askMenus();
+        sourcePanel.setCodeExplainActions(this::copyCodeExplanation, this::askCodeExplanation);
+        topologyPanel.setCodeExplainActions(this::copyCodeExplanation, this::askCodeExplanation);
         topologyPanel.setAskMenus(asks);
         graphTabs.setAskMenus(asks);
         timeSlider.setAskMenus(asks);
@@ -8595,10 +8592,10 @@ public final class MainFrame extends JFrame {
             // the open echo and sits in `context`, so the agent (and the human reading over its
             // shoulder) know a project is available without the app freezing behind a dialog.
             status.setText(status.getText() + "  ·  project available: "
-                    + (offer.getParent() == null ? offer : offer.getParent().getParent()));
+                    + telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(offer));
             return;
         }
-        Path root = offer.getParent() == null ? offer : offer.getParent().getParent();
+        Path root = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(offer);
         String name = root == null ? offer.toString() : root.getFileName().toString();
         int answer = JOptionPane.showConfirmDialog(this,
                 UiText.inert("This log sits inside the project \"" + name + "\", which has analyser settings.\n\n"
@@ -9218,10 +9215,13 @@ public final class MainFrame extends JFrame {
                         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented(opId, false));
                         return;
                     }
+                    java.util.function.BooleanSupplier stillCurrent =
+                            () -> session.processor().projectReopenOffer.mayPresent(e.opId(), e.profilePath());
                     var chosen = chooser != null ? chooser.apply(e.label(), e.candidates())
-                            : ProjectReopenDialog.choose(this, e.label(), e.candidates());
-                    session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented(opId, true));
-                    applyReopenChoice(chosen);
+                            : ProjectReopenDialog.choose(this, e.label(), e.candidates(), stillCurrent);
+                    boolean current = stillCurrent.getAsBoolean();
+                    session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented(opId, current));
+                    if (current) applyReopenChoice(chosen);
                 });
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(opId, "reopen offer scheduled");
             }
@@ -11225,7 +11225,7 @@ public final class MainFrame extends JFrame {
             // #73: what this machine has been sent. A recipient could not otherwise find out what bundles they
             // hold — there is no list verb, and an unpacked working copy appears only as a recent LOG path.
             // need.test: up to 25 stat calls, so do not run them for a projection that did not ask. The same
-            // shape ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile exists to stop.
+            // shape §H feedback 17 found: a projection paying for a read it did not ask for.
             if (need.test("bundles") && (!config.recentBundles.isEmpty() || exchangeHasBundles())) {
                 List<Map<String, Object>> recent = new java.util.ArrayList<>();
                 for (var b : config.recentBundles) {
@@ -11253,18 +11253,6 @@ public final class MainFrame extends JFrame {
                             skills.put("from", "project declaration (inert; never a retrieval control)");
                             out.put("skills", skills);
                         });
-            }
-            // M19.12 / D-X3: facts this process can observe, not a claim about a future Maven JVM.
-            // The credential value never enters this map; the fixed tilde path avoids leaking the local
-            // account name into context or screenshots.
-            // §H feedback 17: a projection without fluxtionKey does not read the key file at all
-            if (need.test("fluxtionKey")) {
-                Map<String, Object> fluxtionKey = new java.util.LinkedHashMap<>();
-                fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
-                fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
-                fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
-                        + "overrides this file; FLUXTION_API_KEY is not read by the builder");
-                out.put("fluxtionKey", fluxtionKey);
             }
             // M37: the graph is reported whether or not a log is open. It sat inside the store block, so
             // with the log closed and a graph "still loaded" (closeLog's own words) context disowned it —
@@ -11482,7 +11470,8 @@ public final class MainFrame extends JFrame {
                 // Option 2: the starters, RENDERED from starterProject's state and what was read — context fetches nothing
                 if (session != null) {
                     var starters = sessionSnapshot().starter();
-                    out.put("starters", StarterContext.render(starters, starterCatalogues.get(starters.entriesRef())));
+                    out.put("starters", StarterContext.render(starters, starterCatalogues.get(starters.entriesRef()),
+                            StarterListPreference.showAll()));
                 }
                 // evidence bundle capture, rendered from the session's decision (evidenceCapture), never composed here
                 var capture = session == null ? null : sessionSnapshot().capture();
@@ -11625,7 +11614,9 @@ public final class MainFrame extends JFrame {
                 Map<String, Object> flag = new java.util.LinkedHashMap<>();
                 flag.put("recordIndex", row);
                 var finding = findings.get(row);
-                flag.put("kind", finding == null ? "fault" : finding.kind());
+                // a bare flag (no note, fix or kind) is a bookmark, not a fault
+                flag.put("kind", finding == null
+                        ? telamin.fluxtion.audit.analyser.analyser.report.Finding.FLAG_DEFAULT_KIND : finding.kind());
                 if (finding != null && finding.hasNote()) flag.put("note", finding.note());
                 if (finding != null && finding.hasFix()) flag.put("fix", finding.fix());
                 flags.add(flag);
@@ -11679,7 +11670,8 @@ public final class MainFrame extends JFrame {
     private boolean selectTab(String name) {
         if (sideTabs == null || name == null) return false;
         for (int i = 0; i < sideTabs.getTabCount(); i++) {
-            if (sideTabs.getTitleAt(i).equalsIgnoreCase(name)) {
+            if (sideTabs.getTitleAt(i).equalsIgnoreCase(name)
+                    || ("messages".equalsIgnoreCase(name) && sideTabs.getComponentAt(i) == projectOutputsPanel)) {
                 sideTabs.setSelectedIndex(i);
                 return true;
             }
@@ -11774,7 +11766,8 @@ public final class MainFrame extends JFrame {
             view.put("filter", savedFilter);
         }
         view.put("findings", flaggedRows.stream().sorted().map(row -> findings.getOrDefault(row,
-                new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, null, null)).toMap()).toList());
+                new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, null, null,
+                        telamin.fluxtion.audit.analyser.analyser.report.Finding.FLAG_DEFAULT_KIND)).toMap()).toList());
         view.put("selectedRecords", java.util.Arrays.stream(tablePanel.selectedModelRows()).boxed().toList());
         view.put("topology", topologyPanel.recoveryView());
         view.put("selectedGraph", graphTabs.selectedGraphName());
@@ -12214,6 +12207,22 @@ public final class MainFrame extends JFrame {
         if (session == null) return "";
         var s = sessionSnapshot().aiSetup();
         return s.nothingSetUp() ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ASK_CUE : "";
+    }
+
+    /** Code-view requests follow the record menu: append a draft, never send implicitly. */
+    private void askCodeExplanation(String text) {
+        composeDraft(new telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft(
+                "CODE_EXPLAIN", text, null, 0), "explain displayed code");
+    }
+
+    private void copyCodeExplanation(String text) {
+        try {
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                    new java.awt.datatransfer.StringSelection(text), null);
+            status.setText("Code explanation prompt copied — nothing sent");
+        } catch (IllegalStateException | java.awt.HeadlessException unavailable) {
+            status.setText("Clipboard unavailable — try Copy prompt again");
+        }
     }
 
     /** The registry's items for {@code surface}: the label in the mode in force, disabled with the reason. */
@@ -13195,7 +13204,9 @@ public final class MainFrame extends JFrame {
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved(
                 config.assistantSetupDismissed,
                 telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.parse(config.assistantSetupClient),
-                Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY)));
+                Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY),
+                telamin.fluxtion.audit.analyser.analyser.config.LegacyKeyFile.presentUnder(
+                        Path.of(System.getProperty("user.home")))));
         postStartAvailability();
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(localAgentConsent()));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved(
@@ -13628,7 +13639,8 @@ public final class MainFrame extends JFrame {
                 localAgentConsent()));
     }
 
-    // ---- Option 2 (owner, 2026-10-18): a project from a starter template — starterProject decides, these perform ------
+    // ---- Option 2: a project from a starter template (Java-authoring first: owner, 2026-11-07) — starterProject decides,
+    // these perform ----------------------------------------------------------------------------------------------------
 
     private <T> long starterPut(java.util.Map<Long, T> store, T value) {
         long ref = starterRefNext++;
@@ -13651,7 +13663,7 @@ public final class MainFrame extends JFrame {
         StarterSource source = starterSource;
         Background.run(() -> {
             var selection = source.catalogue();
-            java.util.List<telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry> out = new java.util.ArrayList<>();
+            java.util.List<telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry> read = new java.util.ArrayList<>();
             for (var e : selection.entries()) {
                 TemplateClient.Template t;
                 try {
@@ -13659,9 +13671,11 @@ public final class MainFrame extends JFrame {
                 } catch (RuntimeException unreadable) {
                     t = null;                                   // the entry stays listed; its authoring is not known
                 }
-                out.add(telamin.fluxtion.audit.analyser.analyser.template.Starters.of(e, t));
+                read.add(telamin.fluxtion.audit.analyser.analyser.template.Starters.of(e, t));
             }
-            return out;
+            // owner, 2026-11-07: every list the analyser shows — the picker, the start page's names, context.starters —
+            // in ONE order: the Java-authoring starter first, the other recommended ones next, then the rest
+            return telamin.fluxtion.audit.analyser.analyser.template.Starters.ordered(read);
         }, entries -> {
             long ref = starterPut(starterCatalogues, entries);
             java.util.List<telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterFacts> facts =
@@ -13669,7 +13683,7 @@ public final class MainFrame extends JFrame {
             for (var x : entries) {
                 facts.add(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterFacts(
                         telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(x.id()), x.authoring(),
-                        x.host(), x.mode(), x.keyNeed()));
+                        x.host(), x.mode(), x.keyNeed(), x.recommended()));
             }
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCatalogueObserved(
                     request, true, ref, facts));
@@ -13688,8 +13702,9 @@ public final class MainFrame extends JFrame {
             var entries = starterCatalogues.get(e.entriesRef());
             TemplateCatalogue.Entry chosen = null;
             if (entries != null) {
-                var selection = new TemplateCatalogue(TemplateCatalogue.SUPPORTED_VERSION, entries.stream()
-                        .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::catalogue).toList()).forPicker();
+                // the order read (Starters.ordered), kept: re-sorting by the catalogue alone could disagree with it
+                var selection = TemplateCatalogue.selection(entries.stream()
+                        .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::catalogue).toList());
                 chosen = TemplateProjectDialog.chooseTemplate(this, selection);
             }
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterChosen(e.request(),
@@ -13699,7 +13714,7 @@ public final class MainFrame extends JFrame {
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "choose");
     }
 
-    /** ReadStarterDefaultsEffect: the template file, off the event thread; and whether a Fluxtion key is on this machine. */
+    /** ReadStarterDefaultsEffect: the template file, off the event thread. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result readStarterDefaults(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReadStarterDefaultsEffect e) {
         var entry = starterEntry(e.entriesRef(), e.idDigest());
@@ -13708,9 +13723,9 @@ public final class MainFrame extends JFrame {
             if (entry == null) throw new IllegalStateException("the starter is no longer in the catalogue the analyser read");
             return source.template(entry.catalogue());
         }, t -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDefaultsObserved(
-                0L, e.request(), true, starterPut(starterTemplates, t), t.authoring(), fluxtionKeyStore.keyPresent(), null)),
+                0L, e.request(), true, starterPut(starterTemplates, t), t.authoring(), null)),
                 err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDefaultsObserved(
-                        0L, e.request(), false, 0, null, fluxtionKeyStore.keyPresent(),
+                        0L, e.request(), false, 0, null,
                         telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "defaults");
     }
@@ -13793,7 +13808,7 @@ public final class MainFrame extends JFrame {
         var st = sessionSnapshot().starter();
         var entry = starterEntry(st.entriesRef(), st.idDigest());
         String facts = entry == null ? "" : telamin.fluxtion.audit.analyser.analyser.template.Starters.facts(
-                entry.authoring(), entry.host(), entry.mode(), entry.keyNeed(), st.keyPresent());
+                entry.authoring(), entry.host(), entry.mode(), entry.keyNeed());
         return new ProposalReviewDialog.StarterRow(itemId, entry == null ? "(not in the catalogue read)" : entry.name(),
                 facts, st.dirShown(), st.dirWords(), "READY".equals(st.phase()) && st.destinationReady(),
                 starterSource.origin());
@@ -13849,7 +13864,7 @@ public final class MainFrame extends JFrame {
         progress.attach(Background.run(() -> {
             byte[] zip = source.download(request0);
             try {
-                return templateArchive.install(zip, target);
+                return templateArchive.install(zip, target, request0.template().keyNeed());
             } catch (java.io.IOException ex) {
                 throw new TemplateClient.Failure("could not install the starter: " + ex.getMessage(), ex);
             }
@@ -14164,16 +14179,22 @@ public final class MainFrame extends JFrame {
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File(observation.kind(), ref,
                 telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(path),
-                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(path), observation.revision());
+                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(path), observation.revision(),
+                observation.logicalPath() == null ? null
+                        : telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(observation.logicalPath()),
+                observation.buildCopy());
     }
 
     private boolean outputStillMatches(telamin.fluxtion.audit.analyser.analyser.session.ProjectOutputsState.File expected) {
         if (expected == null || projectRoot() == null) return false;
         String path = factRefs.get(expected.pathRef());
-        var now = path == null ? null : telamin.fluxtion.audit.analyser.analyser.project.ProjectOutputScanner.observe(
+        var now = path == null ? null : telamin.fluxtion.audit.analyser.analyser.project.ProjectOutputScanner.observeMetadata(
                 Path.of(path), expected.kind(), projectRoot());
+        // Metadata only: this runs on the EDT, and the scan already tied this metadata to its content digest (§3.5.1).
         return now != null && expected.pathKey().equals(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(now.realPath().toString()))
-                && expected.revision().equals(now.revision());
+                && expected.revision().size() == now.revision().size()
+                && expected.revision().modifiedNanos() == now.revision().modifiedNanos()
+                && java.util.Objects.equals(expected.revision().fileKeyDigest(), now.revision().fileKeyDigest());
     }
 
     private OpenRequest.OutputOrigin hostedOutputOrigin(String path,
@@ -14223,7 +14244,7 @@ public final class MainFrame extends JFrame {
         if (root != null && entry != null) {
             Path name = Path.of(root).getFileName();
             var d = telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.composeStarter(
-                    name == null ? root : name.toString(), entry.id());
+                    name == null ? root : name.toString(), entry.id(), entry.authoring());
             long ref = localAgentStore.add(
                     telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER, d.text());
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentDraftComposed(
@@ -14384,8 +14405,11 @@ public final class MainFrame extends JFrame {
                 // r8 F10: the catalogue is fetched HERE, at the button, once — never on choose. Option 2: by the ONE
                 // catalogue read, which also reports what it read to starterProject (so context.starters holds it)
                 readStarterCatalogue(0, entries -> {
-                    long ref = entries == null ? 0 : startPageWord(String.join("\n", entries.stream()
-                            .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::name).toList()));
+                    // owner, 2026-11-07: the names the draft offers are the picker's — recommended only unless ticked
+                    long ref = entries == null ? 0 : startPageWord(String.join("\n",
+                            telamin.fluxtion.audit.analyser.analyser.template.Starters.shown(entries,
+                                            StarterListPreference.showAll()).stream()
+                                    .map(telamin.fluxtion.audit.analyser.analyser.template.Starters.Entry::name).toList()));
                     session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(
                             request, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE, 0, 0, ref));
                 });

@@ -99,6 +99,59 @@ public class Issue84BundleFrameTest {
         }
     }
 
+    @Test void supersededProjectChooserClosesWithoutHidingOtherDialogs() throws Exception {
+        AtomicBoolean current = new AtomicBoolean(true);
+        AtomicBoolean timedOut = new AtomicBoolean(false);
+        onEdt(() -> {
+            javax.swing.JDialog unrelated = new javax.swing.JDialog();
+            unrelated.setTitle("DEMO unrelated dialog");
+            unrelated.setSize(180, 80);
+            unrelated.setVisible(true);
+            javax.swing.Timer supersede = new javax.swing.Timer(100, e -> current.set(false));
+            supersede.setRepeats(false);
+            javax.swing.Timer watchdog = new javax.swing.Timer(1500, e -> {
+                timedOut.set(true);
+                for (java.awt.Window window : java.awt.Window.getWindows()) {
+                    if (window instanceof javax.swing.JDialog d && "Open a log or topology".equals(d.getTitle())) d.dispose();
+                }
+            });
+            watchdog.setRepeats(false);
+            try {
+                supersede.start(); watchdog.start();
+                var choice = ProjectReopenDialog.choose(null, "DEMO",
+                        new ProjectReopen(List.of("/DEMO/log"), List.of()), current::get);
+                assertNull(choice, "a superseded choice must never open stale files");
+                assertFalse(timedOut.get(), "the offer should close itself when the session withdraws permission");
+                assertTrue(unrelated.isVisible(), "unrelated dialogs must not be dismissed");
+            } finally {
+                supersede.stop(); watchdog.stop(); unrelated.dispose();
+            }
+        });
+    }
+
+    @Test void aStaleChooserAnswerCannotReplaceANewerAssistantLog() throws Exception {
+        Path tmp = tmp("superseded-reopen");
+        try (var f = shown(tmp)) {
+            Path p = profile(tmp.resolve("project"));
+            Path oldLog = Files.copy(DEMO_LOG, tmp.resolve("DEMO-old.yaml"));
+            Path newLog = Files.copy(DEMO_LOG, tmp.resolve("DEMO-new.yaml"));
+            AtomicBoolean asked = new AtomicBoolean();
+            onEdt(() -> ((AppConfig)field(f.frame,"config")).addRecent(oldLog.toString()));
+            MainFrame.reopenChooser = (label,candidates) -> {
+                render(f.ex, "open", Map.of("log", newLog.toString()));
+                asked.set(true);
+                return new ProjectReopenDialog.Choice(oldLog.toString(), null);
+            };
+            var request = MainFrame.class.getDeclaredMethod("requestProject", Path.class, TransitionKind.class, String.class, boolean.class);
+            request.setAccessible(true);
+            onEdt(() -> { try { request.invoke(f.frame,p,TransitionKind.EXPLICIT_SWITCH,"DEMO-person",true); } catch(Exception e){throw new RuntimeException(e);} });
+            for (int i=0;i<100&&!asked.get();i++) Thread.sleep(50);
+            assertTrue(asked.get(), "the offer actually opened");
+            awaitLoaded(f.ex);
+            assertEquals(newLog.toString(), f.processorLog(), "staleChooserAnswerCannotReplaceNewerEvidence");
+        }
+    }
+
     @Test void aPersonsReopenOfferRunsAfterTheCycle() throws Exception {
         Path tmp = tmp("reopen");
         try (var f = shown(tmp)) {

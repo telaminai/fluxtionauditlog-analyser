@@ -60,7 +60,7 @@ class StarterProposalFrameTest {
     static final String CATALOGUE = """
             {"catalogue":1,"templates":[
               {"name":"Fluxtion embedded","description":"The graph inline in your app.","file":"fluxtion-embedded.starter.json","type":"fluxtion","mode":"interpreted","keyNeed":"run"},
-              {"name":"Fluxtion Spring XML","description":"The graph declared in Spring XML, compiled ahead of time.","file":"fluxtion-spring.starter.json","type":"fluxtion","mode":"aot","keyNeed":"build"}
+              {"name":"Fluxtion Spring XML","description":"The graph declared in Spring XML, compiled ahead of time.","file":"fluxtion-spring.starter.json","type":"fluxtion","mode":"aot","keyNeed":"build","tags":["onboarding"]}
             ]}
             """;
     static final String TEMPLATE = """
@@ -270,7 +270,8 @@ class StarterProposalFrameTest {
             ClaudeCodeTabFrameTest.awaitState(f, s -> s.admittedGeneration() != 0 && s.openTicket() == 0, "admitted");
             long generation = snapshot(f).localAgent().admittedGeneration();
 
-            // context lists the starters, Spring first and recommended — rendered, never fetched
+            // context lists the recommended starters (owner, 2026-11-07: tagged onboarding; here the Spring one) first,
+            // and only those until the person ticks Show all templates — rendered, never fetched
             int reads = (int) stub.requests.stream().filter("catalogue"::equals).count();
             Map<String, Object> context = render(ex, "context", Map.of());
             @SuppressWarnings("unchecked")
@@ -281,6 +282,7 @@ class StarterProposalFrameTest {
             assertEquals("fluxtion-spring", first.get("id"));
             assertEquals(true, first.get("recommended"));
             assertEquals("spring", first.get("authoring"));
+            assertEquals(1, ((List<?>) starters.get("entries")).size(), "unticked: the recommended starters only");
             assertEquals(reads, stub.requests.stream().filter("catalogue"::equals).count(), "context fetched nothing");
 
             // Claude's propose: one starter, no path
@@ -314,7 +316,7 @@ class StarterProposalFrameTest {
             AtomicReference<String> words = new AtomicReference<>();
             onEdt(() -> words.set(text(review)));
             assertTrue(words.get().contains("Create a project from starter Fluxtion Spring XML"), words.get());
-            assertTrue(words.get().contains("Spring XML · embedded · AOT · build needs a Fluxtion key"), words.get());
+            assertTrue(words.get().contains("Spring XML · embedded · AOT · build needs compiler sign-in"), words.get());
             assertTrue(words.get().contains("Downloads from fluxtion-playground.dev; nothing is built or run."));
             AbstractButton apply = ClaudeCodeTabFrameTest.findButton(review, "Apply chosen");
             AbstractButton choose = ClaudeCodeTabFrameTest.findButton(review, "Choose…");

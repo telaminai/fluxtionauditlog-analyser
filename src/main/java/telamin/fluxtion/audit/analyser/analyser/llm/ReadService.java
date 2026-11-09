@@ -185,8 +185,8 @@ public final class ReadService {
     record TraceOnly(List<String> marked, List<String> inferred) {}
 
     static TraceOnly traceOnly(LogRecord rec) {
-        boolean legacyText = rec.textEncoding()
-                == telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY;
+        // a text log's record, whichever grammar it declared itself: the text runtime's tracing run applies (§3a)
+        boolean legacyText = rec.textReaderRecord();
         // per instance, in first-seen order
         java.util.LinkedHashMap<String, boolean[]> byId = new java.util.LinkedHashMap<>();
         // flags: [0] any trace marker, [1] any entry at all, [2] any business entry, [3] method entry seen

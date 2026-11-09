@@ -44,6 +44,15 @@ public final class AiSetupLines {
 
     public static final String FIRST_RUN_FOOTER = "Nothing is sent or started until you choose.";
     public static final String SET_UP_LINK = "Set up AI…";
+    /**
+     * RAPID-OFF (2026-11-07): shown on the start page's AI block on each launch while a file is still where the retired
+     * AI ▸ Fluxtion API key… item wrote one. It names no local path and never the value; the analyser never reads the
+     * file. It points at the BUILD sign-in, not AI ▸ Compiler account… (that is the account view; it does not sign
+     * builds in), and says what builder 1.0.90 makes true: no tooling reads the key file any more.
+     */
+    public static final String LEGACY_KEY_NOTICE = "The Fluxtion API key route is closed; builds now sign in ("
+            + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN
+            + "). The key file is no longer read and can be deleted.";
     public static final String CHANGE_LINK = "Change…";
 
     // ---- Screen 1 (§6.1) ---------------------------------------------------------------------------------------------

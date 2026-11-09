@@ -74,8 +74,9 @@ analyser sends your evidence anywhere.
 
 The analyser opens on the start page when nothing is open. **Help ▸ Start page** brings it back.
 
-![The start page: What would you like to do? with eight numbered entries, the box and its Send button; under it, Or open
-directly with the Explore DEMO, Open, Create, Connect an assistant and Settings blocks, and Recent](assets/start-page.png)
+![The start page: What would you like to do? with eight numbered entries, the box and its Send button, and the How do you
+want AI to work with the analyser? panel; under it, Or open directly with the Explore DEMO, Open, Create and Settings
+blocks, and Recent](assets/start-page.png)
 
 | On the start page | Your door |
 |---|---|

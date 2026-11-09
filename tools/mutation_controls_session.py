@@ -121,20 +121,20 @@ CONTROLS = RELEASE_DOCS_FETCH_CONTROLS + [
      'before == null || !before.file().revision().equals(file.revision())', 'before == null',
      'ProjectOutputsTest#growingAndIncompleteScansCannotOfferPartialOutputs'),
     ('m81-output-no-auto-open', NODE + 'ProjectOutputs.java',
-     '        var file = latest.file();',
-     '        var file = latest.file();\n        effects.request(new SessionEffects.OpenProjectOutputEffect(0, watch, projectGeneration, e.change(), file, null));',
+     '        var file = graphed(latest.file()) ? canonical(latest.file()).file() : latest.file();',
+     '        var file = graphed(latest.file()) ? canonical(latest.file()).file() : latest.file();\n        effects.request(new SessionEffects.OpenProjectOutputEffect(0, watch, projectGeneration, e.change(), file, null));',
      'ProjectOutputsTest#onlyThePersonsCurrentOneUseAnswerOpensAndPairs'),
     ('m81-output-hold-for-open-turn', NODE + 'ProjectOutputs.java',
      'watching && assistant.state().openTicket() == 0 ? pending.values()', 'watching ? pending.values()',
      'ProjectOutputsTest#anOpenTurnHoldsOffersAndOnlyItsCompletedExactFileSuppresses'),
     ('m81-output-successful-open-between-polls', NODE + 'ProjectOutputs.java',
-     'if (!opened.contains(new Opened(candidate.owner(), key(file), file.revision())))', 'if (true)',
+     'if (!opened.contains(new Opened(candidate.owner(), group(file), version(file))))', 'if (true)',
      'ProjectOutputsTest#aShortTurnCompletedBetweenPollsUsesOnlyItsExactSuccessfulOpenReceipt'),
     ('m81-output-receipt-bound-covers-scan', NODE + 'ProjectOutputs.java',
      'while (opened.size() > 800)', 'while (opened.size() > 64)',
      'ProjectOutputsTest#aCompleteBoundedScanDoesNotForgetItsHundredSuccessfullyOpenedOutputs'),
     ('m81-output-no-old-revision-completion', NODE + 'ProjectOutputs.java',
-     '&& p.offer().file().revision().equals(e.file().revision())', '',
+     '&& version(p.offer().file()).equals(version(e.file()))', '',
      'ProjectOutputsTest#anOldCompletionWithinTheSameTurnCannotClearItsNewerRevision'),
     ('m81-output-open-button-wired', UI + 'ProjectOutputsPanel.java',
      '            open.addActionListener(e -> answered.accept(new SessionEvents.ProjectOutputOfferAnswered(state.watch(), offer.id(), true)));',
@@ -2775,6 +2775,15 @@ CONTROLS += [
 # argv controls are the "never on a command line" rule; the rest keep the credential inside the account package.
 ACCOUNT = J + 'account/'
 CONTROLS += [
+    # Owner, 2026-11-03: the address drop-down offers the hosted services, and picking one fills the field.
+    ('ca1-hosted-services-offered', UI + 'CompilerAccountDialog.java',
+     '        for (var known : telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.ALL) out.add(known.address());\n',
+     '',
+     'CompilerAccountWordsTest#theAddressSuggestionsAreTheHostedServicesThenTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes'),
+    ('ca1-selection-follows-the-field', UI + 'CompilerAccountDialog.java',
+     '        addressBox.setSelectedIndex(items.indexOf(text));\n',
+     '',
+     'CompilerAccountFrameTest#theAddressIsAnEditableDropDownOfTheHostedServicesAndAddressesThisMachineConnectedWith'),
     ('ca1-slow-down-lengthens-interval', ACCOUNT + 'CompilerAccountClient.java',
      'case "slow_down" -> interval += SLOW_DOWN_SECONDS;', 'case "slow_down" -> { }',
      'CompilerAccountClientTest#pendingThenSlowDownThenApproved_honoursTheIntervalAndLengthensItOnSlowDown'),
@@ -2817,9 +2826,9 @@ CONTROLS += [
      '    String bearer() {', '    public String bearer() {',
      'CompilerAccountSafetyTest#noPublicMethodReturnsTheBearerOrTheDeviceCode'),
     ('ca1-context-never-reads-the-account', UI + 'MainFrame.java',
-     '                fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");\n',
-     '                fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");\n'
-     '                fluxtionKey.put("compilerAccount", telamin.fluxtion.audit.analyser.analyser.account.CredentialStores'
+     '            out.put("project", proj);\n',
+     '            out.put("project", proj);\n'
+     '            proj.put("compilerAccount", telamin.fluxtion.audit.analyser.analyser.account.CredentialStores'
      '.forThisMachine().description());\n',
      'CompilerAccountSafetyTest#onlyTheDialogAndItsMenuItemReachTheAccountPackage'),
     ('ca1-no-reset-line-without-reset', UI + 'CompilerAccountDialog.java',
@@ -2886,7 +2895,7 @@ CONTROLS += [
      'CompilerAccountFrameTest#connectApproveReadUsageThenRevoke'),
     ('ca1-suggestions-only-usable', UI + 'CompilerAccountDialog.java',
      'out.removeIf(a -> a == null || ServiceAddress.refusal(a) != null);', 'out.removeIf(a -> a == null);',
-     'CompilerAccountWordsTest#theAddressSuggestionsAreTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes'),
+     'CompilerAccountWordsTest#theAddressSuggestionsAreTheHostedServicesThenTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes'),
     ('ca1-recent-services-machine-tier', J + 'config/KnownKeys.java',
      '"compilerServiceUrl", "recentCompilerService", "eventFilterCollapsed"', '"compilerServiceUrl", "eventFilterCollapsed"',
      'CompilerAccountSafetyTest#theCredentialCannotReachAProfileOrAShareExport_andTheAddressIsMachineTier'),

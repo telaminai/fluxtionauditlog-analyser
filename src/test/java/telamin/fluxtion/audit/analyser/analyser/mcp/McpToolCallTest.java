@@ -11,7 +11,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -176,5 +179,17 @@ class McpToolCallTest {
         assertEquals("complete", Json.at(r, "result", "resultType"));
         assertNotNull(Json.at(r, "result", "_meta", "io.modelcontextprotocol/serverInfo"));
         assertEquals(false, Json.at(r, "result", "isError"));
+    }
+
+    /** A request piped in and then EOF (one-shot use) is still answered: EOF ends the loop after a grace, not at once. */
+    @Test
+    void aCallPipedInBeforeEndOfInputIsStillAnswered() throws IOException {
+        String in = "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{"
+                + "\"name\":\"analyser_read\",\"arguments\":{\"recordIndex\":0,\"count\":1}}}\n";
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        bridge.run(new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8)), out);
+        List<String> lines = out.toString(StandardCharsets.UTF_8).lines().toList();
+        assertEquals(1, lines.size(), out.toString(StandardCharsets.UTF_8));
+        assertEquals(false, Json.at(Json.parse(lines.get(0)), "result", "isError"), lines.get(0));
     }
 }

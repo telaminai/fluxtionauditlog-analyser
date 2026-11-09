@@ -40,8 +40,10 @@ drive the same verbs:
 - **graph {name, close: true}** — take a chart off the screen and keep its definition, the way *Close
   graph* does. For a chart worth keeping; a closed probe still sits in the profile, so delete those.
 - **goto** — select a record (by index, byte offset or `at` time); `reveal:true` un-hides one the current filter is hiding.
-- **flag** — bookmark records with a `note` and an optional `fix`. Use `kind: "confirmation"` for
-  correct behavior, labelled Observation / Assessment; otherwise new findings default to `fault`. This is the **one** place
+- **flag** — bookmark records with a `note` and an optional `fix`. `kind` is `fault` (wrong behavior, labelled
+  What is wrong / Likely cause), `confirmation` (correct behavior, labelled Observation / Assessment) or `note`
+  (neutral, labelled Note / Assessment). A new finding sent without `kind` is saved as a `note`, never as a fault;
+  an existing finding keeps its kind. This is the **one** place
   a finding is written; it then shows in the records table, as a callout on the Topology graph for that
   record, and in an exported report. Supplying only one of `note`/`fix` keeps the other, so adding a
   suggested fix can't wipe the explanation it's a fix for.
@@ -443,9 +445,9 @@ Bookmark records so your findings are reviewable in the UI. This is the ONE plac
 |---|---|---|---|
 | `byteOffsets` | array of integer |  | anchors by byte offset |
 | `recordIndexes` | array of integer |  | anchors by record index |
-| `kind` | one of `fault`, `confirmation` |  | finding category; new findings default to fault. Omission preserves an existing category. Confirmation labels are Observation / Assessment. |
-| `note` | string |  | what you observed (confirmation), or what is wrong (fault) |
-| `fix` | string |  | your assessment (confirmation), or likely cause / suggested fix (fault) |
+| `kind` | one of `fault`, `confirmation`, `note` |  | finding category: 'fault' for behaviour that is wrong (What is wrong / Likely cause), 'confirmation' for behaviour that is correct, e.g. a correct refusal (Observation / Assessment), 'note' for a neutral record of evidence (Note / Assessment). Omitted: a NEW finding is saved as 'note' — never as a fault; an existing finding keeps its category. Say 'fault' only when the record shows something wrong. |
+| `note` | string |  | what is wrong (fault), what you observed (confirmation), or the note itself (note) |
+| `fix` | string |  | likely cause / suggested fix (fault), or your assessment (confirmation, note) |
 
 ### `coverage` arguments
 

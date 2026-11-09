@@ -78,20 +78,20 @@ class M80DesignDiscoveryFrameTest {
                     if(source.fileView()!=null && source.fileView().file().equals(expected))
                         shown.set(((javax.swing.JTextArea)field(source.designComponent(),"status")).getText());
                 });
-                if(shown.get().contains("2 files could not be read:"))break;
+                if(shown.get().contains("2 entries could not be read:"))break;
                 Thread.sleep(20);
             } while(System.nanoTime()<until);
-            assertTrue(shown.get().contains("2 files could not be read:"),"candidate and warning must reach the actual Design pane: "+shown.get());
+            assertTrue(shown.get().contains("2 entries could not be read:"),"candidate and warning must reach the actual Design pane: "+shown.get());
             assertTrue(shown.get().contains("bad.java") && shown.get().contains("large.xml"));
             var context=f.ex.render("context",Map.of("sections",List.of("design")));
             assertEquals(1,((List<?>)find(context.payload(),"files")).size());
-            assertTrue(String.valueOf(find(context.payload(),"note")).contains("2 files could not be read:"),context.toMap().toString());
+            assertTrue(String.valueOf(find(context.payload(),"note")).contains("2 entries could not be read:"),context.toMap().toString());
             assertTrue(f.ex.render("source",Map.of("file",expected)).ok());
             onEdt(()->{
                 var source=(SourcePanel)field(f.frame,"sourcePanel");
                 var status=(javax.swing.JTextArea)field(source.designComponent(),"status");
                 assertTrue(status.isShowing(),"the warning is on the visible Design pane");
-                assertTrue(status.getText().contains("2 files could not be read:"),"explicit glances retain the warning");
+                assertTrue(status.getText().contains("2 entries could not be read:"),"explicit glances retain the warning");
             });
         }
     }

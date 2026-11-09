@@ -20,6 +20,7 @@ validation:
 # assets/README.md is a contributor note about the screenshots, not a site page.
 exclude_docs: |
   assets/README.md
+  snippets/
 
 # Theme matches the org look (telaminai/mongoose-plugins mkdocs.yml).
 theme:
@@ -148,6 +149,7 @@ nav:
       - Composing a system from supplier jars: composing-a-system.md
       - 'Integrating a vendor component: a worked example': integrating-a-vendor-component.md
   - Get started:
+      - Set up with your AI assistant: start/set-up-with-an-assistant.md
       - Install & run: install.md
       - The start page: user-guide/start-page.md
       - Guided tour and sample project: start/tour-and-sample.md

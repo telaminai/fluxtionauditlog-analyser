@@ -165,8 +165,10 @@ report from `context`.
 A finding can confirm expected behavior. Use `flag` with `kind: "confirmation"`, a `note` stating the
 observation and an optional `fix` carrying your assessment. These appear as **Observation / Assessment**
 in the table tooltip, topology callout and reports, including PDF. The record's context menu offers the
-same category choice when writing a finding. Existing findings default to `fault`; omitting `kind` while
-editing a finding preserves its category and any omitted text.
+same category choice when writing a finding. A third category, `note`, is neutral and labelled **Note /
+Assessment**. A new finding sent through `flag` without `kind` is saved as a `note`, never as a fault, so say
+`kind: "fault"` when the record shows something wrong. Findings saved before categories existed read as `fault`;
+omitting `kind` while editing a finding preserves its category and any omitted text.
 
 Flags and finding categories are included in the local session-recovery snapshot. Closing and reopening
 a project offers restoration explicitly; findings are restored only against the verified unchanged log.

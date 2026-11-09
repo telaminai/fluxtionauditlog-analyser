@@ -32,7 +32,7 @@ public final class ServiceAddress {
 
     /** Why {@code raw} is not a usable service address, or null when it is. */
     public static String refusal(String raw) {
-        if (raw == null || raw.isBlank()) return "Enter the compiler service address first, for example https://compiler.example.com";
+        if (raw == null || raw.isBlank()) return "Enter the compiler service address first, for example " + KnownCompilerServices.PRODUCTION;
         URI uri;
         try {
             uri = URI.create(raw.strip());
@@ -41,7 +41,7 @@ public final class ServiceAddress {
         }
         String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
         String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
-        if (host.isEmpty()) return "The service address needs a host, for example https://compiler.example.com";
+        if (host.isEmpty()) return "The service address needs a host, for example " + KnownCompilerServices.PRODUCTION;
         if (uri.getRawUserInfo() != null || uri.getRawQuery() != null || uri.getRawFragment() != null)
             return "The service address must be a plain base address, without a user, query or fragment";
         if (scheme.equals("https")) return null;

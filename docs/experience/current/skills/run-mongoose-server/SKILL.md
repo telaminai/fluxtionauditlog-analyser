@@ -6,7 +6,7 @@ x-analyser-min-version: 1.12.0
 
 # Run the server and get an audit log
 
-**No Fluxtion API key is needed to run.** The generated processor ships with the project.
+**No compiler sign-in is needed to run.** The generated processor ships with the project.
 
 ## The sequence — the first command BLOCKS
 

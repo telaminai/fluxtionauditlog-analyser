@@ -118,8 +118,8 @@ under `analyser/`.
 Steps 1, 5, 6 and 7 work in every profile, including Off. Steps 3 and 4 run the person's code, so they need Full
 Claude Code or the person's own terminal (§3.3). *r2 (F10):* **changing the graph** (most of step 6's changes) also
 needs a Fluxtion key or a local build engine, because generation does: *"there is no generate-without-a-generator
-path"* (`docs/claude.txt`). The strip says so before step 6, from `context.project.fluxtionKey`'s existing
-presence check; it never reads the key.
+path"* (`docs/claude.txt`). The strip says so before step 6. *RAPID-OFF (2026-11-07):* `context.fluxtionKey` is
+retired with the key route, so the strip states the need for compiler sign-in unconditionally.
 
 ### 3.2 Components (step 2)
 
@@ -183,7 +183,7 @@ buttons. Both open the **authoring strip** (§4.3).
    under approvals. The run is offered, opened by the person, and pairs with the scenario.
 4. **Explain.** The tour (§9), with links to the bundled lessons once M75 P3 ships them, and to the philosophy packs.
 5. **Change.** *r2 (F10):* before this step the strip states *"Changing the graph needs a Fluxtion key or a local
-   build engine"* when `context.project.fluxtionKey` shows none. The example offers a fixed list of changes, each with
+   build engine"* (RAPID-OFF: now *compiler sign-in*, stated unconditionally; `context.fluxtionKey` is retired). The example offers a fixed list of changes, each with
    a criterion the person can accept, edit or replace: at least one that needs **no regeneration** (*"feed x = 0
    first"*, a scenario change: by the README's reading of the generated code nothing downstream of a would write an
    entry), and graph changes (*"make d skip the update when only c changed"*). The checkpoint is offered (§6.3).

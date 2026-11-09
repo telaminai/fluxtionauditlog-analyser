@@ -26,7 +26,7 @@ public record DesignDiscovery(String kind, List<FileRef> files, String source, L
     public String warning() {
         int shown = Math.min(10, unreadableFiles.size());
         return unreadableFiles.isEmpty() ? "" : unreadableFiles.size() + (unreadableFiles.size() == 1
-                ? " file could not be read: " : " files could not be read: ") + String.join(", ", unreadableFiles.subList(0, shown))
+                ? " entry could not be read: " : " entries could not be read: ") + String.join(", ", unreadableFiles.subList(0, shown))
                 + (shown < unreadableFiles.size() ? ", and " + (unreadableFiles.size() - shown) + " more" : "");
     }
     private static final class ScanLimit extends IOException {
@@ -41,7 +41,49 @@ public record DesignDiscovery(String kind, List<FileRef> files, String source, L
         }
         return false;
     }
-    public static DesignDiscovery scan(DesignFiles access) {
+    /**
+     * Directories no walk descends into, below a root (2026-11-04). Every build copies the design to
+     * {@code target/classes/}, so a root covering {@code target/} found two designs and the zero-setup auto-open (exactly
+     * one) was lost; version-control and tool folders also spent the entry budget. A root that IS one of these is still
+     * walked: only what lies below a root is skipped.
+     */
+    public static final Set<String> SKIPPED_DIRECTORIES = Set.of(".git", ".svn", ".hg", ".gradle", "node_modules", ".idea");
+    /**
+     * Build-output names, skipped only beside a build file ({@link #BUILD_FILES}; for {@code out}, also an IntelliJ
+     * {@code .iml}): a Java package may be called {@code build}, {@code target} or {@code out}
+     * ({@code src/main/java/com/acme/build/}), and a builder there is a definition.
+     */
+    public static final Set<String> BUILD_OUTPUT_DIRECTORIES = Set.of("target", "build", "out");
+    static final List<String> BUILD_FILES = List.of("pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle",
+            "settings.gradle.kts", "build.xml");
+    static boolean skipped(Path dir) {
+        Path name = dir.getFileName();
+        if (name == null) return false;
+        if (SKIPPED_DIRECTORIES.contains(name.toString())) return true;
+        Path parent = dir.getParent();
+        if (!BUILD_OUTPUT_DIRECTORIES.contains(name.toString()) || parent == null) return false;
+        for (String file : BUILD_FILES) if (Files.isRegularFile(parent.resolve(file), LinkOption.NOFOLLOW_LINKS)) return true;
+        if (name.toString().equals("out")) {
+            try (var listing = Files.newDirectoryStream(parent, "*.iml")) {
+                for (Path iml : listing) if (Files.isRegularFile(iml, LinkOption.NOFOLLOW_LINKS)) return true;
+            } catch (IOException | java.nio.file.DirectoryIteratorException | SecurityException unreadable) {
+                return false;
+            }
+        }
+        return false;
+    }
+    public static DesignDiscovery scan(DesignFiles access) { return scan(access, path -> { }); }
+    /**
+     * An entry the walk could not open or finish listing: the root itself makes the scan unavailable, as before; an
+     * entry that vanished is skipped; any other is named as unreadable. Never fatal below the root.
+     */
+    static FileVisitResult failed(Path entry, Path root, IOException error, Set<String> unreadable) throws IOException {
+        if (entry.equals(root)) throw error;
+        if (!(error instanceof NoSuchFileException)) unreadable.add(entry.toAbsolutePath().normalize().toString());
+        return FileVisitResult.CONTINUE;
+    }
+    /** {@code beforeEntry} runs as each entry is visited: the test seam for a file vanishing mid-walk. */
+    static DesignDiscovery scan(DesignFiles access, java.util.function.Consumer<Path> beforeEntry) {
         Map<String, FileRef> found = new TreeMap<>();
         Set<Path> visited = new HashSet<>();
         Set<String> unreadable = new TreeSet<>();
@@ -51,12 +93,25 @@ public record DesignDiscovery(String kind, List<FileRef> files, String source, L
                 Path directory = access.directory(Path.of(root));
                 Files.walkFileTree(directory, new SimpleFileVisitor<>() {
                     @Override public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                        if (!visited.add(dir.toRealPath())) return FileVisitResult.SKIP_SUBTREE;
-                        if (++counts[0] > MAX_ENTRIES) throw new ScanLimit("20,000-entry scan limit exceeded");
-                        access.directory(dir); // no directory links are followed; recheck each authorised real path
+                        beforeEntry.accept(dir);
+                        if (!dir.equals(directory) && skipped(dir)) return FileVisitResult.SKIP_SUBTREE;
+                        try {
+                            if (!visited.add(dir.toRealPath())) return FileVisitResult.SKIP_SUBTREE;
+                            if (++counts[0] > MAX_ENTRIES) throw new ScanLimit("20,000-entry scan limit exceeded");
+                            access.directory(dir); // no directory links are followed; recheck each authorised real path
+                        } catch (ScanLimit limit) {
+                            throw limit;
+                        } catch (IOException | SecurityException replaced) {
+                            // removed or replaced mid-walk (a concurrent build): never read, so skipping is safe; the
+                            // root itself still makes the scan unavailable, as before
+                            if (dir.equals(directory)) throw replaced;
+                            if (!(replaced instanceof NoSuchFileException)) unreadable.add(dir.toAbsolutePath().normalize().toString());
+                            return FileVisitResult.SKIP_SUBTREE;
+                        }
                         return FileVisitResult.CONTINUE;
                     }
                     @Override public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        beforeEntry.accept(file);
                         if (++counts[0] > MAX_ENTRIES) throw new ScanLimit("20,000-entry scan limit exceeded");
                         if (!attrs.isRegularFile() || !visited.add(file.toAbsolutePath().normalize())) return FileVisitResult.CONTINUE;
                         if (++counts[1] > MAX_FILES) throw new ScanLimit("10,000-file scan limit exceeded");
@@ -71,11 +126,23 @@ public record DesignDiscovery(String kind, List<FileRef> files, String source, L
                                 found.put(path, new FileRef(path, role));
                             }
                         } catch (IOException | SecurityException error) {
+                            // removed mid-walk (a concurrent build): no longer a candidate, and not unreadable either
+                            if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS)) return FileVisitResult.CONTINUE;
                             unreadable.add(file.toAbsolutePath().normalize().toString());
                         }
                         return FileVisitResult.CONTINUE;
                     }
-                    @Override public FileVisitResult visitFileFailed(Path file, IOException error) throws IOException { throw error; }
+                    /**
+                     * An entry that vanished between listing and visiting is skipped; one that cannot be opened is named
+                     * as unreadable. Neither fails the scan (a build running beside the analyser removes files).
+                     */
+                    @Override public FileVisitResult visitFileFailed(Path file, IOException error) throws IOException {
+                        return failed(file, directory, error, unreadable);
+                    }
+                    /** A directory whose listing failed part-way (removed or replaced mid-iteration) is skipped likewise. */
+                    @Override public FileVisitResult postVisitDirectory(Path dir, IOException error) throws IOException {
+                        return error == null ? FileVisitResult.CONTINUE : failed(dir, directory, error, unreadable);
+                    }
                 });
             }
         } catch (ScanLimit limit) { return unavailable(limit.getMessage()); }

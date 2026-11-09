@@ -117,6 +117,12 @@ public final class TopologyPanel extends JPanel {
     private List<NodeLog> cycle = List.of();
     /** M74 P2: the Ask catalogue's node items, built by the frame from the registry. */
     private AskMenus askMenus = AskMenus.NONE;
+    private java.util.function.Consumer<String> copyExplanation = text -> { }, askExplanation = text -> { };
+    public void setCodeExplainActions(java.util.function.Consumer<String> copy, java.util.function.Consumer<String> ask) {
+        copyExplanation = copy;
+        askExplanation = ask;
+        if (embeddedSource != null) embeddedSource.setCodeExplainActions(copy, ask);
+    }
 
     public void setAskMenus(AskMenus menus) {
         this.askMenus = menus == null ? AskMenus.NONE : menus;
@@ -1637,6 +1643,7 @@ public final class TopologyPanel extends JPanel {
     public void bindSource(SourceService service) {
         if (service == null || embeddedSource != null) return;
         embeddedSource = new SourcePanel();
+        embeddedSource.setCodeExplainActions(copyExplanation, askExplanation);
         embeddedSource.bind(service);
         embeddedSource.setMinimumSize(new java.awt.Dimension(220, 80));
         // Seed the dropdown if choices were already published before the pane existed.

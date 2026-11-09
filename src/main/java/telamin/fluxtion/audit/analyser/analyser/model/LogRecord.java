@@ -30,6 +30,12 @@ public final class LogRecord {
     private final String eventType;
     /** The grammar this record's text was parsed under - the reader's declaration, carried so consumers can decide applicability. */
     private final telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding textEncoding;
+    /**
+     * True when the record's OWN text selected {@link #textEncoding} ({@code textEncoding: QUOTED_SCALARS}, format-spec
+     * §3a) under a reader that declares the legacy grammar - a text log written by a runtime that quotes. Metadata,
+     * never a node entry or a header field.
+     */
+    private final boolean recordDeclaredEncoding;
     private final String eventToString;
     private final String thread;
     private final String logger;
@@ -66,6 +72,7 @@ public final class LogRecord {
         this.eventType = b.eventType;
         this.textEncoding = b.textEncoding == null
                 ? telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY : b.textEncoding;
+        this.recordDeclaredEncoding = b.recordDeclaredEncoding;
         this.eventToString = b.eventToString;
         this.thread = b.thread;
         this.logger = b.logger;
@@ -123,6 +130,17 @@ public final class LogRecord {
     public String event()         { return event; }
     public String eventType()     { return eventType; }
     public telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding textEncoding() { return textEncoding; }
+    /** @see #recordDeclaredEncoding */
+    public boolean recordDeclaredEncoding() { return recordDeclaredEncoding; }
+    /**
+     * Whether this record came from a reader that declares the legacy grammar - a TEXT log - whatever grammar the
+     * record itself then selected. The text runtime's conventions (invocation tracing's {@code method} run) apply to
+     * such a record; a reader that declares the quoted grammar for every record (the binary reader) has none.
+     */
+    public boolean textReaderRecord() {
+        return textEncoding == telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY
+                || recordDeclaredEncoding;
+    }
     public String eventToString() { return eventToString; }
     public String thread()        { return thread; }
     public String logger()        { return logger; }
@@ -149,6 +167,7 @@ public final class LogRecord {
         private Long eventTime, logTime, endTime;
         private String groupingId, event, eventType, eventToString, thread, logger, level, headerTime;
         private telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding textEncoding;
+        private boolean recordDeclaredEncoding;
         private EventKind kind = EventKind.OK;
         private String callback, declaringType, eventDimension;
         private int nodeLogsCount;
@@ -166,6 +185,7 @@ public final class LogRecord {
         public Builder event(String v) { this.event = v; return this; }
         public Builder eventType(String v) { this.eventType = v; return this; }
         public Builder textEncoding(telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding v) { this.textEncoding = v; return this; }
+        public Builder recordDeclaredEncoding(boolean v) { this.recordDeclaredEncoding = v; return this; }
         public Builder eventToString(String v) { this.eventToString = v; return this; }
         public Builder thread(String v) { this.thread = v; return this; }
         public Builder logger(String v) { this.logger = v; return this; }

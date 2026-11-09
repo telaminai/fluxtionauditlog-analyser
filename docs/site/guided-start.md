@@ -3,7 +3,7 @@
 Paste the prompt below into your AI assistant. It installs the analyser, opens it, connects it, and then
 walks you through what the tool does **by driving the window while you watch**.
 
-You need **JDK 21+**. You do **not** need a Fluxtion API key, an account, or a project of your own — the
+You need **JDK 21+**. You do **not** need compiler sign-in, an account, or a project of your own — the
 analyser ships with a demo set.
 
 This page is for an assistant **outside** the analyser: Claude Code, Codex or another client in your terminal. Two
@@ -78,7 +78,7 @@ ask me before opening anything, because opening a project closes what I have.
 The analyser opens on its Start page — no log, no project, and the demo set one click away. Your assistant
 starts from here:
 
-![The analyser's start page: nothing open, What would you like to do? with Run me through a demo first, and the Explore DEMO, Open, Create, Connect an assistant and Settings blocks under Or open directly](assets/start-page.png)
+![The analyser's start page: nothing open, What would you like to do? with Run me through a demo first, the How do you want AI to work with the analyser? panel, and the Explore DEMO, Open, Create and Settings blocks under Or open directly](assets/start-page.png)
 
 Then it drives the window. From analyser 1.14 it also **points**: before it talks about something it dims the
 window, lights that one thing, and says in a few words why to look there. The callout is tagged *assistant*

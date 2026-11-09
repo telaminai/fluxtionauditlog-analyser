@@ -25,7 +25,8 @@ import java.util.regex.Pattern;
  * name and generation, node ids, a chart's name, a time — and never what is there: no value, payload, note text,
  * finding text or model-written words, because those can carry text written to steer an AI. Every pointer passes its
  * sanitiser in {@link AskPointers}. A draft that names records is BOUND to the log's identity and generation; the session
- * refuses to send it if the log has moved (§8.2).
+ * refuses to send it if the log has moved (§8.2). An explicit code-view explanation is a separate, bounded
+ * snapshot request; see {@link #composeCodeExplanation(String, int, int, String, String)}.
  */
 public final class AskCatalogue {
 
@@ -497,6 +498,43 @@ public final class AskCatalogue {
         return composeStart("S6", f).text();
     }
 
+    /** Maximum displayed code included in an explicit code-explanation request. */
+    public static final int MAX_CODE_CHARS = 24_000;
+
+    /**
+     * The code viewer's explicit selection/visible-document request. Unlike record-pointer questions, the user asks
+     * to include this code snapshot, which may be the only source available to the onboard assistant. It is bounded,
+     * fenced as untrusted context and never read from disk here. A source snapshot makes no claim about a running graph.
+     */
+    public static Draft composeCodeExplanation(String displayed, int start, int end, String source, String language) {
+        if (displayed == null || displayed.isBlank()) return null;
+        start = Math.max(0, Math.min(start, displayed.length()));
+        end = Math.max(start, Math.min(end, displayed.length()));
+        boolean selection = start != end;
+        if (!selection) { start = 0; end = displayed.length(); }
+        int requestedEnd = end;
+        end = Math.min(end, start + MAX_CODE_CHARS);
+        if (end < requestedEnd && end > start && Character.isHighSurrogate(displayed.charAt(end - 1))) end--;
+        String code = displayed.substring(start, end);
+        if (code.isBlank()) return null;
+        int fromLine = 1 + (int) displayed.substring(0, start).chars().filter(c -> c == '\n').count();
+        int toLine = 1 + (int) displayed.substring(0, Math.max(start, end - 1)).chars().filter(c -> c == '\n').count();
+        String fence = "```";
+        while (code.contains(fence)) fence += "`";
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("scope", text(selection ? "CODE_EXPLAIN.selected" : "CODE_EXPLAIN.displayed"));
+        values.put("source", telamin.fluxtion.audit.analyser.analyser.llm.Json.write(source));
+        values.put("from", Integer.toString(fromLine));
+        values.put("to", Integer.toString(toLine));
+        values.put("truncated", end < requestedEnd ? text("CODE_EXPLAIN.truncated", Map.of(
+                "count", Integer.toString(end - start),
+                "scope", text(selection ? "CODE_EXPLAIN.selection" : "CODE_EXPLAIN.file"))) + "\n" : "");
+        values.put("fence", fence);
+        values.put("language", "java".equals(language) ? "java" : "xml".equals(language) ? "xml" : "");
+        values.put("code", code + (code.endsWith("\n") ? "" : "\n"));
+        return new Draft("CODE_EXPLAIN", text("CODE_EXPLAIN.template", values), null, 0);
+    }
+
     /** Free text alone (no entry chosen): the person's own question, unbound. */
     public static Draft composeFreeText(StartFacts f) {
         return new Draft("FREE_TEXT", f.freeText(), null, 0);
@@ -518,10 +556,21 @@ public final class AskCatalogue {
      * model's words. Placed, never sent: the person presses Send.
      */
     public static Draft composeStarter(String projectName, String starterId) {
+        return composeStarter(projectName, starterId, "spring");
+    }
+
+    /**
+     * The starter draft for how the starter's graph is authored (its template file's word): {@code java} — the
+     * Java-authoring starter, the first and recommended one (owner, 2026-11-07) — points at its own guide and tools;
+     * {@code spring} at the Spring design skill; anything else at the project's own guide.
+     */
+    public static Draft composeStarter(String projectName, String starterId, String authoring) {
         Map<String, String> v = new LinkedHashMap<>();
         v.put("project", AskPointers.name(projectName));
         v.put("starter", AskPointers.identifier(starterId, "(the chosen starter)"));
-        return new Draft("STARTER", text("STARTER.template", v), null, 0);
+        String key = "java".equals(authoring) ? "STARTER.java.template"
+                : "spring".equals(authoring) ? "STARTER.template" : "STARTER.other.template";
+        return new Draft("STARTER", text(key, v), null, 0);
     }
 
     /** The journey handoff's draft in the Claude Code mode (§5.5 Journeys), bound to the walk's log. */

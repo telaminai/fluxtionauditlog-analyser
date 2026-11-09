@@ -1,11 +1,33 @@
 # Open your own log, step by step
 
-You have an audit log from your own processor and want to read it. This page takes you from opening the file to a
-log whose lines lead to their source. Only the first step is needed; each later one adds a view.
+You have an audit log from your own processor and want to read it. This page takes you from installing the analyser
+to a log whose lines lead to their source. Steps 0 and 1 are needed; each later one adds a view.
 
-You need the analyser running ([Install & run](install.md)) and a log your processor wrote
-([Producing an audit log](producing-a-log.md)). To look around first with nothing of your own, use the
-[guided tour or the sample project](start/tour-and-sample.md).
+You need a log your processor wrote ([Producing an audit log](producing-a-log.md)). To look around first with nothing
+of your own, use the [guided tour or the sample project](start/tour-and-sample.md).
+
+## 0. Install and start the analyser
+
+The analyser runs through [JBang](https://www.jbang.dev), which also fetches Java 21 if you have none.
+
+**Install JBang** (once), then open a new terminal so `jbang` is on your PATH:
+
+--8<-- "snippets/jbang-install.md"
+
+**Install the analyser** as an `analyser` command, and start it:
+
+```bash
+jbang app install analyser@telaminai/fluxtionauditlog-analyser
+analyser
+```
+
+The first time, JBang asks whether to trust the download: answer **2** to trust this project's releases. To pick up a
+newer release later, run `jbang --fresh analyser@telaminai/fluxtionauditlog-analyser` once
+([Install & run](install.md) has the details, a plain-jar download and building from source).
+
+It opens on the start page:
+
+![The start page: numbered pathways, the AI choice, and Open, Create and Settings buttons](assets/start-page.png)
 
 ## 1. Open the log
 
@@ -52,19 +74,24 @@ you press Send ([Ask the assistant](inapp/ask.md)). Which assistant answers, if 
 use. To drive this window from Claude Code, Codex or another client in your terminal, see
 [Connect your client](connect-an-llm.md).
 
-If you later **regenerate a Fluxtion processor**, that build needs a different key: the Fluxtion build key, not an
-assistant's. **AI ▸ Fluxtion API key…** (also on the start page) writes the usual `~/.fluxtion/fluxtion.apiKeyFile`;
-named local profiles let one machine switch between, for example, a work and an evaluation key. The analyser reports
-only whether a key is present; it does not check it or show it again. A `-Dfluxtion.apiKey` passed to the build
-overrides the file, and the builder does not read `FLUXTION_API_KEY`. Existing generated processors and the bundled
-demo run without this key.
+If you later **regenerate a Fluxtion processor**, that build needs **compiler sign-in**, not an assistant's key. Sign
+the build in once per machine, in a terminal:
+`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
+(in a project whose pom declares the plugin, `./mvnw fluxtion:login`
+works too); in CI, set `FLUXTION_API_TOKEN`, plus `FLUXTION_COMPILER_URL` only for a compiler other than the managed one. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in yet — the connection described below is the account view.
+The old Fluxtion API key route is closed. Existing generated processors and the bundled demo run without signing in.
 
 ## Connect a compiler account
 
-If your compiler service uses accounts, **AI ▸ Compiler account…** connects this analyser to yours. Enter the service's
-address (for example `https://compiler.example.com`; plain `http` is accepted only for this machine), or pick one
-this machine has connected with before from the drop-down, and press
-**Connect compiler account**. The analyser asks the service for a sign-in code, opens your browser at the service's
+If your compiler service uses accounts, **AI ▸ Compiler account…** connects this analyser to yours. Pick the service
+from the drop-down: **Production** (`https://compiler.fluxtion-playground.dev`), the hosted compiler most people want,
+or **Staging** (`https://compiler-staging.fluxtion-playground.dev`), for trying a release before it reaches production.
+The list also offers any address this machine has connected with before, and you can type your own (plain `http` is
+accepted only for this machine).
+
+![AI ▸ Compiler account…, not connected, its service-address list open on Production and Staging](assets/compiler-account-services.png)
+
+Then press **Connect compiler account**. The analyser asks the service for a sign-in code, opens your browser at the service's
 sign-in page and shows the code to enter there. While you approve it, it checks back only as often as the service
 asks, slows down when told to, and stops when the code expires; **Cancel sign-in**, or closing the dialog, stops it
 with nothing stored. It never shows or logs the device code, or the credential it receives.
@@ -85,7 +112,7 @@ Once connected, the dialog shows:
 
 - **Account**: the account id, whether it is a *Personal* or an *Organisation* account, your role in it, the plan,
   and whether the account is *Active*. Below them are the plan's key limits, as the service states them: the most
-  nodes and event types a graph may have, the languages it may generate, whether the WebAssembly (WASM) host bundle
+  nodes, inputs and exported interfaces a graph may have, the languages it may generate, whether the WebAssembly (WASM) host bundle
   is included, and the software assurance it carries (*None*, *Provenance*, or *Provenance + verification report*).
   A limit an operator set for your account says *(set for this account)*. A service that does not report plans
   shows the plan's name only, and says *Plan details unavailable from this service*.

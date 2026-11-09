@@ -9,7 +9,8 @@ does to authoring cost, which is impossible against a live URL.
 | `fluxtion-claude.txt` | `https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt` |
 | `fluxtion-golden-path.md` | `https://fluxtion-playground.dev/fluxtion-golden-path.md` |
 
-Fetched 2026-09-01. Swept clean of the four terms before committing.
+`fluxtion-claude.txt` refreshed from upstream commit `187991e4e1cb5d1d918e6cc6e6e4bab5caf85800` on 2026-11-07 for compiler sign-in guidance.
+`fluxtion-golden-path.md` fetched 2026-09-01. Swept clean of the four terms before committing.
 
 **Why this exists at all.** Rounds 7–15 seeded agents with a hand-written local `CLAUDE.md` and never
 with these, and no measured cell ever fetched them — verified across every transcript. The series was

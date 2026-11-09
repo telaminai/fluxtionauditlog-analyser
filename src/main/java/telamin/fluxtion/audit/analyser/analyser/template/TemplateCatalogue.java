@@ -11,6 +11,9 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
 
     public static final int SUPPORTED_VERSION = 1;
 
+    /** The catalogue tag of the Java-authoring starter ({@code java-authoring.starter.json}). */
+    public static final String JAVA_AUTHORING_TAG = "java-builder";
+
     public TemplateCatalogue {
         templates = List.copyOf(templates == null ? List.of() : templates);
     }
@@ -43,18 +46,25 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
             this(name, description, file, type, mode, keyNeed, "", null, tags);
         }
 
-        public boolean recommended() { return tagged("onboarding"); }
+        /**
+         * Owner decision (2026-11-07, replacing 2026-10-18's "Spring is our preferred route"): the Java-authoring starter
+         * is how most developers are onboarded. The catalogue marks it with the {@value #JAVA_AUTHORING_TAG} tag.
+         */
+        public boolean javaAuthoring() { return tagged(JAVA_AUTHORING_TAG); }
+
+        /** Tagged for onboarding by the catalogue, or the Java-authoring starter (always recommended). */
+        public boolean recommended() { return tagged("onboarding") || javaAuthoring(); }
         public String displayName() { return name + (recommended() ? " — Recommended starting point" : ""); }
 
         /** Catalogue testimony, independent of template type, mode, and recommendation. */
         public String disclosure() {
             String bootstrap = agentBootstrap == null ? "not declared"
                     : agentBootstrap.isEmpty() ? "explicitly none" : String.join(", ", agentBootstrap);
-            return shownDescription() + "\n\n" + keyDisclosure("Build key", keyNeed)
-                    + "\n" + keyDisclosure("Regeneration key", regenerationKeyNeed)
+            return shownDescription() + "\n\n" + keyDisclosure("Build authentication", keyNeed)
+                    + "\n" + keyDisclosure("Regeneration authentication", regenerationKeyNeed)
                     + "\nAgent entry files: " + bootstrap
                     + "\n\nDeclarations describe the default download; verify the files in the generated project."
-                    + (recommended() ? " A recommendation alone does not promise a walkthrough or keyless generation." : "");
+                    + (recommended() ? " A recommendation alone does not promise a walkthrough or generation without sign-in." : "");
         }
         /**
          * Authoring walk (2026-10-18, shot 4): the catalogue's description as the person reads it — without the
@@ -66,12 +76,13 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
             return withoutMilestoneIds(description);
         }
 
+        /** RAPID-OFF (2026-11-07): the key route is closed, so an older catalogue's build/run words mean sign-in. */
         private static String keyDisclosure(String label, String value) {
             return label + ": " + switch (value.toLowerCase(java.util.Locale.ROOT)) {
                 case "" -> "not declared";
                 case "none" -> "none required (catalogue declaration)";
-                case "build" -> "required at build (catalogue declaration)";
-                case "run" -> "required at runtime (catalogue declaration)";
+                case "build", "sign-in-build" -> "compiler sign-in at build (catalogue declaration)";
+                case "run" -> "compiler sign-in at runtime (catalogue declaration)";
                 default -> "unrecognised catalogue value '" + value + "'";
             };
         }
@@ -143,11 +154,44 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
         return new TemplateCatalogue(version, entries);
     }
 
-    /** All entries remain reachable; the catalogue owns recommendation labels, not visibility. */
+    /**
+     * All entries remain reachable; the catalogue owns recommendation labels, not visibility. The picker lists them in
+     * {@link #ordered} order: recommended first, the Java-authoring starter at the very top (owner, 2026-11-07).
+     */
     public Selection forPicker() {
-        return new Selection(templates, templates.stream().anyMatch(Entry::recommended)
-                ? "All templates — Recommended starting points are marked."
+        return selection(ordered(templates));
+    }
+
+    /** {@code entries}, in the order given, with the picker's note. */
+    public static Selection selection(List<Entry> entries) {
+        return new Selection(entries, entries.stream().anyMatch(Entry::recommended)
+                ? "All templates — Recommended starting points are listed first and marked."
                 : "All templates — the catalogue has not declared recommended starting points.");
+    }
+
+    /**
+     * The order every starter list shows (owner, 2026-11-07: the Java-authoring starter first and recommended): the
+     * Java-authoring starter, then the other recommended (onboarding) entries, then the rest — within each group the
+     * catalogue's own order. Driven by the catalogue's tags, so a catalogue that already lists the Java starter first
+     * keeps its order, and an older one that lists it later still shows it first.
+     */
+    public static List<Entry> ordered(List<Entry> entries) {
+        List<Entry> out = new ArrayList<>();
+        for (Entry e : entries) if (e.javaAuthoring()) out.add(e);
+        for (Entry e : entries) if (!e.javaAuthoring() && e.recommended()) out.add(e);
+        for (Entry e : entries) if (!e.recommended()) out.add(e);
+        return List.copyOf(out);
+    }
+
+    /**
+     * What a starter list shows (owner, 2026-11-07): only the recommended entries unless the person ticked "Show all
+     * templates", in {@link #ordered} order either way. A catalogue that recommends nothing shows everything — an empty
+     * list would hide every template behind the box.
+     */
+    public static List<Entry> shown(List<Entry> entries, boolean showAll) {
+        List<Entry> ordered = ordered(entries);
+        if (showAll || ordered.stream().noneMatch(Entry::recommended)) return ordered;
+        return ordered.stream().filter(Entry::recommended).toList();
     }
 
     private static List<String> bootstrapPaths(Map<?,?> map) {

@@ -110,6 +110,8 @@ public class AiSetup implements EventLogSource {
     /** OD-77.9 (M77-4): the first-run block was offered in this run — recorded once, so the next run shows the AI line. */
     private boolean firstRunOffered;
     private boolean restLaunch;
+    /** RAPID-OFF: a file is still where the retired key item wrote one (existence only, reported at start-up). */
+    private boolean legacyKeyFile;
     private AiSetupState.Client setupClient = AiSetupState.Client.NONE;
     private boolean claudeFound;
     private boolean codexFound;
@@ -268,8 +270,9 @@ public class AiSetup implements EventLogSource {
         firstRunDismissed = e.dismissed();
         setupClient = e.client() == null ? AiSetupState.Client.NONE : e.client();
         restLaunch = e.restLaunch();
+        legacyKeyFile = e.legacyKeyFile();
         auditLog.info("aiSetupStartup", setupClient.name()).info("dismissed", firstRunDismissed)
-                .info("restLaunch", restLaunch);
+                .info("restLaunch", restLaunch).info("legacyKeyFile", legacyKeyFile);
         noteFirstRunOffered();
         return changed();
     }
@@ -1562,6 +1565,7 @@ public class AiSetup implements EventLogSource {
                 observed ? AiSetupLines.aiLine(inForce, p, claudeFound, inAppCanAnswer, external,
                         access == AiSetupState.Access.OTHER_INSTANCE) : "",
                 observed ? AiSetupLines.aiLineLink(inForce) : "",
-                status(), claudeFound, codexFound, applying, suggested(), ext);
+                status(), claudeFound, codexFound, applying, suggested(), ext,
+                legacyKeyFile ? AiSetupLines.LEGACY_KEY_NOTICE : "");
     }
 }

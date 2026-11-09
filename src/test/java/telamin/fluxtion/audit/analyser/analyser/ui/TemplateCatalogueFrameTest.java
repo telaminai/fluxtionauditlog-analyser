@@ -47,11 +47,29 @@ class TemplateCatalogueFrameTest {
                     JSplitPane split = find(dialog, JSplitPane.class);
                     assertNotNull(split, "template choices and their explanation sit side by side");
                     assertEquals(JSplitPane.HORIZONTAL_SPLIT, split.getOrientation());
+                    // owner, 2026-11-07: unticked, only the recommended entries, in the order shown first
+                    javax.swing.JCheckBox showAll = find(dialog, javax.swing.JCheckBox.class);
+                    assertNotNull(showAll, "the Show all templates box");
+                    assertEquals(StarterListPreference.LABEL, showAll.getText());
+                    assertFalse(showAll.isSelected(), "unticked by default");
+                    var shown = TemplateProjectDialog.shownEntries(selection, false);
+                    assertEquals(shown.size(), list.getModel().getSize());
+                    for (int i=0; i<shown.size(); i++) assertEquals(shown.get(i), list.getModel().getElementAt(i));
+                    assertEquals(0, list.getSelectedIndex(), "the first shown entry is the default");
+                    // owner, 2026-11-07: unticked, bare names; the heading on the right keeps the full display name
+                    assertEquals(shown.get(0).name(), cellText(list, 0));
+                    assertTrue(labelShowing(dialog, shown.get(0).displayName()), "the detail heading is unchanged");
+                    showAll.doClick();
+                    if (selection.entries().get(0).recommended())
+                        assertEquals(selection.entries().get(0).displayName(), cellText(list, 0), "ticked: marked");
                     assertEquals(selection.entries().size(), list.getModel().getSize());
                     for (int i=0; i<selection.entries().size(); i++) {
+                        assertEquals(selection.entries().get(i), list.getModel().getElementAt(i));
                         list.setSelectedIndex(i);
                         assertEquals(selection.entries().get(i).disclosure(),description.getText());
                     }
+                    showAll.doClick();
+                    assertFalse(StarterListPreference.showAll());
                     int recommended = 0;
                     for (int i=0; i<selection.entries().size(); i++) if(selection.entries().get(i).recommended()) { recommended=i; break; }
                     list.setSelectedIndex(recommended);
@@ -73,6 +91,19 @@ class TemplateCatalogueFrameTest {
         if(failure.get()!=null) throw new AssertionError(failure.get());
         assertNull(chosen.get(), "Closing the dialog must not start a download");
     }
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static String cellText(JList list, int index) {
+        Component cell = list.getCellRenderer().getListCellRendererComponent(list, list.getModel().getElementAt(index),
+                index, false, false);
+        return ((javax.swing.JLabel) cell).getText();
+    }
+    private static boolean labelShowing(Container parent, String text) {
+        for (Component child : parent.getComponents()) {
+            if (child instanceof javax.swing.JLabel label && text.equals(label.getText())) return true;
+            if (child instanceof Container container && labelShowing(container, text)) return true;
+        }
+        return false;
+    }
     private static <T extends Component> T find(Container parent,Class<T> type) {
         for(Component child:parent.getComponents()) {
             if(type.isInstance(child)) return type.cast(child);
@@ -82,7 +113,7 @@ class TemplateCatalogueFrameTest {
     }
     private static JTextArea findDescription(Container parent) {
         for (Component child : parent.getComponents()) {
-            if (child instanceof JTextArea area && area.getText().contains("Build key:")) return area;
+            if (child instanceof JTextArea area && area.getText().contains("Build authentication:")) return area;
             if (child instanceof Container container) {
                 JTextArea found = findDescription(container);
                 if (found != null) return found;

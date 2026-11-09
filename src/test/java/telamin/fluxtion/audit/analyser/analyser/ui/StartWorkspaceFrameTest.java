@@ -81,7 +81,7 @@ class StartWorkspaceFrameTest {
             "Open evidence bundle", "Open audit log", "Open GraphML", "Create project profile", "Create from template",
             // M77-4 (§14.4): the Connect an assistant group is gone; the AI block or line is the door
             "Settings — source and assistant…",
-            "Fluxtion key — not found");
+            "Compiler account");
 
     /**
      * M74 UX: ONE start-page surface — the prompt leads, the old cards' actions follow as a compact strip (icon + short

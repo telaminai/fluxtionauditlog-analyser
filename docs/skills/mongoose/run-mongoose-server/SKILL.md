@@ -6,15 +6,13 @@ x-analyser-min-version: 1.12.0
 
 # Run the local Mongoose server
 
-## Start here — no key is needed to run
+## Start here — no compiler sign-in is needed to run
 
-The generated processor **ships with the project**, so it builds and runs with no Fluxtion API key. Do
-not run a key preflight before starting: an earlier version of this skill did, the check exits non-zero
-when no key exists, and a model following it stopped before the project ever ran — turning the intended
-first success into a first failure. A review caught it before it shipped.
+The generated processor **ships with the project**, so its initial build and run need no compiler
+sign-in. Do not make an authentication preflight a prerequisite for this first run.
 
-The key is needed **only to REGENERATE** the processor after you change the graph. That procedure is at
-the bottom of this file, and the check belongs immediately before it.
+Changing the graph requires regeneration and compiler sign-in. Follow the project's **Compiler sign-in**
+instructions and `RUNBOOK.md`, then `./generate.sh`; the recovery procedure is at the bottom of this file.
 
 ## Steps
 
@@ -48,12 +46,11 @@ the bottom of this file, and the check belongs immediately before it.
    export that wrote one file exported one processor, and the others' evidence is not in it. Open each
    file with its own processor's GraphML, and never read one processor's log as the whole server's.
 
-   **The export is cumulative.** Chronicle capture persists across restarts — the capture ROLLS to a new
-   file on a schedule (daily, in the starter) and nothing deletes the old ones — so the YAML holds every run
-   still on disk, not only the last: a "new run" export after two redeploys carried three runs. Declare
-   provenance and filter by time. To read one run alone, prefer a fresh capture location for that run; if you
-   delete old capture files instead, stop the writer first and treat it as a deliberate decision to discard
-   evidence. Do not describe the file as one run unless you checked.
+   **The current bundle exports one server run by default.** Older captures remain on disk,
+   but the export script leaves them out and reports how many were excluded. `ALL_RUNS=1`
+   explicitly includes every captured run. Check the project's export command and its summary:
+   older bundles can behave differently. Preserve the before-export before rerunning, use identical
+   input, and never compare a single run with an all-runs export as though they were the same input.
 
 4. Open that concrete YAML export in the analyser with the processor's GraphML (see the
    `load-audit-log` skill), declaring the registry server name as provenance.
@@ -122,35 +119,21 @@ registry entry is the authority. The same applies to the analyser: if its
 status bar reads **MCP elsewhere**, another analyser window owns the endpoint and your questions are
 being answered about a different log.
 
-## Regenerating after a graph change — this is where the key is needed
+## Regenerating after a graph change
 
-Only run this when you have changed the graph (added or rewired a node). Running the project does not
-need it.
+Running the bundle's shipped processor needs no compiler sign-in. Changing the graph does:
+follow the project's **Compiler sign-in** instructions and `RUNBOOK.md`, then its generation command.
+Analyser setup's saved build credential is reused by Maven plugin 1.3.1 under the same user home.
+The Analyser's separate account/key display is not proof that this Maven credential is absent.
+Never print credentials or put them in source, command arguments, project files or transcripts.
 
-1. **Do not rely on the preflight script alone** (review F6). It reads `FLUXTION_API_KEY`, which the
-   builder never reads — so it can report success on a value the build will not receive. Check what the
-   build actually resolves:
+A local credential check is not remote validation: Maven and the compiler can still refuse an
+expired credential, issuer mismatch, plan limit or exhausted allowance. Report the actual failure;
+do not diagnose every `process-classes` failure as a missing key.
 
-   ```
-   # the file the builder reads when no system property is set
-   grep -s '^apiKey=' ~/.fluxtion/fluxtion.apiKeyFile >/dev/null && echo "key file present" \
-                                                              || echo "NO key file — the build will fail"
-   ```
-
-   If the project ships `check-fluxtion-key.sh`, treat a pass as necessary but not sufficient until that
-   script is fixed to check a source the builder reads.
-
-2. **Know which source the BUILD actually reads**, because it is not what a shell script reads. Verified
-   against `fluxtion-builder` 1.0.64 (`FluxtionConfigManager`):
-
-   ```
-   -Dfluxtion.apiKey=…                  system property   [WINS if set]
-   ~/.fluxtion/fluxtion.apiKeyFile      apiKey=…          [used when the property is absent]
-   ```
-
-   **`FLUXTION_API_KEY` is NOT read by the build.** `FluxtionConfigManager` makes no `System.getenv`
-   call at all. A preflight script may read that variable and pass, while the build it precedes never
-   receives the value — so if you set only the environment variable, the check succeeds and the build
-   still fails. Set the file, or pass the property explicitly.
-
-3. Rebuild. If the build stops at `process-classes`, the key is the reason.
+**If generate.sh stops after reconciliation:** preserve the new source shells and ownership record.
+Read `target/fluxtion-run.json` to identify the failed stage, fix that cause and rerun the documented
+`./generate.sh`. An older starter that rejects a saved sign-in needs the corrected authoring tool;
+stop and report its version rather than adding a legacy key or bypassing the build with bare Maven.
+A direct Maven workaround does not refresh the authoring receipt or request its diagnostic sidecar.
+Only claim completion when the authoring build succeeded and its current evidence agrees.

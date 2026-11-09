@@ -1,0 +1,245 @@
+{
+  "contract": "m19-skills/3",
+  "$comment": [
+    "VERSIONED SKILLS, ADDITIVE TO m19-skills/2. /2 stays published and unchanged until no consumer reads it; this index is not yet read by any consumer (skill-registry spec, step 1).",
+    "Selection by template is /2's rule: `common` is always selected and a template names the `specialisations` it wants; both now list skill NAMES, which key `skills`.",
+    "Each skill has `versions`. A version pins its own `revision` (the analyser commit holding its bytes) and a `sha256` per file in `files`; exactly one file is the skill's SKILL.md and any other sits beside it.",
+    "`compatibility`: `analyser` is the minimum analyser version; `authoring` is java | spring | any; `host` is mongoose | embedded | any; `mongoose` and `mongoosePlugins` are SEPARATE version ranges (space-separated comparators, all must hold, or `*`).",
+    "For each selected skill a consumer takes the HIGHEST version that is not `yanked`, carries `evidence`, and whose compatibility contains the project's effective pins. No such version: the project gets none of that skill, never an incompatible one.",
+    "A version without `evidence` is not selectable. `yanked: true` removes a version from selection without deleting it.",
+    "1.0.0 of every skill is exactly its m19-skills/2 pin (same revision, same digests); its evidence is that pin. While /2 is served, CanonicalSkillsTest requires every /2 pin to appear here as a version with the same revision and digests."
+  ],
+  "common": [
+    "load-audit-log",
+    "guided-start",
+    "point-at-the-fault"
+  ],
+  "specialisations": {
+    "mongoose": {
+      "why": "the processor is hosted by a Mongoose server",
+      "skills": [
+        "run-mongoose-server"
+      ]
+    },
+    "embedded": {
+      "why": "the processor runs in-process via DataFlowConnector",
+      "skills": [
+        "run-embedded"
+      ]
+    },
+    "spring": {
+      "why": "the graph is authored as Spring XML and compiled ahead of time",
+      "skills": [
+        "add-a-node"
+      ]
+    },
+    "replay": {
+      "why": "the project has a REAL replay entry point the bundle can name; without one, replay-a-run's TODO(bundle) cannot be substituted",
+      "skills": [
+        "replay-a-run"
+      ]
+    }
+  },
+  "skills": {
+    "load-audit-log": {
+      "versions": [
+        {
+          "version": "1.0.0",
+          "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+          "files": [
+            {
+              "path": "common/load-audit-log/SKILL.md",
+              "sha256": "6663abe2f24426281a0bd7afcc042f5ad2fde7006c5f83987e8421ff67848ef1"
+            }
+          ],
+          "compatibility": {
+            "analyser": "1.12.0",
+            "authoring": "any",
+            "host": "any",
+            "mongoose": "*",
+            "mongoosePlugins": "*"
+          },
+          "evidence": {
+            "kind": "m19-skills/2-pin",
+            "label": "pinned by m19-skills/2 (RE-PINNED 2026-11-07, RAPID-OFF)",
+            "index": "m19-skills/2",
+            "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+            "date": "2026-11-07"
+          }
+        }
+      ]
+    },
+    "guided-start": {
+      "versions": [
+        {
+          "version": "1.0.0",
+          "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+          "files": [
+            {
+              "path": "common/guided-start/SKILL.md",
+              "sha256": "2f8ad19004f2e145a7fc442392b8530a77b77e773a29a8774036b0abbe3cb6f3"
+            }
+          ],
+          "compatibility": {
+            "analyser": "1.12.0",
+            "authoring": "any",
+            "host": "any",
+            "mongoose": "*",
+            "mongoosePlugins": "*"
+          },
+          "evidence": {
+            "kind": "m19-skills/2-pin",
+            "label": "pinned by m19-skills/2 (RE-PINNED 2026-11-07, RAPID-OFF)",
+            "index": "m19-skills/2",
+            "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+            "date": "2026-11-07"
+          }
+        }
+      ]
+    },
+    "point-at-the-fault": {
+      "versions": [
+        {
+          "version": "1.0.0",
+          "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+          "files": [
+            {
+              "path": "common/point-at-the-fault/SKILL.md",
+              "sha256": "40af6e75ac6b5c0ba6ffac79c3d52b43cf8c9d720f4f1d2a699a501ef3d36655"
+            }
+          ],
+          "compatibility": {
+            "analyser": "1.12.0",
+            "authoring": "any",
+            "host": "any",
+            "mongoose": "*",
+            "mongoosePlugins": "*"
+          },
+          "evidence": {
+            "kind": "m19-skills/2-pin",
+            "label": "pinned by m19-skills/2 (RE-PINNED 2026-11-07, RAPID-OFF)",
+            "index": "m19-skills/2",
+            "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+            "date": "2026-11-07"
+          }
+        }
+      ]
+    },
+    "run-mongoose-server": {
+      "versions": [
+        {
+          "version": "1.0.0",
+          "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+          "files": [
+            {
+              "path": "mongoose/run-mongoose-server/SKILL.md",
+              "sha256": "84c9097eab88ad9c1b5051fc34ff7890e419b4a2b383f1a7c3411a8fbc664431"
+            }
+          ],
+          "compatibility": {
+            "analyser": "1.12.0",
+            "authoring": "any",
+            "host": "mongoose",
+            "mongoose": "*",
+            "mongoosePlugins": "*"
+          },
+          "evidence": {
+            "kind": "m19-skills/2-pin",
+            "label": "pinned by m19-skills/2 (RE-PINNED 2026-11-07, RAPID-OFF)",
+            "index": "m19-skills/2",
+            "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+            "date": "2026-11-07"
+          }
+        }
+      ]
+    },
+    "run-embedded": {
+      "versions": [
+        {
+          "version": "1.0.0",
+          "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+          "files": [
+            {
+              "path": "embedded/run-embedded/SKILL.md",
+              "sha256": "5f4e41c2bff2a3c242e22e7c3576517961584cd56e6e02a71aabdcda20941246"
+            }
+          ],
+          "compatibility": {
+            "analyser": "1.12.0",
+            "authoring": "any",
+            "host": "embedded",
+            "mongoose": "*",
+            "mongoosePlugins": "*"
+          },
+          "evidence": {
+            "kind": "m19-skills/2-pin",
+            "label": "pinned by m19-skills/2 (RE-PINNED 2026-11-07, RAPID-OFF)",
+            "index": "m19-skills/2",
+            "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+            "date": "2026-11-07"
+          }
+        }
+      ]
+    },
+    "add-a-node": {
+      "versions": [
+        {
+          "version": "1.0.0",
+          "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+          "files": [
+            {
+              "path": "spring/add-a-node/SKILL.md",
+              "sha256": "ca21f7bba67d46029d5276affe7dd75bb04ec808c9205a04adf7a6347d4b3a52"
+            },
+            {
+              "path": "spring/add-a-node/audit-compare.py",
+              "sha256": "7e11b85ba085101d2f91bae79f6b4d23c6f899d0d76a3ff74ad391cb928d08a1"
+            }
+          ],
+          "compatibility": {
+            "analyser": "1.12.0",
+            "authoring": "spring",
+            "host": "any",
+            "mongoose": "*",
+            "mongoosePlugins": "*"
+          },
+          "evidence": {
+            "kind": "m19-skills/2-pin",
+            "label": "pinned by m19-skills/2 (RE-PINNED 2026-11-07, RAPID-OFF)",
+            "index": "m19-skills/2",
+            "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+            "date": "2026-11-07"
+          }
+        }
+      ]
+    },
+    "replay-a-run": {
+      "versions": [
+        {
+          "version": "1.0.0",
+          "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+          "files": [
+            {
+              "path": "common/replay-a-run/SKILL.md",
+              "sha256": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
+            }
+          ],
+          "compatibility": {
+            "analyser": "1.12.0",
+            "authoring": "any",
+            "host": "any",
+            "mongoose": "*",
+            "mongoosePlugins": "*"
+          },
+          "evidence": {
+            "kind": "m19-skills/2-pin",
+            "label": "pinned by m19-skills/2 (RE-PINNED 2026-11-07, RAPID-OFF)",
+            "index": "m19-skills/2",
+            "revision": "cb7a741f7551c0bb979536de4be55cd8056710d2",
+            "date": "2026-11-07"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -5,8 +5,9 @@ workspace. It is one surface: it asks **What would you like to do?** — a short
 and one button — and the analyser's own actions follow it under **Or open directly**, with your recent
 projects and evidence bundles under **Recent**.
 
-![The start page: What would you like to do? with the eight built-in entries, the box and its Send button; under it, Or open
-directly with the Explore DEMO, Open, Create, Connect an assistant and Settings blocks, and Recent](../assets/start-page.png)
+![The start page: What would you like to do? with the eight built-in entries, the box and its Send button, and the How do
+you want AI to work with the analyser? panel; under it, Or open directly with the Explore DEMO, Open, Create and Settings
+blocks, and Recent](../assets/start-page.png)
 
 ## What would you like to do?
 
@@ -142,7 +143,7 @@ assistant* block is gone: the AI block or line above is the one door, *Set up AI
 | Explore DEMO | **Guided tour** (four spotlight stops in the local DEMO project) · **Sample project** (the same DEMO log, topology and source, at your own pace) |
 | Open | **Project** · **Evidence bundle** (verified, then a disposable copy; no replay) · **Audit log** · **GraphML** |
 | Create | **Project profile** (settings for existing source; no code generated) · **From template** |
-| Settings | **Settings** (source and assistant settings: the open project's, or the global defaults) · **Fluxtion key** (present or not; needed only to regenerate a processor) |
+| Settings | **Settings** (source and assistant settings: the open project's, or the global defaults) · **Account** (opens **AI ▸ Compiler account…**: plan, usage and signed-in email; builds sign in separately) |
 
 You can also drop an `.fexp` bundle, an audit log, a GraphML file, a Spring XML design or a prompt pack (`.md`)
 anywhere on the page.

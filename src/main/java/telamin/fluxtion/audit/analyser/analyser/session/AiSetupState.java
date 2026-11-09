@@ -32,12 +32,23 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  * @param applying    an Apply asked for by this wizard is in flight (its result has not arrived)
  * @param suggested   the Summary's one suggested first action (§6.4, §7.3), chosen by the node
  * @param external    Screen 2b (M77-3): the client, external access, the registration and the live check
+ * @param keyNotice   RAPID-OFF: the one-line notice that the legacy key file is no longer used, or "" (the node's words)
  */
 public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step step, Choice choice, Choice inForce,
                            Posture posture, String fullMode, Check installed, Auth signedIn, Confirming confirming,
                            Pending pending, long finished, String line, String aiLine, String aiLineLink,
                            String panelLine, boolean claudeFound, boolean codexFound, boolean applying,
-                           Suggested suggested, External external) {
+                           Suggested suggested, External external, String keyNotice) {
+
+    /** The shape before RAPID-OFF: no legacy key notice. */
+    public AiSetupState(boolean open, boolean firstRun, Origin origin, Step step, Choice choice, Choice inForce,
+                        Posture posture, String fullMode, Check installed, Auth signedIn, Confirming confirming,
+                        Pending pending, long finished, String line, String aiLine, String aiLineLink,
+                        String panelLine, boolean claudeFound, boolean codexFound, boolean applying,
+                        Suggested suggested, External external) {
+        this(open, firstRun, origin, step, choice, inForce, posture, fullMode, installed, signedIn, confirming, pending,
+                finished, line, aiLine, aiLineLink, panelLine, claudeFound, codexFound, applying, suggested, external, "");
+    }
 
     /**
      * The Summary's one suggested first action (§6.4). Nothing it does sends anything: it opens the sample, starts the
@@ -250,6 +261,7 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
         panelLine = panelLine == null ? "" : panelLine;
         suggested = suggested == null ? Suggested.NONE : suggested;
         external = external == null ? External.NONE : external;
+        keyNotice = keyNotice == null ? "" : keyNotice;
     }
 
     public static final AiSetupState IDLE = new AiSetupState(false, false, Origin.NONE, Step.CHOICE, Choice.NONE,

@@ -71,7 +71,7 @@ import java.util.function.Consumer;
  * <p><b>Secrets.</b> The device code and the credential are package-private to {@code account}; this dialog cannot
  * read either, so it can neither display nor log them. It shows the user code, which is meant to be read.
  *
- * <p><b>Rule 9.</b> Like {@link FluxtionKeyDialog}, this is dialog-local: the connection is a fact of the OS credential
+ * <p><b>Rule 9.</b> Like the retired Fluxtion API key dialog, this is dialog-local: the connection is a fact of the OS credential
  * store, read when the dialog opens, and the sign-in is an interaction that lives and dies with the dialog (closing it
  * cancels). No other surface renders the account and {@code context} does not carry it, so there is no second reader to
  * drift. Showing it anywhere else is the point at which it becomes session state: a node, an effect and a fact.
@@ -89,7 +89,7 @@ public final class CompilerAccountDialog extends JDialog {
     static final String REVOKE_SELECTED = "Revoke selected";
     static final String THIS_MACHINE = " (this machine)";
     static final String DELETION_NOTE = "Deleting the account is not available in the app yet; ask the service's support.";
-    static final List<String> ACCOUNT_ROWS = List.of("Account", "Type", "Your role", "Plan", "Status");
+    static final List<String> ACCOUNT_ROWS = List.of("Account", "Signed-in email", "Type", "Your role", "Plan", "Status");
     /** The figures of each kind of credit, in order; Remaining is set larger. */
     static final List<String> CREDIT_CAPTIONS = List.of("Remaining", "Used", "In progress", "Completed", "Failures");
     /** The kinds of credit, one row each: compile ({@code /v1/generate}) and interpret ({@code /v1/model}). */
@@ -239,10 +239,17 @@ public final class CompilerAccountDialog extends JDialog {
             }
         });
         UiText.plainCells(addressBox);
+        // the list names the hosted services ("Production — https://…"); choosing one fills the field with the address
+        javax.swing.ListCellRenderer<? super String> plain = addressBox.getRenderer();
+        addressBox.setRenderer(UiText.plainRenderer((list, value, index, selected, focus) -> plain
+                .getListCellRendererComponent(list, telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices
+                        .describe(value), index, selected, focus)));
         offer(suggestions(config, null));
         address.setText(config.compilerServiceUrl == null ? "" : config.compilerServiceUrl);
-        address.putClientProperty("JTextField.placeholderText", "https://compiler.example.com");
-        address.setToolTipText("The compiler service's base address; the list offers the addresses this machine connected with");
+        address.putClientProperty("JTextField.placeholderText",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.PRODUCTION);
+        address.setToolTipText("The compiler service's base address: pick Production or Staging from the list, an address"
+                + " this machine connected with before, or type your own");
         addressRow.add(addressBox, BorderLayout.CENTER);
         addressRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, addressBox.getPreferredSize().height));
         north.add(addressRow);
@@ -607,6 +614,9 @@ public final class CompilerAccountDialog extends JDialog {
         String text = address.getText();
         addressBox.removeAllItems();
         for (String item : items) addressBox.addItem(item);
+        // Swing selects the first item it is given; leave it selected and choosing that item changes nothing, so the
+        // field stays empty while the list shows Production picked. The selection follows the field instead.
+        addressBox.setSelectedIndex(items.indexOf(text));
         address.setText(text);
     }
 
@@ -888,11 +898,14 @@ public final class CompilerAccountDialog extends JDialog {
     // ---- words: pure, so they are tested without a screen ----------------------------------------------------------
 
     /**
-     * The address field's suggestions, most useful first and each once: the connected credential's issuer, the
-     * addresses this machine connected with, then the configured one. Only usable addresses are offered.
+     * The address field's suggestions, each once: the hosted services ({@code KnownCompilerServices}, Production then
+     * Staging), the connected credential's issuer, the addresses this machine connected with, then the configured one.
+     * Only usable addresses are offered.
      */
     static List<String> suggestions(AppConfig config, CompilerCredential connected) {
         java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+        // the hosted services first, so a fresh install is never an empty list; offering one chooses nothing
+        for (var known : telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.ALL) out.add(known.address());
         if (connected != null) out.add(connected.service());
         out.addAll(config.recentCompilerServices);
         if (config.compilerServiceUrl != null) out.add(config.compilerServiceUrl);
@@ -939,7 +952,8 @@ public final class CompilerAccountDialog extends JDialog {
     /** The Account rows' values, in {@link #ACCOUNT_ROWS} order; the plan rows are left out until usage is read. */
     static List<String> accountRows(Me me, Usage u, CompilerCredential c) {
         String account = u != null ? u.accountId() : me != null ? me.selectedAccount() : c.accountId();
-        List<String> out = new ArrayList<>(List.of(account, me == null ? "Not read" : me.type(),
+        List<String> out = new ArrayList<>(List.of(account, me == null ? "Not read"
+                : me.email() == null ? "Not provided by service" : me.email(), me == null ? "Not read" : me.type(),
                 me == null || me.role() == null ? "Unknown" : me.role()));
         if (u != null) {
             out.add(u.planName());

@@ -287,7 +287,7 @@ public interface AppControl {
         return full.ok() ? ActionResult.ok(full.action(), full.payloadKey(), selection.project(full.payload())) : full;
     }
 
-    /** Bring a named side tab to the front ({@code Summary|Source|Graph|Topology|Analyser assistant}). */
+    /** Bring a named side tab to the front ({@code Summary|Source|Graph|Topology|Reports|Messages|Analyser assistant}). */
     boolean showTab(String name);
 
     /**

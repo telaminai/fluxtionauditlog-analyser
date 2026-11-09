@@ -520,6 +520,89 @@ class FormatConformanceTest {
         }
     }
 
+    /**
+     * C35 — a text record may declare the quoted-scalar grammar itself, as the first line of its mapping
+     * ({@code textEncoding: QUOTED_SCALARS}, §3a). One mixed file, as an upgrade mid-capture writes it: an unmarked
+     * record reads exactly as before; a marked one decodes; the same spelling after {@code endTime} or inside a
+     * multi-line {@code eventToString} is content and the record stays legacy; an unknown value stays legacy and is
+     * named once; and a marked text record has no reserved {@code @} keys.
+     */
+    @Test
+    void c35_aRecordThatDeclaresQuotedScalarsDecodes_andOnlyThatRecord() throws IOException {
+        LogStore s = bothPathsAgree("c35-record-text-encoding.yaml");
+        assertEquals(6, s.size());
+
+        // 1. unmarked: the legacy grammar, byte for byte - the bare comma still cuts the value
+        LogRecord old = s.record(0);
+        assertEquals(AuditLogReader.TextEncoding.LEGACY, old.textEncoding());
+        assertFalse(old.recordDeclaredEncoding());
+        var oldGym = old.nodeLogs().get(0);
+        assertEquals("membership not active", oldGym.last("reason").rawValue(), "legacy: cut at the first comma");
+        assertEquals("\"hello\"", oldGym.last("greeting").rawValue(), "C17 holds for an unmarked record");
+
+        // 2. marked: decodes values and the header scalars
+        LogRecord marked = s.record(1);
+        assertEquals(EventKind.OK, marked.kind());
+        assertEquals(AuditLogReader.TextEncoding.QUOTED_SCALARS, marked.textEncoding());
+        assertTrue(marked.recordDeclaredEncoding());
+        assertTrue(marked.textReaderRecord(), "still the text runtime's record");
+        assertEquals(2001L, marked.logTime(), "the marker line moves no field");
+        assertEquals("MemberEvent{id=7, note: \"vip\"}", marked.eventToString());
+        assertEquals("main, worker", marked.thread());
+        assertNull(marked.groupingId(), "a bare null is still absent");
+        assertEquals(1, marked.nodeLogs().size());
+        var gym = marked.nodeLogs().get(0);
+        assertEquals("gymAccess", gym.instanceId());
+        assertEquals("membership not active, balance due 30.0", gym.last("reason").rawValue());
+        assertTrue(gym.last("reason").numeric().isEmpty(), "no figure is manufactured from the reason");
+        assertEquals(Boolean.FALSE, gym.last("granted").asBoolean());
+        assertTrue(gym.last("code").numeric().isEmpty(), "\"123\" is text");
+        assertNull(gym.last("flag").asBoolean(), "\"true\" is text");
+        assertEquals("hello", gym.last("greeting").rawValue());
+        assertEquals("Ren\u00e9e \"R\" Zo\u00eb", gym.last("name").rawValue());
+        assertEquals("\uD83D\uDE00", gym.last("smile").rawValue(), "a surrogate pair is one character");
+        assertEquals("a\0b", gym.last("nul").rawValue());
+        assertEquals("say \"hi\"", gym.last("said").rawValue());
+        assertEquals("x\\q\\u12G4\\uD83Dy", gym.last("raw").rawValue(), "malformed escapes are kept verbatim");
+        assertEquals(30.0, gym.last("fee").numeric().getAsDouble(), 0);
+        assertTrue(gym.entries().stream().noneMatch(kv -> "textEncoding".equals(kv.key())), "metadata, never an entry");
+
+        // 3. the spelling after endTime is content: legacy
+        LogRecord late = s.record(2);
+        assertEquals(AuditLogReader.TextEncoding.LEGACY, late.textEncoding());
+        assertEquals("\"hello\"", late.nodeLogs().get(0).last("greeting").rawValue());
+        // 4. the spelling inside a multi-line quoted eventToString is content: legacy
+        LogRecord inValue = s.record(3);
+        assertEquals(AuditLogReader.TextEncoding.LEGACY, inValue.textEncoding());
+        assertEquals("AdminCommandEvent", inValue.event());
+        assertEquals("\"hello\"", inValue.nodeLogs().get(0).last("greeting").rawValue());
+        // 5. an unknown value: legacy, and named once
+        LogRecord unknown = s.record(4);
+        assertEquals(AuditLogReader.TextEncoding.LEGACY, unknown.textEncoding());
+        assertEquals("\"hello\"", unknown.nodeLogs().get(0).last("greeting").rawValue());
+        var found = findings(s).findings().stream()
+                .filter(f -> f.kind() == ProducerDiagnostics.Kind.UNKNOWN_TEXT_ENCODING).toList();
+        assertEquals(1, found.size(), findings(s).messages().toString());
+        assertTrue(found.get(0).message().startsWith("Record 5 declares 'textEncoding: QUOTED_SCALARS_V9'"),
+                found.get(0).message());
+        // 6. marked again after both: re-evaluated per record; a bare @invoked is the producer's key here
+        LogRecord again = s.record(5);
+        assertEquals(AuditLogReader.TextEncoding.QUOTED_SCALARS, again.textEncoding());
+        var n = again.nodeLogs().get(0);
+        assertFalse(n.traced(), "the text runtime writes no wire TRACE: no reserved keys");
+        assertEquals("true", n.last("@invoked").rawValue());
+        assertEquals("hello", n.last("greeting").rawValue());
+        assertTrue(AuditTrace.tracesEveryInvocation(again), "the text runtime's tracing run still applies");
+
+        // a reader that declares the grammar keeps applying it to EVERY record, marker or not
+        LogStore declared = viaSpi("c35-record-text-encoding.yaml", AuditLogReader.TextEncoding.QUOTED_SCALARS);
+        for (int i = 0; i < declared.size(); i++) {
+            assertEquals(AuditLogReader.TextEncoding.QUOTED_SCALARS, declared.record(i).textEncoding());
+            assertFalse(declared.record(i).recordDeclaredEncoding(), "the reader declared it, not the record");
+        }
+        assertEquals("hello", declared.record(2).nodeLogs().get(0).last("greeting").rawValue());
+    }
+
     @Test
     void c16_aQuotedScalarIsAStringWhateverItSpells_andItsInsidesSplitNothing() throws IOException {
         // The grammar is the READER's declaration. The same bytes through the built-in text reader are
@@ -684,7 +767,8 @@ class FormatConformanceTest {
                     "c23-marker-values.yaml", "c24-unterminated-marker.yaml", "c25-marker-declaring-zero.yaml",
                     "c26-two-empty-segments.yaml", "c27-whitespace-only.yaml", "c28-zero-bytes.yaml",
                     "c29-no-record-key.yaml", "c30-per-node-level.yaml", "c31-broken-value.yaml",
-                    "c32-record-structure.yaml", "c33-trace-annotation.yaml", "c34-merged-entry.yaml"), names,
+                    "c32-record-structure.yaml", "c33-trace-annotation.yaml", "c34-merged-entry.yaml",
+                    "c35-record-text-encoding.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);

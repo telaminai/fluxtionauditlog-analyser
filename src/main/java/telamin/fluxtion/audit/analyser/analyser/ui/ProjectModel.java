@@ -83,7 +83,6 @@ public record ProjectModel(List<Section> sections) {
             "project.bundle.identity", "project.bundle.source", "project.bundle.workingCopy",
             "project.bundle.sourceAnchor", "project.bundle.sourceAnchorNote",
             "skills.provenance", "skills.from",
-            "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
             "log.tailNote", "log.pendingNote", "log.freshness", "graphPairing.freshness", "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
@@ -191,16 +190,6 @@ public record ProjectModel(List<Section> sections) {
             if (questions > 0) detail.append(" · ").append(questions).append(" selection question(s)");
             rows.add(new Row("mode-selector record", detail.toString(), null,
                     "placed by " + record.get("setBy") + " · this session", Tone.NORMAL, Target.NONE));
-        }
-        // M19.12: the only observable fact is the canonical file's configured-key presence. A future
-        // Maven invocation may receive a -D override that this process cannot see, so the rule is
-        // documented beside the fact and never presented as a resolved winner.
-        Map<String, Object> key = map(ctx.get("fluxtionKey"));
-        if (!key.isEmpty()) {
-            boolean present = Boolean.TRUE.equals(key.get("canonicalFilePresent"));
-            rows.add(new Row("Fluxtion key file: " + (present ? "present" : "absent"),
-                    str(key.get("precedenceNote")), str(key.get("canonicalFile")),
-                    "observed locally; validity not checked", present ? Tone.NORMAL : Tone.MUTED, Target.NONE));
         }
         Map<String, Object> skills = map(ctx.get("skills"));
         if (skills.get("provenance") != null) {

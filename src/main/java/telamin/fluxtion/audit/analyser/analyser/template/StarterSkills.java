@@ -40,12 +40,18 @@ import java.util.function.Function;
  * ({@link #MARKERS}: each file, its whole block byte for byte, what fills it). Once every selected byte matched its pin,
  * each marker block the analyser's own first-run record for the starter can answer — and nothing else — is replaced by
  * fixed text: the record ({@code TemplateArchive.commandsFor}, the post-install command list) contributes only known
- * command strings, the template's {@code keyNeed} only one of four fixed key notes. That is {@code add-a-node}'s
+ * command strings, the template's {@code keyNeed} only a fixed authentication note. That is {@code add-a-node}'s
  * regeneration ({@link #regenerationBlock}), {@code run-mongoose-server}'s start command ({@link #mongooseStartBlock}) and
  * {@code run-embedded}'s run command ({@link #embeddedRunBlock}). A marker the record cannot answer — the export command,
  * log and GraphML paths, the stop command, or any marker with no record (Windows today) — is kept as it is.
  * {@code .claude/skills/.vendored.json} ({@link #RECORD}) lists, for every file written, the pinned source digest and the
  * written file's digest, and one note per marker: substituted, or kept and why.
+ *
+ * <p><b>The Java-authoring starter gets none (owner, 2026-11-07).</b> It is the first and recommended starter, and it
+ * ships its own skill set ({@code fluxtion-java-graph}, {@code load-audit-log}, {@code point-at-the-fault},
+ * {@code run-mongoose-server}) — the set its benchmark validated. Adding the canonical set would add
+ * {@code guided-start} (an analyser tour, which a coding agent asked to build could pick up instead) and a digest record,
+ * so the project would no longer be the starter that was measured. Nothing is written; its own skills are reported kept.
  *
  * <p><b>Never overwrite.</b> A skill whose {@code SKILL.md} is already there is kept whole; any other file that exists is
  * kept. A linked {@code .claude} or {@code .claude/skills} refuses the whole set; a linked skill folder is kept
@@ -66,9 +72,11 @@ public final class StarterSkills {
         m.put("spring-authoring/reference/skill.md", new String[]{
                 "https://fluxtion-playground.dev/spring-authoring/skill.md", "playground/spring-authoring/skill.md",
                 "9875abf6d5ad4f9662ee985e21013c4e6292d8a1843cb7a1ec115610a636929e"});
+        // RAPID-OFF (2026-11-07): re-vendored byte for byte from fluxtion-web #57 (fix/rapidapi-off-web 9a663128,
+        // web/static/spring-authoring/contract.md); it matches the live page once #57 deploys.
         m.put("spring-authoring/reference/contract.md", new String[]{
                 "https://fluxtion-playground.dev/spring-authoring/contract.md", "playground/spring-authoring/contract.md",
-                "a00cfdecfdf80183491757cf6d93c210bf95b61293c61a45359cd1bdb258f0a8"});
+                "38ff9d93409dae8e533c138d94fa4c7ae236f139d15d1c1618f1b835fd646726"});
         PLAYGROUND = java.util.Collections.unmodifiableMap(m);
     }
 
@@ -100,7 +108,7 @@ public final class StarterSkills {
     public static final String REGENERATION_MARKER = """
             ```
             TODO(bundle): substitute this project's exact regeneration command (the Maven profile or script that
-            invokes the Fluxtion source generator), and say whether it needs a Fluxtion API key.
+            invokes the Fluxtion source generator), and point to the project's Compiler sign-in instructions.
             ```
             """;
 
@@ -186,20 +194,34 @@ public final class StarterSkills {
     static final List<String> REGENERATION_STEPS = List.of("./check-fluxtion-key.sh", "./setup.sh", "./validate.sh",
             "./generate.sh");
 
-    public static final String KEY_BUILD = "**Fluxtion API key: needed.** The starter declares that its build needs a "
-            + "Fluxtion API key (`keyNeed: build`), so regenerating needs one.";
-    public static final String KEY_RUN = "**Fluxtion API key:** the starter declares that one is needed when the "
-            + "processor runs (`keyNeed: run`).";
-    public static final String KEY_NONE = "**Fluxtion API key: not needed.** The starter declares that its build needs "
-            + "no Fluxtion API key (`keyNeed: none`).";
-    public static final String KEY_UNDECLARED = "**Fluxtion API key:** the starter does not declare whether its build "
-            + "needs one.";
-    public static final String KEY_CHECK = "`./check-fluxtion-key.sh` checks whether one is set.";
+    public static final String SIGN_IN_BUILD = "**Compiler sign-in: needed at build.** Follow the project's "
+            + "Compiler sign-in instructions in README and its RUNBOOK; Maven validates the saved credential.";
+    // RAPID-OFF (2026-11-07): the legacy key route is closed. Generation goes only through compiler sign-in, so an older
+    // starter's `keyNeed: build` means sign-in too. Since the playground's RAPID-OFF starters (fluxtion-web #57), a
+    // starter's ./check-fluxtion-key.sh checks sign-in, never a key file, so it stays wherever the record names it and
+    // the regeneration block agrees with the post-install list. Only an explicit sign-in-build starter, which ships no
+    // such script, has none.
+    public static final String KEY_BUILD = SIGN_IN_BUILD;
+    /**
+     * A runtime-generation starter: on builder 1.0.90 an in-process build reads the same stored login as Maven (token
+     * mode is the default; no -D flags), or {@code FLUXTION_API_TOKEN} in CI.
+     */
+    public static final String KEY_RUN = "**Compiler sign-in:** the starter declares that it is needed when the "
+            + "processor runs (`keyNeed: run`). Runtime builds use the same stored login: `"
+            + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN + "` once per machine, or "
+            + "`FLUXTION_API_TOKEN` in CI.";
+    public static final String KEY_NONE = "**Compiler sign-in: not needed.** The starter declares that its build needs "
+            + "no generation credential (`keyNeed: none`).";
+    public static final String KEY_UNDECLARED = "**Compiler sign-in:** the starter does not declare whether its build "
+            + "needs it. Regenerating a processor does: `"
+            + telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN + "`, or `FLUXTION_API_TOKEN` "
+            + "in CI.";
+    public static final String KEY_CHECK = "`./check-fluxtion-key.sh` checks that compiler sign-in is set.";
 
     /**
      * The starter's own first-run record and key declaration — what the marker is substituted from. {@code firstRun} is
      * the post-install command list ({@code TemplateArchive.commandsFor}); {@code keyNeed} the template's word
-     * ({@code build}, {@code run}, {@code none}, {@code other} or "").
+     * ({@code build}, {@code sign-in-build}, {@code run}, {@code none}, {@code other} or "").
      */
     public record FirstRun(List<String> firstRun, String keyNeed) {
         public FirstRun {
@@ -278,14 +300,16 @@ public final class StarterSkills {
     public static String regenerationBlock(FirstRun record) {
         if (record == null) return null;
         List<String> steps = known(record, REGENERATION_STEPS);
+        if ("sign-in-build".equals(record.keyNeed()))
+            steps = steps.stream().filter(step -> !"./check-fluxtion-key.sh".equals(step)).toList();
         if (!steps.contains("./generate.sh")) return null;
         String key = switch (record.keyNeed()) {
-            case "build" -> KEY_BUILD;
+            case "build", "sign-in-build" -> SIGN_IN_BUILD;
             case "run" -> KEY_RUN;
             case "none" -> KEY_NONE;
             default -> KEY_UNDECLARED;
         };
-        if (!"none".equals(record.keyNeed()) && steps.contains("./check-fluxtion-key.sh")) key += " " + KEY_CHECK;
+        if (steps.contains("./check-fluxtion-key.sh")) key += " " + KEY_CHECK;
         return "```\n" + String.join("\n", steps) + "\n```\n\n"
                 + "These are this project's regeneration steps, in order, from the analyser's first-run record for its "
                 + "starter.\n" + key + "\n";
@@ -382,6 +406,7 @@ public final class StarterSkills {
      */
     @SuppressWarnings("unchecked")
     public Report vendor(Path projectRoot, String authoring, String host, FirstRun record) {
+        if (Starters.JAVA.equals(authoring)) return shippedOnly(projectRoot);
         List<Skill> skills;
         try {
             byte[] indexBytes = resources.apply(INDEX);
@@ -506,6 +531,22 @@ public final class StarterSkills {
             return new Report(written, kept, digests, notes, "the skills could not be written (" + e.getMessage() + ")");
         }
         return new Report(written, kept, digests, notes, null);
+    }
+
+    /** The Java-authoring starter's own skills, reported kept; nothing is written (see the class comment). */
+    private static Report shippedOnly(Path projectRoot) {
+        List<String> kept = new ArrayList<>();
+        Path base = projectRoot.resolve(".claude").resolve("skills");
+        if (Files.isDirectory(base, LinkOption.NOFOLLOW_LINKS)) {
+            try (var dirs = Files.list(base)) {
+                dirs.filter(d -> Files.isRegularFile(d.resolve("SKILL.md"), LinkOption.NOFOLLOW_LINKS))
+                        .map(d -> d.getFileName().toString()).sorted().forEach(kept::add);
+            } catch (IOException | RuntimeException unreadable) {
+                // nothing was going to be written: an unreadable folder only means none is reported kept
+            }
+        }
+        return new Report(List.of(), kept, List.of(),
+                List.of("the Java-authoring starter ships its own skills; the analyser added none"), null);
     }
 
     private static Report refused(String why) {

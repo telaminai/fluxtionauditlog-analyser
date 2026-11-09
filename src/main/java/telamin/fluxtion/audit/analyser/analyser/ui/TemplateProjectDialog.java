@@ -103,29 +103,24 @@ final class TemplateProjectDialog {
                     "New project from template", JOptionPane.WARNING_MESSAGE);
             return null;
         }
-        JList<TemplateCatalogue.Entry> list = new JList<>(selection.entries().toArray(TemplateCatalogue.Entry[]::new));
+        // owner, 2026-11-07: only the recommended starters unless "Show all templates" is ticked (this run only)
+        javax.swing.DefaultListModel<TemplateCatalogue.Entry> model = new javax.swing.DefaultListModel<>();
+        model.addAll(shownEntries(selection, StarterListPreference.showAll()));
+        JList<TemplateCatalogue.Entry> list = new JList<>(model);
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         // SF-2: the catalogue is downloaded — its names are not this code's words
-        list.setCellRenderer(UiText.plainRenderer(new DefaultListCellRenderer() {
-            @Override public Component getListCellRendererComponent(JList<?> component, Object value, int index,
-                                                                     boolean selected, boolean focus) {
-                JLabel label = UiText.plain((JLabel) super.getListCellRendererComponent(component, value, index, selected, focus));
-                if (value instanceof TemplateCatalogue.Entry entry) label.setText(entry.displayName());
-                return label;
-            }
-        }));
+        list.setCellRenderer(UiText.plainRenderer(templateRenderer(StarterListPreference::showAll)));
+        // owner, 2026-11-07: the list arrives in the one starter order (TemplateCatalogue.ordered / Starters.ordered) —
+        // the Java-authoring starter first, the other recommended ones next — and the first entry is the default. The
+        // picker used to show the catalogue's raw order (the session's Spring-first rule never reached it), so the
+        // recommended entries sat where the catalogue put them — the analyser bundle last until 2026-11-04, the Spring
+        // onboarding starter third from the bottom — and the selection started on the first "analyser"-tagged entry.
         int initial = 0;
-        for (int i = 0; i < selection.entries().size(); i++) {
-            if (selection.entries().get(i).tagged("analyser")) {
-                initial = i;
-                break;
-            }
-        }
         list.setSelectedIndex(initial);
-        JTextArea description = textArea(selection.entries().get(initial).disclosure(), 10, 52);
+        JTextArea description = textArea(model.get(initial).disclosure(), 10, 52);
         description.setBorder(BorderFactory.createEmptyBorder(8, 2, 8, 8));
         description.setBackground(UiTheme.surface());
-        JLabel selectedName = UiText.label(selection.entries().get(initial).displayName());
+        JLabel selectedName = UiText.label(model.get(initial).displayName());
         selectedName.setFont(selectedName.getFont().deriveFont(java.awt.Font.BOLD, 17f));
         list.addListSelectionListener(e -> {
             TemplateCatalogue.Entry chosen = list.getSelectedValue();
@@ -145,9 +140,23 @@ final class TemplateProjectDialog {
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         north.add(title);
         north.add(javax.swing.Box.createVerticalStrut(4));
-        JTextArea note = Fluid.text(selection.note());
+        JTextArea note = Fluid.text(shownNote(selection, StarterListPreference.showAll()));
         note.setForeground(UiTheme.mutedForeground());
         north.add(note);
+        JCheckBox showAll = new JCheckBox(StarterListPreference.LABEL, StarterListPreference.showAll());
+        showAll.setToolTipText("Unticked: only the recommended starting points. Remembered until the analyser closes.");
+        showAll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        showAll.setVisible(selection.entries().size() > shownEntries(selection, false).size());
+        showAll.addActionListener(e -> {
+            StarterListPreference.setShowAll(showAll.isSelected());
+            TemplateCatalogue.Entry was = list.getSelectedValue();
+            model.clear();
+            model.addAll(shownEntries(selection, showAll.isSelected()));
+            int keep = was == null ? -1 : model.indexOf(was);
+            list.setSelectedIndex(keep < 0 ? 0 : keep);
+            note.setText(shownNote(selection, showAll.isSelected()));
+        });
+        north.add(showAll);
         // D-AX10: an experiment that silently downloads from somewhere else is how a rig artefact gets
         // mistaken for product behaviour. If the origin is overridden, the dialog SAYS which one.
         if (TemplateClient.originOverridden()) {
@@ -180,6 +189,50 @@ final class TemplateProjectDialog {
         int answer = JOptionPane.showOptionDialog(owner, panel, "New project from template",
                 JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
         return answer == 0 ? list.getSelectedValue() : null;
+    }
+
+    /**
+     * The list's cell renderer: each entry reads {@link #listText} for the box's current state. Its label is plain text;
+     * the caller wraps it in {@link UiText#plainRenderer} where it installs it (SF-2).
+     */
+    static javax.swing.ListCellRenderer<Object> templateRenderer(java.util.function.BooleanSupplier showAll) {
+        return new DefaultListCellRenderer() {
+            @Override public Component getListCellRendererComponent(JList<?> component, Object value, int index,
+                                                                     boolean selected, boolean focus) {
+                JLabel label = UiText.plain((JLabel) super.getListCellRendererComponent(component, value, index, selected, focus));
+                if (value instanceof TemplateCatalogue.Entry entry) label.setText(listText(entry, showAll.getAsBoolean()));
+                return label;
+            }
+        };
+    }
+
+    /**
+     * An entry's text in the list (owner, 2026-11-07): unticked, every entry listed is a recommended starting point —
+     * the note above says so — and the suffix only truncated in the narrow list, so the bare name. Ticked, the suffix
+     * marks which of the mixed entries are recommended. The detail pane's heading always reads the full display name.
+     */
+    static String listText(TemplateCatalogue.Entry entry, boolean showAll) {
+        return showAll ? entry.displayName() : entry.name();
+    }
+
+    /**
+     * The note above the list, saying what it shows: the catalogue's own note ("All templates — …") when every entry is
+     * listed, otherwise that only the recommended starting points are, and how to see the rest.
+     */
+    static String shownNote(TemplateCatalogue.Selection selection, boolean showAll) {
+        if (shownEntries(selection, showAll).size() == selection.entries().size()) return selection.note();
+        return "Recommended starting points — tick " + StarterListPreference.LABEL + " to list every template.";
+    }
+
+    /**
+     * The picker's list, exactly as shown (owner, 2026-11-07): the selection's entries in their order (the one starter
+     * order — the Java-authoring starter first, the other recommended next), only the recommended ones unless
+     * {@code showAll}; every entry when the catalogue recommends none.
+     */
+    static List<TemplateCatalogue.Entry> shownEntries(TemplateCatalogue.Selection selection, boolean showAll) {
+        List<TemplateCatalogue.Entry> all = selection.entries();
+        if (showAll || all.stream().noneMatch(TemplateCatalogue.Entry::recommended)) return all;
+        return all.stream().filter(TemplateCatalogue.Entry::recommended).toList();
     }
 
     static Choice chooseDestination(Component owner, TemplateCatalogue.Entry template,

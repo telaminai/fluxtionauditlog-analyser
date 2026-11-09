@@ -40,8 +40,22 @@ public final class TemplateArchive {
     // TemplateExecutablesTest against src/test/resources/template/playground-executables.txt (upstream ask UP-PG-07).
     static final Set<String> POSIX_EXECUTABLES = Set.of(
             "mvnw", "run-server.sh", "export-audit.sh", "stop-server.sh", "check-fluxtion-key.sh",
-            "setup.sh", "validate.sh", "generate.sh",
+            "setup.sh", "validate.sh", "generate.sh", "feed-position.sh",
             "run-and-export.sh", "run.sh", "setup-java.sh", "runWasm.sh");
+
+    // The same D-4 rule one level down, for the Java-authoring starter (owner, 2026-11-07: the first and recommended
+    // starter): its CLAUDE.md starts with "run tools/context.sh" and every check it teaches is a tools/ script, so
+    // without these they arrived 0644 and the first command failed with "Permission denied" — the starter the
+    // analyser installed was not the one the benchmark measured. A fixed list of project-relative paths, never a
+    // pattern and never the archive's own bits; TemplateExecutablesTest pins it to the generated starter's zip.
+    // The Audit analyser bundle's one script below the root is on the same list (review, 2026-11-07): the website marks
+    // .claude/skills/add-a-node/audit-compare.py executable, and without this entry it arrived 0644.
+    static final Set<String> TOOL_EXECUTABLES = Set.of(
+            "tools/_compare.sh", "tools/_config.py", "tools/_fixture.sh", "tools/_placeholders.sh", "tools/_run.sh",
+            "tools/_state.py", "tools/admin.sh", "tools/audit-compare.py", "tools/components.py", "tools/components.sh",
+            "tools/context.sh", "tools/fixture.sh", "tools/new-node.py", "tools/new-node.sh", "tools/restart-check.sh",
+            "tools/run-fixture.sh", "tools/sink.sh",
+            ".claude/skills/add-a-node/audit-compare.py");
 
     /**
      * @param runnable owner follow-up (2026-10-18): the files an example's unpack gave an executable bit, relative to the
@@ -102,6 +116,11 @@ public final class TemplateArchive {
      * into {@code destination}. Existing non-empty destinations, links and non-directories are refused.
      */
     public Installed install(byte[] zip, Path destination) throws IOException {
+        return install(zip, destination, "");
+    }
+
+    /** The catalogue declaration chooses authentication guidance; archive filenames never prove a sign-in route. */
+    public Installed install(byte[] zip, Path destination, String keyNeed) throws IOException {
         if (zip == null || zip.length == 0) throw new IOException("starter archive is empty");
         Path target = destination == null ? null : destination.toAbsolutePath().normalize();
         if (target == null || target.getParent() == null) throw new IOException("choose a project destination");
@@ -125,7 +144,7 @@ public final class TemplateArchive {
                     telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, settings);
                 }
             }
-            List<String> commands = commandsFor(root);
+            List<String> commands = commandsFor(root, System.getProperty("os.name", "").toLowerCase().contains("win"), keyNeed);
 
             // An empty directory is allowed by D-4, but move-without-replace requires it not to exist.
             if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) Files.delete(target);
@@ -257,11 +276,13 @@ public final class TemplateArchive {
      *       keyless on the shipped processor — then {@code ./run-and-export.sh}, the ONE command its CLAUDE.md
      *       names, which replaces run-server/export-audit/stop-server. {@code setup.sh} is for graph changes.</li>
      *   <li>a Spring authoring starter ({@code setup.sh}, {@code validate.sh}, {@code generate.sh}):
-     *       {@code ./check-fluxtion-key.sh}, those three, then its run script. It ships only an AOT shell
-     *       processor, so its default build is remote generation and needs the key its README's "Build &amp; run"
-     *       checks first; the three scripts are its README's "follow RUNBOOK.md: setup.sh, validate.sh,
+     *       those three, then its run script. A legacy catalogue adds {@code ./check-fluxtion-key.sh} first;
+     *       {@code sign-in-build} omits it and delegates authentication to Maven. It ships only an AOT shell
+     *       processor, so its default build is remote generation; the three scripts are its README's
+     *       "follow RUNBOOK.md: setup.sh, validate.sh,
      *       generate.sh … Then run".</li>
-     *   <li>any other starter: {@code ./check-fluxtion-key.sh} when shipped, then {@code ./run.sh} or
+     *   <li>any other starter: {@code ./check-fluxtion-key.sh} when shipped unless the catalogue declares
+     *       {@code sign-in-build}, then {@code ./run.sh} or
      *       {@code ./run-server.sh}, which build on first use — its README's "Build &amp; run".</li>
      * </ul>
      * On Windows a sequence is offered only when every step has a {@code .cmd} form; otherwise nothing is, and
@@ -273,13 +294,18 @@ public final class TemplateArchive {
     }
 
     static List<String> commandsFor(Path root, boolean windows) {
+        return commandsFor(root, windows, "");
+    }
+
+    static List<String> commandsFor(Path root, boolean windows, String keyNeed) {
         List<String> steps = new ArrayList<>(); // POSIX names: "mvnw" means "./mvnw package"
         String run = present(root, "run.sh") ? "run.sh" : present(root, "run-server.sh") ? "run-server.sh" : null;
         if (present(root, "run-and-export.sh")) {
             if (present(root, "mvnw")) steps.add("mvnw");
             steps.add("run-and-export.sh");
         } else if (run != null) {
-            if (present(root, "check-fluxtion-key.sh")) steps.add("check-fluxtion-key.sh");
+            if (!"sign-in-build".equals(keyNeed) && present(root, "check-fluxtion-key.sh"))
+                steps.add("check-fluxtion-key.sh");
             if (present(root, "setup.sh") && present(root, "validate.sh") && present(root, "generate.sh")) {
                 // a separate add(run): POSIX_EXECUTABLES' text for these three names is a mutation anchor
                 // (installer-authoring-executables) and must occur once in this file
@@ -373,7 +399,10 @@ public final class TemplateArchive {
             String base = portable.substring(portable.lastIndexOf('/') + 1);
             // The archive has one top-level project directory. Only named root lifecycle files may
             // become executable; neither a matching nested basename nor an arbitrary .sh qualifies.
-            if (executables && portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {
+            boolean rootScript = portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base);
+            boolean toolScript = portable.indexOf('/') > 0
+                    && TOOL_EXECUTABLES.contains(portable.substring(portable.indexOf('/') + 1));
+            if (executables && (rootScript || toolScript)) {
                 permissions.add(PosixFilePermission.OWNER_EXECUTE);
                 permissions.add(PosixFilePermission.GROUP_EXECUTE);
                 permissions.add(PosixFilePermission.OTHERS_EXECUTE);

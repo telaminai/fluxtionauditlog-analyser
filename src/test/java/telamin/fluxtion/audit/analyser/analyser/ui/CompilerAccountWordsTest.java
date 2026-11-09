@@ -13,6 +13,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class CompilerAccountWordsTest {
 
     @Test
+    void signedInEmailIsSeparateFromTheAccountId() {
+        var me = new CompilerAccountClient.Me("acct-demo", false, "member", "person@example.com");
+        assertEquals(List.of("acct-demo", "person@example.com", "Organisation", "member"),
+                CompilerAccountDialog.accountRows(me, null, null));
+        assertFalse(me.toString().contains("person@example.com"));
+    }
+
+    @Test
     void aPlanWithoutANextResetShowsNoResetLine_ratherThanAGuess() {
         Usage none = new Usage("acct-demo", "free", true, 120, 30, 2, 3, 1, null);
         assertEquals("One-time allowance (no reset)", CompilerAccountDialog.resetText(none), "a one-time allowance, never a date");
@@ -20,7 +28,7 @@ class CompilerAccountWordsTest {
         assertEquals(List.of("120", "30", "2", "3", "1"), CompilerAccountDialog.creditFigures(none.compile()));
         Usage monthly = new Usage("acct-demo", "team", true, 4000, 0, 0, 0, 0, "2026-11-01T00:00:00Z");
         assertEquals("Next reset: 2026-11-01T00:00:00Z", CompilerAccountDialog.resetText(monthly));
-        assertEquals(List.of("a", "Personal", "member", "free", "Inactive"), CompilerAccountDialog.accountRows(
+        assertEquals(List.of("a", "Not provided by service", "Personal", "member", "free", "Inactive"), CompilerAccountDialog.accountRows(
                 new CompilerAccountClient.Me("a", true, "member"), new Usage("a", "free", false, 0, 0, 0, 0, 0, null), null));
     }
 
@@ -55,34 +63,65 @@ class CompilerAccountWordsTest {
         assertEquals("Provenance", AccountDetails.assurance("provenance"));
         Usage plans = new Usage("acct-demo", "free", true, 120, 30, 0, 3, 0, null,
                 new CompilerAccountClient.Balance(481, 18, 1, 17, 2), enterprise);
-        assertEquals(List.of("acct-demo", "Personal", "member", "enterprise", "Active"), CompilerAccountDialog.accountRows(
+        assertEquals(List.of("acct-demo", "Not provided by service", "Personal", "member", "enterprise", "Active"), CompilerAccountDialog.accountRows(
                 new CompilerAccountClient.Me("acct-demo", true, "member"), plans, null), "the plan named is the profile's");
         assertEquals(List.of("481", "18", "1", "17", "2"), CompilerAccountDialog.creditFigures(plans.interpret()));
         assertEquals(List.of("120", "30", "0", "3", "0"), CompilerAccountDialog.creditFigures(plans.compile()));
     }
 
     @Test
-    void theAddressSuggestionsAreTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes() {
+    void theAddressSuggestionsAreTheHostedServicesThenTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes() {
         telamin.fluxtion.audit.analyser.analyser.config.AppConfig config = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
-        assertEquals(List.of(), CompilerAccountDialog.suggestions(config, null), "nothing remembered: nothing invented");
+        String prod = telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.PRODUCTION;
+        String staging = telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.STAGING;
+        // owner, 2026-11-03: a fresh install offers the hosted services rather than an empty list
+        assertEquals(List.of(prod, staging), CompilerAccountDialog.suggestions(config, null),
+                "nothing remembered: the hosted services, production first");
         config.recentCompilerServices.addAll(List.of("https://b.example.com", "http://plain.example.com", "https://a.example.com"));
         config.compilerServiceUrl = "https://a.example.com";
-        assertEquals(List.of("https://b.example.com", "https://a.example.com"), CompilerAccountDialog.suggestions(config, null),
-                "an address the analyser would refuse is never offered");
+        assertEquals(List.of(prod, staging, "https://b.example.com", "https://a.example.com"),
+                CompilerAccountDialog.suggestions(config, null), "an address the analyser would refuse is never offered");
         config.compilerServiceUrl = "https://set.example.com";
-        assertEquals(List.of("https://b.example.com", "https://a.example.com", "https://set.example.com"),
+        assertEquals(List.of(prod, staging, "https://b.example.com", "https://a.example.com", "https://set.example.com"),
                 CompilerAccountDialog.suggestions(config, null));
+        config.recentCompilerServices.add(0, staging);
+        assertEquals(List.of(prod, staging, "https://b.example.com", "https://a.example.com", "https://set.example.com"),
+                CompilerAccountDialog.suggestions(config, null), "a hosted service used before is still offered once");
+    }
+
+    @Test
+    void theHostedServicesAreThePublicEdgeAddressesAndAreNamedInTheList() {
+        assertEquals("https://compiler.fluxtion-playground.dev",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.PRODUCTION);
+        assertEquals("https://compiler-staging.fluxtion-playground.dev",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.STAGING);
+        for (var k : telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.ALL) {
+            assertNull(telamin.fluxtion.audit.analyser.analyser.account.ServiceAddress.refusal(k.address()),
+                    "a hosted service is an address the analyser accepts: " + k.address());
+            assertFalse(k.address().contains("railway.app"), "the public edge, never the Railway origin: " + k.address());
+        }
+        assertEquals("Production — https://compiler.fluxtion-playground.dev",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices
+                        .describe("https://compiler.fluxtion-playground.dev"));
+        assertEquals("Production", telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices
+                .name("https://compiler.fluxtion-playground.dev/"), "a trailing slash is the same service");
+        assertEquals("Staging — https://compiler-staging.fluxtion-playground.dev",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices
+                        .describe("https://compiler-staging.fluxtion-playground.dev"));
+        assertEquals("https://other.example.com",
+                telamin.fluxtion.audit.analyser.analyser.account.KnownCompilerServices.describe("https://other.example.com"),
+                "any other address is shown as it is");
     }
 
     @Test
     void theAccountLineNamesTheTypeAndRole_andTheDeviceRowMarksThisMachine() {
         Usage u = new Usage("acct-demo", "free", true, 120, 0, 0, 0, 0, null);
-        assertEquals(List.of("Account", "Type", "Your role", "Plan", "Status"), CompilerAccountDialog.ACCOUNT_ROWS);
-        assertEquals(List.of("acct-demo", "Organisation", "member", "free", "Active"),
+        assertEquals(List.of("Account", "Signed-in email", "Type", "Your role", "Plan", "Status"), CompilerAccountDialog.ACCOUNT_ROWS);
+        assertEquals(List.of("acct-demo", "Not provided by service", "Organisation", "member", "free", "Active"),
                 CompilerAccountDialog.accountRows(new CompilerAccountClient.Me("acct-demo", false, "member"), u, null));
-        assertEquals(List.of("acct-demo", "Unknown", "Unknown", "free", "Active"),
+        assertEquals(List.of("acct-demo", "Not provided by service", "Unknown", "Unknown", "free", "Active"),
                 CompilerAccountDialog.accountRows(new CompilerAccountClient.Me("acct-demo", null, null), u, null));
-        assertEquals(List.of("acct-demo", "Not read", "Unknown", "free", "Active"),
+        assertEquals(List.of("acct-demo", "Not read", "Not read", "Unknown", "free", "Active"),
                 CompilerAccountDialog.accountRows(null, u, null), "not read: no guess");
         CompilerAccountClient.Device d = new CompilerAccountClient.Device("cred01", "DEVICE", "Fluxtion analyser on demo-host", 1_790_000_000_000L);
         assertArrayEquals(new Object[]{"Fluxtion analyser on demo-host (this machine)", "cred01", "Device", "2026-09-21 14:13"},

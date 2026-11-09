@@ -21,13 +21,22 @@
 #   cmd  <id>: root .cmd files the template ships besides mvnw.cmd (which every template ships); a template with no
 #               line ships none. None is a run script, so no template has a Windows first run.
 #   exec generator: root scripts the generator emits only for options no catalogue template uses
+#   tools <id>: the scripts below the root the template's zip marks executable (java-authoring: its tools/), each of
+#               which TemplateArchive.TOOL_EXECUTABLES must make executable. java-authoring's first: CLAUDE.md
+#               "./mvnw ... package" (the first build generates the processor, compiler sign-in), then
+#               "./run-and-export.sh runs the real server over the feed files and exports" the audit.
+#               analyser-bundle: its one script below the root, the add-a-node skill's audit-compare.py, which
+#               bundleSupportFiles marks executable (it starts with #!) — read 2026-11-07 from fluxtion-web origin/main.
+#
+# java-authoring lines read 2026-11-07 from fluxtion-web origin/main 3699b0de (PR #56) by calling the
+# /start/scaffold?template=java-authoring.starter.json handler and reading the zip's unix modes.
 #
 # Produced from fluxtion-web origin/main 36d811a (2026-10-13) by building every catalogue template with
 # buildStarterZip(builtinTemplateSpec(id)) and reading the zip; re-read at
 # fluxtion-web origin/main 247488f (2026-10-13, starter 1.0.79), where every exec line is unchanged and the first lines
 # were added from each generated template's top-level Markdown. Regenerate when the templates change; the
 # producer side of keeping this in step is upstream ask UP-PG-07.
-exec analyser-bundle: check-fluxtion-key.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
+exec analyser-bundle: check-fluxtion-key.sh export-audit.sh feed-position.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
 doc  analyser-bundle: check-fluxtion-key.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
 first analyser-bundle: mvnw run-and-export.sh
 cmd  analyser-bundle: export-audit.cmd stop-server.cmd
@@ -70,4 +79,10 @@ first mongoose-hosted-fluxtion: check-fluxtion-key.sh run-server.sh
 exec mongoose-server: mvnw run-server.sh
 doc  mongoose-server: run-server.sh
 first mongoose-server: run-server.sh
+exec java-authoring: check-fluxtion-key.sh export-audit.sh feed-position.sh mvnw run-and-export.sh run-server.sh stop-server.sh
+doc  java-authoring: export-audit.sh feed-position.sh mvnw run-and-export.sh run-server.sh stop-server.sh
+first java-authoring: mvnw run-and-export.sh
+cmd  java-authoring: export-audit.cmd feed-position.cmd stop-server.cmd
+tools java-authoring: tools/_compare.sh tools/_config.py tools/_fixture.sh tools/_placeholders.sh tools/_run.sh tools/_state.py tools/admin.sh tools/audit-compare.py tools/components.py tools/components.sh tools/context.sh tools/fixture.sh tools/new-node.py tools/new-node.sh tools/restart-check.sh tools/run-fixture.sh tools/sink.sh
+tools analyser-bundle: .claude/skills/add-a-node/audit-compare.py
 exec generator: runWasm.sh setup-java.sh
