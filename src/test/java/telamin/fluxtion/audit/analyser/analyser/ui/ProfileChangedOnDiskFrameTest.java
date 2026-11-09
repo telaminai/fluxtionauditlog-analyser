@@ -200,4 +200,97 @@ class ProfileChangedOnDiskFrameTest {
                     "context says it too: " + ctx.get());
         }
     }
+
+    /** F1: a writer that fails every write as a full disk does. */
+    static telamin.fluxtion.audit.analyser.analyser.config.ProjectSession.Writes diskFull() {
+        return new telamin.fluxtion.audit.analyser.analyser.config.ProjectSession.Writes() {
+            @Override
+            public void saveProfile(Path file, AppConfig config, SettingsShare share) throws java.io.IOException {
+                throw new java.io.IOException("No space left on device");
+            }
+
+            @Override
+            public void writeNew(Path file, String text) throws java.io.IOException {
+                throw new java.io.IOException("No space left on device");
+            }
+        };
+    }
+
+    static telamin.fluxtion.audit.analyser.analyser.config.ProjectSession session(AsyncOpenInterleavingFrameTest.Frame f) {
+        return (telamin.fluxtion.audit.analyser.analyser.config.ProjectSession) field(f.frame, "project");
+    }
+
+    @Test
+    @DisplayName("★ F1: close on a full disk is held BEFORE the log closes — project, log and edit stay; the person is asked")
+    void aHeldCloseKeepsTheLogTheProjectAndTheEdit(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path dir = seeded(tmp);
+        Path file = ProjectProfile.pathFor(dir);
+        List<String> asked = new java.util.concurrent.CopyOnWriteArrayList<>();
+        MainFrame.heldLeaveChooser = reason -> { asked.add(reason); return null; };   // "Keep the project open"
+        try (var f = EvidenceCaptureFrameTest.shown(tmp)) {
+            open(f, dir);
+            AppConfig config = (AppConfig) field(f.frame, "config");
+            onEdt(() -> session(f).setWrites(diskFull()));
+            editAndSave(f, tmp);
+
+            AtomicReference<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> reply = new AtomicReference<>();
+            onEdt(() -> reply.set(f.ex.render("open", new java.util.LinkedHashMap<>(Map.of("close", "project")))));
+
+            assertFalse(reply.get().ok(), "★ the close is refused, and says why: " + reply.get());
+            assertTrue(String.valueOf(reply.get().error()).contains("No space left on device"), reply.get().error());
+            WalkPlaybackFrameTest.await("the person is asked", () -> !asked.isEmpty());
+            AtomicReference<Boolean> logOpen = new AtomicReference<>();
+            onEdt(() -> logOpen.set(field(f.frame, "store") != null));
+            assertTrue(logOpen.get(), "★ the log was not closed (the hold comes before any teardown)");
+            assertEquals(file, session(f).activeFile(), "the project is still open");
+            assertTrue(config.sourceRoots.contains(tmp.resolve("src").toString()), "the edit is still in memory");
+
+            // the person saves the edits elsewhere; the next close goes ahead
+            Path elsewhere = tmp.resolve("kept-edits.fluxtion-settings");
+            MainFrame.heldLeaveChooser = reason -> new MainFrame.HeldLeaveAnswer(elsewhere, false);
+            onEdt(() -> reply.set(f.ex.render("open", new java.util.LinkedHashMap<>(Map.of("close", "project")))));
+            assertFalse(reply.get().ok(), "still held until the person answers: " + reply.get());
+            WalkPlaybackFrameTest.await("the edits were saved where the person chose", () -> Files.exists(elsewhere));
+            assertTrue(Files.readString(elsewhere).contains("src"));
+            onEdt(() -> reply.set(f.ex.render("open", new java.util.LinkedHashMap<>(Map.of("close", "project")))));
+            assertTrue(reply.get().ok(), "now the close goes ahead: " + reply.get());
+            assertNull(session(f).activeFile());
+        } finally {
+            MainFrame.heldLeaveChooser = null;
+        }
+    }
+
+    @Test
+    @DisplayName("★ F1: quit on a full disk is held before anything is torn down; quitting after an explicit discard exits")
+    void aHeldQuitDoesNotExitUntilThePersonAnswers(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path dir = seeded(tmp);
+        List<String> asked = new java.util.concurrent.CopyOnWriteArrayList<>();
+        MainFrame.heldLeaveChooser = reason -> { asked.add(reason); return null; };   // "Keep the project open"
+        try (var f = EvidenceCaptureFrameTest.shown(tmp)) {
+            open(f, dir);
+            AppConfig config = (AppConfig) field(f.frame, "config");
+            java.util.concurrent.atomic.AtomicInteger exited = new java.util.concurrent.atomic.AtomicInteger(-1);
+            f.frame.exitProcess = exited::set;
+            onEdt(() -> session(f).setWrites(diskFull()));
+            editAndSave(f, tmp);
+
+            onEdt(() -> f.frame.dispatchEvent(new java.awt.event.WindowEvent(f.frame, java.awt.event.WindowEvent.WINDOW_CLOSING)));
+
+            assertEquals(1, asked.size(), "★ the person is asked before quitting");
+            assertTrue(asked.get(0).contains("No space left on device"), asked.get(0));
+            assertEquals(-1, exited.get(), "★ the analyser did not exit");
+            AtomicReference<Boolean> alive = new AtomicReference<>();
+            onEdt(() -> alive.set(f.frame.isDisplayable() && f.frame.isEnabled() && field(f.frame, "store") != null));
+            assertTrue(alive.get(), "the window, its log and its controls are untouched");
+            assertTrue(config.sourceRoots.contains(tmp.resolve("src").toString()), "the edit is still in memory");
+
+            MainFrame.heldLeaveChooser = reason -> new MainFrame.HeldLeaveAnswer(null, true);   // "Discard my edits"
+            onEdt(() -> f.frame.dispatchEvent(new java.awt.event.WindowEvent(f.frame, java.awt.event.WindowEvent.WINDOW_CLOSING)));
+            WalkPlaybackFrameTest.await("the explicit discard lets the quit go ahead", () -> exited.get() == 0);
+        } finally {
+            MainFrame.heldLeaveChooser = null;
+        }
+    }
 }

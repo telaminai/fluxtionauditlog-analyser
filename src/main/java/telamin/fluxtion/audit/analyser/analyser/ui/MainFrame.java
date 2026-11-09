@@ -8918,6 +8918,19 @@ public final class MainFrame extends JFrame {
                                    String source, boolean interactive,
                                    telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest create,
                                    long starterRequest) {
+        // F1 (#198 review): leaving the open project is admitted HERE, before anything is requested — so before the
+        // processor closes the log and graph or a bundle is unpacked. ProjectSession decides (Leave); a held leave
+        // keeps the project, its log, its graph and its edits, and the person is asked what to do with the edits.
+        if (project != null && project.hasProject() && file != null && (kind == telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CLOSE
+                || !file.toAbsolutePath().normalize().equals(project.activeFile().toAbsolutePath().normalize()))) {
+            var left = project.leave();
+            if (!left.mayLeave()) {
+                sessionProblem = left.reason();
+                offerHeldLeave(left.reason(), interactive
+                        ? () -> requestProject(file, kind, source, true, create, starterRequest) : null);
+                return false;
+            }
+        }
         if (recovery != null) recovery.capture();
         sessionInteractive = interactive;
         sessionClosed.clear();
@@ -9467,7 +9480,14 @@ public final class MainFrame extends JFrame {
                 yield pending;
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreSettingsEffect e -> {
-                project.close();       // THE REAL HALF: after this there is no project, whatever follows
+                var left = project.close();       // THE REAL HALF: after this there is no project, whatever follows
+                if (!left.mayLeave()) {
+                    // F1: the entrance admitted this close, and the edits could still not be written since: the project
+                    // stays open with them, and the person is asked (no retry — the log and graph are already closed)
+                    offerHeldLeave(left.reason(), null);
+                    yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed(
+                            opId, "restoreSettings", left.reason());
+                }
                 reportProfileSetAside();
                 handoff.clear();       // M48.7: leaving a project ends the session the handoff belonged to
                 // The mirror of ApplyProfileEffect, and it needs the same treatment for the same reason:
@@ -10653,7 +10673,10 @@ public final class MainFrame extends JFrame {
                     // The processor decides that leaving a project ends the session, and the adapter
                     // records what it actually closed while doing it — so the echo below reports
                     // outcomes rather than a prediction made before the switch.
-                    requestProject(wasFile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CLOSE, "socket", false);
+                    if (!requestProject(wasFile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CLOSE, "socket", false)) {
+                        // F1: held — nothing was closed; the person is asked to save the edits elsewhere or discard them
+                        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(sessionProblem);
+                    }
                     Map<String, Object> closedEcho = sessionEndEcho();
                     var after = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
                     echo.put("closed", "project");
@@ -12196,6 +12219,83 @@ public final class MainFrame extends JFrame {
     }
 
     /**
+     * F1 (#198 review): the person's answer while leaving the project is held — the edits saved to {@code saveTo}, or
+     * explicitly discarded. Null from {@link #heldLeaveChooser} keeps the project open.
+     */
+    record HeldLeaveAnswer(Path saveTo, boolean discard) {
+    }
+
+    /** F1: a test's answer to the held-leave question, or null for the real dialog — the same seam as {@link #profileReloadChooser}. */
+    static volatile java.util.function.Function<String, HeldLeaveAnswer> heldLeaveChooser;
+
+    /** F1: quitting leaves the project — admitted only when its edits are saved, set aside, or the person discards them. */
+    private boolean admitQuit() {
+        if (project == null || !project.hasProject()) return true;
+        var left = project.leaveForQuit();
+        return left.mayLeave() || resolveHeldLeave(left.reason(), "Quit");
+    }
+
+    /** F1: ask after the transition that was held; {@code retry} repeats it once the edits are saved or discarded. */
+    private void offerHeldLeave(String reason, Runnable retry) {
+        SwingUtilities.invokeLater(() -> {
+            if (resolveHeldLeave(reason, "Project") && retry != null) retry.run();
+        });
+    }
+
+    /**
+     * F1: render ProjectSession's held leave as the person's choice and perform the answer. Decides nothing: whether
+     * leaving is held is {@link telamin.fluxtion.audit.analyser.analyser.config.ProjectSession#leave()}'s call.
+     *
+     * @return true when the edits were saved elsewhere or discarded, so leaving may go ahead
+     */
+    private boolean resolveHeldLeave(String reason, String title) {
+        var chooser = heldLeaveChooser;
+        if (chooser == null && !offersEnabled) {
+            System.err.println("[analyser] " + reason);    // no one to ask: hold, never discard
+            return false;
+        }
+        String asked = reason;
+        while (true) {
+            HeldLeaveAnswer answer = chooser != null ? chooser.apply(asked) : askHeldLeave(asked, title);
+            if (answer == null) return false;
+            if (answer.discard()) {
+                project.discardUnsaved();
+                return true;
+            }
+            try {
+                project.setAsideTo(answer.saveTo());
+                return true;
+            } catch (java.io.IOException | RuntimeException e) {
+                asked = "Could not write " + answer.saveTo() + ": " + e.getMessage() + "\n\n" + reason;
+                if (chooser != null) return false;
+            }
+        }
+    }
+
+    /** F1: the real question — save the edits to another file, discard them, or keep the project open. */
+    private HeldLeaveAnswer askHeldLeave(String reason, String title) {
+        Object[] options = {"Save edits to another file…", "Discard my edits", "Keep the project open"};
+        while (true) {
+            int choice = JOptionPane.showOptionDialog(this, UiText.inert(reason), title, JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+            if (choice == 1) {
+                int sure = JOptionPane.showConfirmDialog(this, "Discard your unsaved project edits?",
+                        title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                if (sure == JOptionPane.YES_OPTION) return new HeldLeaveAnswer(null, true);
+                continue;
+            }
+            if (choice != 0) return null;
+            JFileChooser fc = new JFileChooser();
+            fc.setDialogTitle("Save unsaved project edits to");
+            Path active = project.activeFile();
+            if (active != null) fc.setSelectedFile(new java.io.File(active.getFileName() + ".unsaved-edits"));
+            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                return new HeldLeaveAnswer(fc.getSelectedFile().toPath(), false);
+            }
+        }
+    }
+
+    /**
      * Quit. Every step is isolated and the exit is in a {@code finally}, because a shutdown that throws
      * half way used to leave the app <em>unquittable</em>: the exception escaped {@code windowClosing},
      * {@link System#exit} was never reached, and each further click on the close box threw again — with
@@ -12206,6 +12306,9 @@ public final class MainFrame extends JFrame {
      * <p>So: one failing step must never cost the others, and nothing may cost the exit.
      */
     private void onExit() {
+        // F1 (#198 review): quitting is leaving, and it is admitted FIRST — before recovery closes, transports stop or
+        // the window is disabled. A held leave keeps the analyser running with the edits until the person answers.
+        if (!admitQuit()) return;
         flushProject();
         if (recovery != null) {
             if (actionServer != null) actionServer.stop();
@@ -12248,15 +12351,18 @@ public final class MainFrame extends JFrame {
                 // session never reached the active project at all
                 if (project != null) {
                     // #177: with the file changed on disk, quitting is leaving: unsaved edits are set aside, not dropped,
-                    // and a forced save would only mark nothing-new as unsaved
-                    if (project.conflict() == null) project.requestSave();
-                    project.leave();
+                    // and a forced save would only mark nothing-new as unsaved. F1: admitQuit already left once, before
+                    // any teardown; this catches what changed since (normally nothing).
+                    var left = project.leaveForQuit();
+                    if (!left.mayLeave()) {
+                        System.err.println("[analyser] " + left.reason());
+                    }
                     String aside = project.takeSetAside();
                     if (aside != null) {
                         System.err.println("[analyser] unsaved project edits kept in " + aside
-                                + " (the profile had changed on disk)");
+                                + " (they could not be saved to the profile)");
                         if (offersEnabled) JOptionPane.showMessageDialog(this, UiText.inert("Unsaved project edits kept in\n"
-                                + aside + "\n(the profile had changed on disk)"), "Quit", JOptionPane.INFORMATION_MESSAGE);
+                                + aside + "\n(they could not be saved to the profile)"), "Quit", JOptionPane.INFORMATION_MESSAGE);
                     }
                 }
             });

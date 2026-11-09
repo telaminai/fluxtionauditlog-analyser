@@ -101,7 +101,7 @@ public class ProjectProfileOnDisk implements EventLogSource {
         setAside = e.shown();
         auditLog.info("profileOnDisk", "setAside");
         effects.request(new SessionEffects.ShowStatusEffect(0L, "Unsaved project edits kept in " + setAside
-                + " — the profile had changed on disk"));
+                + " — they could not be saved to the profile"));
         return true;
     }
 

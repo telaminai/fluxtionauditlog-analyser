@@ -417,6 +417,7 @@ public final class ProjectSession {
             return;             // no project open: the global config is already the right home
         }
         dirty = true;
+        discarded = false;
         scheduler.saveRequested();
     }
 
@@ -500,9 +501,12 @@ public final class ProjectSession {
         return heldLeave(why, failure);
     }
 
-    /** SKELETON (red phase): today's behaviour — the failure is reported, and the caller proceeds. */
+    /** Neither write landed: hold the departure. Nothing is cleared — the project, its settings and its edits stay. */
     private Leave heldLeave(String why, String failure) {
-        return Leave.CLEAN;
+        held = "Project settings for " + activeName() + " could not be saved (" + why + ") and could not be set aside "
+                + "beside the profile (" + failure + "). The project is still open with your edits — save them to "
+                + "another file, or discard them, before leaving.";
+        return new Leave(Leave.Outcome.HELD, null, held);
     }
 
     /**
@@ -510,13 +514,13 @@ public final class ProjectSession {
      * included, reaches the profile), then leaves. The caller must not exit while the result is held.
      */
     public Leave leaveForQuit() {
-        if (activeFile != null && conflict == null) requestSave();
+        if (activeFile != null && conflict == null && !discarded) requestSave();
         return leave();
     }
 
     /** Why leaving is held, or null when it is not (see {@link #leave()}). */
     public String heldReason() {
-        return activeFile == null ? null : held;
+        return activeFile == null || !dirty ? null : held;
     }
 
     /**
@@ -540,7 +544,11 @@ public final class ProjectSession {
     public void discardUnsaved() {
         dirty = false;
         held = null;
+        discarded = true;
     }
+
+    /** The person discarded this session's edits; a quit's forced save must not make them unsaved again. */
+    private boolean discarded;
 
     private String held;
     private String lastErrorSeen;
