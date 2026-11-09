@@ -147,6 +147,16 @@ public record ExchangeDir(String dir, String source, String refusal, boolean pro
         return forWrite(c, null);
     }
 
+    /**
+     * #182: resolve an assistant write's {@code requested} path against the exchange policy, for a write about to happen.
+     * The one place a guarded write finds, and if need be makes, the project's default directory.
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.Resolved resolveWrite(AppConfig c, String requested,
+            java.util.function.Consumer<String> created) {
+        return telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(requested, c != null && c.assistantExports,
+                forWrite(c, created).dir());
+    }
+
     /** As {@link #forWrite(AppConfig)}, telling {@code created} (with the directory) when this write made it. */
     public static ExchangeDir forWrite(AppConfig c, java.util.function.Consumer<String> created) {
         ExchangeDir d = of(c);

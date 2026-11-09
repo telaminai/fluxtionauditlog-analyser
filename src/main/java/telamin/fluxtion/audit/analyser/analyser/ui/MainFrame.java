@@ -5670,9 +5670,7 @@ public final class MainFrame extends JFrame {
 
                 @Override public Path resolveOutput(String path) {
                     return onEdtOr(() -> {
-                        var out = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(path,
-                                config.assistantExports,
-                                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.forWrite(config).dir());
+                        var out = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.resolveWrite(config, path, null);
                         return out.ok() ? out.path() : null;
                     }, null);
                 }

@@ -128,14 +128,12 @@ public final class ActionExecutor implements RenderExecutor {
     /** Resolve a verb-supplied write path against the policy; error string when refused. */
     private telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.Resolved guardedPath(Object requested) {
         var cfg = exportConfig == null ? null : exportConfig.get();
-        return telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(
-                requested == null ? null : requested.toString(),
-                cfg != null && cfg.assistantExports,
-                // #182: a write into an open project's default exchange directory makes it first
-                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.forWrite(cfg, dir -> {
+        // #182: a write into an open project's default exchange directory makes it
+        return telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.resolveWrite(cfg,
+                requested == null ? null : requested.toString(), dir -> {
                     createdForReply.set(dir);
                     exchangeCreated.accept(dir);
-                }).dir());
+                });
     }
 
     /**

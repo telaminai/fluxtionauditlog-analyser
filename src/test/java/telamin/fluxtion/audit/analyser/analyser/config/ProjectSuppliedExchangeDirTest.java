@@ -214,6 +214,33 @@ class ProjectSuppliedExchangeDirTest {
     }
 
     @Test
+    @DisplayName("★ #182: a REFUSED write does not create the project's analyser-exchange/; an accepted one does, once")
+    void aRefusedWriteCreatesNothing(@TempDir Path root) throws IOException {
+        AppConfig c = projectAt(root);
+        c.projectExchangeDir = "";
+        java.util.List<String> created = new java.util.ArrayList<>();
+        Path exchange = root.resolve("analyser-exchange");
+
+        c.assistantExports = false;
+        assertFalse(ExchangeDir.resolveWrite(c, "finding.pdf", created::add).ok(), "control: exports off is refused");
+        assertFalse(Files.exists(exchange), "★ refused, so no folder appears in the person's repository");
+
+        c.assistantExports = true;
+        assertFalse(ExchangeDir.resolveWrite(c, "../outside.pdf", created::add).ok(), "control: outside is refused");
+        assertFalse(ExchangeDir.resolveWrite(c, "", created::add).ok(), "control: no path is refused");
+        assertFalse(Files.exists(exchange), "★ nor for a path outside it, or none");
+        assertEquals(java.util.List.of(), created, "and nothing is reported as created");
+
+        var ok = ExchangeDir.resolveWrite(c, "finding.pdf", created::add);
+        assertTrue(ok.ok(), String.valueOf(ok.error()));
+        assertTrue(Files.isDirectory(exchange), "an accepted write makes it");
+        assertEquals(exchange.toRealPath().resolve("finding.pdf"), ok.path());
+        assertEquals(1, created.size(), "said once");
+        assertTrue(ExchangeDir.resolveWrite(c, "second.pdf", created::add).ok());
+        assertEquals(1, created.size(), "and not again once it exists");
+    }
+
+    @Test
     @DisplayName("A directory that is not there is refused with its reason, and is NOT created")
     void aMissingDirectoryIsRefusedNotCreated(@TempDir Path root) throws IOException {
         AppConfig c = projectAt(root);
