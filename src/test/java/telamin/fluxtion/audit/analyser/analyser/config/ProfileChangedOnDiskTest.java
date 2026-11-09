@@ -168,6 +168,41 @@ class ProfileChangedOnDiskTest {
         }
     }
 
+    @Test
+    @DisplayName("★ quitting after an outside edit with NO real edit here: the quit's forced save sets nothing aside")
+    void aForcedSaveWithNoRealEditSetsNothingAside(@TempDir Path dir) throws Exception {
+        AppConfig c = new AppConfig();
+        ProjectSession s = openedWithOneProcessor(dir, c);
+        Path file = s.activeFile();
+        externalEdit(file, processors(10));
+
+        // what quitting does: no conflict is known yet, so it forces a save, then leaves
+        s.requestSave();
+        s.leave();
+
+        assertNull(s.takeSetAside(), "★ nothing was edited here, so there is nothing to keep and nothing to report");
+        try (var listing = Files.list(file.getParent())) {
+            assertEquals(List.of(file.getFileName().toString()),
+                    listing.map(f -> f.getFileName().toString()).toList(), "no stray .unsaved- file beside the profile");
+        }
+        assertEquals(processors(10), onDiskProcessors(file), "the outside edit is untouched");
+        assertFalse(s.isDirty(), "a forced save with nothing new is not an unsaved edit");
+    }
+
+    @Test
+    @DisplayName("a real edit after an outside edit is still set aside on leaving (control for the no-edit case)")
+    void aRealEditIsStillSetAsideOnLeaving(@TempDir Path dir) throws Exception {
+        AppConfig c = new AppConfig();
+        ProjectSession s = openedWithOneProcessor(dir, c);
+        externalEdit(s.activeFile(), processors(10));
+        c.eventProcessorFqns.add("com.acme.demo.MineUnsaved");
+        s.requestSave();
+        s.leave();
+        String aside = s.takeSetAside();
+        assertNotNull(aside);
+        assertTrue(Files.readString(Path.of(aside)).contains("com.acme.demo.MineUnsaved"));
+    }
+
     private List<String> onDiskProcessors(Path file) {
         AppConfig onDisk = new AppConfig();
         ProjectProfile.load(file, onDisk, share);
