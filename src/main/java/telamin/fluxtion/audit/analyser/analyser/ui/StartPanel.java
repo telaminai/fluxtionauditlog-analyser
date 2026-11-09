@@ -303,7 +303,6 @@ public final class StartPanel extends JPanel {
     public void renderAiSetup(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState state) {
         aiSetup.render(state);
         prompt.setAiLineSaysIt(aiSetup.isVisible());
-        prompt.setVisible(state == null || !state.firstRun());
     }
 
     AiSetupBlock aiSetupBlock() {
