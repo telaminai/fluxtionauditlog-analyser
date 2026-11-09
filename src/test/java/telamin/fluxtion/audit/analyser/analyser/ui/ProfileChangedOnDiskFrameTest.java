@@ -211,6 +211,12 @@ class ProfileChangedOnDiskFrameTest {
 
             @Override
             public void writeNew(Path file, String text) throws java.io.IOException {
+                // the full disk is the project's: a rescue copy beside the profile fails, a place the person chooses
+                // elsewhere (another volume in practice) is written for real
+                if (file.getFileName().toString().startsWith("kept-edits")) {
+                    telamin.fluxtion.audit.analyser.analyser.config.ProjectSession.Writes.FILES.writeNew(file, text);
+                    return;
+                }
                 throw new java.io.IOException("No space left on device");
             }
         };
