@@ -10,6 +10,7 @@ import java.util.*;
 /** Authoritative design/result lifecycle; replayed through the same generated processor as log/project state. */
 public class DesignSession implements EventLogSource, DesignWorkspace.State {
     private final OperationGate gate;
+    private final ProjectSettingsReplacement replacement;
     private final EffectQueue effects;
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private DesignDocument document;
@@ -20,7 +21,9 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     private String path, error = "", resultError = "";
     private ProducerResult result;
     private long generation;
-    public DesignSession(OperationGate gate, EffectQueue effects) { this.gate = gate; this.effects = effects; }
+    public DesignSession(OperationGate gate, ProjectSettingsReplacement replacement, EffectQueue effects) {
+        this.gate = gate; this.replacement = replacement; this.effects = effects;
+    }
     @Override public void setLogger(EventLogger logger) { auditLog = logger; }
 
     @OnEventHandler public boolean requested(DesignEvents.ReadRequested e) {
@@ -61,6 +64,19 @@ public class DesignSession implements EventLogSource, DesignWorkspace.State {
     @OnEventHandler public boolean roots(SessionEvents.SourceRootsObserved e) {
         if (observedRoots.equals(e.roots())) return false;
         observedRoots = e.roots(); requestDiscovery(); return true;
+    }
+    /**
+     * Follow-up to #198 (F2): an accepted reload replaced the source roots, so the candidates found under the old ones are
+     * stale. Discovery starts again under a new generation (a scan begun before the reload is withheld when it completes).
+     * The open design, the log and the graph are not touched: a reload is not a session boundary. The roots last seen
+     * are forgotten, so the next observation of them is compared afresh.
+     */
+    @OnEventHandler public boolean settingsReplaced(SessionEvents.ProjectSettingsReplaced e) {
+        if (!replacement.accepted(e) || !replacement.sourceRootsChanged()) return false;
+        observedRoots = List.of();
+        auditLog.info("designDiscovery", "sourceRootsReplaced");
+        requestDiscovery();
+        return true;
     }
     @OnEventHandler public boolean discover(DesignEvents.DiscoveryRequested e) { requestDiscovery(); return true; }
     private void requestDiscovery() {

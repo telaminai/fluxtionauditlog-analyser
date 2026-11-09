@@ -19,11 +19,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - A saved walk that points at records stays current when the identical log file is reopened, even if a different number of records is served. A followed log holds back its unterminated last record and a cold open includes it. Any content change is still historical. A chart walk on the same bytes now says why it is historical, instead of "saved against a different run" (#179).
 - With a project open that declares no exchange directory, screenshots, bundles, reels and rendered reports go to the project's own `analyser-exchange/`, created on first write. Before, they went to the machine-level directory, which could be another project's folder. The reply names the directory. The first write that creates the folder says once, in the reply and on the status line, that you may want to add it to `.gitignore`; the analyser does not edit `.gitignore`. Sessions with no project, the sample project and bundle working copies keep the machine directory (#182).
 - A report's `topology` section with no `focus` now renders the whole authored graph instead of being skipped. One that cannot be drawn (no graph loaded) says why in the PDF and the reply (#183).
-
-### Known limitations
-
-- After a profile reload that changes source roots (*Reload* on the banner, or `open {project, reload: true}`), Design discovery still shows what it found under the old roots. Reopen the project to refresh Design discovery.
-- After a profile reload that changes the configured log folders, the watch that offers newly written logs still watches the old folders. Close and reopen the project.
+- A profile reload (*Reload* on the banner, or `open {project, reload: true}`) that changes the source roots now refreshes Design discovery: definitions under the new roots are found, and those found only under the old roots are no longer offered. A discovery that began before the reload is not shown when it finishes. The open log and graph stay open.
+- A profile reload that changes an environment's log folder now moves the watch that offers newly written logs: a log written to the new folder is offered, and the old folder no longer offers anything. Offers already showing and logs opened from them are kept. Logs already in the new folder are not offered as new.
+- In a report's topology section with no focus, *show the whole graph* now shows the whole graph when a narrower focus was applied in the topology view. Before, it only switched to the topology tab.
 
 ## [1.42.1] - 2026-11-09
 

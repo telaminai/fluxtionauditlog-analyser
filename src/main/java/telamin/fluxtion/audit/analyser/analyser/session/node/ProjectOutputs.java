@@ -14,11 +14,16 @@ public class ProjectOutputs implements EventLogSource {
     private final LocalAgentSession assistant;
     private final OperationGate gate;
     private final SessionBoundary boundary;
+    private final ProjectSettingsReplacement replacement;
     @PushReference private final EffectQueue effects;
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private long counter;
     private long watch;
     private long projectGeneration;
+    /** Which install of the watch is current (0 for the first): a reload that changes the log folders reinstalls it. */
+    private long basis;
+    /** The first scan of a reinstalled watch is a baseline for files it had not seen: they are not new outputs. */
+    private boolean rebaseline;
     private String profile;
     private boolean watching;
     private boolean baseline;
@@ -46,9 +51,9 @@ public class ProjectOutputs implements EventLogSource {
     private record Opened(Turn owner, String key, Object version) { }
 
     public ProjectOutputs(ActiveProject project, OpenBundle bundle, LocalAgentSession assistant, OperationGate gate,
-                          SessionBoundary boundary, EffectQueue effects) {
+                          SessionBoundary boundary, ProjectSettingsReplacement replacement, EffectQueue effects) {
         this.project = project; this.bundle = bundle; this.assistant = assistant;
-        this.gate = gate; this.boundary = boundary; this.effects = effects;
+        this.gate = gate; this.boundary = boundary; this.replacement = replacement; this.effects = effects;
     }
     @Override public void setLogger(EventLogger logger) { auditLog = logger; }
     @OnEventHandler public boolean onProfileApplied(SessionEvents.ProfileApplied e) {
@@ -68,9 +73,23 @@ public class ProjectOutputs implements EventLogSource {
         if (!gate.accepted()) return false;
         clear(); watch = ++counter; profile = null; return true;
     }
+    /**
+     * Follow-up to #198: an accepted reload replaced the configured log folders, so the watch installed for the old ones
+     * is stale — new folders would be missed and a former one could still offer files. Ask again what to watch, under
+     * the same watch (offers, answers in flight and open receipts stay theirs) and a new basis, so a scan begun under
+     * the old folders is withheld. The files the reinstalled watch sees first are its baseline, as on opening a project.
+     */
+    @OnEventHandler public boolean onSettingsReplaced(SessionEvents.ProjectSettingsReplaced e) {
+        if (!replacement.accepted(e) || !replacement.logFoldersChanged()) return false;
+        if (profile == null || watch == 0 || bundle.provenance().fromBundle()) return false;
+        watching = false; rebaseline = true; basis++;
+        effects.request(new SessionEffects.ObserveProjectOutputsEffect(0, watch, projectGeneration, profile));
+        auditLog.info("projectOutputs", "REOBSERVING").info("watch", watch).info("basis", basis);
+        return true;
+    }
     private void clear() {
         if (watch != 0) effects.request(new SessionEffects.StopProjectOutputsWatchEffect(0, watch));
-        watching = false; baseline = false; lastScan = Long.MIN_VALUE;
+        watching = false; baseline = false; rebaseline = false; lastScan = Long.MIN_VALUE;
         candidates.clear(); consumed.clear(); consumedGraphs.clear(); latestGroup = null; latestDigest = null; announced.clear(); pending.clear(); opening.clear();
         shown.clear(); opened.clear(); latestGraph = null; acceptedBatch.clear(); batchOpening = 0;
     }
@@ -80,17 +99,19 @@ public class ProjectOutputs implements EventLogSource {
             auditLog.info("projectOutputs", "NOT_WATCHED"); return true;
         }
         watching = true;
-        effects.request(new SessionEffects.WatchProjectOutputsEffect(0, watch, projectGeneration, e.rootRef(), e.logDirRefs(), POLL_MILLIS));
+        effects.request(new SessionEffects.WatchProjectOutputsEffect(0, watch, projectGeneration, e.rootRef(), e.logDirRefs(), POLL_MILLIS, basis));
         auditLog.info("projectOutputs", "WATCHING").info("watch", watch); return true;
     }
     @OnEventHandler public boolean onScan(SessionEvents.ProjectOutputsScanned e) {
         if (!current(e.watch(), e.projectGeneration()) || !e.complete() || e.atMillis() < lastScan) return false;
+        if (e.basis() != basis) return false;          // begun before a reload reinstalled the watch: the old folders
         lastScan = e.atMillis();
         Set<String> present = new HashSet<>();
         for (var file : e.files()) {
             if (!valid(file)) continue;
             String key = key(file); present.add(key);
             Candidate before = candidates.get(key);
+            if (rebaseline && before == null) consumed.put(key, file.revision());
             if (before == null || !before.file().revision().equals(file.revision())) {
                 invalidate(key);
                 before = new Candidate(file, e.atMillis(), observedOwner(file)); candidates.put(key, before);
@@ -128,7 +149,7 @@ public class ProjectOutputs implements EventLogSource {
             versions.computeIfAbsent(group(c.file()), k -> new HashSet<>())
                     .add(version(graphed(c.file()) ? canonicalAny(group(c.file())).file() : c.file()));
         opened.removeIf(o -> !versions.getOrDefault(o.key(), Set.of()).contains(o.version()));
-        baseline = true; show(); return true;
+        baseline = true; rebaseline = false; show(); return true;
     }
     private void invalidate(String key) {
         // A graph offer or pairing on a rewritten copy moves to another settled copy of the same bytes when there is one;

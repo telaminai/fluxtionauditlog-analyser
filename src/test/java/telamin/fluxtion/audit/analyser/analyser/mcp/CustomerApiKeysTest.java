@@ -68,7 +68,7 @@ class CustomerApiKeysTest {
         assertEquals(expected, keys, "★ T9 nested design keys may only grow through named additive pins");
         for (boolean java : List.of(false, true)) {
             var state = new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(
-                    new telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate(),
+                    new telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate(), null,
                     new telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue());
             var xml = java ? null : telamin.fluxtion.audit.analyser.analyser.design.DesignDocument.parse("DEMO.xml", "<beans><bean id='a'/></beans>");
             var builder = java ? telamin.fluxtion.audit.analyser.analyser.design.BuilderDocument.parse("DEMO.java", "class DEMO {}") : null;

@@ -34,6 +34,13 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.RestoreBundleFlagsEffect> flagRestores = new java.util.ArrayList<>();
     final List<SessionEffects.OfferProjectProfileReloadEffect> profileOffers = new java.util.ArrayList<>();
     final List<SessionEffects.ReloadProjectProfileEffect> profileReloads = new java.util.ArrayList<>();
+    /**
+     * What the next {@link SessionEffects.DescribeSettingsReplacementEffect} reports the reload replaced: source-root and
+     * log-folder digests before and after. Null (the default) is "could not say", which the session treats as replaced.
+     */
+    String[] replacedBasis;
+    /** When true, a {@link SessionEffects.DescribeSettingsReplacementEffect} is answered later (Pending), as a slow adapter. */
+    boolean describePending;
     final List<SessionEffects.KeepProjectProfileEffect> profileKeeps = new java.util.ArrayList<>();
     final List<SessionEffects.OfferProjectReopenEffect> reopenOffers = new java.util.ArrayList<>();
     final List<SessionEffects.EndWalkEffect> walkEnds = new ArrayList<>();
@@ -622,6 +629,11 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.OfferProjectProfileReloadEffect e -> {
                 profileOffers.add(e);
                 yield new SessionEvents.StatusShown(e.opId(), "offerProjectProfileReload");
+            }
+            case SessionEffects.DescribeSettingsReplacementEffect e -> {
+                if (describePending) yield new SessionEvents.Pending(e.opId(), "describing the replaced settings");
+                String[] b = replacedBasis == null ? new String[4] : replacedBasis;
+                yield new SessionEvents.ProjectSettingsReplaced(e.opId(), e.ticket(), e.profileKey(), b[0], b[1], b[2], b[3]);
             }
             case SessionEffects.ReloadProjectProfileEffect e -> {
                 profileReloads.add(e);

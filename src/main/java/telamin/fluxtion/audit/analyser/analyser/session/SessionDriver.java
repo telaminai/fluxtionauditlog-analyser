@@ -307,6 +307,7 @@ public final class SessionDriver {
             case SessionEffects.RestoreBundleFlagsEffect ignored -> "restoreBundleFlags";
             case SessionEffects.OfferProjectProfileReloadEffect ignored -> "offerProjectProfileReload";
             case SessionEffects.ReloadProjectProfileEffect ignored -> "reloadProjectProfile";
+            case SessionEffects.DescribeSettingsReplacementEffect ignored -> "describeSettingsReplacement";
             case SessionEffects.KeepProjectProfileEffect ignored -> "keepProjectProfile";
             case SessionEffects.OfferProjectReopenEffect ignored -> "offerProjectReopen";
             case SessionEffects.ShowProjectReopenEffect ignored -> "showProjectReopen";

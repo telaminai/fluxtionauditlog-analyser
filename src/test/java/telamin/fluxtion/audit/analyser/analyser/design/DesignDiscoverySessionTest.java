@@ -40,7 +40,7 @@ class DesignDiscoverySessionTest {
         assertNull(state.path());
     }
     @Test void aFailedRefreshKeepsTheLastGoodJavaFormButANewFailedFileDoesNot() {
-        var state=new DesignSession(new OperationGate(),new EffectQueue());
+        var state=new DesignSession(new OperationGate(), null,new EffectQueue());
         var builder=BuilderDocument.parse("DEMO.java","class DEMO {}");
         state.read(new DesignEvents.ReadCompleted(builder.file(),null,"",true,state.generation(),builder));
         state.read(new DesignEvents.ReadCompleted(builder.file(),null,"read failed",false,state.generation()));
@@ -50,7 +50,7 @@ class DesignDiscoverySessionTest {
         assertFalse(state.echo().containsKey("kind"),"a different failed file has no loaded form");
     }
     @Test void emptyDiscoveryUsesAShortHumanMessageWithoutJsonSyntax() {
-        var state=new DesignSession(new OperationGate(),new EffectQueue());
+        var state=new DesignSession(new OperationGate(), null,new EffectQueue());
         assertEquals("No design found. Add a source folder or open a design.",state.discoveryNote());
         assertFalse(state.discoveryNote().contains("{") || state.discoveryNote().contains("source_root"));
         assertTrue(state.discoveryNote().split("\\s+").length<=15,"the human line stays short");
@@ -58,7 +58,7 @@ class DesignDiscoverySessionTest {
     @Test void failedDesignReadNeverInventsASpringForm(@TempDir Path root) throws Exception {
         for (String extension : List.of("java", "xml")) {
             Path unreadable = Files.write(root.resolve("DEMO."+extension), new byte[]{(byte)0xff});
-            var state = new DesignSession(new OperationGate(),new EffectQueue());
+            var state = new DesignSession(new OperationGate(), null,new EffectQueue());
             var fact = DesignWorkspace.read(new DesignFiles(List.of(root.toString()),null), unreadable.toString(),true,state.generation());
             assertTrue(state.read(fact));
             assertFalse(state.error().isEmpty(),"the failed read is disclosed");
@@ -68,7 +68,7 @@ class DesignDiscoverySessionTest {
     }
 
     @Test void aLaterRequestOrClearRetiresAnOldDiscoveryButAnExplicitReadDoesNot() {
-        var state = new DesignSession(new OperationGate(),new EffectQueue());
+        var state = new DesignSession(new OperationGate(), null,new EffectQueue());
         var found = new DesignDiscovery("builder",List.of(new DesignDiscovery.FileRef("DEMO.java","builder")),"source-scan");
         state.discover(new DesignEvents.DiscoveryRequested()); long first=state.discoveryGeneration();
         state.requested(new DesignEvents.ReadRequested("source"));
@@ -80,7 +80,7 @@ class DesignDiscoverySessionTest {
         assertEquals("none",state.echo().get("kind")); assertFalse(state.echo().containsKey("files"));
     }
     @Test void xmlsReleasedValuesAndTheirOrderAreUnchanged() throws Exception {
-        var state = new DesignSession(new OperationGate(),new EffectQueue());
+        var state = new DesignSession(new OperationGate(), null,new EffectQueue());
         var xml = DesignDocument.parse("DEMO.xml","<beans><bean id='a'/><bean id='b'/></beans>");
         state.read(new DesignEvents.ReadCompleted(xml.file(),xml,"",true,state.generation()));
         Map<String,Object> old = new LinkedHashMap<>();
