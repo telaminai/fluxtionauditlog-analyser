@@ -28,7 +28,11 @@ public class ProjectProfileOnDisk implements EventLogSource {
     private String path;
     private boolean changed;
     private boolean saveRefused;
-    /** The on-disk content last offered, so one change is offered once. */
+    /**
+     * The on-disk content last offered, so one change is offered once. "Not now" ({@link #deferred}) is for that content
+     * only: a further change on disk, or the same edit made again after the file was back in step, is offered again, so
+     * "Keep mine" stays reachable (owner decision on #198).
+     */
     private String offered;
     private boolean deferred;
     private String outcome = "";
@@ -74,6 +78,8 @@ public class ProjectProfileOnDisk implements EventLogSource {
             if (!changed) return false;
             changed = false;                       // back in step (reverted on disk, or our own write landed)
             saveRefused = false;
+            offered = null;                        // a later change, even to content offered before, is a new offer
+            deferred = false;
             auditLog.info("profileOnDisk", "inStep");
             return true;
         }

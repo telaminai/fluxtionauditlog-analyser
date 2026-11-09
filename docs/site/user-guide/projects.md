@@ -238,6 +238,7 @@ workspace says **Project settings changed on disk.** and offers three buttons:
   discarded. The log and graph stay open.
 - **Keep mine** writes the window's settings over the file. This is the only way that happens.
 - **Not now** keeps both. The file stays as it is, and the window's edits wait in memory and are not saved.
+  If the file changes on disk again, the banner comes back, so **Keep mine** is still there.
 
 Your edits are never dropped without a word. If you switch or close the project, or quit, while **Not now** stands
 and the window has unsaved edits, they are written beside the profile as
