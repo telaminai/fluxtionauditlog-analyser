@@ -61,6 +61,22 @@ public final class ProjectSession {
      * read.
      */
     private String baseline;
+    /**
+     * The session's own project settings, rendered as a write would render them but without the file's carried-over
+     * keys, at the moment {@link #baseline} was taken. Leaving with a refused write compares against it, so only a REAL
+     * edit is set aside: a save forced at quit, with nothing changed here, is not one.
+     */
+    private String baselineOwn;
+
+    private void adoptBaseline(String digest) {
+        baseline = digest;
+        baselineOwn = digest == null || activeFile == null ? null : ownText();
+    }
+
+    private String ownText() {
+        return share.export(config, ProjectProfile.PROJECT_SCOPED, ProjectProfile.baseDirFor(activeFile));
+    }
+
     /** #177: why the last write was refused because the file changed on disk, or null; cleared by a reload or a keep. */
     private String conflict;
     /**
@@ -205,7 +221,7 @@ public final class ProjectSession {
             return new ProjectProfile.LoadResult(false, result.message() + " — continuing without a project");
         }
         activeNonce = result.nonce();
-        baseline = result.contentDigest();
+        adoptBaseline(result.contentDigest());
         conflict = null;
         return result;
     }
@@ -231,7 +247,7 @@ public final class ProjectSession {
         }
         activeFile = file;
         activeNonce = result.nonce();
-        baseline = result.contentDigest();
+        adoptBaseline(result.contentDigest());
         conflict = null;
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
@@ -277,7 +293,7 @@ public final class ProjectSession {
         writes++;
         activeFile = file;
         activeNonce = ProjectProfile.nonce(file).orElse(null);
-        baseline = ProjectProfile.contentDigestOf(file);
+        adoptBaseline(ProjectProfile.contentDigestOf(file));
         conflict = null;
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
@@ -300,7 +316,7 @@ public final class ProjectSession {
         writes++;
         activeFile = file;
         activeNonce = ProjectProfile.nonce(file).orElse(null);
-        baseline = ProjectProfile.contentDigestOf(file);
+        adoptBaseline(ProjectProfile.contentDigestOf(file));
         conflict = null;
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
@@ -320,7 +336,7 @@ public final class ProjectSession {
         }
         activeFile = null;
         activeNonce = null;
-        baseline = null;
+        adoptBaseline(null);
         conflict = null;
         config.activeProjectPath = "";
         dirty = false;
@@ -362,7 +378,7 @@ public final class ProjectSession {
             ProjectProfile.save(activeFile, config, share);
             writes++;
             dirty = false;
-            baseline = ProjectProfile.contentDigestOf(activeFile);
+            adoptBaseline(ProjectProfile.contentDigestOf(activeFile));
             conflict = null;
             // the write keeps the file's nonce, or adopts one for a profile that had none (see NONCE_KEY)
             activeNonce = ProjectProfile.nonce(activeFile).orElse(null);
@@ -388,6 +404,12 @@ public final class ProjectSession {
         flush();
         if (activeFile == null || !dirty || conflict == null) return;
         if (preSave != null) preSave.run();
+        if (baselineOwn != null && baselineOwn.equals(ownText())) {
+            // nothing was edited here since the session last read or wrote the profile (a save forced at quit marks
+            // the session dirty with nothing new): there is nothing to keep, so no side file and nothing to report
+            dirty = false;
+            return;
+        }
         String text = ProjectProfile.write(config, share, activeFile);
         String stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         for (int n = 0; n < 100; n++) {
@@ -434,7 +456,7 @@ public final class ProjectSession {
         ProjectProfile.LoadResult result = ProjectProfile.load(activeFile, config, share);
         if (!result.loaded()) return result;
         activeNonce = result.nonce();
-        baseline = result.contentDigest();
+        adoptBaseline(result.contentDigest());
         conflict = null;
         dirty = false;
         return result;
