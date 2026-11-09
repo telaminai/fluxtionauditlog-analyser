@@ -18,7 +18,7 @@ class SharedCredentialStoreTest {
         public void save(CompilerCredential value) { c=value; }
         public void delete() { c=null; }
     }; }
-    private SharedCredentialFile file() throws IOException { return new SharedCredentialFile(temp.toRealPath().resolve("credentials")); }
+    private SharedCredentialFile file() throws IOException { return new SharedCredentialFile(temp.resolve("credentials")); }
     @Test void staleLogoutAndReplacementCannotEraseNewSignIn() throws Exception {
         SharedCredentialStore first = new SharedCredentialStore(file(),legacy());
         SharedCredentialStore second = new SharedCredentialStore(file(),legacy());
@@ -43,13 +43,32 @@ class SharedCredentialStoreTest {
         assertEquals(b,store.load().orElseThrow());
     }
     @Test void linksIncludingDanglingParentsAreRefusedForReadWriteAndDelete() throws Exception {
-        Path real=temp.toRealPath(); Path target=Files.createDirectory(real.resolve("target"));
+        Path real=temp; Path target=Files.createDirectory(real.resolve("target"));
         Path link=real.resolve("link"); Files.createSymbolicLink(link,target);
-        SharedCredentialFile file=new SharedCredentialFile(link.resolve("credentials"));
+        SharedCredentialFile file=new SharedCredentialFile(link.resolve("credentials"),false,real);
         assertThrows(IOException.class,file::read);
         assertThrows(IOException.class,()->file.write(new SharedCredentialFile.Stored("synthetic","id","account","https://compiler.example.com")));
         assertThrows(IOException.class,file::delete);
         Files.delete(link); Files.createSymbolicLink(link,real.resolve("absent"));
         assertThrows(IOException.class,file::read); assertThrows(IOException.class,file::delete);
     }
+    @Test void migrationMarkerKeepsTheCredentialDirectoryBoundaryWithAliasedHome() throws Exception {
+        Path home=Files.createDirectory(temp.resolve("home")), outside=Files.createDirectory(temp.resolve("outside"));
+        Path alias=temp.resolve("alias");Files.createSymbolicLink(alias,home);
+        String previousHome=System.getProperty("user.home"), override=System.getProperty(SharedCredentialFile.FILE_PROPERTY);
+        try {
+            System.setProperty("user.home",alias.toString());System.clearProperty(SharedCredentialFile.FILE_PROPERTY);
+            SharedCredentialFile file=SharedCredentialFile.defaultStore();
+            new SharedCredentialFile(outside.resolve("credentials.os-migrated")).write(
+                    new SharedCredentialFile.Stored("complete",null,null,null));
+            Files.createSymbolicLink(home.resolve(".fluxtion"),outside);
+            assertThrows(IOException.class,file::read);
+            SharedCredentialStore store=new SharedCredentialStore(file,legacy());
+            assertThrows(IOException.class,store::migration,"the marker must not trust a link the credential refuses");
+        } finally {
+            System.setProperty("user.home",previousHome);
+            if(override==null)System.clearProperty(SharedCredentialFile.FILE_PROPERTY);else System.setProperty(SharedCredentialFile.FILE_PROPERTY,override);
+        }
+    }
+
 }

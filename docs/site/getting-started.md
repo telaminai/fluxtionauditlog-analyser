@@ -89,6 +89,13 @@ or **Staging** (`https://compiler-staging.fluxtion-playground.dev`), for trying 
 The list also offers any address this machine has connected with before, and you can type your own (plain `http` is
 accepted only for this machine).
 
+For a custom compiler, the administrator must also configure its trusted browser verification origin when starting
+the Analyser: `java -Dfluxtion.login.verificationOrigin=https://login.example.com -jar analyser.jar` (replace the
+example with the provider's exact trusted HTTPS origin and your jar path). This is a user-controlled JVM setting,
+not a project setting or MCP argument. Both returned verification addresses must match it. An MCP assistant cannot
+change this trust setting; when it is unavailable, it can use the documented Maven login flow with the user's trusted
+configuration.
+
 ![AI ▸ Compiler account…, not connected, its service-address list open on Production and Staging](assets/compiler-account-services.png)
 
 Then press **Connect compiler account**. The analyser asks the service for a sign-in code, opens your browser at the service's
@@ -99,7 +106,9 @@ with nothing stored. It never shows or logs the device code, or the credential i
 Once you approve and the service verifies the account, the credential is kept in the owner-only shared machine
 file `~/.fluxtion/credentials`, used by both the Analyser and builds. Existing Analyser users are offered a choice
 when migrating from the previous OS store. If the two stores disagree, choose which account to keep; there is no
-silent fallback. **Replace sign-in…** asks before replacing the current machine sign-in and revoking the old one.
+silent fallback. Migration deletes local copies only: unselected device credentials stay active at their issuing
+services until you revoke them in that account's Devices list. **Disconnect** deletes the shared sign-in and therefore
+signs Maven builds using it out too; environment or explicit build overrides are unchanged. **Replace sign-in…** asks before replacing the current machine sign-in and revoking the old one.
 **Refresh** reloads changes made by Maven and verifies the current account with its issuing service.
 
 The file protects the credential from other users, not from programs running as you. It never enters a command line,

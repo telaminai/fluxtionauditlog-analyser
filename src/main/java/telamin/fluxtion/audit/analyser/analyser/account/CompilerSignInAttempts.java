@@ -47,13 +47,28 @@ public final class CompilerSignInAttempts implements AutoCloseable {
         catch (IllegalArgumentException e) { return Map.of("event","usage_error","message","A valid compiler origin is required."); }
         Attempt a=new Attempt(origin); attempts.put(a.id,a);
         if (environmentOverride.getAsBoolean()) return finish(a,"usage_error",null,"An environment token overrides builds. Diagnose it with the Maven account goal; signing in cannot replace it.");
+        CompilerCredential previous;
+        try { previous=store.load().orElse(null); }
+        catch (Exception | LinkageError e) {
+            return recovery(a,"service_error","The shared credential store could not be read. Check its path and permissions. "
+                    + "Use the documented Maven login flow for build sign-in after correcting the store; no credential changed.");
+        }
+        // A valid shared record is authoritative. Reading a legacy keyring is not a prerequisite for using it.
+        if (previous == null && store instanceof SharedCredentialStore shared) {
+            try {
+                if (shared.migration().isPresent())
+                    return recovery(a,"usage_error","A previous Analyser-only sign-in needs an explicit migration choice. "
+                            + "Use the Analyser Compiler account dialog, or use the documented Maven login flow in a background terminal. "
+                            + "Maven can create the shared build sign-in without changing the previous Analyser copy.");
+            } catch (Exception | LinkageError e) {
+                return recovery(a,"service_error","The previous Analyser credential store is unavailable. "
+                        + "Use the documented Maven login flow in a background terminal for build sign-in; the previous copy is unchanged.");
+            }
+        }
         try {
-            if (store instanceof SharedCredentialStore shared && shared.migration().isPresent())
-                return finish(a,"usage_error",null,"Choose the shared machine sign-in in the Analyser Compiler account dialog before signing in here.");
-            CompilerCredential previous=store.load().orElse(null);
-            if (previous!=null && !previous.service().equals(origin) && !replaceService)
+            if (previous!=null && !ServiceAddress.sameOrigin(previous.service(),origin) && !replaceService)
                 return finish(a,"usage_error",null,"Switching service replaces the machine sign-in and revokes the previous credential. Ask the user to confirm replacement.");
-            if (previous!=null && previous.service().equals(origin)) {
+            if (previous!=null && ServiceAddress.sameOrigin(previous.service(),origin)) {
                 try {
                     if (!previous.accountId().equals(client.me(previous).selectedAccount()))
                         return finish(a,"service_error",null,"Stored account identity does not match the service.");
@@ -72,7 +87,15 @@ public final class CompilerSignInAttempts implements AutoCloseable {
             a.result=Collections.unmodifiableMap(pending);
             a.task=workers.submit(()->await(a,device,previous));
             return a.result;
-        } catch (Exception e) { return finish(a,"service_error",null,"Could not start sign-in; no credential changed. Check the configured service and trusted verification origin."); }
+        } catch (CompilerAccountClient.AccountException e) {
+            return recovery(a,"service_error",e.getMessage() + ". No credential changed. Use the documented Maven login flow if this client cannot start sign-in.");
+        } catch (Exception e) {
+            return recovery(a,"service_error","Could not start sign-in; no credential changed. Use the documented Maven login flow, or check the compiler service and trusted verification origin.");
+        }
+    }
+    private Map<String,Object> recovery(Attempt a,String event,String message) {
+        Map<String,Object> r=new LinkedHashMap<>(finish(a,event,null,message));
+        r.put("recovery","maven_login"); a.result=Collections.unmodifiableMap(r); return a.result;
     }
     private void await(Attempt a, CompilerAccountClient.DeviceStart device, CompilerCredential previous) {
         CompilerAccountClient.Outcome outcome;

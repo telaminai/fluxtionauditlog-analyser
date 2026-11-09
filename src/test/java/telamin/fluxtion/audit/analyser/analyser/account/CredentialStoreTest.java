@@ -130,7 +130,7 @@ class CredentialStoreTest {
 
     @Test
     void protectedFile_isOwnerOnlyAndRoundTrips() throws Exception {
-        Path file = temp.toRealPath().resolve(".fluxtion-analyser").resolve(ProtectedFileStore.FILE_NAME);
+        Path file = temp.resolve(".fluxtion-analyser").resolve(ProtectedFileStore.FILE_NAME);
         ProtectedFileStore store = new ProtectedFileStore(file);
         assertEquals(Optional.empty(), store.load());
         store.save(credential());
@@ -147,18 +147,18 @@ class CredentialStoreTest {
 
     @Test
     void legacyFileFormatRemainsReadableAndMigrationRefusesLinks() throws Exception {
-        Path real=temp.toRealPath(), source=Files.createDirectory(real.resolve("source"));
+        Path real=temp, source=Files.createDirectory(real.resolve("source"));
         Path file=source.resolve(ProtectedFileStore.FILE_NAME);
         // Write the pre-change format independently of the new file adapter.
         Files.writeString(file,credential().encode());
         ProtectedFileStore old=new ProtectedFileStore(file);
         assertEquals(credential(),old.load().orElseThrow());
         Path link=real.resolve("link");Files.createSymbolicLink(link,source);
-        ProtectedFileStore throughParent=new ProtectedFileStore(link.resolve(ProtectedFileStore.FILE_NAME));
+        ProtectedFileStore throughParent=new ProtectedFileStore(link.resolve(ProtectedFileStore.FILE_NAME), real);
         assertThrows(IOException.class,throughParent::load);
         assertThrows(IOException.class,()->throughParent.delete(credential()));
         Files.delete(link);Files.createSymbolicLink(link,file);
-        ProtectedFileStore throughFile=new ProtectedFileStore(link);
+        ProtectedFileStore throughFile=new ProtectedFileStore(link, real);
         assertThrows(IOException.class,throughFile::load);
         assertThrows(IOException.class,()->throughFile.delete(credential()));
         assertTrue(Files.exists(file));

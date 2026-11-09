@@ -10,6 +10,7 @@ public final class ProtectedFileStore implements CredentialStore {
     private final SharedCredentialFile file;
 
     public ProtectedFileStore(Path file) { this.file = new SharedCredentialFile(file, true); }
+    ProtectedFileStore(Path file, Path trustedRoot) { this.file = new SharedCredentialFile(file, true, trustedRoot); }
     @Override public String description() { return "an owner-only file, ~/.fluxtion-analyser/" + FILE_NAME; }
     @Override public Optional<CompilerCredential> load() throws IOException {
         SharedCredentialFile.Stored s = file.read();

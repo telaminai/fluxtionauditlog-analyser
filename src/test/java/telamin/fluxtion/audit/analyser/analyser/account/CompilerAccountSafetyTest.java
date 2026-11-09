@@ -143,7 +143,7 @@ class CompilerAccountSafetyTest {
 
     @Test
     void theCredentialCannotReachAProfileOrAShareExport_andTheAddressIsMachineTier() throws Exception {
-        ProtectedFileStore store = new ProtectedFileStore(temp.toRealPath().resolve(".fluxtion-analyser").resolve(ProtectedFileStore.FILE_NAME));
+        ProtectedFileStore store = new ProtectedFileStore(temp.resolve(".fluxtion-analyser").resolve(ProtectedFileStore.FILE_NAME));
         store.save(CredentialStoreTest.credential());
         AppConfig config = new AppConfig();
         config.compilerServiceUrl = "https://compiler.example.com";

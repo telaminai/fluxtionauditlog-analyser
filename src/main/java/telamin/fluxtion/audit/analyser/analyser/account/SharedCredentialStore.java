@@ -11,16 +11,23 @@ public final class SharedCredentialStore implements CredentialStore {
     private final CredentialStore legacy;
     SharedCredentialStore(SharedCredentialFile file, CredentialStore legacy) {
         this.file = file; this.legacy = legacy;
-        migrated = new SharedCredentialFile(file.file().resolveSibling(file.file().getFileName() + ".os-migrated"));
+        migrated = file.sibling(file.file().getFileName() + ".os-migrated");
     }
     @Override public String description() { return "Shared compiler sign-in: " + file.file(); }
     @Override public Optional<CompilerCredential> load() throws IOException { return Optional.ofNullable(from(file.read())); }
     @Override public void save(CompilerCredential c) throws IOException { file.write(to(c)); }
     @Override public void delete() throws IOException { file.delete(); }
     @Override public boolean replace(CompilerCredential expected, CompilerCredential next) throws IOException {
-        return file.compareAndWrite(to(expected), to(next));
+        SharedCredentialFile.Stored observed = file.read();
+        if (!Objects.equals(from(observed), expected)) return false;
+        // Preserve the exact on-disk snapshot for CAS even when the public identity normalizes an older URL spelling.
+        return file.compareAndWrite(observed, to(next));
     }
-    @Override public boolean delete(CompilerCredential expected) throws IOException { return file.compareAndDelete(to(expected)); }
+    @Override public boolean delete(CompilerCredential expected) throws IOException {
+        SharedCredentialFile.Stored observed = file.read();
+        if (!Objects.equals(from(observed), expected)) return false;
+        return file.compareAndDelete(observed);
+    }
 
     public record Migration(CompilerCredential shared, CompilerCredential previous) { }
     /** No fallback: a legacy credential is never silently used as the active sign-in. */

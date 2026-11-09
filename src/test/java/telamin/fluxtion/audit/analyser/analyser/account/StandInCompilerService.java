@@ -80,6 +80,7 @@ public final class StandInCompilerService implements AutoCloseable {
         credentials.put("cred03", new Object[]{"DEVICE", "device", 1_770_000_000_000L, 1_775_000_000_000L});
     }
     public volatile String verificationUri = "https://compiler.example.com/device";
+    public volatile String verificationUriComplete = "https://compiler.example.com/device?user_code=" + USER_CODE;
     /** When set, the usage read answers 302 to this path on the same stand-in, which records whether it was followed. */
     public volatile String usageRedirect;
 
@@ -131,7 +132,7 @@ public final class StandInCompilerService implements AutoCloseable {
                 status = 200;
                 out = "{\"device_code\":\"" + DEVICE_CODE + "\",\"user_code\":\"" + USER_CODE + "\","
                         + "\"verification_uri\":\"" + verificationUri + "\","
-                        + "\"verification_uri_complete\":\"https://compiler.example.com/device?user_code=" + USER_CODE + "\","
+                        + "\"verification_uri_complete\":\"" + verificationUriComplete + "\","
                         + "\"expires_in\":" + expiresIn + ",\"interval\":" + interval + "}";
             }
             case "/auth/device/token" -> {

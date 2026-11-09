@@ -681,7 +681,7 @@ public final class CompilerAccountDialog extends JDialog {
             String details = "The Analyser now shares one machine sign-in with builds.\nPrevious Analyser account: "
                     + m.previous().accountId() + " at " + m.previous().service()
                     + (m.shared() == null ? "" : "\nShared account: " + m.shared().accountId() + " at " + m.shared().service())
-                    + "\nChoose which to keep. The old Analyser-only copy will be removed.";
+                    + "\nChoose which to keep. The old Analyser-only local copy will be deleted.\nUnselected device credentials stay active at their issuing services; revoke unused devices in the corresponding account’s Devices list.";
             int choice = JOptionPane.showOptionDialog(this, UiText.inert(details), "Share compiler sign-in", JOptionPane.DEFAULT_OPTION,
                     JOptionPane.QUESTION_MESSAGE, null, UiText.inert(choices), UiText.inert(choices[0].toString()));
             boolean usePrevious = m.shared() == null ? choice == 0 : choice == 1;
@@ -916,9 +916,9 @@ public final class CompilerAccountDialog extends JDialog {
     }
 
     private void disconnect() {
-        if (!confirm.test(DISCONNECT, "Delete the credential from this machine?\n"
-                + "The service keeps accepting it until you revoke it.")) return;
-        deleteLocal("Disconnected. The credential was deleted from this machine.");
+        if (!confirm.test(DISCONNECT, "Delete the shared credential from this machine? This signs the Analyser and Maven builds out.\n"
+                + "Environment or explicit build overrides are unchanged. The service keeps accepting the device credential until you revoke it.")) return;
+        deleteLocal("Disconnected. The shared credential was deleted; Maven builds using it are signed out too.");
     }
 
     private void revoke() {

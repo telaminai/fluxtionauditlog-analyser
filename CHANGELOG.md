@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Normalize equivalent compiler addresses, keep MCP sign-in usable when an old keyring is unavailable, and report Maven recovery for migration or store failures. Clarify that migration does not revoke unused devices and Disconnect signs shared-store builds out.
+
 - Let external assistants start, inspect and cancel compiler sign-in with session-owned attempt IDs, validated browser addresses and server-verified results.
 
 - Share compiler sign-in with Maven through the protected machine store, with explicit migration, replacement confirmation and concurrent-change protection.

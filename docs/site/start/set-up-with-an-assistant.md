@@ -223,7 +223,9 @@ Ask the assistant to build or to sign in. With the new sign-in tools, it starts 
 verification address and short user code. Approve in your browser; the assistant checks that same attempt and then
 continues your original build. You never need to show it a token or credential file.
 
-If the tools are not installed, the assistant can run the project's Maven login in a background terminal, show its
+If the tools are not installed, or return `usage_error` or `service_error`, the assistant can run the project's Maven login in a background terminal, show its
 address and code, then wait for Maven's result. It should explain a refusal or expiry and stop retrying if you cancel.
 Changing compiler service replaces the one machine sign-in, so it must ask you before confirming that change.
+An existing Analyser-only sign-in can be migrated from the dialog; headless Maven login can create a shared sign-in
+without that GUI step and leaves the previous Analyser copy unchanged.
 The Analyser's account view and a build can still differ when an environment or property override is active.

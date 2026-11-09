@@ -421,10 +421,26 @@ class CompilerAccountFrameTest {
         open(config);
         onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
         await(() -> "free".equals(after("Plan")), "connected");
-        onEdt(() -> button(CompilerAccountDialog.DISCONNECT).doClick());
+        AtomicReference<String> question = new AtomicReference<>();
+        onEdt(() -> { dialog.confirm = (title, message) -> { question.set(message); return true; };
+            button(CompilerAccountDialog.DISCONNECT).doClick(); });
+        assertTrue(question.get().contains("Maven"), "shared-store deletion must explain its effect on builds");
+        assertTrue(question.get().contains("builds"));
         await(() -> text().contains("Disconnected."), "disconnected");
         assertNull(store.kept);
         assertTrue(service.requests().stream().noneMatch(r -> r.method().equals("DELETE")), "disconnect calls nothing");
+    }
+
+    @Test
+    void untrustedCompleteAddressNeverOpensBrowserOrShowsACode() throws Exception {
+        service.verificationUriComplete = "https://untrusted.example/device?user_code=DEMO";
+        AppConfig config = new AppConfig(); config.compilerServiceUrl = service.base();
+        open(config); await(() -> text().contains("Not connected."), "initial state");
+        onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
+        await(() -> text().contains("trusted origin"), "untrusted complete address is refused");
+        assertTrue(opened.isEmpty()); assertNull(store.kept);
+        assertEquals(0, service.count("/auth/device/token"));
+        assertFalse(text().contains(StandInCompilerService.USER_CODE));
     }
 
     // ---- helpers -------------------------------------------------------------------------------------------------

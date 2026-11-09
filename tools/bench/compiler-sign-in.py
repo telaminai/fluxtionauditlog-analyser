@@ -7,7 +7,7 @@ import json, os, queue, subprocess, sys, tempfile, threading, time
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-root = Path(tempfile.mkdtemp(prefix='compiler-sign-in-bench-')).resolve()
+root = Path(tempfile.mkdtemp(prefix='compiler-sign-in-bench-'))
 approved = threading.Event()
 TOKEN = 'synthetic-token-not-for-production'
 DEVICE = 'synthetic-device-code-not-for-output'
