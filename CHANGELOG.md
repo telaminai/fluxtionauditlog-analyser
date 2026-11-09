@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Let external assistants start, inspect and cancel compiler sign-in with session-owned attempt IDs, validated browser addresses and server-verified results.
+
 - Share compiler sign-in with Maven through the protected machine store, with explicit migration, replacement confirmation and concurrent-change protection.
 
 - Show server-verified compiler account details and diagnostic support identifiers; qualify inactive account overrides and distinguish the account view from external build overrides.
