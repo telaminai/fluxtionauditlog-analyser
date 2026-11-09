@@ -78,7 +78,7 @@ If you later **regenerate a Fluxtion processor**, that build needs **compiler si
 the build in once per machine, in a terminal:
 `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
 (in a project whose pom declares the plugin, `./mvnw fluxtion:login`
-works too); in CI, set `FLUXTION_API_TOKEN`, plus `FLUXTION_COMPILER_URL` only for a compiler other than the managed one. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in yet — the connection described below is the account view.
+works too); in CI, set `FLUXTION_API_TOKEN`, plus `FLUXTION_COMPILER_URL` only for a compiler other than the managed one. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it shares the machine sign-in with builds, while environment and property overrides can select another account.
 The old Fluxtion API key route is closed. Existing generated processors and the bundled demo run without signing in.
 
 ## Connect a compiler account
@@ -89,6 +89,13 @@ or **Staging** (`https://compiler-staging.fluxtion-playground.dev`), for trying 
 The list also offers any address this machine has connected with before, and you can type your own (plain `http` is
 accepted only for this machine).
 
+For a custom compiler, the administrator must also configure its trusted browser verification origin when starting
+the Analyser: `java -Dfluxtion.login.verificationOrigin=https://login.example.com -jar analyser.jar` (replace the
+example with the provider's exact trusted HTTPS origin and your jar path). This is a user-controlled JVM setting,
+not a project setting or MCP argument. Both returned verification addresses must match it. An MCP assistant cannot
+change this trust setting; when it is unavailable, it can use the documented Maven login flow with the user's trusted
+configuration.
+
 ![AI ▸ Compiler account…, not connected, its service-address list open on Production and Staging](assets/compiler-account-services.png)
 
 Then press **Connect compiler account**. The analyser asks the service for a sign-in code, opens your browser at the service's
@@ -96,14 +103,18 @@ sign-in page and shows the code to enter there. While you approve it, it checks 
 asks, slows down when told to, and stops when the code expires; **Cancel sign-in**, or closing the dialog, stops it
 with nothing stored. It never shows or logs the device code, or the credential it receives.
 
-Once you approve, the credential is kept in your operating system's credential store: the macOS Keychain, or the
-Secret Service keyring on Linux (through `secret-tool`). Where neither is available (Windows, or Linux without
-`secret-tool`), it is kept in `~/.fluxtion-analyser/compiler-account.credential`, a file only your account can read.
-That protects it from other users of the machine, not from programs you run yourself. The same is true of the
-Keychain entry: it is written by the system's `security` tool, so other programs running as you can read it through
-that tool without a prompt. The credential never reaches a
-command line, a project, a settings export, a report, a walk, an evidence bundle or an assistant's `context`. It also
-remembers which service issued it, so changing the address later never sends it anywhere else.
+Once you approve and the service verifies the account, the credential is kept in the owner-only shared machine
+file `~/.fluxtion/credentials`, used by both the Analyser and builds. Existing Analyser users are offered a choice
+when migrating from the previous OS store. If the two stores disagree, choose which account to keep; there is no
+silent fallback. Migration deletes local copies only: unselected device credentials stay active at their issuing
+services until you revoke them in **Your devices** for that account. **Disconnect** deletes the shared sign-in and therefore
+signs Maven builds using it out too; environment or explicit build overrides are unchanged. **Replace sign-in…** asks before replacing the current machine sign-in and revoking the old one.
+**Refresh** reloads changes made by Maven and verifies the current account with its issuing service.
+
+The file protects the credential from other users, not from programs running as you. It never enters a command line,
+a project, a settings export, a report, an evidence bundle or the assistant's audit `context`. Environment and
+explicit build-property overrides can still make a build use a different account. Always use the failed build's
+own identifiers when asking support to investigate it.
 
 The sign-in names this device "Fluxtion analyser on" followed by your machine's name (letters, digits, spaces and
 `._:-` only, at most 64 characters), so you can tell your machines apart later.
@@ -131,6 +142,36 @@ Once connected, the dialog shows:
 the service, account, type, role, plan, the compile and interpret figures, the plan's limits and rates, this device's
 credential id and name, the analyser version and the time in UTC. It never includes the credential itself. Deleting the account is not available in the
 app yet; ask the service's support.
+
+### Find the account and request behind a refused build
+
+The **Account** row is the account ID for this Analyser connection. **Copy details** includes that ID, the
+compiler service and effective limits without the credential or email. Maven and CI can override the shared sign-in;
+viewing this dialog alone does not prove which account an external build uses.
+
+For a CLI build, use a Maven plugin version containing the new `account` goal (not released 1.3.4):
+
+```sh
+mvn fluxtion:account
+```
+
+Run it in the failed build's project and environment, with the same compiler URL setting. Outside a configured
+project, use `mvn com.telamin.fluxtion:fluxtion-maven-plugin:<version>:account` with that version. It reports the
+server-confirmed account ID, credential source and current limits without generating. CI's `FLUXTION_API_TOKEN`
+takes precedence over saved Maven sign-in. The command does not inspect the Analyser's credential.
+
+Copy the **request ID** from the build failure beside its HTTP status (usually `fx-...`). Newer compiler refusals
+also state `accountId` and `requestId`; HTTP clients get `X-Fluxtion-Request-Id`. If a refusal from an older service
+omits the account, run the account goal before changing sign-in. For a build started by an assistant, ask it to
+return these identifiers from the actual build output, not infer them from the Analyser connection.
+
+Send support the service, account ID, request ID, compiler version and refusal (requested inputs and limit).
+Do not send tokens or credential files. Support can find the exact request, compare its recorded refusal with
+current limits and confirm a remedy. Input limits count distinct event types plus exported methods, not event
+records; adding compile credits does not increase this limit. After a confirmed entitlement change, rerun the
+original authoring command and compare its fresh generated and audit evidence. The account check itself does
+not prove a generation will succeed.
+
 
 The analyser reads the account and never grants credits or changes it; the only change it makes is revoking a
 device you choose. **Disconnect** deletes the credential from this machine, and the service keeps accepting it until

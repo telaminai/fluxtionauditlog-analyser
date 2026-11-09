@@ -93,7 +93,7 @@ and keeps a backup.
 | Plugin declared | plugin server declaration checked; current session not inspected |
 | Connected | the host bridge answered; the assistant's own check is still pending |
 | Confirmed | the assistant itself called `analyser_context` and got `ok: true` |
-| Signed in | a compiler build credential is saved; any validation limitation is reported (the analyser's Compiler account view uses a separate store) |
+| Signed in | a compiler build credential is saved; any validation limitation is reported (build overrides can select a different account from the shared sign-in) |
 | Not signed in | no usable sign-in for the selected compiler; skipped, declined or refused |
 
 "Registered" or "Plugin declared" is not "Confirmed": only a successful call from the assistant counts.
@@ -208,7 +208,7 @@ straight to the external-client screen instead of the choice screen. Keep the pl
 do not create another user-scope registration to complete the onboard setup.
 
 Regeneration needs compiler sign-in only: `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
-(saved under `~/.fluxtion/credentials`; in CI, `FLUXTION_API_TOKEN`). **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in. The old Fluxtion API key route is closed, and
+(saved under `~/.fluxtion/credentials`; in CI, `FLUXTION_API_TOKEN`). **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it shares the machine sign-in with builds; environment and property overrides can select another account. The old Fluxtion API key route is closed, and
 `context` carries nothing about it.
 
 ## Upgrading from Analyser 1.40.2
@@ -216,3 +216,17 @@ Regeneration needs compiler sign-in only: `mvn com.telamin.fluxtion:fluxtion-mav
 Upgrade to Analyser 1.40.3 before creating projects from the updated starter catalogue. Version 1.40.2
 does not understand the new build-sign-in declaration and may offer a failing legacy check as the
 first step for an AOT starter.
+
+## Let the assistant help you sign in
+
+Ask the assistant to build or to sign in. With the new sign-in tools, it starts an attempt and gives you the
+verification address and short user code. Approve in your browser; the assistant checks that same attempt and then
+continues your original build. You never need to show it a token or credential file.
+
+If the tools are not installed, the assistant can use the project's Maven login. If a sign-in tool returns an error,
+use that fallback only when the result says `recovery: "maven_login"`. Run Maven login in a background terminal,
+show its address and code, then wait for Maven's result. Do not bypass service-switch refusals, environment overrides, CI restrictions or cancellations through Maven. For other errors, explain the result and stop. It should explain a refusal or expiry and stop retrying if you cancel.
+Changing compiler service replaces the one machine sign-in, so it must ask you before confirming that change.
+An existing Analyser-only sign-in can be migrated from the dialog; headless Maven login can create a shared sign-in
+without that GUI step and leaves the previous Analyser copy unchanged.
+The Analyser's account view and a build can still differ when an environment or property override is active.

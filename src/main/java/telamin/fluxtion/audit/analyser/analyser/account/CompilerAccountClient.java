@@ -59,9 +59,16 @@ public final class CompilerAccountClient {
         private final String verificationUriComplete;
         private final long expiresInSeconds;
         private final long intervalSeconds;
+        private final long deadlineNanos;
 
         DeviceStart(String service, String deviceCode, String userCode, String verificationUri,
                     String verificationUriComplete, long expiresInSeconds, long intervalSeconds) {
+            this(service, deviceCode, userCode, verificationUri, verificationUriComplete, expiresInSeconds, intervalSeconds,
+                    System.nanoTime());
+        }
+        DeviceStart(String service, String deviceCode, String userCode, String verificationUri,
+                    String verificationUriComplete, long expiresInSeconds, long intervalSeconds, long issuedAtNanos) {
+            this.deadlineNanos = issuedAtNanos + Duration.ofSeconds(Math.min(1800, Math.max(0, expiresInSeconds))).toNanos();
             this.service = service;
             this.deviceCode = deviceCode;
             this.userCode = userCode;
@@ -225,6 +232,7 @@ public final class CompilerAccountClient {
     /** Ask the service for a device code. */
     public DeviceStart start(String serviceAddress) throws AccountException {
         String base = require(serviceAddress);
+        long issuedAtNanos = nanoClock.getAsLong();
         Response r = send(HttpRequest.newBuilder(URI.create(base + "/auth/device/authorize"))
                 .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString("{}")));
         if (r.status != 200) throw new AccountException("The service refused to start a sign-in (HTTP " + r.status + ")");
@@ -237,11 +245,16 @@ public final class CompilerAccountClient {
             throw new AccountException("The service's sign-in answer was incomplete");
         if (!ServiceAddress.browsable(uri) || (complete != null && !ServiceAddress.browsable(complete)))
             throw new AccountException("The service gave a sign-in page that is not a web address");
+        try {
+            String trusted = VerificationOrigin.trusted(base, System.getProperty("fluxtion.login.verificationOrigin"));
+            VerificationOrigin.check(uri, trusted);
+            if (complete != null) VerificationOrigin.check(complete, trusted);
+        } catch (java.io.IOException e) { throw new AccountException(e.getMessage()); }
         if (!userCode.matches("[A-Za-z0-9 -]{1,32}")) throw new AccountException("The service gave an unusable user code");
         long expires = number(body, "expires_in", 0);
-        if (expires <= 0) throw new AccountException("The service's sign-in answer had no expiry");
+        if (expires <= 0 || expires > 1800) throw new AccountException("The service's sign-in answer had no expiry");
         long interval = Math.max(1, number(body, "interval", DEFAULT_INTERVAL_SECONDS));
-        return new DeviceStart(base, deviceCode, userCode, uri, complete, expires, interval);
+        return new DeviceStart(base, deviceCode, userCode, uri, complete, expires, interval, issuedAtNanos);
     }
 
     /**
@@ -250,8 +263,8 @@ public final class CompilerAccountClient {
      * sent once the code has expired or the sign-in was cancelled. An interrupt is a cancellation.
      */
     public Outcome await(DeviceStart start, BooleanSupplier cancelled) {
-        long deadline = nanoClock.getAsLong() + Duration.ofSeconds(start.expiresInSeconds).toNanos();
-        long interval = start.intervalSeconds;
+        long deadline = start.deadlineNanos;
+        long interval = Math.min(1800, Math.max(1, start.intervalSeconds));
         Map<String, Object> token = new LinkedHashMap<>();
         token.put("device_code", start.deviceCode);
         token.put("device_name", deviceName(hostName.get()));
@@ -260,7 +273,9 @@ public final class CompilerAccountClient {
         while (true) {
             if (cancelled.getAsBoolean()) return new Cancelled();
             try {
-                sleeper.sleep(Duration.ofSeconds(interval));
+                long remaining = deadline - nanoClock.getAsLong();
+                if (remaining <= 0) return new Expired();
+                sleeper.sleep(Duration.ofNanos(Math.min(Duration.ofSeconds(interval).toNanos(), remaining)));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return new Cancelled();
@@ -368,7 +383,8 @@ public final class CompilerAccountClient {
         String email = string(body, "email");
         if (email != null && email.isBlank()) email = null;
         String selected = string(body, "selectedAccount");
-        if (selected == null) selected = credential.accountId();
+        if (selected == null || !CompilerCredential.IDENTIFIER.matcher(selected).matches())
+            throw new AccountException("The service did not return a valid selected account.");
         if (body.get("accounts") instanceof List<?> accounts) {
             for (Object a : accounts) {
                 if (a instanceof Map<?, ?> m && selected.equals(m.get("accountId")))

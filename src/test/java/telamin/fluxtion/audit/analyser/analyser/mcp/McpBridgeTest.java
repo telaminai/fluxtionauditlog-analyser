@@ -100,14 +100,14 @@ class McpBridgeTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void toolsListReturnsOneToolPerVerb() {
+    void toolsListReturnsActionVerbsAndSessionOwnedSignInTools() {
         Object r = result("{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}");
         List<Object> tools = (List<Object>) Json.at(r, "tools");
-        assertEquals(VerbSchemas.all().size(), tools.size());
+        assertEquals(VerbSchemas.all().size()+3, tools.size());
         List<String> names = tools.stream().map(t -> (String) ((Map<String, Object>) t).get("name")).toList();
         assertTrue(names.contains("analyser_aggregate"));
         assertTrue(names.contains("analyser_read"));
-        assertTrue(names.stream().allMatch(n -> n.startsWith("analyser_")));
+        assertTrue(names.stream().allMatch(n -> n.startsWith("analyser_") || CompilerSignInTools.owns(n)));
     }
 
     // ---- modern era ------------------------------------------------------------------------------

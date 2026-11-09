@@ -59,6 +59,14 @@ class DocsExternalAccessClaimsTest {
         assertTrue(page.contains("/mcp reconnect plugin:fluxtion-analyser:fluxtion-analyser"));
     }
 
+    @Test
+    void mavenRecoveryRequiresExplicitRecoveryHint() throws Exception {
+        String page = flat(read(SITE.resolve("start/set-up-with-an-assistant.md")));
+        assertTrue(page.contains("only when the result says `recovery: \"maven_login\"`"));
+        assertTrue(page.contains("Do not bypass service-switch refusals, environment overrides, CI restrictions or cancellations through Maven"));
+        assertFalse(page.contains("or return `usage_error` or `service_error`"));
+    }
+
     static final Path SITE = Path.of("docs/site");
     static final Path SRC = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser");
 
