@@ -141,13 +141,20 @@ class ProfileChangedOnDiskFrameTest {
             assertEquals(Boolean.TRUE, profileOnDisk(f).get("saveRefused"), "and the refusal is stated");
             assertFalse(bannerShown(f), "the same change is not offered again");
 
+            // owner decision on #198: Not now is for THAT change. The file changing again brings the banner back,
+            // so Keep mine stays reachable (this test used to stop at "not offered again")
+            changeOnDisk(f, file, 12);
+            assertTrue(bannerShown(f), "★ a further change on disk is offered again after Not now");
+            onEdt(() -> assertTrue(f.frame.profileBanner.keep.isShowing() && f.frame.profileBanner.keep.isEnabled(),
+                    "and Keep mine is reachable"));
+
             AtomicReference<Map<String, Object>> reply = new AtomicReference<>();
             onEdt(() -> reply.set(render(f.ex, "open", Map.of("project", dir.toString(), "reload", true))));
             Map<String, Object> echo = (Map<String, Object>) reply.get().get("opened");
             assertEquals(Boolean.TRUE, echo.get("reloaded"), "★ open {project, reload: true} re-reads the file: " + echo);
             assertNotNull(echo.get("replaced"), "and says what it replaced: " + echo);
             assertTrue(String.valueOf(echo.get("note")).contains("unsaved edits were discarded"), "and what it discarded: " + echo);
-            assertEquals(processors(10), named(config.eventProcessorFqns), "the session now has the ten");
+            assertEquals(processors(12), named(config.eventProcessorFqns), "the session now has the twelve");
             AtomicReference<Boolean> logOpen = new AtomicReference<>();
             onEdt(() -> logOpen.set(field(f.frame, "store") != null));
             assertTrue(logOpen.get(), "the log stays open: a reload is not a switch");
@@ -156,7 +163,7 @@ class ProfileChangedOnDiskFrameTest {
             // "Keep mine" is the only way this session's settings go over a newer file
             changeOnDisk(f, file, 3);
             onEdt(f.frame.profileBanner.keep::doClick);
-            WalkPlaybackFrameTest.await("keep mine wrote the session's version", () -> onDisk(file).size() == 10);
+            WalkPlaybackFrameTest.await("keep mine wrote the session's version", () -> onDisk(file).size() == 12);
             assertFalse(bannerShown(f), "and the banner goes");
         }
     }
