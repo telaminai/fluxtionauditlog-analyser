@@ -314,8 +314,6 @@ public final class ActionExecutor implements RenderExecutor {
                 // evidence bundle capture (convergence): the investigation packed as one .fexp — the session decides
                 if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.BUNDLE) {
                     Map<?, ?> b = (Map<?, ?>) params.get("bundle");
-                    var out = guardedPath(b.get("path"));      // B1: the same guard and directory as every verb write
-                    if (!out.ok()) return ActionResult.error(out.error());
                     Object notes = b.get("notes");
                     if (notes != null && !(notes instanceof String)) return ActionResult.error("bundle 'notes' is text");
                     Long from = longOrNull(b.get("from")), to = longOrNull(b.get("to"));
@@ -327,9 +325,13 @@ public final class ActionExecutor implements RenderExecutor {
                     if (replay != null && !(replay instanceof String r && !r.isBlank())) {
                         return ActionResult.error("bundle 'replay' is the path of the run's replay records");
                     }
-                    return withExchangeNote(onEdt(() -> app == null
-                            ? ActionResult.error("'report' is not enabled here")
-                            : app.captureBundle(out.path().toString(), (String) notes, from, to, (String) replay)));
+                    // Validate before the write guard materialises the default exchange directory.
+                    // A malformed request or unavailable capture performs no filesystem effect.
+                    if (app == null) return ActionResult.error("'report' is not enabled here");
+                    var out = guardedPath(b.get("path"));      // B1: the same guard and directory as every verb write
+                    if (!out.ok()) return ActionResult.error(out.error());
+                    return withExchangeNote(onEdt(() ->
+                            app.captureBundle(out.path().toString(), (String) notes, from, to, (String) replay)));
                 }
                 // M33.3: the sections form builds/replaces a NAMED report (path optional — render or
                 // CSV when given); the shipped single-record form stays below as sugar
