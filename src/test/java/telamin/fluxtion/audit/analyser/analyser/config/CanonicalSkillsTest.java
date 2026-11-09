@@ -2,6 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.config;
 
 import org.junit.jupiter.api.Test;
 import telamin.fluxtion.audit.analyser.analyser.llm.Json;
+import telamin.fluxtion.audit.analyser.analyser.template.SkillRegistry;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,6 +11,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -623,5 +625,369 @@ class CanonicalSkillsTest {
                         e[0] + " is the copy fetched and pinned on 2026-10-18");
             }
         }
+    }
+
+    // ---------------- m19-skills/3: versioned skills, additive to /2 (skill-registry spec, step 1) ----------------
+
+    private static final Path V3_INDEX = ROOT.resolve("m19-skills/3/index.json");
+    private static final java.util.regex.Pattern SHA256 = java.util.regex.Pattern.compile("[0-9a-f]{64}");
+    private static final java.util.regex.Pattern REVISION = java.util.regex.Pattern.compile("[0-9a-f]{40}");
+    private static final Set<String> V3_VERSION_KEYS = Set.of("version", "revision", "files", "compatibility", "evidence", "yanked");
+    private static final String V2_PIN_EVIDENCE = SkillRegistry.V2_PIN_EVIDENCE;
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> v3Index() throws Exception {
+        return (Map<String, Object>) Json.parse(Files.readString(V3_INDEX));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> copy(Map<String, Object> index) {
+        return (Map<String, Object>) Json.parse(Json.write(index));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, List<Map<String, Object>>> v3Versions(Map<String, Object> index) {
+        Map<String, List<Map<String, Object>>> out = new java.util.LinkedHashMap<>();
+        for (var e : ((Map<String, Object>) index.get("skills")).entrySet())
+            out.put(e.getKey(), (List<Map<String, Object>>) ((Map<String, Object>) e.getValue()).get("versions"));
+        return out;
+    }
+
+    /** The skill names /3 selects from: `common` plus every specialisation's `skills`, in order, duplicates kept. */
+    @SuppressWarnings("unchecked")
+    private static List<String> v3Listed(Map<String, Object> index) {
+        List<String> names = new java.util.ArrayList<>((List<String>) index.get("common"));
+        for (Object spec : ((Map<String, Object>) index.get("specialisations")).values())
+            names.addAll((List<String>) ((Map<String, Object>) spec).get("skills"));
+        return names;
+    }
+
+    /** Every structural problem in a /3 index — the shape a consumer relies on — or an empty list. */
+    @SuppressWarnings("unchecked")
+    static List<String> v3Problems(Map<String, Object> index) {
+        List<String> problems = new java.util.ArrayList<>();
+        if (!SkillRegistry.CONTRACT.equals(index.get("contract"))) problems.add("contract is not m19-skills/3");
+        if (!(index.get("common") instanceof List<?>) || !(index.get("specialisations") instanceof Map<?, ?> specs)
+                || !(index.get("skills") instanceof Map<?, ?> skills)) {
+            problems.add("common, specialisations and skills are required");
+            return problems;
+        }
+        for (var e : ((Map<String, Object>) specs).entrySet()) {
+            Map<String, Object> spec = (Map<String, Object>) e.getValue();
+            if (!(spec.get("why") instanceof String why) || why.isBlank()) problems.add(e.getKey() + ": no why");
+            if (!(spec.get("skills") instanceof List<?>)) problems.add(e.getKey() + ": no skills list");
+        }
+        if (!problems.isEmpty()) return problems;
+        List<String> listed = v3Listed(index);
+        if (listed.size() != Set.copyOf(listed).size()) problems.add("a skill is listed twice: " + listed);
+        if (!Set.copyOf(listed).equals(skills.keySet()))
+            problems.add("listed skills " + Set.copyOf(listed) + " differ from the skills map " + skills.keySet());
+        for (var e : ((Map<String, Object>) skills).entrySet()) {
+            String name = e.getKey();
+            Object versions = ((Map<String, Object>) e.getValue()).get("versions");
+            if (!(versions instanceof List<?> list) || list.isEmpty()) {
+                problems.add(name + ": no versions");
+                continue;
+            }
+            Set<String> seen = new java.util.HashSet<>();
+            for (Map<String, Object> v : (List<Map<String, Object>>) list) {
+                String at = name + "@" + v.get("version");
+                if (!V3_VERSION_KEYS.containsAll(v.keySet())) problems.add(at + ": unknown fields " + v.keySet());
+                if (!(v.get("version") instanceof String s) || SkillRegistry.Semver.tryParse(s) == null)
+                    problems.add(at + ": version is not valid semver");
+                else if (!seen.add(SkillRegistry.Semver.parse(s).toString()))
+                    problems.add(at + ": the same version twice (by precedence)");
+                if (!(v.get("revision") instanceof String r) || !REVISION.matcher(r).matches())
+                    problems.add(at + ": revision must be a full commit id");
+                String compat = SkillRegistry.compatibilityProblem(v.get("compatibility"));
+                if (compat != null) problems.add(at + ": " + compat);
+                if (v.containsKey("yanked") && !(v.get("yanked") instanceof Boolean)) problems.add(at + ": yanked is not a boolean");
+                if (v.containsKey("evidence")) problems.addAll(evidenceProblems(at, v));
+                // a /2 pin is evidence that /2 served these bytes to every project its selection reached, with no
+                // Mongoose or plugin constraint; it is not evidence that any range was tested, so it backs none
+                if (v.get("evidence") instanceof Map<?, ?> ev && V2_PIN_EVIDENCE.equals(ev.get("kind"))
+                        && v.get("compatibility") instanceof Map<?, ?> c
+                        && !("*".equals(c.get("mongoose")) && "*".equals(c.get("mongoosePlugins"))))
+                    problems.add(at + ": a /2-pin version reproduces /2, which constrains no Mongoose or plugin version;"
+                            + " a range needs gate evidence");
+                problems.addAll(fileProblems(at, name, v.get("files")));
+            }
+        }
+        return problems;
+    }
+
+    /** Evidence rules live in {@link SkillRegistry#evidenceProblem}, so the index check and selection cannot disagree. */
+    private static List<String> evidenceProblems(String at, Map<String, Object> version) {
+        String problem = SkillRegistry.evidenceProblem(version.get("evidence"), version.get("revision"));
+        return problem == null ? List.of() : List.of(at + ": " + problem);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> fileProblems(String at, String name, Object files) {
+        if (!(files instanceof List<?> list) || list.isEmpty()) return List.of(at + ": no files");
+        List<String> problems = new java.util.ArrayList<>();
+        String skillDir = null;
+        int skillFiles = 0;
+        Set<String> paths = new java.util.HashSet<>();
+        for (Object o : list) {
+            if (!(o instanceof Map<?, ?> f) || !f.keySet().equals(Set.of("path", "sha256"))
+                    || !(f.get("path") instanceof String p) || !(f.get("sha256") instanceof String h)) {
+                problems.add(at + ": a file is exactly {path, sha256}");
+                continue;
+            }
+            if (p.startsWith("/") || p.contains("..") || p.contains("\\") || p.contains(":") || p.isBlank())
+                problems.add(at + ": path escapes the root: " + p);
+            if (!SHA256.matcher(h).matches()) problems.add(at + ": " + p + " sha256 is not 64 lowercase hex");
+            if (!paths.add(p)) problems.add(at + ": " + p + " listed twice");
+            if (p.endsWith("/SKILL.md")) {
+                skillFiles++;
+                skillDir = p.substring(0, p.lastIndexOf('/'));
+                if (!skillDir.substring(skillDir.lastIndexOf('/') + 1).equals(name))
+                    problems.add(at + ": " + p + " is not the skill named " + name);
+            }
+        }
+        if (skillFiles != 1) problems.add(at + ": exactly one SKILL.md, found " + skillFiles);
+        else for (String p : paths)
+            if (!p.substring(0, Math.max(0, p.lastIndexOf('/'))).equals(skillDir))
+                problems.add(at + ": " + p + " does not sit beside its SKILL.md");
+        return problems;
+    }
+
+    /** Every file whose bytes at its version's revision do not hash to its pin (or do not exist there). */
+    @SuppressWarnings("unchecked")
+    static List<String> v3DigestProblems(Map<String, Object> index) throws Exception {
+        List<String> problems = new java.util.ArrayList<>();
+        for (var e : v3Versions(index).entrySet()) {
+            for (Map<String, Object> v : e.getValue()) {
+                String revision = (String) v.get("revision");
+                for (Map<String, Object> f : (List<Map<String, Object>>) v.get("files")) {
+                    byte[] blob = gitShowBytes(revision + ":docs/skills/" + f.get("path"));
+                    String at = e.getKey() + "@" + v.get("version") + " " + f.get("path");
+                    if (blob == null) problems.add(at + ": absent at " + revision);
+                    else if (!f.get("sha256").equals(sha256(blob))) problems.add(at + ": digest differs from the bytes at " + revision);
+                }
+            }
+        }
+        return problems;
+    }
+
+    @Test
+    void v3IndexIsWellFormed() throws Exception {
+        assertEquals(List.of(), v3Problems(v3Index()));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void v3WellFormednessCheckCatchesEachBreak() throws Exception {
+        Map<String, Object> index = v3Index();
+        String skill = v3Listed(index).get(0);
+        java.util.function.BiConsumer<String, java.util.function.Consumer<Map<String, Object>>> mustCatch = (why, edit) -> {
+            Map<String, Object> broken = copy(index);
+            edit.accept(v3Versions(broken).get(skill).get(0));
+            assertFalse(v3Problems(broken).isEmpty(), "the check must catch: " + why);
+        };
+        mustCatch.accept("a non-semver version", v -> v.put("version", "1.0"));
+        mustCatch.accept("a v-prefixed version", v -> v.put("version", "v1.0.0"));
+        mustCatch.accept("an abbreviated revision", v -> v.put("revision", "cb7a741f"));
+        mustCatch.accept("an unknown authoring", v -> ((Map<String, Object>) v.get("compatibility")).put("authoring", "kotlin"));
+        mustCatch.accept("an unknown host", v -> ((Map<String, Object>) v.get("compatibility")).put("host", "cloud"));
+        mustCatch.accept("a caret range", v -> ((Map<String, Object>) v.get("compatibility")).put("mongoose", "^1.1.0"));
+        mustCatch.accept("one range for both axes", v -> ((Map<String, Object>) v.get("compatibility")).remove("mongoosePlugins"));
+        mustCatch.accept("an analyser range, not a minimum", v -> ((Map<String, Object>) v.get("compatibility")).put("analyser", ">=1.12.0"));
+        mustCatch.accept("a string yank", v -> v.put("yanked", "true"));
+        mustCatch.accept("dateless evidence", v -> ((Map<String, Object>) v.get("evidence")).remove("date"));
+        mustCatch.accept("evidence of no known kind", v -> ((Map<String, Object>) v.get("evidence")).put("kind", "trust-me"));
+        mustCatch.accept("a path escaping the root", v -> ((List<Map<String, Object>>) v.get("files")).get(0).put("path", "../x/SKILL.md"));
+        mustCatch.accept("a short digest", v -> ((List<Map<String, Object>>) v.get("files")).get(0).put("sha256", "abc"));
+        mustCatch.accept("an unknown field", v -> v.put("channel", "beta"));
+        mustCatch.accept("a /2-pin version claiming a tested plugin range",
+                v -> ((Map<String, Object>) v.get("compatibility")).put("mongoosePlugins", ">=1.0.43"));
+        mustCatch.accept("a /2-pin version claiming a tested Mongoose range",
+                v -> ((Map<String, Object>) v.get("compatibility")).put("mongoose", ">=1.1.0 <1.2.0"));
+        Map<String, Object> twice = copy(index);
+        List<Map<String, Object>> versions = v3Versions(twice).get(skill);
+        versions.add(copy(versions.get(0)));
+        assertFalse(v3Problems(twice).isEmpty(), "the same version twice must be caught");
+        Map<String, Object> unlisted = copy(index);
+        ((List<String>) unlisted.get("common")).remove(skill);
+        assertFalse(v3Problems(unlisted).isEmpty(), "a skill no list selects must be caught");
+    }
+
+    @Test
+    void v3EveryDigestMatchesTheBytesAtItsRevision() throws Exception {
+        requireFullHistory();
+        assertEquals(List.of(), v3DigestProblems(v3Index()));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void v3DigestCheckFailsOnAFlippedDigestOrAWrongRevision() throws Exception {
+        requireFullHistory();
+        Map<String, Object> flipped = copy(v3Index());
+        Map<String, Object> file = ((List<Map<String, Object>>) v3Versions(flipped).values().iterator().next().get(0).get("files")).get(0);
+        String sha = (String) file.get("sha256");
+        file.put("sha256", (sha.charAt(0) == '0' ? "1" : "0") + sha.substring(1));
+        assertEquals(1, v3DigestProblems(flipped).size(), "one flipped digest is one problem");
+        Map<String, Object> early = copy(v3Index());
+        String v1Revision = (String) ((Map<String, Object>) Json.parse(Files.readString(PUBLISHED_INDEX))).get("revision");
+        v3Versions(early).get("guided-start").get(0).put("revision", v1Revision);
+        assertFalse(v3DigestProblems(early).isEmpty(), "guided-start does not exist at v1's revision");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void v3SkillFrontmatterAtEachRevisionAgreesWithTheEntry() throws Exception {
+        requireFullHistory();
+        for (var e : v3Versions(v3Index()).entrySet()) {
+            for (Map<String, Object> v : e.getValue()) {
+                String skillPath = ((List<Map<String, Object>>) v.get("files")).stream().map(f -> (String) f.get("path"))
+                        .filter(p -> p.endsWith("/SKILL.md")).findFirst().orElseThrow();
+                byte[] blob = gitShowBytes(v.get("revision") + ":docs/skills/" + skillPath);
+                assertNotNull(blob, skillPath);
+                String text = new String(blob, StandardCharsets.UTF_8);
+                assertTrue(text.startsWith("---\nname: " + e.getKey() + "\n"), skillPath + " is the skill named " + e.getKey());
+                var min = java.util.regex.Pattern.compile("(?m)^x-analyser-min-version: (\\S+)$").matcher(text);
+                if (min.find())   // the front-matter field /3 replaces must not contradict it while both exist
+                    assertEquals(min.group(1), ((Map<String, Object>) v.get("compatibility")).get("analyser"), skillPath);
+            }
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void v3AVersionWithoutEvidenceIsFlaggedNotSelectable() throws Exception {
+        Map<String, Object> index = v3Index();
+        for (var e : v3Versions(index).entrySet()) {
+            boolean anySelectable = false;
+            for (Map<String, Object> v : e.getValue()) {
+                String reason = SkillRegistry.notSelectableReason(v);
+                if (!v.containsKey("evidence"))
+                    assertTrue(reason != null && reason.contains("not selectable"), e.getKey() + "@" + v.get("version"));
+                anySelectable |= reason == null;
+            }
+            assertTrue(anySelectable, e.getKey() + " is listed but no version of it is selectable");
+        }
+        // witness: the same index with its evidence removed selects nothing, for any pins
+        Map<String, Object> stripped = copy(index);
+        List<SkillRegistry.ProjectPins> everyProject = List.of(
+                new SkillRegistry.ProjectPins("1.41.2", "spring", "mongoose", "1.1.3", "1.1.2"),
+                new SkillRegistry.ProjectPins("1.41.2", "java", "mongoose", "1.1.3", "1.1.2"),
+                new SkillRegistry.ProjectPins("1.41.2", "spring", "embedded", null, null),
+                new SkillRegistry.ProjectPins("1.41.2", "java", "embedded", null, null));
+        for (var e : v3Versions(stripped).entrySet()) {
+            assertTrue(everyProject.stream().anyMatch(pins -> SkillRegistry.select(e.getValue(), pins).isPresent()),
+                    e.getKey() + " is selectable for some project before stripping");
+            e.getValue().forEach(v -> v.remove("evidence"));
+            for (Map<String, Object> v : e.getValue())
+                assertTrue(SkillRegistry.notSelectableReason(v).contains("no evidence, so not selectable"));
+            for (SkillRegistry.ProjectPins pins : everyProject)
+                assertTrue(SkillRegistry.select(e.getValue(), pins).isEmpty(), e.getKey() + " selected without evidence");
+        }
+    }
+
+    /**
+     * While /2 is served, /3 must not disagree with it. Every /2 selection list is in /3 unchanged (/3 may add
+     * specialisations, as step 2 adds the Java-authoring skills), and every /2 pin is in /3 as a version with the same
+     * revision and the same digests (the skill's SKILL.md plus the supporting files beside it). That version must be
+     * selectable: yanking in /3 a version /2 still serves would leave /2 consumers on bytes /3 calls bad, so a yank of a
+     * /2 pin goes with a /2 re-pin in the same change.
+     */
+    @SuppressWarnings("unchecked")
+    static List<String> v2v3ParityProblems(Map<String, Object> v2, Map<String, Object> v3) {
+        List<String> problems = new java.util.ArrayList<>();
+        java.util.function.Function<String, String> nameOf = p -> p.substring(0, p.lastIndexOf('/'))
+                .substring(p.substring(0, p.lastIndexOf('/')).lastIndexOf('/') + 1);
+        if (!((List<String>) v2.get("common")).stream().map(nameOf).toList().equals(v3.get("common")))
+            problems.add("common differs: /2 " + v2.get("common") + ", /3 " + v3.get("common"));
+        Map<String, Object> specs2 = (Map<String, Object>) v2.get("specialisations");
+        Map<String, Object> specs3 = (Map<String, Object>) v3.get("specialisations");
+        for (String spec : specs2.keySet()) {
+            Map<String, Object> a = (Map<String, Object>) specs2.get(spec), b = (Map<String, Object>) specs3.get(spec);
+            if (b == null) {
+                problems.add("/3 drops the specialisation " + spec);
+                continue;
+            }
+            if (!Objects.equals(a.get("why"), b.get("why"))) problems.add(spec + ": why differs");
+            if (!((List<String>) a.get("skills")).stream().map(nameOf).toList().equals(b.get("skills")))
+                problems.add(spec + ": skills differ: /2 " + a.get("skills") + ", /3 " + b.get("skills"));
+        }
+        // the per-skill pin /2 serves: its SKILL.md and every supporting file in that directory
+        List<String> v2Paths = new java.util.ArrayList<>((List<String>) v2.get("common"));
+        for (Object spec : specs2.values()) {
+            v2Paths.addAll((List<String>) ((Map<String, Object>) spec).get("skills"));
+            v2Paths.addAll((List<String>) ((Map<String, Object>) spec).getOrDefault("files", List.of()));
+        }
+        Map<String, String> v2Sha = (Map<String, String>) v2.get("sha256");
+        Map<String, Map<String, String>> v2Pins = new java.util.TreeMap<>();
+        for (String path : v2Paths)
+            if (path.endsWith("/SKILL.md")) v2Pins.put(nameOf.apply(path), new java.util.TreeMap<>());
+        for (String path : v2Paths) {
+            String dir = path.substring(0, path.lastIndexOf('/'));
+            String owner = v2Paths.stream().filter(p -> p.equals(dir + "/SKILL.md")).map(nameOf).findFirst().orElseThrow();
+            v2Pins.get(owner).put(path, v2Sha.get(path));
+        }
+        Map<String, List<Map<String, Object>>> v3Versions = v3Versions(v3);
+        for (var pin : v2Pins.entrySet()) {
+            List<Map<String, Object>> versions = v3Versions.get(pin.getKey());
+            if (versions == null) {
+                problems.add(pin.getKey() + ": /2 serves it but /3 has no versions of it");
+                continue;
+            }
+            boolean found = false;
+            for (Map<String, Object> v : versions) {
+                if (!v2.get("revision").equals(v.get("revision"))) continue;
+                String at = pin.getKey() + "@" + v.get("version");
+                Map<String, String> files = new java.util.TreeMap<>();
+                for (Map<String, Object> f : (List<Map<String, Object>>) v.get("files"))
+                    files.put((String) f.get("path"), (String) f.get("sha256"));
+                if (!pin.getValue().equals(files)) problems.add(at + " disagrees with /2 at the same revision: " + files);
+                String unselectable = SkillRegistry.notSelectableReason(v);
+                if (unselectable != null) problems.add(at + " is /2's pin but /3 will not select it (" + unselectable
+                        + "); re-pin /2 in the same change");
+                found = true;
+            }
+            if (!found) problems.add(pin.getKey() + ": /2 pins revision " + v2.get("revision") + " but /3 has no version at it");
+        }
+        return problems;
+    }
+
+    @Test
+    void v2AndV3AgreeForEverySkillBothList() throws Exception {
+        assertEquals(List.of(), v2v3ParityProblems(v2Index(), v3Index()));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void v2v3ParityCatchesEachDisagreement_andAllowsAnAddedSpecialisation() throws Exception {
+        Map<String, Object> v2 = v2Index(), base = v3Index();
+        java.util.function.BiConsumer<String, java.util.function.Consumer<Map<String, Object>>> mustCatch = (why, edit) -> {
+            Map<String, Object> v3 = copy(base);
+            edit.accept(v3);
+            assertFalse(v2v3ParityProblems(v2, v3).isEmpty(), "parity must catch: " + why);
+        };
+        mustCatch.accept("a yanked /2 pin", v3 -> v3Versions(v3).get("load-audit-log").get(0).put("yanked", true));
+        mustCatch.accept("a /2 pin without evidence", v3 -> v3Versions(v3).get("load-audit-log").get(0).remove("evidence"));
+        mustCatch.accept("a different digest", v3 -> ((List<Map<String, Object>>) v3Versions(v3).get("add-a-node").get(0)
+                .get("files")).get(1).put("sha256", "0".repeat(64)));
+        mustCatch.accept("a dropped supporting file", v3 -> ((List<Map<String, Object>>) v3Versions(v3).get("add-a-node").get(0)
+                .get("files")).remove(1));
+        mustCatch.accept("another revision", v3 -> v3Versions(v3).get("guided-start").get(0).put("revision", "0".repeat(40)));
+        mustCatch.accept("a dropped specialisation", v3 -> ((Map<String, Object>) v3.get("specialisations")).remove("replay"));
+        mustCatch.accept("a skill moved out of common", v3 -> ((List<String>) v3.get("common")).remove("guided-start"));
+        Map<String, Object> added = copy(base);
+        ((Map<String, Object>) added.get("specialisations")).put("java",
+                Map.of("why", "the graph is authored in Java", "skills", List.of("fluxtion-java-graph")));
+        assertEquals(List.of(), v2v3ParityProblems(v2, added), "/3 may add a specialisation /2 does not have");
+    }
+
+    /** @return the exact bytes at a git revision, or null when the path does not exist there. */
+    private static byte[] gitShowBytes(String spec) throws Exception {
+        Process p = new ProcessBuilder("git", "show", spec).redirectErrorStream(false).start();
+        byte[] out = p.getInputStream().readAllBytes();
+        return p.waitFor() == 0 ? out : null;
+    }
+
+    private static String sha256(byte[] bytes) throws Exception {
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
     }
 }

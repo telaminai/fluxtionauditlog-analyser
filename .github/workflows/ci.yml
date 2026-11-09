@@ -100,9 +100,8 @@ jobs:
           python3 tools/test_m74_onboarding_integrity.py
       - name: Mutation policy and evidence tests (no mutation execution)
         run: |
-          python3 tools/test_mutation_shards.py
-          python3 tools/test_mutation_iteration.py
-          python3 tools/test_project_chart_review.py
+          python3 tools/pre_push_checks.py
+          python3 tools/test_pre_push_checks.py
       # M72 L0: the token-split tables are committed evidence; their classifier, tier and phase rules are pinned
       # on synthetic transcripts (no real transcript, key or network is read).
       - name: Token-split scorer tests (M72 L0)
