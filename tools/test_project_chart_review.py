@@ -48,6 +48,19 @@ class GateTest(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'chart-adapter'):
                 gate.selected_cases(None, root)
 
+    def test_an_ambiguous_anchor_is_rejected_before_any_run(self):
+        case = next(c for c in gate.CASES if c[0] == 'ups1-r2-typed-grammar-not-exempt')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / case[1]
+            path.parent.mkdir(parents=True)
+            original = (ROOT / case[1]).read_text()
+            path.write_text(original + '\n' + case[2])
+            with self.assertRaisesRegex(AssertionError, 'mutation anchor.*ups1-r2-typed-grammar-not-exempt.*2'):
+                gate.selected_cases([case[0]], root)
+            path.write_text(original)
+            self.assertEqual([case], gate.selected_cases([case[0]], root))
+
     def test_a_control_naming_a_missing_test_is_rejected_before_any_run(self):
         # 2026-11-03: a renamed test left its control naming the old method; the shard's baseline failed on main
         renamed = ('x', 'site', 'old', 'new',
