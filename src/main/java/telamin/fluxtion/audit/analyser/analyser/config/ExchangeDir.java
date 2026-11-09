@@ -149,12 +149,17 @@ public record ExchangeDir(String dir, String source, String refusal, boolean pro
 
     /**
      * #182: resolve an assistant write's {@code requested} path against the exchange policy, for a write about to happen.
-     * The one place a guarded write finds, and if need be makes, the project's default directory.
+     * The one place a guarded write finds, and if need be makes, the project's default directory — and only once the
+     * guard has ACCEPTED the write: a refused write leaves no new folder in the person's repository. The guard resolves
+     * a directory that is not there yet (it canonicalises the nearest existing ancestor), so the answer is the same
+     * before and after the folder is made.
      */
     public static telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.Resolved resolveWrite(AppConfig c, String requested,
             java.util.function.Consumer<String> created) {
-        return telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(requested, c != null && c.assistantExports,
-                forWrite(c, created).dir());
+        var resolved = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(requested,
+                c != null && c.assistantExports, of(c).dir());
+        if (resolved.ok()) forWrite(c, created);
+        return resolved;
     }
 
     /** As {@link #forWrite(AppConfig)}, telling {@code created} (with the directory) when this write made it. */
