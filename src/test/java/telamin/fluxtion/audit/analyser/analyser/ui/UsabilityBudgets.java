@@ -44,6 +44,11 @@ import java.util.Map;
  *   <li>S1 222 → 224: RAISED by two. The first-run block's button says what it does for the preselected choice
  *       (<i>Check Claude Code</i>, 3 words, where <i>Continue</i> was 1).</li>
  * </ul>
+ *
+ * <p>Tightened by the onboarding prototype (PR #213, 2026-11-09): T6 4 → 3 acts. The start page's one <i>Connect another
+ * AI client</i> opens Screen 2b (it replaces <i>Your own AI client</i> + <i>Set up my client</i>), measured at 3 acts on
+ * the CI runner; the switch-first route from the same button takes 4, so the budget keeps catching it. S1 (Linux)
+ * 242 → 226: see {@link #S1_WORDS_LINUX}.
  */
 final class UsabilityBudgets {
 
@@ -52,7 +57,7 @@ final class UsabilityBudgets {
 
     /** Acts per task (clicks + keys + drags + scrolls), at most. */
     static final Map<String, Integer> ACTS = Map.of(
-            "T1", 6, "T2", 5, "T3", 1, "T4", 1, "T4c", 0, "T5", 5, "T6", 4, "T7", 1, "T8", 1,
+            "T1", 6, "T2", 5, "T3", 1, "T4", 1, "T4c", 0, "T5", 5, "T6", 3, "T7", 1, "T8", 1,
             "A2", 10);
 
     /**
