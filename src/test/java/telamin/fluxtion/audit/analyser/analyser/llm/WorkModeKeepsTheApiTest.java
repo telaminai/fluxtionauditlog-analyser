@@ -89,8 +89,10 @@ class WorkModeKeepsTheApiTest {
             // stranger authoring trial (2026-10-25): the instructions gained McpBridge.FIRST_MOVE (r2: plus its flag step), and only that;
             // FirstMoveApiDeltaTest proves removing it gives the earlier pin (fdcf8b03…) back.
             // Onboarding arm C (2026-11-09): then gained NewProjectRoute.INSTRUCTIONS, and only that;
-            // NewProjectApiDeltaTest proves removing it gives the pin before it (6a241aab…) back
-            Map.entry("McpBridge.INSTRUCTIONS", "c554e1ca103259d9daeef6cc292b68eff96d7af314a8110bb4fa409e3d6058ac"),
+            // NewProjectApiDeltaTest proves removing it gives the pin before it (6a241aab…) back.
+            // Facts, not orders (2026-11-09 benchmark): that section rewritten in the third person, the starter named as
+            // the blank Java project; only NewProjectRoute.INSTRUCTIONS moved (was c554e1ca…), the delta still holds
+            Map.entry("McpBridge.INSTRUCTIONS", "7eec6c6c1801630cfbebe3a99a0bbd201dced2a0b23ddaec536454bf7637fce2"),
             Map.entry("PromptBuilder.inProcessActionManifest", "edbf0498f259e609e7e7b8f03eaad26106df929d008e9232fc31001899a14a46"),
             Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
             Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),
