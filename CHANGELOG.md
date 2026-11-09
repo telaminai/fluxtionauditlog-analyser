@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.42.3] - 2026-11-09
+
 ### Fixed
 
 - A profile reload (*Reload* on the banner, or `open {project, reload: true}`) that changes the source roots now refreshes Design discovery: definitions under the new roots are found, and those found only under the old roots are no longer offered. A discovery that began before the reload is not shown when it finishes. The open log and graph stay open.
