@@ -137,6 +137,14 @@ class BundleFlagsTest {
     }
 
     @Test
+    @DisplayName("the old flags are stripped whole: a hand-edited continuation line goes with its key, other lines stay")
+    void strippingTakesContinuationLines() {
+        String text = "# kept comment\ntheme=dark\n  bundleFlag.0.note=first \\\n    second\nbundleFlag.0.record=0\n"
+                + "tail=a\\\\\nlast=b";
+        assertEquals("# kept comment\ntheme=dark\ntail=a\\\\\nlast=b", BundleFlags.withoutFamily(text));
+    }
+
+    @Test
     @DisplayName("an excerpt shifts each flag onto the excerpt's numbering, and names a flag outside it as left out")
     void anExcerptShiftsAndLeavesOut() {
         List<String> leftOut = new ArrayList<>();

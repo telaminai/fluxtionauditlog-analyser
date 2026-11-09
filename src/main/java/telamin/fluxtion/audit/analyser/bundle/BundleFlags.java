@@ -89,6 +89,9 @@ public final class BundleFlags {
      * session's; the flags are the session's too, so they are taken at the same moment (EB.F11).
      */
     public static String append(String settingsText, List<Flag> flags) {
+        // the settings text keeps the on-disk profile's unknown keys, so a received bundle's flags are still in it: they
+        // are the OLD flags, and merging them would bring back a removed flag or a stale fix under a reused index
+        settingsText = withoutFamily(settingsText);
         if (flags.isEmpty()) return settingsText;
         Properties p = new Properties();
         write(p, flags);
@@ -101,6 +104,31 @@ public final class BundleFlags {
         StringBuilder out = new StringBuilder(settingsText);
         if (!settingsText.isEmpty() && !settingsText.endsWith("\n")) out.append('\n');
         for (String line : w.toString().split("\n")) if (!line.startsWith("#") && !line.isBlank()) out.append(line).append('\n');
+        return out.toString();
+    }
+
+    /**
+     * {@code text} with every {@value #FAMILY} entry removed, continuation lines included; every other line, comments
+     * and blank lines too, is kept exactly as it was.
+     */
+    static String withoutFamily(String text) {
+        if (text == null || text.isEmpty()) return text;
+        StringBuilder out = new StringBuilder(text.length());
+        boolean dropping = false;
+        boolean continued = false;
+        for (String line : text.split("(?<=\n)")) {
+            String body = line.endsWith("\n") ? line.substring(0, line.length() - 1) : line;
+            if (body.endsWith("\r")) body = body.substring(0, body.length() - 1);
+            if (!continued) {
+                String lead = body.stripLeading();
+                dropping = lead.startsWith(FAMILY + ".");
+            }
+            int slashes = 0;
+            for (int i = body.length() - 1; i >= 0 && body.charAt(i) == '\\'; i--) slashes++;
+            boolean comment = !continued && (body.stripLeading().startsWith("#") || body.stripLeading().startsWith("!"));
+            continued = !comment && slashes % 2 == 1;
+            if (!dropping) out.append(line);
+        }
         return out.toString();
     }
 
