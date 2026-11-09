@@ -87,8 +87,10 @@ class WorkModeKeepsTheApiTest {
             Map.entry("McpTools.list", "bfdb1203d7486c5ff0cf1e6d19b8648c5cbac2d8203cee6d8c8c880cf0901872"),
             Map.entry("McpTools.hostedList", "413f8954eb879f9e0e1e0077db9701a965a4f01aff63c23f8a52675ce8e46885"),
             // stranger authoring trial (2026-10-25): the instructions gained McpBridge.FIRST_MOVE (r2: plus its flag step), and only that;
-            // FirstMoveApiDeltaTest proves removing it gives the earlier pin (fdcf8b03…) back
-            Map.entry("McpBridge.INSTRUCTIONS", "6a241aab08422f281cd37c5d487238d96ef97c9ac09bfda0d59653eb0c527bb3"),
+            // FirstMoveApiDeltaTest proves removing it gives the earlier pin (fdcf8b03…) back.
+            // Onboarding arm C (2026-11-09): then gained NewProjectRoute.INSTRUCTIONS, and only that;
+            // NewProjectApiDeltaTest proves removing it gives the pin before it (6a241aab…) back
+            Map.entry("McpBridge.INSTRUCTIONS", "c554e1ca103259d9daeef6cc292b68eff96d7af314a8110bb4fa409e3d6058ac"),
             Map.entry("PromptBuilder.inProcessActionManifest", "edbf0498f259e609e7e7b8f03eaad26106df929d008e9232fc31001899a14a46"),
             Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
             Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),
