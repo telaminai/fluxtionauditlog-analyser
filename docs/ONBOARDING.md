@@ -7,7 +7,7 @@ A one-page orientation to this repo. Read this first, then dive into the specs f
 A **Java 21 + Swing desktop app** that reads **Fluxtion event-audit logs** — the per-cycle execution
 records a Mongoose/Fluxtion `EventProcessor` emits — and lets you browse, filter, summarise, **graph**,
 navigate to source, and **explain** them with an LLM. Index-first, so it stays fast on multi-GB logs.
-One UI dependency (FlatLaf); everything else is the JDK.
+FlatLaf supplies the UI; JNA supplies protected credential-file operations on macOS and Windows.
 
 - Entry point: `telamin.fluxtion.audit.analyser.Main`
 - Maven coordinates: `com.telamin:fluxtion-auditlog-analyser` (pom `<version>` is a `0.0.0-SNAPSHOT`
@@ -54,7 +54,7 @@ intentionally failing deferred full-gate check is not permission to merge. The
 | `llm` | prompt building + the two-way assistant action loop |
 | `net` | localhost REST transport for the assistant actions |
 | `config` | `AppConfig`, `ConfigStore`, `GraphSpec`, `SettingsShare` (export/import) |
-| `account` | CA-1 compiler account: device sign-in, usage read, revoke; OS credential stores. The bearer never leaves the package |
+| `account` | CA-1 compiler account: device sign-in, usage read, revoke; shared machine credential store. The bearer never leaves the package |
 | `export` | CSV/YAML record export |
 | `core` | `Background` (off-EDT work) |
 | `ui` | all Swing (`MainFrame`, panels, dialogs, `ChartPanel`, theming) |

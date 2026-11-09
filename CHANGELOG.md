@@ -6,7 +6,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-- Clarify that compiler account details describe the Analyser sign-in, separate from Maven; qualify inactive account overrides.
+- Share compiler sign-in with Maven through the protected machine store, with explicit migration, replacement confirmation and concurrent-change protection.
+
+- Show server-verified compiler account details and diagnostic support identifiers; qualify inactive account overrides and distinguish the account view from external build overrides.
 
 
 ## [1.41.2] - 2026-11-07

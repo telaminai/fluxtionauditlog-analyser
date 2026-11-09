@@ -244,7 +244,7 @@ attempt only when that receipt says the compiler ran and its input checks still 
 
 The default remote route requires compiler sign-in. Sign the build in with
 `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login` (in CI, set `FLUXTION_API_TOKEN`, the token as a secret), never by committing a credential.
-**AI ▸ Compiler account…** shows the account; it does not sign builds in. An
+**AI ▸ Compiler account…** shows the account; it shares the machine sign-in with builds; environment and property overrides can select another account. An
 installed local provider needs no sign-in; a custom HTTP host is not automatically a local provider.
 
 The screenshots show download, design rendering and XML validation. The separate

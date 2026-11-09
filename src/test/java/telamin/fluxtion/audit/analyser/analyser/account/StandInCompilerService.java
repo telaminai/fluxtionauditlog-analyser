@@ -65,6 +65,7 @@ public final class StandInCompilerService implements AutoCloseable {
     public volatile String usageBody = PLANS_USAGE_BODY;
     public volatile int revokeStatus = 204;
     public volatile String meQuery;
+    public Runnable beforeMe = () -> {};
     public volatile String meBody = "{\"userId\":\"user-demo\",\"selectedAccount\":\"acct-demo\",\"accounts\":["
             + "{\"accountId\":\"acct-other\",\"personal\":false,\"role\":\"member\"},"
             + "{\"accountId\":\"acct-demo\",\"personal\":true,\"role\":\"administrator\"}]}";
@@ -155,6 +156,7 @@ public final class StandInCompilerService implements AutoCloseable {
                 out = status == 200 ? usageBody : "{\"error\":\"unauthorized\"}";
             }
             case "/v1/me", "/v1/credentials" -> {
+                if (path.equals("/v1/me")) beforeMe.run();
                 boolean ok = ("Bearer " + BEARER).equals(ex.getRequestHeaders().getFirst("Authorization"));
                 status = ok ? 200 : 401;
                 out = !ok ? "{\"error\":\"unauthorized\"}" : path.equals("/v1/me") ? meBody : credentialList();

@@ -39,6 +39,16 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  * labels, fields, buttons, tooltips — carries the device code or the credential.
  */
 class CompilerAccountFrameTest {
+    private String previousVerificationOrigin;
+    @org.junit.jupiter.api.BeforeEach void trustFixtureOrigin() {
+        previousVerificationOrigin = System.getProperty("fluxtion.login.verificationOrigin");
+        System.setProperty("fluxtion.login.verificationOrigin", "https://compiler.example.com");
+    }
+    @org.junit.jupiter.api.AfterEach void restoreVerificationOrigin() {
+        if (previousVerificationOrigin == null) System.clearProperty("fluxtion.login.verificationOrigin");
+        else System.setProperty("fluxtion.login.verificationOrigin", previousVerificationOrigin);
+    }
+
 
     private StandInCompilerService service;
     private final List<URI> opened = new CopyOnWriteArrayList<>();
@@ -76,6 +86,22 @@ class CompilerAccountFrameTest {
             dialog.confirm = (title, question) -> true;
             dialog.setVisible(true);
         });
+    }
+
+    @Test
+    void closeDuringVerificationNeverSavesCredential() throws Exception {
+        java.util.concurrent.CountDownLatch verification = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        service.beforeMe = () -> { verification.countDown(); try { release.await(10,java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } };
+        service.token("approved"); AppConfig config = new AppConfig(); config.compilerServiceUrl = service.base();
+        open(config); await(() -> text().contains("Not connected."),"initial state");
+        onEdt(() -> button(CompilerAccountDialog.CONNECT).doClick());
+        assertTrue(verification.await(5,java.util.concurrent.TimeUnit.SECONDS));
+        onEdt(dialog::dispose);
+        onEdt(() -> {}); // drain windowClosed and its cancelSignIn
+        release.countDown();
+        await(() -> service.requests().stream().anyMatch(r -> r.method().equals("DELETE")), "issued credential cleanup");
+        assertNull(store.kept, "closing during verification must not save");
     }
 
     @Test
@@ -161,7 +187,7 @@ class CompilerAccountFrameTest {
         await(() -> service.count("/v1/usage") > reads && "free".equals(after("Plan")), "usage is read from the issuer");
         onEdt(() -> {
             assertEquals(service.base(), address().getText(), "the field names the service the credential belongs to");
-            assertFalse(address().isEditable());
+            assertTrue(address().isEditable(), "service replacement is explicit; account requests still use the stored issuer");
         });
     }
 
@@ -255,7 +281,7 @@ class CompilerAccountFrameTest {
         // the layout's promises (owner polish, 2026-10-26): Close is the default, never a destructive action; Connect
         // is offered only when not connected; every action fits inside the dialog at its opening size
         onEdt(() -> assertEquals("Close", dialog.getRootPane().getDefaultButton().getText()));
-        assertFalse(button(CompilerAccountDialog.CONNECT).isVisible(), "connected: Connect is not offered");
+        assertTrue(button("Replace sign-in…").isVisible(), "connected: replacement requires explicit confirmation");
         for (String b : List.of(CompilerAccountDialog.REFRESH, CompilerAccountDialog.DISCONNECT, CompilerAccountDialog.REVOKE))
             assertInsideTheDialog(button(b));
         assertTrue(text().contains(CompilerAccountDialog.DELETION_NOTE));
@@ -491,6 +517,7 @@ class CompilerAccountFrameTest {
     private JTextComponent address() {
         List<JTextComponent> fields = new ArrayList<>();
         collectFields(dialog.getContentPane(), fields);
+        fields.removeIf(field -> !(field instanceof javax.swing.JTextField));
         assertEquals(1, fields.size());
         return fields.get(0);
     }

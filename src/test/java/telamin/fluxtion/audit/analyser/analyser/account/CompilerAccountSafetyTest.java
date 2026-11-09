@@ -119,7 +119,7 @@ class CompilerAccountSafetyTest {
     }
 
     @Test
-    void onlyTheDialogAndItsMenuItemReachTheAccountPackage() throws Exception {
+    void onlyExplicitAccountEntrypointsReachTheAccountPackage() throws Exception {
         List<Path> users;
         try (Stream<Path> all = Files.walk(MAIN)) {
             users = all.filter(p -> p.toString().endsWith(".java"))
@@ -132,8 +132,8 @@ class CompilerAccountSafetyTest {
                         }
                     }).map(p -> MAIN.relativize(p)).sorted().toList();
         }
-        assertEquals(List.of(Path.of("analyser/ui/CompilerAccountDialog.java"), Path.of("analyser/ui/MainFrame.java")), users,
-                "a new reader of the compiler account (context, a report, a bundle, a panel) is a decision: route it "
+        assertEquals(List.of(Path.of("analyser/mcp/McpBridge.java"), Path.of("analyser/ui/CompilerAccountDialog.java"), Path.of("analyser/ui/MainFrame.java")), users,
+                "Only the dialog and the explicitly authorised session-owned MCP sign-in boundary may access the account package; other readers must route "
                         + "through the session (rule 9) and keep the credential out of it");
         String main = Files.readString(MAIN.resolve("analyser/ui/MainFrame.java"));
         assertEquals(1, main.split("CompilerAccountDialog", -1).length - 1, "MainFrame only opens the dialog");
@@ -143,7 +143,7 @@ class CompilerAccountSafetyTest {
 
     @Test
     void theCredentialCannotReachAProfileOrAShareExport_andTheAddressIsMachineTier() throws Exception {
-        ProtectedFileStore store = new ProtectedFileStore(temp.resolve(".fluxtion-analyser").resolve(ProtectedFileStore.FILE_NAME));
+        ProtectedFileStore store = new ProtectedFileStore(temp.toRealPath().resolve(".fluxtion-analyser").resolve(ProtectedFileStore.FILE_NAME));
         store.save(CredentialStoreTest.credential());
         AppConfig config = new AppConfig();
         config.compilerServiceUrl = "https://compiler.example.com";

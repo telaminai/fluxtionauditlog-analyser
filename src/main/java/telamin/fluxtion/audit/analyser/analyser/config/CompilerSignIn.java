@@ -12,8 +12,8 @@ package telamin.fluxtion.audit.analyser.analyser.config;
  * and runtime (in-process) builds all read the same stored login. Signed out, a build stops with FLX-1023 before any
  * connection. {@code FLUXTION_COMPILER_URL} is needed only for a compiler other than the managed one.
  *
- * <p><b>Not the in-app sign-in.</b> AI ▸ Compiler account… keeps its own credential in the OS credential store and shows
- * the account (plan, usage, signed-in email); it does not sign builds in. Sharing one store is tracker item 4.
+ * <p>AI ▸ Compiler account… shares the single machine credential file with builds. Environment and explicit
+ * builder-property overrides can still select a different account; the account view cannot certify an external build.
  */
 public final class CompilerSignIn {
 

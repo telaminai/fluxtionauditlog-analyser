@@ -50,6 +50,7 @@
       had one, which is why they are all written here rather than in a spec nobody reads at build time.
     -->
     <dependencies>
+        <dependency><groupId>net.java.dev.jna</groupId><artifactId>jna</artifactId><version>5.17.0</version></dependency>
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>

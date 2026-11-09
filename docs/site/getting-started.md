@@ -78,7 +78,7 @@ If you later **regenerate a Fluxtion processor**, that build needs **compiler si
 the build in once per machine, in a terminal:
 `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
 (in a project whose pom declares the plugin, `./mvnw fluxtion:login`
-works too); in CI, set `FLUXTION_API_TOKEN`, plus `FLUXTION_COMPILER_URL` only for a compiler other than the managed one. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it does not sign builds in yet — the connection described below is the account view.
+works too); in CI, set `FLUXTION_API_TOKEN`, plus `FLUXTION_COMPILER_URL` only for a compiler other than the managed one. **AI ▸ Compiler account…** shows your compiler account (plan, usage, signed-in email); it shares the machine sign-in with builds, while environment and property overrides can select another account.
 The old Fluxtion API key route is closed. Existing generated processors and the bundled demo run without signing in.
 
 ## Connect a compiler account
@@ -96,14 +96,16 @@ sign-in page and shows the code to enter there. While you approve it, it checks 
 asks, slows down when told to, and stops when the code expires; **Cancel sign-in**, or closing the dialog, stops it
 with nothing stored. It never shows or logs the device code, or the credential it receives.
 
-Once you approve, the credential is kept in your operating system's credential store: the macOS Keychain, or the
-Secret Service keyring on Linux (through `secret-tool`). Where neither is available (Windows, or Linux without
-`secret-tool`), it is kept in `~/.fluxtion-analyser/compiler-account.credential`, a file only your account can read.
-That protects it from other users of the machine, not from programs you run yourself. The same is true of the
-Keychain entry: it is written by the system's `security` tool, so other programs running as you can read it through
-that tool without a prompt. The credential never reaches a
-command line, a project, a settings export, a report, a walk, an evidence bundle or an assistant's `context`. It also
-remembers which service issued it, so changing the address later never sends it anywhere else.
+Once you approve and the service verifies the account, the credential is kept in the owner-only shared machine
+file `~/.fluxtion/credentials`, used by both the Analyser and builds. Existing Analyser users are offered a choice
+when migrating from the previous OS store. If the two stores disagree, choose which account to keep; there is no
+silent fallback. **Replace sign-in…** asks before replacing the current machine sign-in and revoking the old one.
+**Refresh** reloads changes made by Maven and verifies the current account with its issuing service.
+
+The file protects the credential from other users, not from programs running as you. It never enters a command line,
+a project, a settings export, a report, an evidence bundle or the assistant's audit `context`. Environment and
+explicit build-property overrides can still make a build use a different account. Always use the failed build's
+own identifiers when asking support to investigate it.
 
 The sign-in names this device "Fluxtion analyser on" followed by your machine's name (letters, digits, spaces and
 `._:-` only, at most 64 characters), so you can tell your machines apart later.
@@ -135,8 +137,8 @@ app yet; ask the service's support.
 ### Find the account and request behind a refused build
 
 The **Account** row is the account ID for this Analyser connection. **Copy details** includes that ID, the
-compiler service and effective limits without the credential or email. Maven and CI use a separate sign-in;
-connecting this dialog does not sign a build in or prove that it uses the same account.
+compiler service and effective limits without the credential or email. Maven and CI can override the shared sign-in;
+viewing this dialog alone does not prove which account an external build uses.
 
 For a CLI build, use a Maven plugin version containing the new `account` goal (not released 1.3.4):
 
