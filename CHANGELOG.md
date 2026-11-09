@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.42.2] - 2026-11-09
+
 ### Added
 
 - `open {project, reload: true}` re-reads the open project's profile from disk, replacing the in-memory project settings (the reply says what it replaced and whether unsaved edits were discarded); the log and graph stay open (#177).
