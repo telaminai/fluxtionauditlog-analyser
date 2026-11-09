@@ -12232,13 +12232,13 @@ public final class MainFrame extends JFrame {
     private boolean admitQuit() {
         if (project == null || !project.hasProject()) return true;
         var left = project.leaveForQuit();
-        return left.mayLeave() || resolveHeldLeave(left.reason(), "Quit");
+        return left.mayLeave() || resolveHeldLeave(left.reason());
     }
 
     /** F1: ask after the transition that was held; {@code retry} repeats it once the edits are saved or discarded. */
     private void offerHeldLeave(String reason, Runnable retry) {
         SwingUtilities.invokeLater(() -> {
-            if (resolveHeldLeave(reason, "Project") && retry != null) retry.run();
+            if (resolveHeldLeave(reason) && retry != null) retry.run();
         });
     }
 
@@ -12248,7 +12248,7 @@ public final class MainFrame extends JFrame {
      *
      * @return true when the edits were saved elsewhere or discarded, so leaving may go ahead
      */
-    private boolean resolveHeldLeave(String reason, String title) {
+    private boolean resolveHeldLeave(String reason) {
         var chooser = heldLeaveChooser;
         if (chooser == null && !offersEnabled) {
             System.err.println("[analyser] " + reason);    // no one to ask: hold, never discard
@@ -12256,7 +12256,7 @@ public final class MainFrame extends JFrame {
         }
         String asked = reason;
         while (true) {
-            HeldLeaveAnswer answer = chooser != null ? chooser.apply(asked) : askHeldLeave(asked, title);
+            HeldLeaveAnswer answer = chooser != null ? chooser.apply(asked) : askHeldLeave(asked);
             if (answer == null) return false;
             if (answer.discard()) {
                 project.discardUnsaved();
@@ -12273,14 +12273,14 @@ public final class MainFrame extends JFrame {
     }
 
     /** F1: the real question — save the edits to another file, discard them, or keep the project open. */
-    private HeldLeaveAnswer askHeldLeave(String reason, String title) {
+    private HeldLeaveAnswer askHeldLeave(String reason) {
         Object[] options = {"Save edits to another file…", "Discard my edits", "Keep the project open"};
         while (true) {
-            int choice = JOptionPane.showOptionDialog(this, UiText.inert(reason), title, JOptionPane.DEFAULT_OPTION,
+            int choice = JOptionPane.showOptionDialog(this, UiText.inert(reason), "Unsaved project edits", JOptionPane.DEFAULT_OPTION,
                     JOptionPane.WARNING_MESSAGE, null, options, options[0]);
             if (choice == 1) {
                 int sure = JOptionPane.showConfirmDialog(this, "Discard your unsaved project edits?",
-                        title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                        "Unsaved project edits", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
                 if (sure == JOptionPane.YES_OPTION) return new HeldLeaveAnswer(null, true);
                 continue;
             }
