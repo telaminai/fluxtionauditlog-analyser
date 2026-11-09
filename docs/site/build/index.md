@@ -32,7 +32,7 @@ flowchart LR
 
 | Page | What it covers |
 |---|---|
-| [Start with Claude](../start-with-claude.md) | Six illustrated steps from launch to your first message |
+| [Start with Claude](../start-with-claude.md) | Three illustrated steps from launch to your first message |
 | [Set up a project with Claude](set-up-with-claude.md) | Point Claude Code in the analyser at your code's folder. It proposes the set-up, and you answer each item |
 | [Check your criteria against the evidence](validate-intent.md) | What exists today to check a criterion on a recorded run, and what is planned |
 | [Spring authoring](../spring-authoring.md) | Agree a design in conversation, turn it into a Spring XML project, then inspect the run |

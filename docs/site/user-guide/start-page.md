@@ -68,7 +68,8 @@ planned and not built.
 
 !!! info "Simplified first-run welcome: prototype"
     On a fresh profile, the onboarding prototype shows **Build with Claude Code**, **Explore a demo** and
-    **Connect another AI client** in place of the numbered prompt list until setup is chosen or dismissed.
+    **Connect another AI client** below the question box. They stay on the start page after setup is chosen or
+    dismissed; only **Not now** and the first-visit footnote disappear.
     [Start with Claude](../start-with-claude.md) walks through it with screenshots. The published release still uses the
     first-run AI question described below.
 
