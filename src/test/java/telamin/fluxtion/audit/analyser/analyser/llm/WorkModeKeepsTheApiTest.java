@@ -72,22 +72,27 @@ class WorkModeKeepsTheApiTest {
     // before it back (its BEFORE), and holds the pins after (its AFTER)
     // owner-approved M80 metadata: the node spotlight synonym and Java-builder source descriptions only.
     // M80DesignApiDeltaTest independently retains all eleven previous pins and undoes only those literal edits.
-    // #177: open {reload} — one optional parameter and two manifest lines — moved the two schema maps, the two tool
-    // lists and the in-process manifest; ProjectReloadApiDeltaTest proves undoing exactly that gives the pins before it
-    // back (its BEFORE, the combined M80 pins below were), and holds these (its AFTER)
+    // flag kind default change: flag's kind gained the neutral 'note', now the default for a new finding — the
+    // two schema maps, the two tool lists and the in-process manifest moved; FlagKindApiDeltaTest proves undoing exactly
+    // that gives the earlier pins back (its BEFORE), and every older *ApiDeltaTest peels it first
+    // #177 (the latest layer, after the flag-kind change): open {reload} — one optional parameter and two manifest lines —
+    // moved the same five surfaces again; ProjectReloadApiDeltaTest proves undoing exactly that gives the flag-kind pins
+    // back (its BEFORE = FlagKindApiDeltaTest.AFTER), and holds these (its AFTER)
     static final Map<String, String> PINNED = Map.ofEntries(
             // COMBINED (M80 PR2's node synonym + this branch's line-range grammar), recomputed for the merged text —
             // SpotlightLineRangeApiDeltaTest peels this branch's text off first, then M80DesignApiDeltaTest's, landing
             // on the pins the chain held before either (StarterProposeApiDeltaTest.BEFORE / GraphRestoreApiDeltaTest.BEFORE
             // / SourceTextApiDeltaTest.BEFORE, all unchanged).
-            Map.entry("VerbSchemas.all", "0a8bd7ec27c442ff27f7d676b63ac103b1009db980c82d06dddcf21dad7bf9c4"),
+            Map.entry("VerbSchemas.all", "bff18ff3b6c2b9cb2154d2a6d5ccba4f6278e2512174045aed1fa861966ed1a1"),
             // Option 2 (owner, 2026-10-18): the HOSTED propose gained the starter kind — never an external client's
             // surface (propose is hosted-only); StarterProposeApiDeltaTest proves undoing it gives the earlier pins back
-            Map.entry("VerbSchemas.hosted", "633f05a2989abef2f8eec294f5210d9facdd3e5d0f730b57d6d41e350644ad07"),
-            Map.entry("McpTools.list", "78b434f6a321c5023d272ab92a3fe104f256e6d71099397b5223b4d8d426390f"),
-            Map.entry("McpTools.hostedList", "04f6619bbcab56479e16e6659576c193b502eab286eb49763c3cb0794a4acd85"),
-            Map.entry("McpBridge.INSTRUCTIONS", "fdcf8b03dab8d45d9c197d230961a41518faa0319b6f5a9cc6a51662cfdf144a"),
-            Map.entry("PromptBuilder.inProcessActionManifest", "150eebe3666980ae31f7ef9ae094dcd69f0f52785eeedd3feefa8bc09cf2626d"),
+            Map.entry("VerbSchemas.hosted", "69d31b6eba664d46b40cfce3c050bd5599488530e1b67ffa8c4b081bca4edd84"),
+            Map.entry("McpTools.list", "1c944ccb7e43652bb379b6ae0c331890fc9caef8689dc57f23ad26ef19b18fbb"),
+            Map.entry("McpTools.hostedList", "abcb97f9a66d3874e3b258cde899c45131549e9d46848317050781abf4505587"),
+            // stranger authoring trial (2026-10-25): the instructions gained McpBridge.FIRST_MOVE (r2: plus its flag step), and only that;
+            // FirstMoveApiDeltaTest proves removing it gives the earlier pin (fdcf8b03…) back
+            Map.entry("McpBridge.INSTRUCTIONS", "6a241aab08422f281cd37c5d487238d96ef97c9ac09bfda0d59653eb0c527bb3"),
+            Map.entry("PromptBuilder.inProcessActionManifest", "99046876c6e3ff88a0368eecbc6c5300f056e0ec4e4fcb085e0b113b43a44441"),
             Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
             Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),
             Map.entry("context.handoff derived, none", "1623b4af915aef11455cfc7a7587804fa90504f869dde67de3f5177393a04679"),

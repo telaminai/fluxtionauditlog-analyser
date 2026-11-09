@@ -3,7 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.session;
 import java.util.List;
 
 /**
- * Option 2 (owner, 2026-10-18): a project from one of the analyser's starter templates, as {@code starterProject} decided
+ * Option 2: a project from one of the analyser's starter templates, as {@code starterProject} decided
  * it — the catalogue the analyser last read, and the one starter being created. The review row, the combined review,
  * {@code context.starters} and the status line RENDER this and decide nothing.
  *
@@ -13,7 +13,8 @@ import java.util.List;
  * @param catalogue  {@code not-read} (nothing has asked yet — {@code context} never fetches), {@code read} or
  *                   {@code unreachable}
  * @param entriesRef the frame's copy of the entries read (0: none)
- * @param entries    the entries, Spring first (owner, 2026-10-18), each Spring one recommended
+ * @param entries    the entries in the order every starter list shows (owner, 2026-11-07): the Java-authoring
+ *                   starter first, then the other recommended ones, then the rest
  * @param request    the starter being created (0: none)
  * @param origin     {@code PROPOSAL} (Claude's starter item, confirmed in the review) or {@code MENU} (Project ▸ New
  *                   project from template…), "" for none
@@ -23,7 +24,6 @@ import java.util.List;
  *                   {@code DECLINED}, {@code CANCELLED}, {@code FAILED}
  * @param idDigest   the starter's id digest
  * @param defaultsRef the template file's defaults, by reference (0 until read)
- * @param keyPresent a Fluxtion key file is on this machine (observed with the defaults)
  * @param dirRef     the folder the person chose for the row, by reference (0: none yet)
  * @param dirShown   that folder as {@code …/name}
  * @param dirVerdict what the folder is ({@link SessionEvents.StarterDirectoryObserved}), "" before it was observed
@@ -34,7 +34,7 @@ import java.util.List;
  * @param note       the analyser's own words about the last step, for the status line
  */
 public record StarterState(String catalogue, long entriesRef, List<Entry> entries, long request, String origin,
-                           String phase, String idDigest, long defaultsRef, boolean keyPresent, long dirRef,
+                           String phase, String idDigest, long defaultsRef, long dirRef,
                            String dirShown, String dirVerdict, String rootShown, List<String> vendored, List<String> kept,
                            boolean graphWatch, String note) {
 
@@ -58,7 +58,7 @@ public record StarterState(String catalogue, long entriesRef, List<Entry> entrie
     public static final String READ = "read";
     public static final String UNREACHABLE = "unreachable";
 
-    public static final StarterState IDLE = new StarterState(NOT_READ, 0, List.of(), 0, "", "IDLE", null, 0, false, 0,
+    public static final StarterState IDLE = new StarterState(NOT_READ, 0, List.of(), 0, "", "IDLE", null, 0, 0,
             null, "", null, List.of(), List.of(), false, "");
 
     /** The folder can receive a starter: it does not exist yet (its parent does), or it is an empty folder. */

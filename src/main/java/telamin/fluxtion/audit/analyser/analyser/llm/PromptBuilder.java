@@ -288,7 +288,7 @@ public final class PromptBuilder {
                 + "  goto   {byteOffset (+ file? on a rolled set) | recordIndex | at (epoch ms), reveal?} -> selects the record; reveal:true relaxes the\n"
                 + "          filter if the record is hidden (else the echo names which filter hides it)\n"
                 + "  flag   {byteOffsets[] | recordIndexes[], note?, fix?, kind?} -> bookmarks records so your findings are reviewable;\n"
-                + "          kind: fault (default) or confirmation; note/fix label Observation/Assessment for confirmation; omissions keep existing fields\n"
+                + "          kind: note (the default for a new finding; neutral), fault (wrong behavior) or confirmation (correct behavior); note/fix label Note/Assessment for note, Observation/Assessment for confirmation; omissions keep existing fields\n"
                 + "  spotlight {target, caption?} | {targets:[{target, caption?}], add?} | {clear:true, target?} -> dims the\n"
                 + "          window and cuts out what you are talking about, each with a one-line callout. Targets: "
                 + SpotlightVocabulary.TEXT + "\n"

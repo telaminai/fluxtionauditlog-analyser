@@ -18,12 +18,18 @@ class StarterProjectTest {
 
     static final String SPRING = "fluxtion-spring";
     static final String EMBEDDED = "fluxtion-embedded";
+    static final String JAVA = "java-authoring";
 
-    /** The catalogue as the frame reports it: Spring second in the catalogue, so the node's order is visible. */
+    /**
+     * The catalogue as the frame reports it, in an order no list should show: the Java-authoring starter last and the
+     * recommended Spring one after an unrecommended one, so the node's order is visible.
+     */
     static void catalogueRead(SessionDriver d) {
         d.post(new SessionEvents.StarterCatalogueObserved(0, true, 7, List.of(
                 new SessionEvents.StarterFacts(LocalAgentPosture.digest(EMBEDDED), "", "embedded", "interpreted", "run"),
-                new SessionEvents.StarterFacts(LocalAgentPosture.digest(SPRING), "spring", "embedded", "aot", "build"))));
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(SPRING), "spring", "embedded", "aot", "build", true),
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(JAVA), "java", "mongoose", "aot", "sign-in-build",
+                        true))));
     }
 
     /** A starter item as MainFrame.proposalFact makes it: Claude's words by reference, the id's digest to compare. */
@@ -44,22 +50,73 @@ class StarterProjectTest {
         OnboardingProposalTest.previewAll(d, a, false);
         var defaults = of(a, SessionEffects.ReadStarterDefaultsEffect.class);
         assertEquals(1, defaults.size(), "the template file is read at receipt");
-        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "spring", false, null));
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "spring", null));
         return d.snapshot().proposal().id();
     }
 
     @Test
-    @DisplayName("the catalogue: Spring first and recommended, the catalogue's order otherwise; not-read until something reads it")
-    void theCatalogueIsSpringFirst() {
+    @DisplayName("★ the catalogue (owner, 2026-11-07): the Java-authoring starter first, the other recommended next, then the rest; not-read until something reads it")
+    void theCatalogueIsJavaAuthoringFirst() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         assertEquals(StarterState.NOT_READ, d.snapshot().starter().catalogue(), "not read before anything asks");
         catalogueRead(d);
         var entries = d.snapshot().starter().entries();
         assertEquals(StarterState.READ, d.snapshot().starter().catalogue());
-        assertEquals(LocalAgentPosture.digest(SPRING), entries.get(0).idDigest(), "Spring first");
-        assertTrue(entries.get(0).recommended(), "and recommended, with no key found");
-        assertFalse(entries.get(1).recommended());
+        assertEquals(List.of(LocalAgentPosture.digest(JAVA), LocalAgentPosture.digest(SPRING), LocalAgentPosture.digest(EMBEDDED)),
+                entries.stream().map(StarterState.Entry::idDigest).toList(), "Java authoring, then Spring, then the rest");
+        assertEquals(List.of(true, true, false), entries.stream().map(StarterState.Entry::recommended).toList(),
+                "the Spring onboarding starter stays recommended, just not first");
+    }
+
+    @Test
+    @DisplayName("★ an older catalogue that lists the Java-authoring starter later, untagged, still shows it first and recommended")
+    void anOlderCatalogueStillShowsJavaAuthoringFirst() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        d.post(new SessionEvents.StarterCatalogueObserved(0, true, 7, List.of(
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest("analyser-bundle"), "spring", "mongoose", "aot", "none", true),
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(EMBEDDED), "", "embedded", "interpreted", "run"),
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(JAVA), "java", "mongoose", "aot", "sign-in-build"),
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(SPRING), "spring", "embedded", "aot", "build"))));
+        var entries = d.snapshot().starter().entries();
+        assertEquals(List.of(LocalAgentPosture.digest(JAVA), LocalAgentPosture.digest("analyser-bundle"),
+                        LocalAgentPosture.digest(EMBEDDED), LocalAgentPosture.digest(SPRING)),
+                entries.stream().map(StarterState.Entry::idDigest).toList());
+        assertEquals(List.of(true, true, false, false), entries.stream().map(StarterState.Entry::recommended).toList(),
+                "a Spring starter the catalogue does not tag for onboarding is no longer recommended");
+    }
+
+    @Test
+    @DisplayName("★ the Java-authoring starter opens with no Spring design to show, and says its first build generates the processor")
+    void theJavaAuthoringStarterOpensWithoutASpringDesign() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        d.post(new SessionEvents.StarterMenuRequested(1));
+        var read = of(a, SessionEffects.ReadStarterCatalogueEffect.class);
+        d.post(new SessionEvents.StarterCatalogueObserved(read.get(0).request(), true, 7, List.of(
+                new SessionEvents.StarterFacts(LocalAgentPosture.digest(JAVA), "java", "mongoose", "aot", "sign-in-build", true))));
+        d.post(new SessionEvents.StarterChosen(of(a, SessionEffects.ChooseStarterEffect.class).get(0).request(),
+                LocalAgentPosture.digest(JAVA)));
+        var defaults = of(a, SessionEffects.ReadStarterDefaultsEffect.class);
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "java", null));
+        var configure = of(a, SessionEffects.ConfigureStarterEffect.class);
+        d.post(new SessionEvents.StarterConfigured(configure.get(0).request(), true, 4, REFS.put("/work/java-app"),
+                "…/java-app", false));
+        long req = of(a, SessionEffects.DownloadStarterEffect.class).get(0).request();
+        d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/java-app"), "…/java-app", true, 9));
+        var vendor = of(a, SessionEffects.VendorSkillsEffect.class);
+        assertEquals("java", vendor.get(0).authoring(), "the skills step knows it is the Java-authoring starter");
+        d.post(new SessionEvents.SkillsVendored(req, List.of(), List.of("fluxtion-java-graph"), List.of(), null));
+        d.post(new SessionEvents.StarterDiscoveryObserved(req, "d", 5, true, 1, 1, 0));
+        d.post(new SessionEvents.StarterReviewAnswered(req, true, List.of(), List.of(), 0, "d"));
+        d.post(new SessionEvents.StarterProjectOpened(req, true, null));
+        assertEquals(0, of(a, SessionEffects.OpenStarterDesignEffect.class).size(), "no Spring design is looked for");
+        assertEquals(1, of(a, SessionEffects.ShowStarterCommandsEffect.class).size());
+        String note = d.snapshot().starter().note();
+        assertTrue(note.contains("built in Java") && note.contains("compiler sign-in"), note);
+        // RAPID-OFF: the note names the build sign-in that works (plugin 1.3.4), never a key
+        assertTrue(note.contains(telamin.fluxtion.audit.analyser.analyser.config.CompilerSignIn.LOGIN), note);
     }
 
     @Test
@@ -131,7 +188,7 @@ class StarterProjectTest {
         OnboardingProposalTest.previewAll(d, a, false);
         assertEquals("NONE", d.snapshot().proposal().create(), "a starter makes its own project: no empty-create row");
         var defaults = of(a, SessionEffects.ReadStarterDefaultsEffect.class).get(0);
-        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.request(), true, 3, "spring", false, null));
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.request(), true, 3, "spring", null));
         assertTrue(d.snapshot().proposal().awaitingPerson(), "the row is the person's to answer");
         // Yes, but no folder chosen: declined, nothing downloaded
         d.post(new SessionEvents.ProposalItemAnswered("p-1", "p-1.1", true));
@@ -144,7 +201,7 @@ class StarterProjectTest {
         d.post(new SessionEvents.ProposalReceived(2, start.generation(), REFS.put(""), List.of(starter(SPRING, null, false))));
         OnboardingProposalTest.previewAll(d, a, false);
         var defaults2 = of(a, SessionEffects.ReadStarterDefaultsEffect.class).get(1);
-        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults2.request(), true, 3, "spring", false, null));
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults2.request(), true, 3, "spring", null));
         d.post(new SessionEvents.StarterDestinationChosen("p-2", "p-2.1", REFS.put("/work/new-app"), "…/new-app"));
         assertTrue(d.snapshot().starter().destinationReady(), "an empty folder was observed");
         d.post(new SessionEvents.ProposalItemAnswered("p-2", "p-2.1", false));
@@ -357,7 +414,7 @@ class StarterProjectTest {
         assertEquals(1, choose.size());
         d.post(new SessionEvents.StarterChosen(choose.get(0).request(), LocalAgentPosture.digest(SPRING)));
         var defaults = of(a, SessionEffects.ReadStarterDefaultsEffect.class);
-        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "spring", true, null));
+        d.post(new SessionEvents.StarterDefaultsObserved(0, defaults.get(0).request(), true, 3, "spring", null));
         var configure = of(a, SessionEffects.ConfigureStarterEffect.class);
         assertEquals(1, configure.size());
         d.post(new SessionEvents.StarterConfigured(configure.get(0).request(), true, 4, REFS.put("/work/menu-app"),

@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>The LATEST layer of the chain: {@link #withoutReload} peels it off the live surfaces, and
  * {@code SpotlightLineRangeApiDeltaTest.withoutLineRange} — the entry every older *ApiDeltaTest goes through — applies
- * it first, so each older test still lands on its own pins. {@link #BEFORE} is what {@code WorkModeKeepsTheApiTest}
+ * it first (then the flag-kind layer, {@code FlagKindApiDeltaTest}), so each older test still lands on its own pins. {@link #BEFORE} is what {@code WorkModeKeepsTheApiTest}
  * pinned before this change; {@link #AFTER} is what it pins now.
  *
  * <p>Witness: change any other word of the {@code open} schema, or add a second parameter — the peeled digest no longer
@@ -27,21 +27,24 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ProjectReloadApiDeltaTest {
 
-    /** {@link WorkModeKeepsTheApiTest#PINNED} before #177 — the combined M80 pins. */
+    /**
+     * {@link WorkModeKeepsTheApiTest#PINNED} before #177: the pins after the flag-kind change
+     * ({@link FlagKindApiDeltaTest#AFTER}), which this branch was merged on top of.
+     */
     static final Map<String, String> BEFORE = Map.of(
-            "VerbSchemas.all", "9c13fb070c6c6be1b20e65e1359824264d685494b6e9388fcde8d2727983aa54",
-            "VerbSchemas.hosted", "686b70bf0308d32fa7fe640efbe7034c768d4f6284c1ccdf9c6510e0e68c21cc",
-            "McpTools.list", "be6bcdfa779d941fe0f6f2ba2a62fa76040daf11bee3a36b0d230e28835488aa",
-            "McpTools.hostedList", "54c1cd7bbd4304dc0277584f7e1eaef1ec0c2ed2fdab209f2b32e2ecdf5be6cd",
-            "PromptBuilder.inProcessActionManifest", "8dae33cf340c384a1bd16508e8b4fe05c3e9a45130003c08459a675d9f782979");
+            "VerbSchemas.all", "1200748e764954a8ac229ae9d5c4297000a361e44e7bf8a6259dec70560c1c12",
+            "VerbSchemas.hosted", "5218b99c3052899b848104c9c55c6cc523a51f3201d044d194308369a974c57f",
+            "McpTools.list", "bfdb1203d7486c5ff0cf1e6d19b8648c5cbac2d8203cee6d8c8c880cf0901872",
+            "McpTools.hostedList", "413f8954eb879f9e0e1e0077db9701a965a4f01aff63c23f8a52675ce8e46885",
+            "PromptBuilder.inProcessActionManifest", "edbf0498f259e609e7e7b8f03eaad26106df929d008e9232fc31001899a14a46");
 
     /** …and after it: {@link WorkModeKeepsTheApiTest#PINNED} holds these now. */
     static final Map<String, String> AFTER = Map.of(
-            "VerbSchemas.all", "0a8bd7ec27c442ff27f7d676b63ac103b1009db980c82d06dddcf21dad7bf9c4",
-            "VerbSchemas.hosted", "633f05a2989abef2f8eec294f5210d9facdd3e5d0f730b57d6d41e350644ad07",
-            "McpTools.list", "78b434f6a321c5023d272ab92a3fe104f256e6d71099397b5223b4d8d426390f",
-            "McpTools.hostedList", "04f6619bbcab56479e16e6659576c193b502eab286eb49763c3cb0794a4acd85",
-            "PromptBuilder.inProcessActionManifest", "150eebe3666980ae31f7ef9ae094dcd69f0f52785eeedd3feefa8bc09cf2626d");
+            "VerbSchemas.all", "bff18ff3b6c2b9cb2154d2a6d5ccba4f6278e2512174045aed1fa861966ed1a1",
+            "VerbSchemas.hosted", "69d31b6eba664d46b40cfce3c050bd5599488530e1b67ffa8c4b081bca4edd84",
+            "McpTools.list", "1c944ccb7e43652bb379b6ae0c331890fc9caef8689dc57f23ad26ef19b18fbb",
+            "McpTools.hostedList", "abcb97f9a66d3874e3b258cde899c45131549e9d46848317050781abf4505587",
+            "PromptBuilder.inProcessActionManifest", "99046876c6e3ff88a0368eecbc6c5300f056e0ec4e4fcb085e0b113b43a44441");
 
     /** The two manifest lines this change added, verbatim. */
     static final String MANIFEST_LINES =
@@ -75,6 +78,7 @@ class ProjectReloadApiDeltaTest {
     @Test
     @DisplayName("★ open gains only an optional reload parameter (and the manifest names it): undone, every surface is as before")
     void theOnlyDeltaIsOpenReload() throws Exception {
+        assertEquals(FlagKindApiDeltaTest.AFTER, BEFORE, "this layer starts where the flag-kind layer ended");
         for (var e : BEFORE.entrySet()) {
             Object live = WorkModeKeepsTheApiTest.surfaces().get(e.getKey());
             assertEquals(e.getValue(), WorkModeKeepsTheApiTest.sha(withoutReload(live)), "only open {reload} may change: " + e.getKey());

@@ -349,8 +349,8 @@ class FaqSecurityContractTest {
     void theFullSessionsStandingInstructionIsFixedText() {
         String note = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.STAY_IN_PROJECT_NOTE;
         assertTrue(note.equals("Work only inside this project folder: do not list, search or read files outside it, or "
-                + "the environment. If the build needs the Fluxtion API key, the Fluxtion Maven plugin reads it; never "
-                + "search for it, print it or read key files. Use ./mvnw and the project's own scripts to build and "
+                + "the environment. If the build needs compiler sign-in, the Fluxtion Maven plugin reads the saved "
+                + "credential; never search for it, print it or read credential or key files. Use ./mvnw and the project's own scripts to build and "
                 + "generate."), "the pinned instruction changed: review it as a security-contract change");
         for (char ch : "{}<>%$`\\\n\r".toCharArray()) {
             assertTrue(note.indexOf(ch) < 0, "plain text: no placeholder, markup or escape: " + ch);

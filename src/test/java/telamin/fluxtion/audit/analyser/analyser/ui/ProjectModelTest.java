@@ -124,22 +124,14 @@ class ProjectModelTest {
         assertEquals("project", root.provenance(), "the tier is the provenance column");
     }
 
+    /** RAPID-OFF (2026-11-07): the Project panel has no key-file row; the key route is closed. */
     @Test
-    void keyRowStatesOnlyObservedPresenceAndTheBuildRule() {
+    void thePanelHasNoLegacyKeyRow() {
         Map<String, Object> ctx = empty();
-        ctx.put("fluxtionKey", Map.of(
-                "canonicalFilePresent", false,
-                "canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile",
-                "precedenceNote", "a -Dfluxtion.apiKey system property passed to the build overrides "
-                        + "this file; FLUXTION_API_KEY is not read by the builder"));
-
-        ProjectModel.Row key = ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows().get(1);
-        assertEquals("Fluxtion key file: absent", key.primary());
-        assertEquals("~/.fluxtion/fluxtion.apiKeyFile", key.path());
-        assertTrue(key.secondary().contains("overrides this file"));
-        assertTrue(key.secondary().contains("not read by the builder"));
-        assertFalse(key.secondary().contains("resolved"), "this process cannot know a future build's winner");
-        assertEquals("observed locally; validity not checked", key.provenance());
+        ctx.put("fluxtionKey", Map.of("canonicalFilePresent", true));
+        assertTrue(ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows().stream()
+                .noneMatch(r -> r.primary().contains("key file")), "a stale fluxtionKey key draws nothing");
+        assertTrue(ProjectModel.KEYS_READ.stream().noneMatch(k -> k.startsWith("fluxtionKey")));
     }
 
     @Test

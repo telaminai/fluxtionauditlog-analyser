@@ -37,6 +37,18 @@ class ProjectReopenOwnershipTest {
         assertFalse(driver.processor().projectReopenOffer.mayPresent(person, "/DEMO/profile"));
     }
 
+    @Test void aVisibleOfferLosesPermissionWhenAnAssistantOpensALog() {
+        var fake = new FakeSessionAdapter().withProfile("/DEMO/profile");
+        var driver = new SessionDriver(effect -> effect instanceof SessionEffects.ShowProjectReopenEffect
+                ? new SessionEvents.Pending(effect.opId(), "chooser visible") : fake.perform(effect));
+        long person = open(driver, true, true);
+        driver.post(new SessionEvents.ProjectReopenReady(person, "/DEMO/profile", "DEMO",
+                new ProjectReopen(List.of("/DEMO/log"), List.of()), false));
+        assertTrue(driver.processor().projectReopenOffer.mayPresent(person, "/DEMO/profile"));
+        driver.submit(new SessionEvents.OpenLogRequested(driver.nextOpId(), "/DEMO/log", null, null, true));
+        assertFalse(driver.processor().projectReopenOffer.mayPresent(person, "/DEMO/profile"));
+    }
+
     @Test void startupCannotLendItsAudienceToAnOperationBeforeTheWindowAppears() {
         var fake = new FakeSessionAdapter().withProfile("/DEMO/profile");
         var driver = new SessionDriver(fake);

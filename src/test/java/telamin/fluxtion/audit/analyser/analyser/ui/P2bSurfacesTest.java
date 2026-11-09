@@ -250,8 +250,7 @@ class P2bSurfacesTest {
                 public void showTab(String n) { }
                 public void openOwnLog() { }
                 public void openSettings() { }
-                public void openFluxtionKey() { }
-                public boolean fluxtionKeyPresent() { return false; }
+                public void openCompilerAccount() { }
                 public void backToRecords() { }
             }, s -> { });
             // what applying a theme after construction does: a new base font, then the tree updated

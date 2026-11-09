@@ -44,11 +44,17 @@ All three edits are in the designer XML that `fluxtion-authoring.json` names:
    </list></property>
    ```
 
+**`eventHandlers` does not route events.** An `EventHandlerBinding` states a design-time expectation —
+this event type should be handled by these beans (enforced only with `strictEventHandlerBindings`); it
+delivers nothing.
+Fluxtion dispatches an event to every node whose `@OnEventHandler` method takes that event type. When you
+explain what happened to an event, cite that method and the audit record, never "the XML routes it".
+
 Then **regenerate** — a graph change needs it, a change inside a method body does not:
 
 ```
 TODO(bundle): substitute this project's exact regeneration command (the Maven profile or script that
-invokes the Fluxtion source generator), and say whether it needs a Fluxtion API key.
+invokes the Fluxtion source generator), and point to the project's Compiler sign-in instructions.
 ```
 
 Then read only the compiler's own messages — the validation report (its node and edge counts), the
@@ -179,8 +185,32 @@ meant to alter them. Prove which happened by comparing two runs of the **same in
    check each one against your written prediction.
 
 The comparison is only as good as the input being identical. If the two runs read different input, or
-one export carries an extra run (exports are cumulative — see `run-mongoose-server`), the difference is
+one export carries an extra run (for example, `ALL_RUNS=1` was used on only one side — see `run-mongoose-server`), the difference is
 in the evidence, not the code; fix the capture and compare again before concluding anything.
+
+## Configuration, propagation and sink values
+
+- A generated `@OnTrigger` boolean reports a change to downstream dispatch: `true` propagates to
+  ordinary dirty-trigger children; `false` does not. It is not a success/failure result. A child with
+  `@OnTrigger(dirty=false)` follows the inverse condition. Keep that distinction in your predictions.
+- A `SinkBinding` may declare `valueType`; reconciliation uses it for `SinkPublisher<T>` and defaults
+  to `java.lang.Object` when omitted. Publish a value compatible with that declared type and with the
+  host sink's accepted representation. Do not guess a type from the sink's name or hand-wire a publisher.
+- Literal configuration is not a graph reference. The current reconciler cannot infer a new class's
+  constructor types from literal or inline-bean arguments; do not add a numeric `constructor-arg value`
+  and assume it will generate a threshold field. For a fixed rule, a `static final` constant avoids
+  constructor mapping. If the value must be configurable, agree the source/ownership change explicitly
+  and validate against the pinned authoring contract before changing XML; do not fabricate a recipe.
+
+## Recover a partial generation attempt
+
+Regeneration can write a class shell and update `fluxtion-authoring.json` before the following build
+fails. Keep those outputs, read the attempt's `preflight` and `build` stages, fix the reported cause,
+and rerun `./generate.sh`. Do not hand-write a replacement class, edit the receipt to say success, or
+substitute bare Maven: it does not request the authoring diagnostics or update the attempt record.
+For compiler sign-in and older starters that reject it, follow `run-mongoose-server` and the project's
+Compiler sign-in / RUNBOOK instructions. A successful separate build is useful evidence, but does not
+complete the authoring attempt.
 
 ## The two things that fail SILENTLY here
 

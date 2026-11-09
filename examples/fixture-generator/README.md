@@ -17,14 +17,16 @@ the compiled `FluxtionGraphBuilder`.
 
 The build follows the [project starter](https://fluxtion-playground.dev/start) layout: `fluxtion-runtime` at compile
 scope, `fluxtion-builder` `provided`, and the AOT plugin. **The versions are the analyser root pom's**
-(`fluxtion.version`, `fluxtion.builder.version`), with no `fluxtion-bom` import, and `FixtureGeneratorToolchainTest`
+(`fluxtion.version`, `fluxtion.builder.version`, `fluxtion.maven-plugin.version`), with no `fluxtion-bom` import, and `FixtureGeneratorToolchainTest`
 holds them together. An older builder against the current hosted generator emits a processor that compiles and
 writes no audit log (2026-09-28).
 It is standalone — **not** a module of the analyser build, which keeps FlatLaf as the analyser's only
 runtime dependency and stops CI needing a Fluxtion toolchain to run unit tests.
 
-> **Regenerating the graph needs a Fluxtion API key** (`~/.fluxtion/fluxtion.apiKeyFile`) — the compiler
-> is closed-source and the `scan` goal calls the hosted source-gen service. The generated processor is
+> **Regenerating the graph needs compiler sign-in** — run
+> `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login`
+> once per machine (in CI, set `FLUXTION_API_TOKEN`). The compiler is closed-source and the `scan` goal calls the hosted source-gen
+> service. The generated processor is
 > **checked in**, as the starter intends, so regenerating just the *audit log* works from a bare checkout.
 
 ## Why generated, not hand-written

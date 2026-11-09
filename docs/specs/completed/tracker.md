@@ -1,3 +1,18 @@
+## 1.40.0 — shipped 2026-10-27, PRs #202, #208
+
+### CA · Compiler account and entitlement investigations — ☑ SHIPPED (cross-repo; the hosted compiler's managed sign-in)
+- [CA-14] ☑ An exported entitlement investigation opens unchanged: `EntitlementInvestigationConformanceTest` pins the producer's projection; producer half in compiler 1.0.82.
+- [CA-2] ☑ *Investigate a compiler charge* (Getting started): open an exported investigation, find a request, read why, chart the balance.
+- [CA-15] ☑ Plans and the interpret allowance: compile and interpret credit and the plan's limits in the panel and Copy details; guide and conformance test cover interpret rows, `CAPABILITY_SET` and both refusals. The producer's `InvestigationExportTest` now writes that scenario (compiler 1.0.82).
+- [CA-1] ☑ *AI ▸ Compiler account…*: device sign-in, OS keyring / owner-only file, read-only plan and credits, disconnect, revoke. Accepted against the deployed staging service with 1.40.0 (compiler staging acceptance, 2026-10-27).
+
+## 1.39.0 — shipped 2026-10-26, PR #207
+
+### Starter routing — explain and evidence requests go to the analyser — ☑ SHIPPED
+- ☑ The MCP instructions and `/manifest` gain a first move: open the export with its GraphML, wait for `inFlight`, spotlight, flag the proving record, then explain.
+- ☑ `read` with no anchor reads from the head; a record spotlight is refused while a log loads.
+- ☑ Skills `load-audit-log`, `point-at-the-fault` and `add-a-node` updated to route explain/evidence requests through the analyser.
+
 ## 1.36.0 — shipped 2026-10-19, PR #168
 
 The 2026-10-18 integration stack: M77 Set up AI, M78 the quiet assistant panel, the ten FIX branches, UX-SC, M74's

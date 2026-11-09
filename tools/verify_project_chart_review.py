@@ -240,7 +240,7 @@ CASES.extend([
 # Optional PR 15 follow-ups: only these four plus menu-help-s3 form the requested witness run.
 CASES.extend([
     ('menu-doc-ai', 'docs/site/faq.md',
-     'AI ▸ Fluxtion API key…', 'AI ▸ Nonexistent item…',
+     'AI ▸ Compiler account…', 'AI ▸ Nonexistent item…',
      'MenuDocumentationTest#documentedPathsNameExistingItems'),
     ('menu-java-path', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectModel.java',
      'Audit log ▸ Open log…', 'Audit log ▸ Open',
@@ -345,9 +345,14 @@ CASES += [
     # PR #27 review nit 1: only ROOT entries on the list become executable; a basename-only match would
     # make a nested bundle/tools/generate.sh executable
     ('installer-nested-script-not-executable', TEMPLATE_ARCHIVE,
-     "if (executables && portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {",
-     'if (executables && POSIX_EXECUTABLES.contains(base)) {',
+     "boolean rootScript = portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base);",
+     'boolean rootScript = POSIX_EXECUTABLES.contains(base);',
      'TemplateArchiveTest#archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist'),
+    # review 2026-11-07: the Audit analyser bundle's add-a-node/audit-compare.py is marked executable by the website
+    # but arrived 0644; its full project-relative path on the fixed list is what makes it runnable
+    ('installer-skill-script-executable', TEMPLATE_ARCHIVE,
+     '            ".claude/skills/add-a-node/audit-compare.py");', '            "add-a-node/audit-compare.py");',
+     'TemplateExecutablesTest#analyserBundleSkillScriptIsInstalledRunnableAndOnlyAtItsOwnPath'),
     # authoring walk 2026-10-18 (A2): a downloaded example's ./mvnw and ./regen.sh were 0644 — permission denied
     ('example-scripts-keep-archive-mode', TEMPLATE_ARCHIVE,
      '            if (!executables && exampleExecutable(portable, archiveMode)) {', '            if (false) {',
@@ -394,9 +399,6 @@ CASES += [
     ('context-producer-with-topology', CONTEXT_SECTIONS, '"producer", List.of("pairing", "topology", "view", "charts"),',
      '"producer", List.of("pairing", "view", "charts"),',
      'ContextSectionsTest#aRolledSetsFilesTravelWithTheView_andProducerFaultsWithTheTopology'),
-    # PR #29 review 3: a projection without fluxtionKey reads no key file
-    ('context-key-file-guard', MAIN_FRAME, '            if (need.test("fluxtionKey")) {', '            if (true) {',
-     'ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile'),
     # edit-loop spec §I1: a template profile may only grant reads inside the project it installs
     ('template-root-install-check', TEMPLATE_ARCHIVE,
      '                    telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, settings);\n', '',
@@ -530,7 +532,29 @@ def selected_cases(requested, root=Path('.')):
     for name, site, old, new, test in cases:
         count = (root / site).read_text().count(old)
         assert count == 1, ('mutation anchor', name, count)
+    require_named_tests(cases, root)
     return cases
+
+
+def require_named_tests(cases, root=Path('.')):
+    """Every control names a test that exists: a class under src/test/java declaring that method.
+
+    A renamed test left its control pointing at nothing, so the gate's shared baseline asked JUnit for a missing method
+    and the whole shard failed before a single mutation ran, on main and on every PR after it (2026-11-03). Anchors were
+    checked before any run; the named test was not. Skipped where the tree has no test sources (a gate fixture).
+    """
+    tests = root / 'src/test/java'
+    if not tests.is_dir() or not any(tests.rglob('*.java')):
+        return
+    sources = {}
+    for p in tests.rglob('*.java'):
+        sources.setdefault(p.stem, []).append(p)
+    for name, _, _, _, test in cases:
+        cls, _, method = test.partition('#')
+        files = sources.get(cls.split('$')[0].split('.')[-1])
+        assert files, ('mutation test class', name, test)
+        text = '\n'.join(f.read_text(encoding='utf-8') for f in files)
+        assert re.search(r'\b' + re.escape(method) + r'\s*\(', text), ('mutation test method', name, test)
 
 
 def run(names):

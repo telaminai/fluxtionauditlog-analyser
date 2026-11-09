@@ -110,8 +110,7 @@ public final class LogicalLogView {
                 // muted by POSITION, not spelling: only the leading run tracing wrote (AuditTrace.traceEntryCount),
                 // in the legacy text grammar or wherever a wire TRACE marker says the node ran (the binary log
                 // writes the same run after its marker)
-                int run = record.textEncoding() == telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY
-                        || node.traced()
+                int run = record.textReaderRecord() || node.traced()
                         ? telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.traceEntryCount(node.entries()) : 0;
                 String method = null;
                 for (KV kv : node.entries().subList(0, run)) {

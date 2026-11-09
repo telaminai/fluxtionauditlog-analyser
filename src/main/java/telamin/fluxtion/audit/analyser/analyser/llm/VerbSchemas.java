@@ -146,9 +146,9 @@ public final class VerbSchemas {
                 props(
                         p("byteOffsets", arr(integer()), "anchors by byte offset"),
                         p("recordIndexes", arr(integer()), "anchors by record index"),
-                        p("kind", enumStr("fault", "confirmation"), "finding category; new findings default to fault. Omission preserves an existing category. Confirmation labels are Observation / Assessment."),
-                        p("note", string(), "what you observed (confirmation), or what is wrong (fault)"),
-                        p("fix", string(), "your assessment (confirmation), or likely cause / suggested fix (fault)")),
+                        p("kind", enumStr("fault", "confirmation", "note"), "finding category: 'fault' for behaviour that is wrong (What is wrong / Likely cause), 'confirmation' for behaviour that is correct, e.g. a correct refusal (Observation / Assessment), 'note' for a neutral record of evidence (Note / Assessment). Omitted: a NEW finding is saved as 'note' — never as a fault; an existing finding keeps its category. Say 'fault' only when the record shows something wrong."),
+                        p("note", string(), "what is wrong (fault), what you observed (confirmation), or the note itself (note)"),
+                        p("fix", string(), "likely cause / suggested fix (fault), or your assessment (confirmation, note)")),
                 List.of()));
 
         s.put("coverage", schema("Which of the processor's nodes never wrote audit output in this run — "

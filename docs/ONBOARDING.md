@@ -26,6 +26,17 @@ mvn -o clean verify                                     # offline full build + t
 
 ## Fast iteration and mutation evidence
 
+On macOS/Linux, enable the versioned pre-push hook once per clone: `git config --local core.hooksPath .githooks`.
+Check for an existing custom hooks path or pre-push hook first and preserve it rather than replacing it.
+Normal `git push` then runs the offline registry/frame-list preflight and its cheap policy/evidence tests;
+it starts no Maven, Java, display or mutation run. Push the clean checked-out HEAD (including an annotated
+tag of it), with no non-ignored untracked files; those files could otherwise satisfy a check without being
+published. Ignored build output is allowed. The same ref updates and cleanliness are checked again after
+the suites, to detect edits or commits made during them. Other commits must be checked out and pushed
+separately. To check edits before committing, run `python3 tools/pre_push_checks.py`. CI runs the same
+checks, since hooks are local to each clone. The existing process tests require POSIX signals: do not
+enable this hook on Windows; use CI there.
+
 Run relevant ordinary tests while editing. Do not run mutations after every edit or repeat the full
 local gate for a normal feature review. At correction milestones, use the fast engine with explicit
 `--case NAME` for new/changed and implicated controls; each must fail at its named assertion and
@@ -54,6 +65,7 @@ intentionally failing deferred full-gate check is not permission to merge. The
 | `llm` | prompt building + the two-way assistant action loop |
 | `net` | localhost REST transport for the assistant actions |
 | `config` | `AppConfig`, `ConfigStore`, `GraphSpec`, `SettingsShare` (export/import) |
+| `account` | CA-1 compiler account: device sign-in, usage read, revoke; OS credential stores. The bearer never leaves the package |
 | `export` | CSV/YAML record export |
 | `core` | `Background` (off-EDT work) |
 | `ui` | all Swing (`MainFrame`, panels, dialogs, `ChartPanel`, theming) |

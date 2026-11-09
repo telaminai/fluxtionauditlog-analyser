@@ -1,12 +1,20 @@
 ---
 name: load-audit-log
-description: Open this project's audit log in the analyser and confirm the graph matches it, before drawing any conclusion from what you see.
+description: Use when asked to show evidence that a run did what it should, to explain what happened to an event or what Fluxtion did with it, or which record proves something. Open the fresh export in the connected analyser, confirm the graph matches it, and spotlight the record before you explain.
 x-analyser-min-version: 1.12.0
 ---
 
 # Load this project's audit log
 
 Use this before answering any question about what the running system did.
+
+**When an analyser is connected, the answer is a record on its screen, not a quote from the YAML.** For
+"show me evidence", "explain what happened to this event" or "what did Fluxtion do with X": export, open
+the export (steps 1-3), wait until `analyser_context` no longer reports `inFlight`, then
+`analyser_spotlight` the record that answers (`records:row:<recordIndex>`, then `detail:node:<id>` for the
+node that decided), then **flag the proving record** (`analyser_flag {"recordIndexes": [<n>], "note":
+"<what it proves>"}`, a finding worth keeping), and explain after it is lit. Grepping the export finds the record; it does not show
+the person. If no analyser is connected, cite the record by file and line instead.
 
 ## Steps
 

@@ -105,6 +105,18 @@ class StarterSkillsTest {
         }
     }
 
+    @Test
+    void signInRegenerationUsesMavenAuthenticationWithoutALegacyGate() {
+        var record = new StarterSkills.FirstRun(List.of("./check-fluxtion-key.sh", "./setup.sh",
+                "./validate.sh", "./generate.sh", "./run.sh"), "sign-in-build");
+        String block = StarterSkills.regenerationBlock(record);
+        assertTrue(block.contains("./setup.sh\n./validate.sh\n./generate.sh"));
+        assertTrue(block.contains(StarterSkills.SIGN_IN_BUILD));
+        assertFalse(block.contains("check-fluxtion-key"));
+        assertFalse(block.contains("API key"));
+        assertFalse(block.contains("./run.sh"));
+    }
+
     // ---- add-a-node's regeneration marker (owner, 2026-10-18) ------------------------------------------------------------
 
     static final String MARKER_LEAD = "TODO(bundle)";
@@ -139,7 +151,13 @@ class StarterSkillsTest {
         String skill = Files.readString(project.resolve(".claude/skills/add-a-node/SKILL.md"));
         assertTrue(skill.contains("./generate.sh"), skill);
         assertTrue(skill.contains(StarterSkills.KEY_BUILD), "the key note");
-        assertTrue(skill.contains(StarterSkills.KEY_CHECK), "the key check the record names");
+        // RAPID-OFF (review L2): a "build" starter means compiler sign-in, and its check-fluxtion-key.sh now checks
+        // sign-in (fluxtion-web PR #57), so the regeneration block agrees with the post-install list: the check, then
+        // the sign-in note. Witness: filter the check for "build" in regenerationBlock again — this fails.
+        String block = StarterSkills.regenerationBlock(springRecord());
+        assertTrue(block.startsWith("```\n./check-fluxtion-key.sh\n./setup.sh"), block);
+        assertTrue(block.contains(StarterSkills.SIGN_IN_BUILD + " " + StarterSkills.KEY_CHECK), block);
+        assertTrue(skill.contains(StarterSkills.KEY_CHECK), "the check the record names");
         assertFalse(skill.contains(MARKER_LEAD), "no marker is left");
         assertFalse(skill.contains("./run.sh"), "running is not regeneration");
         String original = pinned(StarterSkills.ADD_A_NODE);
@@ -451,14 +469,15 @@ class StarterSkillsTest {
     }
 
     @Test
-    @DisplayName("the review row's facts: Spring XML · embedded · AOT · the key need, said whether or not a key is found")
+    @DisplayName("the review row's facts: Spring XML · embedded · AOT · the sign-in need; nothing on this machine is observed")
     void theRowFacts() {
-        assertEquals("Spring XML · embedded · AOT · build needs a Fluxtion key; none found on this machine",
-                Starters.facts("spring", "embedded", "aot", "build", false));
-        assertEquals("Spring XML · in a Mongoose server · AOT · build needs a Fluxtion key; one is on this machine",
-                Starters.facts("spring", "mongoose", "aot", "build", true));
-        assertEquals("Java · embedded · interpreted · no Fluxtion key needed",
-                Starters.facts("", "embedded", "interpreted", "none", false));
+        // RAPID-OFF: an older catalogue's "build" means compiler sign-in too — the key route is closed
+        assertEquals("Spring XML · embedded · AOT · build needs compiler sign-in (see README)",
+                Starters.facts("spring", "embedded", "aot", "build"));
+        assertEquals("Spring XML · in a Mongoose server · AOT · build needs compiler sign-in (see README)",
+                Starters.facts("spring", "mongoose", "aot", "sign-in-build"));
+        assertEquals("Java · embedded · interpreted · no compiler sign-in needed",
+                Starters.facts("", "embedded", "interpreted", "none"));
         assertEquals("other", Starters.word("<b>weird</b>", "aot", "interpreted"));
     }
 }

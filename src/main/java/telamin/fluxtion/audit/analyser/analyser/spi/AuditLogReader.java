@@ -68,6 +68,12 @@ public interface AuditLogReader {
      * value that happened to contain a declaration-shaped line being promoted into a control field and
      * deleting the entry after it. Encoding is the reader's declaration; logged content cannot select
      * or change it.
+     *
+     * <p>Under the default {@link TextEncoding#LEGACY}, and only then, a record may declare
+     * {@link TextEncoding#QUOTED_SCALARS} for itself with {@code textEncoding: QUOTED_SCALARS} as the FIRST
+     * line of its {@code eventLogRecord} mapping (format-spec §3a). That is a producer declaration recognised by
+     * position, not inference from content: the same spelling anywhere else is content. A reader that declares
+     * {@code QUOTED_SCALARS} keeps applying it to every record.
      */
     default TextEncoding textEncoding() {
         return TextEncoding.LEGACY;
@@ -75,11 +81,12 @@ public interface AuditLogReader {
 
     /** The two {@code nodeLogs} grammars — format specification §3 and §3a. */
     enum TextEncoding {
-        /** Quote marks are the producer's characters; nothing decodes. Every text log ever written. */
+        /** Quote marks are the producer's characters; nothing decodes. Every text record that declares nothing. */
         LEGACY,
         /**
          * A scalar that is entirely {@code "…"} decodes with escapes and is a string whatever it spells.
-         * Declared by readers that construct text from TYPED values, such as the binary reader.
+         * Declared by readers that construct text from TYPED values, such as the binary reader, or by a text
+         * record's own first line (format-spec §3a).
          */
         QUOTED_SCALARS
     }

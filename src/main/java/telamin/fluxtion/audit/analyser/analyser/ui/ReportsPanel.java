@@ -432,7 +432,7 @@ public final class ReportsPanel extends JPanel {
                 box.add(wrong);
                 box.add(wrapped(f.note()));
                 if (f.hasFix()) {
-                    JTextArea fixHeading = bold(f.confirmation() ? f.fixLabel() : "Suggested fix");
+                    JTextArea fixHeading = bold(!f.fault() ? f.fixLabel() : "Suggested fix");
                     fixHeading.setForeground(theme.fix());
                     box.add(fixHeading);
                     box.add(wrapped(f.fix()));

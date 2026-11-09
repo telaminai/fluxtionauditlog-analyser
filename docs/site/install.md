@@ -1,8 +1,22 @@
 # Install & run
 
-Requires **JDK 21+**. The app is a single self-contained jar (FlatLaf is bundled) — no installer.
+!!! tip "Using Claude Code on macOS?"
+    Your assistant can install, open and connect the analyser for you after one question: see
+    [Set up with your AI assistant](start/set-up-with-an-assistant.md) (preview). This page is the manual route.
 
-## JBang (recommended)
+The app is a single self-contained jar (FlatLaf is bundled) — no installer. With JBang (below) you need nothing else:
+JBang fetches Java 21 if you have none. To run the [plain jar](#plain-download) you need **JDK 21+**.
+
+## 1. Install JBang
+
+[JBang](https://www.jbang.dev) runs the analyser and fetches a JDK if you have none. Install it once, then open a new
+terminal so `jbang` is on your PATH (`jbang --version` checks it):
+
+--8<-- "snippets/jbang-install.md"
+
+More options: [jbang.dev/download](https://www.jbang.dev/download/).
+
+## 2. Run the analyser with JBang (recommended)
 
 ```bash
 # run the latest release

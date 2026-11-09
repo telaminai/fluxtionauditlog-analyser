@@ -71,6 +71,74 @@ class TemplateExecutablesTest {
         assertEquals(List.of(), failures, "root scripts a template ships but the installer leaves non-runnable");
     }
 
+    /**
+     * Owner, 2026-11-07: the Java-authoring starter is the first and recommended one, and its CLAUDE.md begins "run
+     * tools/context.sh". Its tools/ scripts arrived 0644 (D-4 made only root scripts executable), so the starter the
+     * analyser installed failed its first command with "Permission denied" — not the starter the benchmark measured.
+     * Every script below the root that a template ships executable is installed executable, and runs; a script the
+     * fixed list does not name, the same names one level deeper, or at the root, stay 0644.
+     */
+    @Test
+    void javaAuthoringToolsAreInstalledRunnableAndNothingElseBelowTheRoot() throws Exception {
+        Fixture fixture = Fixture.load();
+        Set<String> tools = fixture.tools.get("java-authoring");
+        assertNotNull(tools, "the fixture records the Java-authoring starter's tools/ scripts");
+        Set<String> everyTemplatesTools = new TreeSet<>();
+        fixture.tools.values().forEach(everyTemplatesTools::addAll);
+        assertEquals(everyTemplatesTools, new TreeSet<>(TemplateArchive.TOOL_EXECUTABLES),
+                "the installer's list is the templates' scripts below the root");
+        assumePosix();
+        Set<String> entries = new TreeSet<>(fixture.exec.get("java-authoring"));
+        entries.addAll(tools);
+        entries.addAll(List.of("tools/evil.sh", "tools/fixture.conf", "nested/tools/context.sh", "context.sh"));
+        Path project = installUnmarked("java-authoring", entries);
+        List<String> failures = new ArrayList<>();
+        for (String script : tools) {
+            if (!executable(project.resolve(script))) {
+                failures.add(script + " installed " + modes(project.resolve(script)));
+                continue;
+            }
+            Process run = new ProcessBuilder("./" + script).directory(project.toFile()).redirectErrorStream(true).start();
+            String out = new String(run.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            assertTrue(run.waitFor(30, TimeUnit.SECONDS), script + " did not finish");
+            if (run.exitValue() != 0 || !out.equals(script)) failures.add(script + " exited " + run.exitValue() + ": " + out);
+        }
+        assertEquals(List.of(), failures, "tools/ scripts the installer leaves non-runnable");
+        for (String other : List.of("tools/evil.sh", "tools/fixture.conf", "nested/tools/context.sh", "context.sh")) {
+            assertFalse(executable(project.resolve(other)), other + " must not be made executable");
+        }
+    }
+
+    /**
+     * Review, 2026-11-07: the Audit analyser bundle ships {@code .claude/skills/add-a-node/audit-compare.py} marked
+     * executable (the website marks every supporting file that starts with {@code #!}), but the installer, which never
+     * reads archive bits, left it 0644. It is on the fixed list by its full project-relative path: it is installed
+     * runnable, and the same name elsewhere, or another file beside it, stays 0644.
+     */
+    @Test
+    void analyserBundleSkillScriptIsInstalledRunnableAndOnlyAtItsOwnPath() throws Exception {
+        Fixture fixture = Fixture.load();
+        Set<String> scripts = fixture.tools.get("analyser-bundle");
+        assertEquals(Set.of(".claude/skills/add-a-node/audit-compare.py"), scripts,
+                "the fixture records the bundle's one script below the root");
+        assumePosix();
+        List<String> decoys = List.of(".claude/skills/add-a-node/other.py", ".claude/skills/other/audit-compare.py",
+                "nested/.claude/skills/add-a-node/audit-compare.py", "audit-compare.py", "tools/audit-compare.py.bak");
+        Set<String> entries = new TreeSet<>(fixture.exec.get("analyser-bundle"));
+        entries.addAll(scripts);
+        entries.addAll(decoys);
+        Path project = installUnmarked("analyser-bundle", entries);
+        for (String script : scripts) {
+            assertTrue(executable(project.resolve(script)), script + " installed " + modes(project.resolve(script)));
+            Process run = new ProcessBuilder("./" + script).directory(project.toFile()).redirectErrorStream(true).start();
+            String out = new String(run.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            assertTrue(run.waitFor(30, TimeUnit.SECONDS), script + " did not finish");
+            assertEquals(0, run.exitValue(), out);
+            assertEquals(script, out);
+        }
+        for (String other : decoys) assertFalse(executable(project.resolve(other)), other + " must not be made executable");
+    }
+
     /** A command the bundle's own Markdown tells the reader to run must be a file the installer made runnable. */
     @Test
     void everyCommandATemplateDocumentsIsShippedAndExecutable() throws Exception {
@@ -272,12 +340,13 @@ class TemplateExecutablesTest {
      * {@code .cmd} files it ships besides {@code mvnw.cmd}).
      */
     record Fixture(Map<String, Set<String>> exec, Map<String, Set<String>> doc, Map<String, List<String>> first,
-                   Map<String, Set<String>> windows) {
+                   Map<String, Set<String>> windows, Map<String, Set<String>> tools) {
         static Fixture load() throws IOException {
             Map<String, Set<String>> exec = new LinkedHashMap<>();
             Map<String, Set<String>> doc = new LinkedHashMap<>();
             Map<String, List<String>> first = new LinkedHashMap<>();
             Map<String, Set<String>> windows = new LinkedHashMap<>();
+            Map<String, Set<String>> tools = new LinkedHashMap<>();
             try (InputStream in = TemplateExecutablesTest.class.getResourceAsStream(FIXTURE)) {
                 assertNotNull(in, FIXTURE);
                 for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\n")) {
@@ -294,11 +363,12 @@ class TemplateExecutablesTest {
                         case "doc" -> doc.put(id, names);
                         case "first" -> first.put(id, List.copyOf(ordered));
                         case "cmd" -> windows.put(id, names);
+                        case "tools" -> tools.put(id, names);
                         default -> throw new IllegalStateException("unknown fixture line: " + line);
                     }
                 }
             }
-            return new Fixture(exec, doc, first, windows);
+            return new Fixture(exec, doc, first, windows, tools);
         }
     }
 }

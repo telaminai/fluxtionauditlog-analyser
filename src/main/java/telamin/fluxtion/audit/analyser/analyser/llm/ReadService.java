@@ -81,7 +81,10 @@ public final class ReadService {
             Long lt = snap.logTime(anchor);
             if (lt != null && lt > at) anchorNote = "every timed record is after 'at' — anchored to the first";
         } else {
-            throw new IllegalArgumentException("read needs a recordIndex, byteOffset or at (epoch millis) anchor");
+            // stranger trial r2: a bare read was an error the model had to guess its way out of; read the head instead
+            anchor = 0;
+            anchorNote = "no anchor given (recordIndex, byteOffset or at) — read from the first record; "
+                    + "e.g. {\"recordIndex\": 40, \"count\": 3}";
         }
 
         Integer count = asInt(params.get("count"));
@@ -182,8 +185,8 @@ public final class ReadService {
     record TraceOnly(List<String> marked, List<String> inferred) {}
 
     static TraceOnly traceOnly(LogRecord rec) {
-        boolean legacyText = rec.textEncoding()
-                == telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY;
+        // a text log's record, whichever grammar it declared itself: the text runtime's tracing run applies (§3a)
+        boolean legacyText = rec.textReaderRecord();
         // per instance, in first-seen order
         java.util.LinkedHashMap<String, boolean[]> byId = new java.util.LinkedHashMap<>();
         // flags: [0] any trace marker, [1] any entry at all, [2] any business entry, [3] method entry seen

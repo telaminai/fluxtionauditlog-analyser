@@ -25,6 +25,27 @@ class TemplateArchiveTest {
     @TempDir Path temp;
 
     @Test
+    void declaredSignInBuildOmitsOnlyTheLegacyGate() throws Exception {
+        Map<String, byte[]> entries = new LinkedHashMap<>();
+        for (String file : List.of("check-fluxtion-key.sh", "setup.sh", "validate.sh", "generate.sh", "run.sh"))
+            entries.put("project/" + file, "untrusted, never executed".getBytes());
+        byte[] archive = zip(entries);
+        var signIn = new TemplateArchive().install(archive, temp.resolve("sign-in"), "sign-in-build");
+        assertEquals(List.of("./setup.sh", "./validate.sh", "./generate.sh", "./run.sh"),
+                TemplateArchive.commandsFor(signIn.projectRoot(), false, "sign-in-build"));
+        if (!System.getProperty("os.name", "").toLowerCase().contains("win"))
+            assertEquals(List.of("./setup.sh", "./validate.sh", "./generate.sh", "./run.sh"), signIn.commands());
+        for (String declaration : List.of("build", "run", "", "unknown"))
+            assertEquals("./check-fluxtion-key.sh",
+                    TemplateArchive.commandsFor(signIn.projectRoot(), false, declaration).getFirst(),
+                    "only explicit sign-in may change the legacy route: " + declaration);
+        Path mainFrame = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java");
+        assertTrue(Files.readString(mainFrame)
+                .contains("templateArchive.install(zip, target, request0.template().keyNeed())"),
+                "the download adapter must pass the selected catalogue declaration");
+    }
+
+    @Test
     void installsOneProjectAtomicallyAndReturnsOnlyFixedCommands() throws Exception {
         Map<String, byte[]> entries = new LinkedHashMap<>();
         entries.put("bundle/.analyser/project.fluxtion-settings", "share.version=1\n".getBytes());

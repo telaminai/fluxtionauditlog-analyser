@@ -1,6 +1,11 @@
 # Audit record format — specification
 
-**Format 1 · status: published, open.** *Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2. Revised the same day, before release, after review: the "stopped mid-write" state is withdrawn as unsound, a marker counts per segment, and a marker is recognised by the record's whole contents rather than by a key it mentions. §1a says what each correction cost.* This page is the normative description of the record format
+**Format 1 · status: published, open.** *Revision 1.2, 2026-11-04: §3a lets a text record declare the
+quoted-scalar grammar for itself, with `textEncoding: QUOTED_SCALARS` as the first line after `eventLogRecord:`.
+Additive — an unmarked file is unchanged, byte for byte. A reader without 1.2 ignores the line as an unknown
+field under §2 and reads the record as legacy: quoted values show their quote marks and escapes, but entry
+boundaries hold, because a writer spells a `"` inside a quoted value as `\x22`, which a legacy scanner does not
+see as a quote. Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2. Revised the same day, before release, after review: the "stopped mid-write" state is withdrawn as unsound, a marker counts per segment, and a marker is recognised by the record's whole contents rather than by a key it mentions. §1a says what each correction cost.* This page is the normative description of the record format
 the analyser reads. It exists so that anything that can describe a run — a Fluxtion processor, a
 Mongoose server, a workflow engine, a translator over someone else's trace — can emit records the
 analyser understands, and know *what the analyser will do with them*. The [Log format](log-format.md)
@@ -327,7 +332,8 @@ every `instanceId.key` series.
 - **Quote marks are the producer's characters.** Under this grammar a `"` protects the separators
   inside it while the tokenizer scans, and that is all: nothing is decoded, a backslash is a
   character, `"hello"` keeps its quotes, and `prefix "C:\"` closes at its second quote mark. This is
-  how every text log has always been read, and it does not change. *(Fixture C17.)*
+  how every text log has always been read, and it does not change for any record that does not
+  declare the quoted grammar itself (§3a). *(Fixture C17.)*
 - **An entry is one run of writes, not one callback, and a key may repeat inside it.** Fluxtion's writer opens a
   new `- instanceId: {…}` entry only when the writing node changes, or when invocation tracing starts an invocation
   (§8). A node that logs in two callbacks with no other node writing between them — `@Initialise` then
@@ -341,14 +347,19 @@ every `instanceId.key` series.
   value surface — series, `read` projections, markers, diffs — takes the **last occurrence in the record**, inside
   an entry as across entries, so a merged entry and the same writes in separate entries read alike. *(Fixture C34.)*
 
-### 3a. The quoted-scalar grammar — declared by the reader, never by the text
+### 3a. The quoted-scalar grammar — declared, never inferred from content
 
-The **reader** that constructs record text from *typed* values declares a second grammar through the
-SPI: `AuditLogReader.textEncoding()` returns `QUOTED_SCALARS`, and the parser applies it to every
-record that reader delivers. It adds one rule to §3: **a double-quoted scalar is a string, whatever
-it spells.** An instance id, key or value that is *entirely* `"…"` is decoded — the escapes are
-`\\`, `\"`, `\n`, `\r`, `\t`, and while scanning a backslash inside double quotes escapes the next
-character — and read as text: `"42.0"` is not a figure, `"null"` is not null, `"true"` is not a flag,
+A second grammar is selected by an explicit **declaration**, in one of two places: the **reader** that
+constructs record text from *typed* values declares it through the SPI, for every record it delivers; or
+a **text record** declares it for itself, in the one position described below. It adds one rule to §3:
+**a double-quoted scalar is a string, whatever it spells.** An instance id, key or value that is
+*entirely* `"…"` is decoded and read as text. The escapes are `\\`, `\"`, `\n`, `\r`, `\t`, `\0`,
+`\xXX` (two hex digits) and `\uXXXX` (four hex digits; a high and a low surrogate written as two
+consecutive `\u` escapes combine into one character). Hex digits are ASCII, in either case. An escape
+that is none of these — an unknown letter, too few hex digits, half a surrogate pair — is **kept
+verbatim** and nothing fails; a backslash with nothing after it before the closing quote means the
+scalar is not one quoted scalar, and it is the raw text. While scanning, a backslash inside double
+quotes escapes the next character. Decoded values read as text: `"42.0"` is not a figure, `"null"` is not null, `"true"` is not a flag,
 and the commas, colons, braces and line breaks inside it split nothing. Anything not entirely one
 quoted scalar is the raw text it always was. *(Fixture C16, through a reader that declares it.)*
 
@@ -387,15 +398,74 @@ evidence formatter: keyless entries print as bare `@unkeyed`, while named keys n
 including the business name `"@unkeyed"`, are quoted and escaped (`EvidenceIdentityTest`). The topology
 graph menu, series, diff and the scorer (rounds 8 and 9).
 
-**Encoding is selected from the reader's declared context. Logged content MUST NOT select or change
-it.** There is no field in the text that switches grammar, because the same bytes cannot say whether
-a quote mark — or a line spelled like a field — was the producer's data or encoding syntax. An
-earlier draft put a `nodeLogsEncoding: quoted` scalar in the record; a reviewer then logged a
-multiline legacy value whose middle line *was* that scalar, and the parser promoted value data into a
-control field and deleted the entry after it. The declaration now lives where the text cannot reach
-it. A text file opened by the built-in text reader is therefore always legacy, byte for byte as
-before; that reader has no declaration to make and the text runtime never quotes. *(Fixture C17
-pins the round-5 record, `"hello"` keeping its quotes, and the multiline record.)*
+**Encoding is never inferred from content. Logged content MUST NOT select or change it.** The analyser
+never looks at a value, a quote mark or a backslash and guesses which grammar wrote it: the same bytes
+cannot say whether a quote mark was the producer's data or encoding syntax. A reader's declaration
+lives where the text cannot reach it, and it wins: a reader that declares the grammar applies it to
+every record, whatever the record says.
+
+**A text record's own declaration.** Under a reader that declares nothing (the built-in text reader,
+or any reader whose `textEncoding()` is the default), a record MAY declare the grammar for itself
+with one line in its `eventLogRecord` mapping, at the fields' indentation:
+
+```yaml
+---
+eventLogRecord:
+    textEncoding: QUOTED_SCALARS
+    eventTime: 1786355857000
+    logTime: 1786355857001
+    event: MemberEvent
+    eventToString: "MemberEvent{id=7, note: \x22vip\x22}"
+    thread: main
+    nodeLogs:
+        - gymAccess: { reason: "membership not active, balance due 30.0", granted: false}
+    endTime: 1786355857002
+---
+```
+
+This is an **explicit producer declaration, not inference**, and it is recognised by **position, never
+by mention** — the rule §1a applies to the stream-end marker. It is the declaration **if and only if**
+it is the first non-empty line after the record's `eventLogRecord:` key (lines stripped of space, tab,
+CR, LF and byte-order marks exactly as §1a strips them; a comment line there disqualifies it), it is a
+field by §2's structural rule (at the fields' indentation, outside any quoted value), and the record's
+structure is not broken before it. Anywhere else — after `endTime`, after any other field, inside a
+multi-line `eventToString`, inside a node value, nested under another key — the same spelling is
+**content**: an unknown field, ignored like any other (§2), and the record stays legacy. That
+position is the fix for the reason an earlier draft was withdrawn: it put a `nodeLogsEncoding: quoted`
+scalar anywhere in the record, a reviewer logged a multiline legacy value whose middle line *was* that
+scalar, and the parser promoted value data into a control field and deleted the entry after it. A
+value cannot reach the first line of the mapping: every value follows its own key, and the record key
+is the line before.
+
+Under a record's declaration:
+
+- the record's `nodeLogs` read with this grammar, exactly as under a reader's declaration — except
+  that there are **no reserved keys**: the text runtime has no wire TRACE, so a bare `@invoked` is the
+  producer's key and stays an entry;
+- the string header scalars — `event`, `eventType`, `eventToString`, `thread`, `groupingId` — that are
+  *entirely* one quoted scalar decode the same way, and are text whatever they spell: a quoted
+  `"null"` grouping id is the string `null`, while a bare `null` is still absent. (Under a reader's
+  declaration header scalars stay raw, as before.) A producer SHOULD write `"` inside a quoted scalar
+  as `\x22`, so a legacy scanner, which knows no escapes, still sees where every value ends; `\"` is
+  accepted too, but an analyser older than revision 1.2 would end the value at it;
+- the record is still a **text-runtime record**: the `method`-on-every-node tracing heuristic (§8) and
+  the trace-run reading of `read` keep applying to it;
+- the declaration is **metadata**: never a node entry, a key, a series or a header field, and it moves
+  no record's offset or index.
+
+The declaration is evaluated **per record**. A file — or a Follow stream — may hold unmarked records
+followed by marked ones (a producer upgraded mid-capture, a merged export), and each reads by its own
+declaration. **A record without the line is read exactly as before**: the legacy grammar, byte for
+byte, quotes kept, nothing decoded. Only the value `QUOTED_SCALARS` is honoured; any other value
+leaves the record legacy (nothing fails) and the analyser names it **once for the log**, with the
+first such record and the count, as the producer finding `UNKNOWN_TEXT_ENCODING`.
+
+**Export.** A YAML export of a text log copies each record's own text, the declaration included, so
+it re-opens as the same records, marked and unmarked alike. A store whose *reader* declares the grammar
+is still refused a YAML export: its text carries no declaration. *(Fixture C17 pins the round-5
+record, `"hello"` keeping its quotes, and the multiline record — all unmarked. Fixture C35 pins a mixed
+file: an unmarked record, a marked one, the spelling after `endTime` and inside a multi-line
+`eventToString`, an unknown value, and a marked record with a bare `@invoked`.)*
 
 ## 4. Order is a claim, and the reader declares it (D-A1a)
 
@@ -539,6 +609,7 @@ order, for every fixture.
 | C30 per-node level | a control record setting a node to `WARN` annotates that node on both paths; it stays uncovered |
 | C33 trace annotation | `annotation`, written after `method` by Fluxtion 1.1.1 tracing, is framework data like `thread` and `method` — by position, in the leading trace run only; a lone `annotation`, or one after the run, is a business key and makes nothing look traced |
 | C34 merged entry | one entry is one run of writes by one node, not one callback: repeated keys are every pair in order, never an error or de-duplicated; the entry count counts entries; the last occurrence in the record is the value, so a merged entry reads as separated ones; untraced `@AfterTrigger`/`@AfterEvent` entries keep a record out of the traced regime |
+| C35 record text encoding | a text record declares the quoted grammar itself only as the first line of its mapping: that record decodes (values and header scalars, `"123"` and `"true"` stay text, `\0` `\xXX` `\uXXXX` and surrogate pairs decode, malformed escapes stay verbatim, no reserved keys); unmarked records, the spelling after `endTime` or inside a value, and an unknown value read legacy, the last named once; a reader's declaration still covers every record |
 | C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 
 To check an emitter: write its records to a file, open it in the analyser (or run the fixture

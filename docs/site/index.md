@@ -62,7 +62,9 @@ cycle shaded](assets/screenshot-dark.png)
 
 ## Run it now
 
-You need **Java 21 or later**. With [JBang](https://jbang.dev):
+Install [JBang](https://www.jbang.dev) once (it fetches Java 21 if you have none), then run the analyser:
+
+--8<-- "snippets/jbang-install.md"
 
 ```bash
 jbang analyser@telaminai/fluxtionauditlog-analyser

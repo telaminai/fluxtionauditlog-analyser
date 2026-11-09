@@ -43,17 +43,37 @@ assistant panel, FIX-1…FIX-10, UX-SC, the OPT-2 Claude-Code-proposed starter, 
 C1–C8 corrections; M74's P1a…P3, UX-unification, r14/r15, and [DOCS-IA]. Archived in
 [completed/tracker.md](completed/tracker.md) ▸ *1.36.0*.
 
-_Refreshed 2026-10-19, after 1.36.0._ **Delivery order:**
+_Refreshed 2026-11-05, after 1.40.3._ **Shipped since 2026-10-27:** **1.40.1** (the compiler account offers
+Production and Staging); **1.40.2** (getting started opens with installing JBang, #216); **1.40.3** (setup from your
+assistant as a normal macOS release; starters build through compiler sign-in, #217). Cross-repo: compiler **1.0.84**,
+fluxtion-maven-plugin **1.3.1** (`mvn fluxtion:login`), the Claude Code plugin **0.1.1** (`telaminai/claude-plugins`),
+and starter Mains that write an analyser-ready audit export (fluxtion-web).; its delivery order is superseded by the one below (git history keeps it).
 
-1. **MVP, in parallel:** M79-1a (the first launch) and the M76 criterion chip + before/after run comparison.
-2. **Commercial track (owner):** the gateway hotfix (compiler#113) deploys, then RapidAPI self-serve and a
-   trial/teaching key tier.
-3. **The security one-pager** (OD-74.2), before any customer-facing Claude Code release.
-4. **2–3 friendly-team trials.**
+_Refreshed 2026-11-07, after 1.40.6._ **Shipped since 2026-11-05:** **1.40.4** (the gym fix set, #218: quoted-scalar
+records, format revision 1.2, a neutral `flag`, the `--mcp` bridge exit); **1.40.5** (Canvas *Messages (N)* with Accept all /
+Clear all, *Explain this*, the signed-in email); **1.40.6** (one message per regenerated graph whichever build copy lands,
+#222/#225). Cross-repo: compiler **1.0.86–1.0.89** (the ensure processor reuses an unchanged committed processor, FLX-1022
+when signed out; the extra-output warning; a stable digest with reachability metadata), fluxtion-maven-plugin **1.3.2–1.3.3**,
+Mongoose **1.1.3** and plugins **1.1.2**, runtime fluxtion#54, the Claude Code plugin **0.1.2–0.1.5**, and fluxtion-web #43–#45,
+#52 and #53 (the Java-authoring starter). **Direction (owner, 2026-11-06):** Java authoring is the main track; the Claude Code
+plugin makes the journey fast; the Spring authoring fixes are parked. **Delivery order:**
 
-Big builds wait **for the owner's plan usage reset (2026-10-22)**.
+0. **Public hygiene (cross-repo).** Commit identity pinned in every local clone; GitHub-button merges still use the account's primary email, so merge locally; close stale shipped issues and dead PRs.
+1. ◧ [RAPID-OFF] **Close the RapidAPI key route everywhere** (retired by the owner 2026-11-05). Seven draft PRs, all reviewed: compiler #144 (builder 1.0.90: no key mode, a stored `fluxtion:login` is found by every build, FLX-1023 when signed out), mavenplugin #22 (1.3.4), compiler #145 (2a: legacy routes refuse) and #146 (2b: removed; managed auth required to start), fluxtion-web #57, the runtime docs fluxtion#55, and here #226. Release order and owner steps: the RAPID-OFF release plan.
+2. ☑ **Java authoring: generic starter** — fluxtion-web #54 merged (`b2630505`) after the benchmark rerun on Mongoose 1.1.3 / plugins 1.1.2 and an independent review; #56 (the guide printed once) merged as its follow-up. Archive at the next tidy.
+3. ☐ **Trial readiness, then 2–3 friendly-team trials.** One blind install-to-audit run on the released stack (the install-timing harness, warm provenance-checked cache), then the trials.
+4. ☐ **Stable filter fingerprints** — compiler#130 (enum, Class, CharSequence canonical; anything else a coded build failure); unblocks the evidence-set key (#211).
+5. **Launch gate (compiler, owner).** External health check with alerting; Cloudflare WAF and rate limits; independent pen test; legal pages and DPAs; load test (compiler test 17); an automated regression check for the 2026-10-27 deploy incident.
+6. ◑ **No key anywhere**, after RAPID-OFF: Canvas's compiler-account sign-in also authorises generation; one credential store shared by Maven and Canvas; starter CI.
+7. ⏸ **Spring authoring, parked (owner decision).** Compiler and web `fix/authoring-gym-fixes` (r6 unreviewed; its in-build guard overlaps the ensure processor, fluxtion-web#48) and #221 (the add-a-node skill). Track-neutral web fixes (stop identity, reset-feeds, AG-8, AG-11) to be split out.
+8. **Analyser merge queue** (no movement since 2026-10-27): #196 (M79-1a-i) → #197 (M79-7) → #199 (M79-3) → #198; rebase or close. **Then M79-1b** (owner, 2026-10-27): the start page under 40 words with *Learn ▸ The diamond*.
+9. **Mongoose 1.1 follow-through.** Read the control-audit export's manifest `complete` claim and its `controlFallback` documents; producer asks MA-2, MA-5.7, UP-MNG-02 remain unmet. Open drafts: runtime fluxtion#53 → then #214 (session processor regeneration).
+10. **Then** the M79 remainder (1a-ii, 2, 4–6).
 
-**Still carried:** M74 follow-ups (Settings ▸ Assistant around the four profiles, now partly superseded by M77's
+⊘ RapidAPI self-serve and a trial/teaching key tier (the 2026-10-19 order's item 2): superseded by managed auth's free allowance.
+
+**Still carried:** the security one-pager (OD-74.2), before any customer-facing Claude Code release · the M76 criterion
+chip and before/after run comparison · M74 follow-ups (Settings ▸ Assistant around the four profiles, now partly superseded by M77's
 wizard and quick switch — re-scope or close; the spec split; `LocalAgentWiring`; the CLI-drift canary and
 managed-settings probe; Windows, #148) · virgin-LLM cycles (#155; T4 authoring first, T5 the external-loop gate) ·
 M75 (#153) once its owner decisions are answered · assurance debt (#70, #119) · owner decisions (M70 vs Mongoose
@@ -108,6 +128,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M81.C/A] ☑ Recovery #173 and activity #176 merged to main 2026-10-19 (`5bb43b57`); each independently reviewed at its exact head.
 - [M81.B] ◧ Explicitly deferred, draft #184 closed unmerged. ▸ [disposition](../handoff/m81-b-deferral.md)
 - [M81.D] ◐ General project-output watcher and person-accepted sync offers in implementation; separate safe branch, no B dependency. Not yet a reviewed or shipping feature.
+- [M81.D9] ◐ One graph, one offer: build copies of a regenerated GraphML raised three banners (gym acceptance 2026-11-05). ▸ [spec §3.5.1](spec-assistant-activity-and-project-trust.md)
 
 ### Onboard assistant and conversation journeys — released in 1.29.0; acceptance open ([spec](spec-onboard-assistant-journeys.md))
 - [OA-1] ◐ Session-owned live loop — the authorised live-provider run (OA-A2) is unverified.
@@ -161,7 +182,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers; r6 the second review, OD-79.20–.25 accepted; r7 brought up to date for implementation and adds M79-7, OD-79.26–.28 open): the real-run diamond walk autoplays once, its Spring XML beside the topology, three doors, a start page under 40 words; then a recorded, composition-first teaching conversation in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, the external teacher kit, and three published philosophy packs. 9 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`. No M79 code is in the integration; the first slice to start is M79-1a-i.
 - [M79-1a-i] ☐ The first launch, generic domain: `firstMinute`, the diamond walk autoplayed once, the topology-centre layout, Spring XML beside it, three doors, no recovery offer (spec §5, §7).
 - [M79-1a-ii] ☐ The four other domains: runs, GraphMLs, the caption template, the five tiles (spec §6.3).
-- [M79-1b] ☐ The start page under 40 words, against M77's shipped wizard/AI line (spec §5.4).
+- [M79-1b] ☐ **Next after #196** (owner, 2026-10-27). The start page under 40 words, against M77's shipped wizard/AI line, with *Learn ▸ The diamond* as the returning entry (spec §5.3–§5.4).
 - [M79-2] ☐ The teaching conversation in the onboard assistant: a shipped, recorded walk, *Continue with Claude*, the passive log (spec §11).
 - [M79-3] ☐ Quiet evidence wording: the three-state chip, accessible descriptions (spec §8).
 - [M79-4] ☐ The broken-diamond quest: works with No AI, confirmed by record digest, teacher mode (spec §9).
@@ -314,6 +335,21 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 - ☐ **Windows first-run records for skill placeholders:** FIX-10's filled-marker approach (flag 22) was built and
   checked on the owner's Mac; confirm the same first-run record answers the markers on Windows (with M74 §11).
 
+### Set up with your AI assistant — the 5-minute start (cross-repo, fluxtion-web + claude-plugins)
+- [SETUP-AI] ☑ One question to Claude Code installs, opens and connects the analyser, with optional compiler sign-in and
+  day-two recovery: plugin 0.1.1 + 1.40.3 ([guide](../site/start/set-up-with-an-assistant.md)). Measured on production
+  (2026-11-04): setup in about 6 min with no Java, about 4 min with Java and JBang; the untouched starter audit opens with
+  its graph. Evidence: fluxtion-web `docs/handoff/analyser_normal_release_2026_11_04.md` and
+  `analyser_plugin_upgrade_0_1_1_2026_11_04.md`.
+- [SETUP-AI.1] ☐ Plugin 0.1.2 (fluxtion-web#44): the relay exits when its Claude Code session has gone.
+- [SETUP-AI.2] ☐ The Analyser says a starter export's completeness cannot be confirmed: the sink writes `---` before
+  each record and none after the last (trial finding F5). Decide which side changes.
+- [SETUP-AI.3] ☐ Beyond macOS and the Claude Code terminal: Linux, Windows, other clients.
+
+### Playground link — show a locally built design in the browser (cross-repo, fluxtion-web)
+- [PG-LINK] ◐ [fluxtion-web#32](https://github.com/telaminai/fluxtion-web/pull/32): the agent builds locally, then hands over one `/playground#…` link (`playground-link.py` + `playground-link/skill.md`, linked from `llms.txt`); links now show `generated/` source and topology. Open: review, merge, deploy; owner check on live that a script-built link shows GENERATED **and** a signed-out run's audit log.
+- [PG-LINK.2] ☐ Follow-ups: a playground "Download audit log" button so a browser run opens in the Analyser; point the Spring authoring skill at the link step once its pin can move.
+
 ### M67 · The extension tour ([spec](spec-extension-tour.md)) — unblocked
 - [M67.1] ☐ The catalogue (cross-repo) · [M67.2] ☐ the tour's project (playground) · [M67.3] ☐ the skill and
   verifier · [M67.4] ☐ the held-out record and docs page · [M67.5] ☐ beat 3 lights the declaration ·
@@ -324,7 +360,8 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 
 ### Beta ([proposal](../proposals/beta-testing/README.md))
 - [BETA-6] ◧ Sixth draft; one review round before any approach.
-- [BETA-B1] ◧ A2 needs a generation key; the customer key journey is untested (acquisition is a future item).
+- [BETA-B1] ◧ A2 needs generation access: now compiler sign-in, whose journey passed on production (SETUP-AI,
+  2026-11-04); re-word A2 for sign-in, then close.
 - [BETA-B3] ☐ **(owner)** Template decision, then a dry run of A1–A2 by someone other than the author — the LLM half is covered by the M74 virgin protocol; the human dry run remains.
 - [BETA-B4] ☐ Jar A, jar B and the spec-derived check — publication and integration open.
 - [BETA-8] ◧ The journey on Haiku — A3's scoring gap. ▸ detail: *Beta*.
@@ -360,6 +397,10 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 ### M22 · Topology view usability — 36 of 41 shipped
 - [M22.3] ☐ export the view as PNG · [M22.6] ☐ alternative layouts · [M22.11] ☐ show re-dispatch's cause ·
   [M22.20] ☐ a DataFlow `.push()` target renders as an orphan. ▸ detail: *M22*.
+
+### UI — nice to have
+- ☐ [#200](https://github.com/telaminai/fluxtionauditlog-analyser/issues/200) Topology: optional animated pan to the stepped node, keeping zoom, plus an overview inset.
+- ☐ [#201](https://github.com/telaminai/fluxtionauditlog-analyser/issues/201) Text size: an overall X-Small to X-Large setting, and per-pane A-/A+ on source views.
 
 ### M20 · M29 · M33 · M40 — follow-ups
 - [M29.5] ☐ **(owner, optional)** `embed: true` for small external series.

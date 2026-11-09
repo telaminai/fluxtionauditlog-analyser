@@ -937,8 +937,16 @@ public final class SessionEvents {
     /**
      * Reported once at start-up with the other start-up facts: the two machine-tier keys of M77 and whether this process
      * was started with {@code --rest} (an agent drives it; nobody at the screen — review R1-16 a, b).
+     *
+     * <p>RAPID-OFF (2026-11-07): {@code legacyKeyFile} — a file still exists where the retired AI ▸ Fluxtion API key…
+     * item wrote one. Existence only: the adapter never opens it, and no path or value travels in this fact.
      */
-    public record AiSetupStartupObserved(boolean dismissed, AiSetupState.Client client, boolean restLaunch) {
+    public record AiSetupStartupObserved(boolean dismissed, AiSetupState.Client client, boolean restLaunch,
+                                         boolean legacyKeyFile) {
+        /** The start-up facts with no legacy key file observed. */
+        public AiSetupStartupObserved(boolean dismissed, AiSetupState.Client client, boolean restLaunch) {
+            this(dismissed, client, restLaunch, false);
+        }
     }
 
     /** Screen 1 (or the first-run block): the person picked a choice. Picking applies nothing. */
@@ -1796,7 +1804,8 @@ public final class SessionEvents {
     /**
      * The starter catalogue was read (or could not be): {@code entriesRef} names the frame's copy of the entries (0 when
      * unreachable); per entry, in the catalogue's order, the digest of its id ({@code LocalAgentPosture.digest}) and its
-     * authoring, host, mode and key need — vocabulary words, which the node orders and recommends by.
+     * authoring, host, mode and key need — vocabulary words — and whether the catalogue recommends it (tagged for
+     * onboarding), which the node orders and recommends by.
      */
     public record StarterCatalogueObserved(long request, boolean reachable, long entriesRef,
                                            java.util.List<StarterFacts> entries) {
@@ -1805,8 +1814,16 @@ public final class SessionEvents {
         }
     }
 
-    /** One catalogue entry as the node holds it: its id's digest and four vocabulary words. */
-    public record StarterFacts(String idDigest, String authoring, String host, String mode, String keyNeed) {
+    /**
+     * One catalogue entry as the node holds it: its id's digest, four vocabulary words and whether the catalogue
+     * recommends it ({@code TemplateCatalogue.Entry.recommended}: tagged for onboarding, or the Java-authoring starter).
+     */
+    public record StarterFacts(String idDigest, String authoring, String host, String mode, String keyNeed,
+                               boolean recommended) {
+        /** A catalogue entry with no recommendation declared; the Java-authoring starter is recommended regardless. */
+        public StarterFacts(String idDigest, String authoring, String host, String mode, String keyNeed) {
+            this(idDigest, authoring, host, mode, keyNeed, false);
+        }
     }
 
     /** The person's Project ▸ New project from template… — the same chain as a proposal's starter, from its picker. */
@@ -1823,7 +1840,7 @@ public final class SessionEvents {
      * could not be read.
      */
     public record StarterDefaultsObserved(long opId, long request, boolean ok, long defaultsRef, String authoring,
-                                          boolean keyPresent, String failure) implements Result {
+                                          String failure) implements Result {
     }
 
     /**
@@ -2128,7 +2145,12 @@ public final class SessionEvents {
                                         ProjectOutputsState.File file) implements Result {
         @Override public long opId() { return 0; }
     }
-    public record ProjectOutputOfferAnswered(long watch, long offer, boolean open) { }
+    public record ProjectOutputOfferAnswered(long watch, long offer, boolean open, java.util.List<Long> batch) {
+        public ProjectOutputOfferAnswered { batch = java.util.List.copyOf(batch); }
+        public ProjectOutputOfferAnswered(long watch, long offer, boolean open) {
+            this(watch, offer, open, java.util.List.of());
+        }
+    }
     public record ProjectOutputOpenObserved(long opId, long watch, long offer, boolean opened, String why)
             implements Result { }
     public record ProjectOutputsEffectStarted(long opId, long watch, String what) implements Result { }

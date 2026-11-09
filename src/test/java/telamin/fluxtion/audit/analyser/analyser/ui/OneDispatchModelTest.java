@@ -371,8 +371,9 @@ class OneDispatchModelTest {
         // analyser can build is in a named home, so a second agent launcher anywhere fails here
         // M77 (★ T16): ClaudeProbes is the one home of Set up AI's two read-only checks (claude --version, auth status);
         // M77-3: McpRegistrar is the one home of Set up AI's registration processes (mcp get / mcp add, in an empty folder)
+        // CA-1: CommandRunner is the one home of the OS credential tools (security, secret-tool); the secret goes on stdin
         java.util.Set<String> processHomes = java.util.Set.of("OsAgentLauncher.java", "S3Source.java", "CodexMcpClient.java",
-                "McpConnectionProbe.java", "ClaudeMcpClient.java", "ClaudeProbes.java", "McpRegistrar.java");
+                "McpConnectionProbe.java", "ClaudeMcpClient.java", "ClaudeProbes.java", "McpRegistrar.java", "CommandRunner.java");
         Pattern newProcess = Pattern.compile("new\\s+ProcessBuilder\\s*\\(|Runtime\\.getRuntime\\(\\)\\s*\\.\\s*exec\\s*\\(");
         try (var files = Files.walk(Path.of("src/main/java"))) {
             for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {

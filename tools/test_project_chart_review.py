@@ -48,6 +48,29 @@ class GateTest(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'chart-adapter'):
                 gate.selected_cases(None, root)
 
+    def test_an_ambiguous_anchor_is_rejected_before_any_run(self):
+        case = next(c for c in gate.CASES if c[0] == 'ups1-r2-typed-grammar-not-exempt')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / case[1]
+            path.parent.mkdir(parents=True)
+            original = (ROOT / case[1]).read_text()
+            path.write_text(original + '\n' + case[2])
+            with self.assertRaisesRegex(AssertionError, 'mutation anchor.*ups1-r2-typed-grammar-not-exempt.*2'):
+                gate.selected_cases([case[0]], root)
+            path.write_text(original)
+            self.assertEqual([case], gate.selected_cases([case[0]], root))
+
+    def test_a_control_naming_a_missing_test_is_rejected_before_any_run(self):
+        # 2026-11-03: a renamed test left its control naming the old method; the shard's baseline failed on main
+        renamed = ('x', 'site', 'old', 'new',
+                   'CompilerAccountWordsTest#theAddressSuggestionsAreTheIssuerThenRememberedAddressesThenTheSetting_eachOnceAndOnlyUsableOnes')
+        with self.assertRaisesRegex(AssertionError, 'mutation test method'):
+            gate.require_named_tests([renamed], ROOT)
+        with self.assertRaisesRegex(AssertionError, 'mutation test class'):
+            gate.require_named_tests([('x', 'site', 'old', 'new', 'NoSuchTest#anything')], ROOT)
+        gate.require_named_tests(gate.CASES, ROOT)   # control: every registered control names a real test
+
     def test_unknown_case_cannot_report_an_empty_success(self):
         with self.assertRaisesRegex(AssertionError, 'unknown mutation'):
             gate.selected_cases(['misspelt-control'], ROOT)

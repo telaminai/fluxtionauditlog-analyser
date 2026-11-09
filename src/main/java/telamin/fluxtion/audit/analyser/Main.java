@@ -48,7 +48,8 @@ public class Main {
         // come ahead of the theme/taskbar/frame bootstrap below (spec-assistant-actions-mcp §9)
         for (String arg : args) {
             if (MCP_FLAG.equals(arg)) {
-                telamin.fluxtion.audit.analyser.analyser.mcp.McpBridge.main(args);
+                // launch, not main: the process exits when the bridge's client is gone (stdin EOF or a dead parent)
+                telamin.fluxtion.audit.analyser.analyser.mcp.McpBridge.launch(args);
                 return;
             }
         }

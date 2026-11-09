@@ -127,7 +127,7 @@ class CustomerApiKeysTest {
         Map<String, List<String>> s = new LinkedHashMap<>();
         s.put("log", List.of("log", "provenance", "provenanceSource", "files", "inFlight", "dispatchOrder",
                 "timeOrder", "producer", "rolledSetOffer"));
-        s.put("project", List.of("project", "skills", "projectOffer", "fluxtionKey", "environments", "runbooks",
+        s.put("project", List.of("project", "skills", "projectOffer", "environments", "runbooks",
                 "vocabulary", "analyses", "reportDestinations", "exports", "reports", "walks", "capture",
                 "assistant", "bundles"));
         s.put("pairing", List.of("graphPairing"));

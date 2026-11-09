@@ -169,6 +169,9 @@ class ProjectOutputsFrameTest {
                 assertFalse(driver.snapshot().graphOpen(), "stability alone never opens a graph");
                 assertEquals(own.toString(), driver.processor().openLog.logPath(), "the person's log remains open");
                 assertTrue(StarterProposalFrameTest.text(f.frame).contains("The graph was regenerated — open it?"));
+                JTabbedPane tabs = (JTabbedPane) field(f.frame, "sideTabs");
+                assertFalse(button(f.frame, "projectOutputOpen-" + graphOffer).isShowing(), "messages do not cover the canvas");
+                tabs.setSelectedComponent((Component) field(f.frame, "projectOutputsPanel"));
                 assertTrue(button(f.frame, "projectOutputOpen-" + graphOffer).isShowing());
                 button(f.frame, "projectOutputOpen-" + graphOffer).doClick();
             });
@@ -216,6 +219,44 @@ class ProjectOutputsFrameTest {
             onEdt(() -> button(f.frame, "projectOutputNotNow-" + dismiss).doClick());
             awaitSnapshot(f.frame, s -> s.projectOutputs().offers().isEmpty(), "the real Not now button consumes only this revision");
             onEdt(() -> assertEquals(next.toString(), driver.processor().openLog.logPath()));
+        }
+    }
+
+    @Test void acceptAllWaitsForRealOpensAndClearAllDoesNotOpen(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        Path root = Files.createDirectories(tmp.resolve("DEMO"));
+        Path logs = Files.createDirectories(root.resolve("logs"));
+        Path profile = Files.createDirectories(root.resolve(".analyser")).resolve("project.fluxtion-settings");
+        Files.writeString(profile, "share.version=1\nenvironment.count=1\nenvironment.0.name=DEMO\n"
+                + "environment.0.provenance=DEMO\nenvironment.0.logDir=logs\n");
+        try (Frame f = new Frame(tmp)) {
+            onEdt(() -> render(f.ex, "open", Map.of("project", profile.toString())));
+            SessionDriver driver = (SessionDriver) field(f.frame, "session");
+            awaitTrue(() -> {
+                final boolean[] ready = {false};
+                onEdt(() -> ready[0] = (boolean) field(driver.processor().projectOutputs, "baseline"));
+                return ready[0];
+            }, "watch baseline");
+            Path graph = Files.writeString(root.resolve("build.graphml"), graph("nodeA"));
+            Path log = Files.writeString(logs.resolve("next.yaml"), log("nodeA")).toRealPath();
+            awaitSnapshot(f.frame, s -> s.projectOutputs().offers().size() == 2, "graph and log offers");
+            onEdt(() -> button(f.frame, "projectOutputAcceptAll").doClick());
+            try {
+                awaitSnapshot(f.frame, s -> s.projectOutputs().offers().isEmpty() && log.toString().equals(s.logPath())
+                        && s.pairing() != null && s.pairing().applies(), "both real bulk opens completed and paired");
+            } catch (AssertionError failure) {
+                onEdt(() -> {
+                    var state = driver.snapshot();
+                    throw new AssertionError("bulk open: log=" + state.logPath() + " graph=" + state.graphPath()
+                            + " pairing=" + state.pairing() + " offers=" + state.projectOutputs()
+                            + " status=" + f.status() + " results=" + driver.auditSink().matching("ProjectOutputOpenObserved"), failure);
+                });
+            }
+            Files.writeString(graph, graph("nodeA") + "\n<!-- changed -->\n");
+            awaitSnapshot(f.frame, s -> !s.projectOutputs().offers().isEmpty(), "next graph offer");
+            onEdt(() -> button(f.frame, "projectOutputClearAll").doClick());
+            awaitSnapshot(f.frame, s -> s.projectOutputs().offers().isEmpty(), "clear all dismisses");
+            onEdt(() -> assertEquals(log.toString(), driver.snapshot().logPath()));
         }
     }
 

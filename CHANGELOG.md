@@ -18,6 +18,188 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - With a project open that declares no exchange directory, screenshots, bundles, reels and rendered reports go to the project's own `analyser-exchange/`, created on first write. Before, they went to the machine-level directory, which could be another project's folder. The reply names the directory. The first write that creates the folder says once, in the reply and on the status line, that you may want to add it to `.gitignore`; the analyser does not edit `.gitignore`. Sessions with no project, the sample project and bundle working copies keep the machine directory (#182).
 - A report's `topology` section with no `focus` now renders the whole authored graph instead of being skipped. One that cannot be drawn (no graph loaded) says why in the PDF and the reply (#183).
 
+## [1.41.2] - 2026-11-07
+
+### Removed
+- **AI ▸ Fluxtion API key…**, its dialog and the start page's **Fluxtion key** card are gone: the legacy API key route to the hosted generator is closed. Builds now sign in: `mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login` once per machine (`./mvnw fluxtion:login` in a project that declares the plugin), or `FLUXTION_API_TOKEN` in CI. Maven, Gradle, JBang and runtime builds all use that stored login; `FLUXTION_COMPILER_URL` is needed only for a compiler other than the managed one. **AI ▸ Compiler account…** (now also **Account** on the start page) shows your account, plan and usage; it does not sign builds in. While a key file from the old route is still on your machine, the start page says on each launch that it is no longer read and can be deleted; the analyser never reads or shows it. `context` no longer carries `fluxtionKey`, and the Project panel no longer shows a key-file row.
+
+### Changed
+- A starter's review row, its template-picker disclosure (*Build authentication*) and its vendored *add-a-node* and run steps say *compiler sign-in* where they said a Fluxtion key was needed.
+- The analyser's own regeneration toolchain moves to fluxtion-builder 1.0.91 and fluxtion-maven-plugin 1.3.4, which have no key route: they sign in, and stop with FLX-1023 before any connection when signed out. The guides, skills and FAQ give the sign-in command throughout, and the compiler-account guide lists a plan's limits as nodes, inputs and exported interfaces.
+
+## [1.41.1] - 2026-11-07
+
+### Changed
+- The template picker lists recommended starters by name alone while **Show all templates** is unticked (the note above the list already says they are the recommended starting points, and the suffix was cut off in the narrow list). Ticked, recommended entries still read " — Recommended starting point"; the selected template's heading is unchanged.
+
+### Fixed
+- The Audit analyser bundle installs its `add-a-node` skill's `audit-compare.py` executable, as published (it arrived without the execute bit). Only that exact path is added to the installer's fixed list; archive modes are still never trusted.
+
+## [1.41.0] - 2026-11-07
+
+### Changed
+- Starter lists put the **Java authoring (Mongoose)** starter first and recommended (owner decision 2026-11-07). The template picker, the start page's template names and the starters listed to the assistant (`context.starters`) now show only the recommended starters, Java authoring first (the assistant may still propose any catalogue starter by id); tick **Show all templates** in the picker to list the rest (recommended first, then the catalogue's order). The choice lasts until the analyser closes. Spring starters the catalogue tags for onboarding stay recommended, after Java authoring.
+- The project review row for the Java-authoring starter says no processor ships and its first build generates one with compiler sign-in. Opening it no longer looks for a Spring design, and the draft for Claude Code points at its own guide and `tools/context.sh` instead of the Spring design skill.
+
+### Fixed
+- The Java-authoring starter installs exactly as published: its `tools/` scripts are executable (they arrived without the execute bit, so `tools/context.sh` failed with "Permission denied"), and the analyser no longer adds the `guided-start` skill and a digest record to its own skill set.
+
+## [1.40.6] - 2026-11-06
+
+### Fixed
+
+- Creating an analyser bundle keeps its feed-position helper executable, so saved-position run and restart commands work without a manual permission change.
+
+- A regenerated graph raises one message however many build copies it lands in, whichever copy the scan sees first; the message names the copy outside build output. Recognised Gradle `build/` and unambiguous IntelliJ `out/` copies count as the same graph too; ambiguous or truncated module layouts keep graphs distinct. A build or regeneration that rewrites the same bytes raises none, including after **Not now** or **Clear all**, and **Accept all** still opens a log whose graph was rewritten with the same bytes. If a file disappears during an open, a settled surviving copy remains available through a fresh message.
+
+## [1.40.5] - 2026-11-05
+
+### Added
+- The Compiler account screen shows **Signed-in email** when the service provides the authenticated user's verified address. Older services show **Not provided by service**; the address is omitted from Copy details.
+- Right-click Java or XML code and choose **Explain this** to copy an explanation prompt or add it to the assistant draft. It uses the selected text, or the displayed code when nothing is selected, without sending automatically.
+
+### Changed
+- Project output notifications now appear in the Canvas **Messages (N)** tab, with the pending count and an amber unread indicator. Viewing the tab clears the unread colour; Open and Not now still act on the individual output. Notifications no longer stack above the workspace. **Accept all** opens the current outputs in sequence, stopping on failure; **Clear all** dismisses the current messages without opening them.
+
+### Fixed
+- Identical GraphML copies in Maven's `target/classes` and `target/fluxtion-staging/resources` no longer produce extra regeneration messages when the corresponding source resource exists. Different graphs and standalone build outputs remain discoverable.
+
+## [1.40.4] - 2026-11-05
+
+### Added
+- **A text audit record can declare quoted values itself.** A record whose `eventLogRecord` mapping opens with
+  `textEncoding: QUOTED_SCALARS` is read with the quoted-scalar grammar (format spec §3a): a value such as
+  `reason: "membership not active, balance due 30.0"` is one value, `"123"` and `"true"` stay text, quoted header
+  values decode, and `\0`, `\xXX`, `\uXXXX` (surrogate pairs included) are decoded alongside `\\ \" \n \r \t`;
+  malformed escapes are kept verbatim. Recognised only as the first line of the mapping, record by record, so a
+  file or Follow stream mixing old and new records reads each correctly; records without it read exactly as
+  before. An unknown value reads as legacy and is named once as a producer finding. Fixture C35.
+- **Format 1, revision 1.2.** The format specification names the per-record declaration as revision 1.2 (additive:
+  an unmarked file is unchanged; an older analyser ignores the line and shows quoted values with their quote marks,
+  entry boundaries intact). The *Log format* page shows a marked record and the full escape list.
+
+### Changed
+- `flag` without a `kind` now saves a neutral `note` (labelled Note / Assessment) instead of a fault, so evidence of correct behaviour is no longer recorded as a fault; `fault` and `confirmation` work as before, an existing finding keeps its kind, and the tool description names the default and all three kinds. Session recovery is forward-only once a `note` finding with text exists: 1.40.3 and earlier reject the `note` kind and then restore no findings at all from that snapshot. A bare flag (no note or fix) is still saved in the form earlier releases restore.
+
+### Fixed
+- The `--mcp` bridge exits when its client closes stdin, even while a call to the analyser is in flight: requests received before stdin closed are still answered as long as each completes within 10 seconds; one that takes longer is dropped, together with any after it (before, a blocked call held the bridge for up to the 60-second call timeout). It also exits when the process that launched it has gone, including when that process exits before Java starts. A bridge whose client is still running is kept, however long it sits idle, by design.
+- A finding with no note no longer shows an empty label: a bare `confirmation` flag showed a lone "Observation:" in the records table and on the topology callout, and a fix-only confirmation an empty "Observation:" line above its assessment.
+- The point-at-the-fault skill flags a found fault with `"kind": "fault"`, and says to flag a proving record as `confirmation` when it shows correct behaviour or to pass `kind: note` for a neutral observation only when the connected tool supports it; older releases default an omitted kind to a fault.
+- The add-a-node skill's `audit-compare.py` reads records that declare quoted scalars (`textEncoding: QUOTED_SCALARS` as the first line, format revision 1.2): the declaration is never compared, quoted keys, values and header fields are decoded, and a capture from before a runtime upgrade matches one from after when the logged values are the same (before, the marker and a quoted `reason: "a, b"` gave a false DIFFER). That match is made record by record, and only when the unmarked record shows it predates quoting, so two captures from the quoting runtime are compared exactly and one real change is reported once. Unmarked records are read as before.
+- A project's authoring evidence opens without granting the project root: `fluxtion-authoring.json`,
+  `target/fluxtion-validation.json`, `target/fluxtion-reconciliation.json`, `target/fluxtion-run.json` and
+  `target/classes/fluxtion-diagnostics.json` are readable at exactly those paths below the open project, so
+  `open {diagnostics: "target/fluxtion-validation.json"}` works with only `src/` source roots, and the run-receipt and
+  authoring-record checks are no longer "unavailable". The list is closed and read-only: no other file or directory
+  becomes readable, a symbolic link (the file's or a folder's) or a second hard link is refused, a source root's own
+  file of the same name takes precedence, and a home or credential folder project grants none of it; a refused evidence file says which of these rules applied. The project root
+  for a settings file outside `.analyser/` is that file's folder, as everywhere else.
+- Design discovery no longer walks `.git/`, `.svn/`, `.hg/`, `.gradle/`, `node_modules/` or `.idea/` below a source
+  root, nor `target/`, `build/` or `out/` beside a build file (`pom.xml`, Gradle or Ant; `.iml` for `out/`), so the build's copy of a Spring design in `target/classes/` is not a
+  second candidate and the single design still opens automatically. A file removed or unreadable during the scan (a
+  build running alongside), or a folder removed or replaced, is skipped or named, instead of making the whole discovery
+  unavailable. The warning counts "entries" rather than "files", since folders can be among them.
+
+## [1.40.3] - 2026-11-04
+
+### Fixed
+- Starters declared as compiler sign-in builds no longer show a legacy-key status or prepend the legacy key-check command; legacy runtime modes keep their own guidance.
+- The server-running skill starts with the shipped processor without an authentication gate and directs graph regeneration to compiler sign-in and the project authoring command.
+- Automatic project-reopen dialogs withdraw when a newer open supersedes them, so assistant-loaded evidence is visible; stale chooser answers are ignored.
+- Legacy key guidance distinguishes Maven build sign-in, and the assistant guide names the onboard setup route for Both.
+- Authoring skills now distinguish saved build sign-in from legacy key status, explain recovery after a failed authoring build, and describe single-run exports and optional screenshot verification.
+
+### Added
+
+- Automatic setup is a normal macOS Claude Code release; upgrade from Analyser 1.40.2 before using the updated compiler-sign-in starter catalogue.
+
+- **Set up with your AI assistant.** A docs page for the one-question install: the Claude Code plugin
+  or the published setup instructions install, open and connect the analyser, with optional compiler sign-in,
+  day-2 recovery and building without a system JDK. macOS and the Claude Code terminal only for now.
+  Publication, the shared Java 21 download and starter-export prerequisites, consent exceptions,
+  existing plugin connections and setup privacy are explicit. Manual-mode approvals, plugin declaration,
+  build sign-in requirements, marketplace reload and day-two recovery are documented.
+
+## [1.40.2] - 2026-11-03
+
+### Changed
+
+- **Getting started now opens with installing the analyser.** The guide starts with installing JBang (macOS, Linux
+  and Windows) and the analyser, with screenshots of the start page and of *AI ▸ Compiler account…*'s service list;
+  *Install & run* and the home page lead with the JBang install too.
+
+## [1.40.1] - 2026-11-03
+
+### Changed
+
+- **AI ▸ Compiler account… now offers the hosted compiler services by name.** The service address drop-down lists
+  **Production** (`https://compiler.fluxtion-playground.dev`) and **Staging**
+  (`https://compiler-staging.fluxtion-playground.dev`) on a fresh install, ahead of any address you have connected with
+  before; it was empty until you had connected once, with only a placeholder to go on. Nothing is chosen for you, and
+  any address can still be typed.
+
+### Fixed
+
+- **Choosing the first address in that drop-down now fills the field.** The list started with its first entry already
+  selected while the field was empty, so picking that entry did nothing.
+
+## [1.40.0] - 2026-10-27
+
+### Added
+
+- **AI ▸ Compiler account…** shows compile and interpret credits separately, one row each with what remains, what was
+  used, what is in progress, and how many requests completed or failed. Below the account rows are the plan's key
+  limits, as the service reports them: most nodes, most inputs (event types plus exported methods, each method one
+  input), most exported interfaces, languages, WASM and software assurance; a limit set for your account is marked. A
+  service from before the inputs limit reports only its event-type limit, which counts event types alone: it is shown
+  as **Max event types**, with nothing said about exported methods, and never beside the inputs limit. **Copy details** includes both balances, the plan, its limits and rates, and still
+  never the credential. A service without plans still shows compile credit and says the plan's details and interpret
+  credit were not reported, rather than guessing.
+- *Getting started ▸ Investigate a compiler charge* covers interpretations (`creditKind`, `interpret:` request ids),
+  an operator's per-account limit (`CAPABILITY_SET`), and the two new refusals, `CAPABILITY_EXCEEDED` (with the limit
+  in the row's detail, including `maxInputs` and `maxExportedInterfaces`) and `INTERPRET_ALLOWANCE_EXHAUSTED`.
+- *Getting started ▸ Investigate a compiler charge* covers getting the file (the service admin page's **Download audit
+  log** zip, with the log and `EntitlementProcessor.graphml`, or the export tool), opening that graph explicitly, and
+  reading an operator's credit removal (`ALLOWANCE_REMOVED`) and the removal answers that leave no row.
+- **AI ▸ Compiler account…** is laid out in sections (Account, Credits, This device, Your devices) with aligned rows,
+  the credits as a row of figures, Refresh and Copy details on the left, and Close the default; connected, the top
+  line names just the service's host. The service address is
+  an editable drop-down that offers the addresses this machine has connected with. Each device row shows a short
+  credential id (the whole id in its tooltip), its kind, and when it was created to the minute in UTC, so devices
+  with the same name can be told apart. Each device's whole name fits, whatever the system's fonts: the Name column
+  is as wide as the longest name, and the dialog widens when a longer one is read. After a disconnect the dialog
+  shrinks back to fit, rather than keeping an empty connected-size window.
+- **AI ▸ Compiler account…** now shows the account: its type (Personal or Organisation), your role, the plan and
+  whether it is active; the credits remaining, used and in progress, generations and failures, and whether the
+  allowance is one-time or when it next resets; this device's name and credential id; and your devices, with this
+  machine marked and **Revoke selected** (confirmed first) for a lost or old one. **Copy details** puts a plain-text
+  summary for a support request on the clipboard, never the credential. A new sign-in names the device
+  "Fluxtion analyser on <host>", so several machines can be told apart. Deleting the account is not in the app yet.
+- Docs: *Getting started ▸ Investigate a compiler charge* explains how to open a compiler service's exported investigation of an account, find one request, read why it was charged, released or refused, and chart the balance.
+- **AI ▸ Compiler account…**: a rate-limited or briefly unavailable service no longer ends a device sign-in (the poll waits
+  longer and retries a bounded number of times); **Revoke this device** keeps the device connected when the service
+  answers 401, since that cannot prove the credential was revoked; any 127.x.x.x address may be plain http, like localhost.
+- **AI ▸ Compiler account…** connects the analyser to a compiler account by device sign-in: it opens your browser at the
+  service's sign-in page, shows the code to enter, honours the service's polling interval, slow-down and expiry, and can
+  be cancelled. The credential is kept in the macOS Keychain or the Linux Secret Service keyring (an owner-only file
+  elsewhere), never on a command line or in a project, export, report, bundle or `context`. The dialog shows the plan,
+  available credits and next reset (when there is one), and offers *Disconnect* and *Revoke this device*. The analyser
+  only reads the account; it never changes it.
+
+## [1.39.0] - 2026-10-26
+
+### Changed
+
+- The MCP server instructions (and `/manifest`'s `instructions`) now say what to do FIRST when the person asks for evidence and the run has a fresh export, and never to silently replace a log the person has open (ask first): for "show me evidence", "what happened to this event" or "what did Fluxtion do with X", open the export with its GraphML, wait until `context` no longer reports `inFlight`, spotlight the record that answers, then explain. In a stranger authoring trial, five of five connected runs answered from the YAML and never called the analyser.
+- Bundle skills: `load-audit-log` is now chosen for explaining a run or showing evidence, not only for loading a log, and says to point at the record in a connected analyser rather than quote the YAML; `point-at-the-fault` covers "which record proves a claim" and points a working-run explanation to `load-audit-log`; `add-a-node` restates that `eventHandlers` states a design-time expectation and does not route events. The `m19-skills/2` index is re-pinned.
+
+### Fixed
+
+- Record spotlights recheck the session loading state on the UI thread and after Java-source preparation, so a queued request cannot reveal records after a log starts loading.
+
+- `read` with no anchor (`recordIndex`, `byteOffset` or `at`) no longer fails: it reads from the first record and its `note` says so, with a copyable example. The first-move instructions and the `load-audit-log` and `point-at-the-fault` skills now say to flag the proving record after spotlighting it, so the finding is kept (a trial run saved no flags).
+- A spotlight on a record target (`records`, `records:row:<n>`, `detail`, `detail:node:<id>`) sent while a log is still loading is refused with "log still loading; record targets not ready", touching nothing, instead of landing on the log being replaced. Any other target still lights, and its reply carries `logLoading` saying what was lit is not a record.
+
 ## [1.38.0] - 2026-10-21
 
 ### Added

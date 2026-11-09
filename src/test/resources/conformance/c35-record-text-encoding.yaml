@@ -1,0 +1,59 @@
+---
+#10:00:00.001 [main] INFO  DEMO
+eventLogRecord:
+    eventTime: 1000
+    logTime: 1001
+    groupingId: null
+    event: MemberEvent
+    eventToString: MemberEvent{id=7}
+    thread: main
+    nodeLogs:
+        - gymAccess: { reason: membership not active, balance due 30.0, granted: false, greeting: "hello"}
+    endTime: 1002
+---
+#10:00:00.002 [main] INFO  DEMO
+eventLogRecord:
+    textEncoding: QUOTED_SCALARS
+    eventTime: 2000
+    logTime: 2001
+    groupingId: null
+    event: MemberEvent
+    eventToString: "MemberEvent{id=7, note: \x22vip\x22}"
+    thread: "main, worker"
+    nodeLogs:
+        - gymAccess: { reason: "membership not active, balance due 30.0", granted: false, code: "123", flag: "true", greeting: "hello", name: "Renée \x22R\x22 Zoë", smile: "😀", nul: "a\0b", said: "say \"hi\"", raw: "x\q\u12G4\uD83Dy", fee: 30.0}
+    endTime: 2002
+---
+eventLogRecord:
+    logTime: 3001
+    event: Tick
+    nodeLogs:
+        - n: { greeting: "hello", count: "42"}
+    endTime: 3002
+    textEncoding: QUOTED_SCALARS
+---
+eventLogRecord:
+    logTime: 4001
+    event: AdminCommandEvent
+    eventToString: "args line one
+    textEncoding: QUOTED_SCALARS
+    end"
+    nodeLogs:
+        - n: { greeting: "hello"}
+    endTime: 4002
+---
+eventLogRecord:
+    textEncoding: QUOTED_SCALARS_V9
+    logTime: 5001
+    event: Tick
+    nodeLogs:
+        - n: { greeting: "hello"}
+    endTime: 5002
+---
+eventLogRecord:
+    textEncoding: QUOTED_SCALARS
+    logTime: 6001
+    event: Tick
+    nodeLogs:
+        - n: { method: onTick, @invoked: true, greeting: "hello"}
+    endTime: 6002

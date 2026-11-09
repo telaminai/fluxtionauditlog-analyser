@@ -89,12 +89,13 @@ class SpotlightLineRangeApiDeltaTest {
      */
     @SuppressWarnings("unchecked")
     static <T> T withoutLineRange(T value) {
-        return withoutLineRangeOnly(ProjectReloadApiDeltaTest.withoutReload(value));
+        return withoutLineRangeOnly(FlagKindApiDeltaTest.withoutFlagKind(ProjectReloadApiDeltaTest.withoutReload(value)));
     }
 
     /**
      * This branch's layer alone. {@link #withoutLineRange} — the entry every older *ApiDeltaTest goes through — first
-     * peels the LATER #177 layer ({@link ProjectReloadApiDeltaTest#withoutReload}), so each still lands on its own pins.
+     * peels the LATER layers, newest first: #177's open {reload} ({@link ProjectReloadApiDeltaTest#withoutReload}), then
+     * the flag-kind default ({@link FlagKindApiDeltaTest#withoutFlagKind}), so each still lands on its own pins.
      */
     @SuppressWarnings("unchecked")
     static <T> T withoutLineRangeOnly(T value) {
@@ -124,9 +125,9 @@ class SpotlightLineRangeApiDeltaTest {
         String manifest = PromptBuilder.inProcessActionManifest(3);
         assertTrue(manifest.contains(SpotlightVocabulary.TEXT), "the in-process manifest embeds the live target grammar directly");
         assertEquals(BEFORE.get("PromptBuilder.inProcessActionManifest"), WorkModeKeepsTheApiTest.sha(withoutLineRange(manifest)));
-        // #177's open {reload} is the next layer (ProjectReloadApiDeltaTest): this AFTER is the pin it started from
+        // the pin after this layer, before the later flag-kind layer (FlagKindApiDeltaTest holds the pin now)
         for (var e : AFTER.entrySet()) {
-            assertEquals(e.getValue(), ProjectReloadApiDeltaTest.BEFORE.get(e.getKey()), "the pin before #177: " + e.getKey());
+            assertEquals(e.getValue(), FlagKindApiDeltaTest.BEFORE.get(e.getKey()), "the pin after it: " + e.getKey());
         }
     }
 

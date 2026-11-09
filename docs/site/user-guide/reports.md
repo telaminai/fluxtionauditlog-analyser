@@ -7,8 +7,9 @@ shareable, instead of living in a chat window that scrolls away.
 ## References, never a document
 
 A report is an **ordered list of references with connective prose** — never a free-form document.
-A finding flagged as `kind: "confirmation"` uses **Observation / Assessment**, including in exported
-PDFs. Existing fault findings retain their labels. Choose the category when writing the flag; the report
+A finding flagged as `kind: "confirmation"` uses **Observation / Assessment**, and one of the neutral kind
+`note` (what `flag` saves when no `kind` is given) uses **Note / Assessment**, including in exported
+PDFs. Fault findings keep *What is wrong / Likely cause*. Choose the category when writing the flag; the report
 uses that same finding.
 
 Sections are typed: a `finding` points at a flagged record, a `record` at a cycle, a `chart` at a
