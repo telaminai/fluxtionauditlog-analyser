@@ -86,6 +86,8 @@ public final class McpBridge {
             + "change what the desktop app shows (filter, graph, goto, flag) and are all reversible. "
             + "The analyser must be running with External MCP/REST access on (Settings > Assistant). "
             + FIRST_MOVE
+            // onboarding arm C (2026-11-09): how to START a project, for a client asked to build one
+            + telamin.fluxtion.audit.analyser.analyser.llm.NewProjectRoute.INSTRUCTIONS
             // M64.6: server instructions are the one text EVERY MCP client is handed before it picks a tool,
             // so this is where "when to point" has to be for it to be general rather than a skill's habit
             + telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.GUIDANCE

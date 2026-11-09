@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- An assistant connected over MCP is told how to start a new Fluxtion project: the server instructions say to download the Java-authoring starter (`https://fluxtion-playground.dev/start/scaffold?template=java-authoring`), read its CLAUDE.md and build, rather than hand-writing a project from Maven Central (whose `com.telamin.fluxtion` 1.0.9 predates compiler sign-in, and whose `com.fluxtion` 9.x is the retired earlier product). The first build needs compiler sign-in, which is the next step, not a blocker. While no project is open, `context.project.newProject` carries the same pointer.
 - Normalize equivalent compiler addresses, keep MCP sign-in usable when an old keyring is unavailable, and report Maven recovery for migration or store failures. Clarify that migration does not revoke unused devices and Disconnect signs shared-store builds out.
 
 - Let external assistants start, inspect and cancel compiler sign-in with session-owned attempt IDs, validated browser addresses and server-verified results.

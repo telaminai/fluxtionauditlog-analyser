@@ -11208,6 +11208,7 @@ public final class MainFrame extends JFrame {
                 }
             } else {
                 proj.put("note", "your own settings — no project is open");
+                telamin.fluxtion.audit.analyser.analyser.llm.NewProjectRoute.addTo(proj);
             }
             out.put("project", proj);
             if (session != null) proj.put("assistant", telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ActivityText
