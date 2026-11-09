@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11px">
+<defs>
+  <clipPath id="clip1"><rect x="56" y="38" width="828" height="290"/></clipPath>
+</defs>
+  <rect x="0" y="0" width="900" height="420" fill="#eeeeee"/>
+  <rect x="56" y="38" width="828" height="290" fill="#f6f8fa"/>
+  <rect x="56" y="38" width="828" height="290" fill="none" stroke="#c2cad3"/>
+  <line x1="56" y1="328" x2="884" y2="328" stroke="#d5dbe3"/>
+  <text x="8" y="332" fill="#57606a">51.640</text>
+  <line x1="56" y1="255" x2="884" y2="255" stroke="#d5dbe3"/>
+  <text x="8" y="259" fill="#57606a">64.620</text>
+  <line x1="56" y1="183" x2="884" y2="183" stroke="#d5dbe3"/>
+  <text x="8" y="187" fill="#57606a">77.600</text>
+  <line x1="56" y1="110" x2="884" y2="110" stroke="#d5dbe3"/>
+  <text x="8" y="114" fill="#57606a">90.580</text>
+  <line x1="56" y1="38" x2="884" y2="38" stroke="#d5dbe3"/>
+  <text x="8" y="42" fill="#57606a">103.56</text>
+  <line x1="222" y1="38" x2="222" y2="328" stroke="#d5dbe3"/>
+  <line x1="387" y1="38" x2="387" y2="328" stroke="#d5dbe3"/>
+  <line x1="553" y1="38" x2="553" y2="328" stroke="#d5dbe3"/>
+  <line x1="718" y1="38" x2="718" y2="328" stroke="#d5dbe3"/>
+  <line x1="56" y1="38" x2="56" y2="328" stroke="#c2cad3"/>
+  <line x1="56" y1="328" x2="884" y2="328" stroke="#c2cad3"/>
+  <text x="56" y="344" fill="#57606a">2026-01-01 09:00:00.090</text>
+  <text x="723" y="344" fill="#57606a">2026-01-01 09:04:30.090</text>
+  <ellipse cx="56.0" cy="51.0" rx="2.0" ry="2.0" fill="#0969da" clip-path="url(#clip1)"/>
+  <line x1="56" y1="51" x2="148" y2="51" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <line x1="148" y1="51" x2="148" y2="51" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <ellipse cx="148.0" cy="51.0" rx="2.0" ry="2.0" fill="#0969da" clip-path="url(#clip1)"/>
+  <line x1="148" y1="51" x2="240" y2="51" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <line x1="240" y1="51" x2="240" y2="61" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <ellipse cx="240.0" cy="61.0" rx="2.0" ry="2.0" fill="#0969da" clip-path="url(#clip1)"/>
+  <line x1="240" y1="61" x2="332" y2="61" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <line x1="332" y1="61" x2="332" y2="80" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <ellipse cx="332.0" cy="80.0" rx="2.0" ry="2.0" fill="#0969da" clip-path="url(#clip1)"/>
+  <line x1="332" y1="80" x2="424" y2="80" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <line x1="424" y1="80" x2="424" y2="80" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <ellipse cx="424.0" cy="80.0" rx="2.0" ry="2.0" fill="#0969da" clip-path="url(#clip1)"/>
+  <line x1="424" y1="80" x2="516" y2="80" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <line x1="516" y1="80" x2="516" y2="315" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <ellipse cx="516.0" cy="315.0" rx="2.0" ry="2.0" fill="#0969da" clip-path="url(#clip1)"/>
+  <line x1="516" y1="315" x2="884" y2="315" stroke="#0969da" stroke-width="1.50" clip-path="url(#clip1)"/>
+  <line x1="56" y1="86" x2="884" y2="86" stroke="#9a6700" stroke-dasharray="6,4" clip-path="url(#clip1)"/>
+  <text x="729" y="82" fill="#9a6700" clip-path="url(#clip1)">a threshold rule (95)</text>
+  <line x1="516" y1="38" x2="516" y2="328" stroke="#8c959f" stroke-dasharray="3,4" clip-path="url(#clip1)"/>
+  <rect x="507" y="14" width="18" height="18" rx="4" ry="4" fill="#9a6700"/>
+  <text x="512" y="27" fill="#ffffff">1</text>
+  <rect x="56" y="372" width="828" height="48" fill="#ffffff"/>
+  <text x="64" y="391" fill="#24292f">Exported straight to SVG by the same paint path that draws the screen.</text>
+  <text x="64" y="407" fill="#24292f">1. the step this chart is about</text>
+</svg>
