@@ -276,12 +276,14 @@ public final class TemplateArchive {
      *       keyless on the shipped processor — then {@code ./run-and-export.sh}, the ONE command its CLAUDE.md
      *       names, which replaces run-server/export-audit/stop-server. {@code setup.sh} is for graph changes.</li>
      *   <li>a Spring authoring starter ({@code setup.sh}, {@code validate.sh}, {@code generate.sh}):
-     *       those three, then its run script. A legacy catalogue adds {@code ./check-fluxtion-key.sh} first;
+     *       those three, then its run script. A legacy catalogue adds {@code ./check-compiler-signin.sh} first
+     *       (or {@code ./check-fluxtion-key.sh} for an older starter);
      *       {@code sign-in-build} omits it and delegates authentication to Maven. It ships only an AOT shell
      *       processor, so its default build is remote generation; the three scripts are its README's
      *       "follow RUNBOOK.md: setup.sh, validate.sh,
      *       generate.sh … Then run".</li>
-     *   <li>any other starter: {@code ./check-fluxtion-key.sh} when shipped unless the catalogue declares
+     *   <li>any other starter: {@code ./check-compiler-signin.sh} (falling back to {@code ./check-fluxtion-key.sh})
+     *       when shipped unless the catalogue declares
      *       {@code sign-in-build}, then {@code ./run.sh} or
      *       {@code ./run-server.sh}, which build on first use — its README's "Build &amp; run".</li>
      * </ul>

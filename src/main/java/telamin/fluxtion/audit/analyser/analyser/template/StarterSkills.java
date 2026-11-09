@@ -198,9 +198,9 @@ public final class StarterSkills {
             + "Compiler sign-in instructions in README and its RUNBOOK; Maven validates the saved credential.";
     // RAPID-OFF (2026-11-07): the legacy key route is closed. Generation goes only through compiler sign-in, so an older
     // starter's `keyNeed: build` means sign-in too. Since the playground's RAPID-OFF starters (fluxtion-web #57), a
-    // starter's ./check-fluxtion-key.sh checks sign-in, never a key file, so it stays wherever the record names it and
-    // the regeneration block agrees with the post-install list. Only an explicit sign-in-build starter, which ships no
-    // such script, has none.
+    // starter's ./check-compiler-signin.sh (or older ./check-fluxtion-key.sh) checks sign-in, never a key file.
+    // Either name stays wherever the record names it so regeneration agrees with the post-install list.
+    // Explicit sign-in-build omits either check and delegates authentication to Maven.
     public static final String KEY_BUILD = SIGN_IN_BUILD;
     /**
      * A runtime-generation starter: on builder 1.0.90 an in-process build reads the same stored login as Maven (token
