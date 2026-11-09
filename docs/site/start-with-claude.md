@@ -73,6 +73,9 @@ It confirms Claude's working folder, not where your new project will be created.
 Continue the conversation. When Claude proposes a project, click **Review…** and choose a new or empty folder.
 After you approve creation, the analyser downloads the starter and adds its skills; review and open the project,
 restart Claude in its folder when offered, then **Send** the prepared handoff to continue.
+The starter's first build generates its processor and needs **compiler sign-in**: run
+`mvn com.telamin.fluxtion:fluxtion-maven-plugin:1.3.4:login` once per machine
+([Connect a compiler account](getting-started.md#connect-a-compiler-account)).
 [Creating your first project](user-guide/projects.md#create-from-a-starter-with-the-assistant) shows the details.
 
 **Need help?** [Installation](install.md) · [Claude setup](inapp/claude-code.md)
