@@ -53,6 +53,7 @@ line, and update this index in the same change.
 | [spec-authoring-token-lowering.md](spec-authoring-token-lowering.md) | proposed 2026-10-13; Higgins lowering for the authoring loop | M72 |
 | [spec-authoring-journey.md](spec-authoring-journey.md) | draft r2 2026-10-17, reviewed; owner decisions OD-76.1–.19 open; not started | M76 |
 | [spec-design-definitions.md](spec-design-definitions.md) | M80; owner boundaries accepted, three dependent implementation PRs; header discovery gated | M80 |
+| [spec-authoring-scorecard.md](spec-authoring-scorecard.md) | draft r3 2026-10-26; SC-B1–B6, authoring from zero; baseline, r1 and r2 trials recorded, strict F1, F4a/F5a, VOID rule, no-cue variant; handover in evidence/m82-HANDOVER.md; OD-82.1–.10 open | M82 |
 
 ## Onboarding and journeys
 
